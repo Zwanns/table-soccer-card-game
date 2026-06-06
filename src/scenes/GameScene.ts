@@ -130,7 +130,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.playStartWhistleIfReady(state);
+    if (interactive) {
+      this.playStartWhistleIfReady(state);
+    }
   }
 
   private drawAttackCard(): void {
