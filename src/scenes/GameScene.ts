@@ -32,7 +32,10 @@ export class GameScene extends Phaser.Scene {
       shots: 0,
       scorers: []
     });
-    new DeckView(this, 115, 520, 21);
+    new DeckView(this, 115, 520, 21, {
+      active: true,
+      attackCardRank: 'A'
+    });
     new DeckView(this, 1485, 520, 21);
     new FieldView(this, centerX, 400);
   }
