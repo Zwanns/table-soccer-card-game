@@ -9,6 +9,7 @@ import { EventLogView } from '../ui/EventLogView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
 import { TeamStatsView } from '../ui/TeamStatsView';
+import type { TeamSelectionData } from './TeamSelectScene';
 
 const FIELD_WIDTH = 1120;
 const FIELD_TOP = 100;
@@ -41,16 +42,25 @@ export class GameScene extends Phaser.Scene {
   private message: Phaser.GameObjects.Container | null = null;
   private animatedRestoreCount = 0;
   private startWhistlePlayed = false;
+  private player1Name = 'France';
+  private player2Name = 'Spain';
 
   public constructor() {
     super('GameScene');
   }
 
+  public init(data: Partial<TeamSelectionData>): void {
+    this.player1Name = data.player1Name ?? 'France';
+    this.player2Name = data.player2Name ?? 'Spain';
+    this.animatedRestoreCount = 0;
+    this.startWhistlePlayed = false;
+  }
+
   public create(): void {
     this.engine = new GameEngine();
     this.engine.startNewGame({
-      player1Name: 'Игрок 1',
-      player2Name: 'Игрок 2'
+      player1Name: this.player1Name,
+      player2Name: this.player2Name
     });
     this.startTurn();
   }

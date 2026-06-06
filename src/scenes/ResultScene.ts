@@ -46,7 +46,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 304, `${playerOne?.name ?? 'Игрок 1'} ${playerOneGoals} : ${playerTwoGoals} ${playerTwo?.name ?? 'Игрок 2'}`, {
+      .text(centerX, 304, `${playerOne?.name ?? 'France'} ${playerOneGoals} : ${playerTwoGoals} ${playerTwo?.name ?? 'Spain'}`, {
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
@@ -63,7 +63,7 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    new Button(this, centerX - 130, 456, 'Сыграть еще', () => this.scene.start('GameScene'));
+    new Button(this, centerX - 130, 456, 'Сыграть еще', () => this.scene.start('TeamSelectScene'));
     new Button(this, centerX + 130, 456, 'В меню', () => this.scene.start('MenuScene'));
   }
 }

@@ -32,7 +32,7 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    new Button(this, centerX, 340, 'Новая игра', () => this.scene.start('GameScene'));
+    new Button(this, centerX, 340, 'Новая игра', () => this.scene.start('TeamSelectScene'));
     new Button(this, centerX, 410, 'Правила', () => this.toggleRules());
   }
 
