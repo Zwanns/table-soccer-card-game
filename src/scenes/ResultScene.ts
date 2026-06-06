@@ -30,6 +30,10 @@ export class ResultScene extends Phaser.Scene {
       : this.state?.players.find((player) => player.id === this.state?.winnerId) ?? null;
     const resultText = this.state?.isDraw === true ? 'Ничья' : `Победитель: ${winner?.name ?? 'не определен'}`;
 
+    if (this.state?.phase === 'GAME_OVER') {
+      this.sound.play('sound-whistle-finish', { volume: 0.68 });
+    }
+
     this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
 
     this.add

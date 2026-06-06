@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
   private animatedRestoreCount = 0;
+  private startWhistlePlayed = false;
 
   public constructor() {
     super('GameScene');
@@ -126,7 +127,10 @@ export class GameScene extends Phaser.Scene {
         interactive: false
       });
       this.animateRestoredCards(state, pendingRestores);
+      return;
     }
+
+    this.playStartWhistleIfReady(state);
   }
 
   private drawAttackCard(): void {
@@ -175,9 +179,11 @@ export class GameScene extends Phaser.Scene {
 
       if (scoredGoal) {
         this.render(state, { interactive: false });
+        this.playSound('sound-goal', 0.72);
         this.showFlyingMessage('GOAL!!', 'goal', () => this.startTurn());
       } else if (goalkeeperSave) {
         this.render(state, { interactive: false });
+        this.playSound('sound-goalkeeper-save', 0.72);
         this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
       } else {
         this.startTurn();
@@ -190,6 +196,7 @@ export class GameScene extends Phaser.Scene {
     this.render(state);
 
     if (goalpostHit) {
+      this.playSound('sound-goalpost', 0.72);
       this.showFlyingMessage('Штанга!', 'post');
     }
   }
@@ -360,6 +367,19 @@ export class GameScene extends Phaser.Scene {
     card.destroy();
     this.input.enabled = true;
     onComplete();
+  }
+
+  private playStartWhistleIfReady(state: Readonly<GameState>): void {
+    if (this.startWhistlePlayed || state.turnNumber !== 1) {
+      return;
+    }
+
+    this.startWhistlePlayed = true;
+    this.playSound('sound-whistle-start', 0.65);
+  }
+
+  private playSound(key: string, volume: number): void {
+    this.sound.play(key, { volume });
   }
 
   private animateRestoredCards(
