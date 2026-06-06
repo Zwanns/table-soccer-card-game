@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { CardView } from './CardView';
-import { DeckView } from './DeckView';
 import { StatusPanel } from './StatusPanel';
 
 interface FieldCardData {
@@ -40,14 +39,10 @@ export class FieldView extends Phaser.GameObjects.Container {
 
     const playerOneLabel = this.createLabel(scene, -525, -260, 'Игрок 1');
     const playerTwoLabel = this.createLabel(scene, 425, -260, 'Игрок 2');
-    const playerOneDeckLabel = this.createLabel(scene, -540, 254, 'Колода: 21');
-    const playerTwoDeckLabel = this.createLabel(scene, 425, 254, 'Колода: 21');
 
-    this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerTwoDeckLabel, playerOneLabel, playerOneDeckLabel]);
+    this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerOneLabel]);
 
     this.add([
-      new DeckView(scene, -505, 190, 21),
-      new DeckView(scene, 505, 190, 21),
       new StatusPanel(scene, 0, 268, 'A', 'Ход игрока 1')
     ]);
 
