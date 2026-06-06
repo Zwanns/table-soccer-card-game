@@ -39,6 +39,17 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (state.phase === 'ENDING_TURN') {
+      const missedAttack = state.log.slice(-3).some((event) => event.type === 'ATTACK_MISSED');
+      this.startTurn();
+
+      if (missedAttack) {
+        this.showFlyingMessage('Мяч потерян...', 'out');
+      }
+
+      return;
+    }
+
     this.render(state);
   }
 

@@ -172,6 +172,56 @@ describe('game engine attacks', () => {
     expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A', '6']);
   });
 
+  it('counts a shot on goal when the attack card is drawn against the goalkeeper line', () => {
+    const engine = createReadyEngine(['A']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+
+    engine.startNextTurn();
+    const result = engine.drawAttackCard();
+
+    expect(result.phase).toBe('WAITING_FOR_TARGET');
+    expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
+    expect(result.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(false);
+  });
+
+  it('treats equal 3-10 goalkeeper ranks as a goalpost hit and waits for the next shot card', () => {
+    const engine = createReadyEngine(['6', 'A']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+
+    engine.startNextTurn();
+    const afterPost = engine.drawAttackCard();
+
+    expect(afterPost.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(afterPost.attackCard).toBeNull();
+    expect(afterPost.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
+    expect(afterPost.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
+    expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
+
+    const nextShot = engine.drawAttackCard();
+
+    expect(nextShot.phase).toBe('WAITING_FOR_TARGET');
+    expect(nextShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(2);
+  });
+
+  it('ends the attack when a goalkeeper shot card cannot beat the goalkeeper', () => {
+    const engine = createReadyEngine(['5']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+
+    engine.startNextTurn();
+    const result = engine.drawAttackCard();
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
+    expect(result.log.some((event) => event.type === 'ATTACK_MISSED')).toBe(true);
+  });
+
   it('scenario 6: not enough cards to restore the field ends the game', () => {
     const gameState = state(['2', '3', '4'], []);
     gameState.players[0].field.goalkeeper = card('A');

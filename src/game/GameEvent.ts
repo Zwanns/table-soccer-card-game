@@ -9,6 +9,7 @@ export type GameEvent =
   | { type: 'TARGETS_AVAILABLE'; positionIds: string[] }
   | { type: 'CARD_DEFEATED'; attackerCard: Card; defenderCard: Card }
   | { type: 'SHOT_ON_GOAL'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
+  | { type: 'GOALPOST_HIT'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'ATTACK_MISSED'; card: Card }
   | { type: 'GOAL_SCORED'; playerId: Player['id'] }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
