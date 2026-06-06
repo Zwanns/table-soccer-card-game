@@ -116,10 +116,7 @@ export class GameScene extends Phaser.Scene {
         hiddenRestoredCards: pendingRestores,
         interactive: false
       });
-      this.animateRestoredCards(state, pendingRestores, () => {
-        this.animatedRestoreCount += pendingRestores.length;
-        this.render(state);
-      });
+      this.animateRestoredCards(state, pendingRestores);
     }
   }
 
@@ -235,13 +232,12 @@ export class GameScene extends Phaser.Scene {
   private animateRestoredCards(
     state: Readonly<GameState>,
     entries: readonly RestoreAnimationEntry[],
-    onComplete: () => void,
     index = 0
   ): void {
     const entry = entries[index];
 
     if (entry === undefined) {
-      onComplete();
+      this.render(state);
       return;
     }
 
@@ -259,11 +255,24 @@ export class GameScene extends Phaser.Scene {
       scale: 1,
       alpha: 1,
       rotation: 0,
-      duration: 620,
+      duration: 420,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
         card.destroy();
-        this.time.delayedCall(90, () => this.animateRestoredCards(state, entries, onComplete, index + 1));
+        this.animatedRestoreCount += 1;
+
+        const hiddenRestoredCards = entries.slice(index + 1);
+
+        if (hiddenRestoredCards.length > 0) {
+          this.render(state, {
+            hiddenRestoredCards,
+            interactive: false
+          });
+          this.time.delayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));
+          return;
+        }
+
+        this.render(state);
       }
     });
   }
