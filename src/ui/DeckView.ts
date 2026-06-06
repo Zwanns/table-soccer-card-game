@@ -20,10 +20,10 @@ export class DeckView extends Phaser.GameObjects.Container {
     front.setStrokeStyle(2, 0x9ed0e0);
 
     const countText = scene.add
-      .text(0, DECK_HEIGHT / 2 + 28, `${count}`, {
+      .text(0, DECK_HEIGHT / 2 + 42, `${count}`, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: '24px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -35,19 +35,8 @@ export class DeckView extends Phaser.GameObjects.Container {
     }
 
     if (options.active === true) {
-      const marker = scene.add
-        .text(0, -DECK_HEIGHT / 2 - 32, 'ХОД', {
-          color: '#1f2a2e',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
-          fontStyle: '700',
-          backgroundColor: '#f0c95a',
-          padding: {
-            x: 12,
-            y: 5
-          }
-        })
-        .setOrigin(0.5);
+      const marker = scene.add.image(0, -DECK_HEIGHT / 2 - 36, 'turn-ball');
+      marker.setDisplaySize(42, 42);
 
       this.add(marker);
     }
