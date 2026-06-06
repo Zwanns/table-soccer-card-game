@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { CardView } from './CardView';
 import { DeckView } from './DeckView';
-import { ScoreView } from './ScoreView';
 import { StatusPanel } from './StatusPanel';
 
 interface FieldCardData {
@@ -32,43 +31,42 @@ export class FieldView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    const pitch = scene.add.rectangle(0, 0, 1160, 560, 0x0d6a42, 1);
+    const pitch = scene.add.rectangle(0, 0, 1232, 520, 0x0d6a42, 1);
     pitch.setStrokeStyle(3, 0xe2efe6);
 
-    const centerLine = scene.add.line(0, 0, 0, -250, 0, 250, 0xe2efe6, 0.55);
+    const centerLine = scene.add.rectangle(0, 0, 2, 500, 0xe2efe6, 0.42);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerOneLabel = this.createLabel(scene, -535, -238, 'Игрок 1');
-    const playerTwoLabel = this.createLabel(scene, 430, -238, 'Игрок 2');
-    const playerOneDeckLabel = this.createLabel(scene, -535, 224, 'Колода: 21');
-    const playerTwoDeckLabel = this.createLabel(scene, 430, 224, 'Колода: 21');
+    const playerOneLabel = this.createLabel(scene, -585, -220, 'Игрок 1');
+    const playerTwoLabel = this.createLabel(scene, 485, -220, 'Игрок 2');
+    const playerOneDeckLabel = this.createLabel(scene, -585, 214, 'Колода: 21');
+    const playerTwoDeckLabel = this.createLabel(scene, 485, 214, 'Колода: 21');
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerTwoDeckLabel, playerOneLabel, playerOneDeckLabel]);
 
     this.add([
-      new DeckView(scene, -492, 170, 21),
-      new DeckView(scene, 492, 170, 21),
-      new ScoreView(scene, 0, -210, 0, 0),
-      new StatusPanel(scene, 0, 240, 'A ♥', 'Ход игрока 1')
+      new DeckView(scene, -540, 160, 21),
+      new DeckView(scene, 540, 160, 21),
+      new StatusPanel(scene, 0, 220, 'A ♥', 'Ход игрока 1')
     ]);
 
     this.addCards(scene, TOP_FIELD, [
-      [455, 0],
-      [315, -74],
-      [315, 74],
-      [150, -108],
-      [150, 0],
-      [150, 108]
+      [535, 0],
+      [390, -74],
+      [390, 74],
+      [220, -108],
+      [220, 0],
+      [220, 108]
     ]);
 
     this.addCards(scene, BOTTOM_FIELD, [
-      [-455, 0],
-      [-315, -74],
-      [-315, 74],
-      [-150, -108],
-      [-150, 0],
-      [-150, 108]
+      [-535, 0],
+      [-390, -74],
+      [-390, 74],
+      [-220, -108],
+      [-220, 0],
+      [-220, 108]
     ]);
 
     scene.add.existing(this);
