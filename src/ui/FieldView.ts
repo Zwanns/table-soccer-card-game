@@ -1,32 +1,36 @@
 import Phaser from 'phaser';
+import type { Card } from '../cards';
+import type { FieldPositionId, GameState, Player } from '../game';
 import { CardView } from './CardView';
 
-interface FieldCardData {
-  rank: string;
-  suit: string;
-  label: string;
+export type TargetSelectHandler = (positionId: FieldPositionId) => void;
+
+interface FieldPositionView {
+  positionId: FieldPositionId;
+  x: number;
+  y: number;
 }
 
-const TOP_FIELD: readonly FieldCardData[] = [
-  { rank: 'K', suit: '♣', label: 'GK' },
-  { rank: '9', suit: '♠', label: 'D1' },
-  { rank: 'Q', suit: '♣', label: 'D2' },
-  { rank: '7', suit: '♠', label: 'M1' },
-  { rank: '10', suit: '♣', label: 'M2' },
-  { rank: 'A', suit: '♠', label: 'M3' }
+const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
+  { positionId: 'goalkeeper', x: -490, y: 0 },
+  { positionId: 'defender-1', x: -360, y: -115 },
+  { positionId: 'defender-2', x: -360, y: 115 },
+  { positionId: 'midfielder-1', x: -205, y: -165 },
+  { positionId: 'midfielder-2', x: -205, y: 0 },
+  { positionId: 'midfielder-3', x: -205, y: 165 }
 ];
 
-const BOTTOM_FIELD: readonly FieldCardData[] = [
-  { rank: 'A', suit: '♦', label: 'GK' },
-  { rank: 'Q', suit: '♦', label: 'D1' },
-  { rank: '9', suit: '♥', label: 'D2' },
-  { rank: 'J', suit: '♥', label: 'M1' },
-  { rank: '8', suit: '♦', label: 'M2' },
-  { rank: '6', suit: '♥', label: 'M3' }
+const PLAYER_TWO_POSITIONS: readonly FieldPositionView[] = [
+  { positionId: 'goalkeeper', x: 490, y: 0 },
+  { positionId: 'defender-1', x: 360, y: -115 },
+  { positionId: 'defender-2', x: 360, y: 115 },
+  { positionId: 'midfielder-1', x: 205, y: -165 },
+  { positionId: 'midfielder-2', x: 205, y: 0 },
+  { positionId: 'midfielder-3', x: 205, y: 165 }
 ];
 
 export class FieldView extends Phaser.GameObjects.Container {
-  public constructor(scene: Phaser.Scene, x: number, y: number) {
+  public constructor(scene: Phaser.Scene, x: number, y: number, state: Readonly<GameState>, onTargetSelect: TargetSelectHandler) {
     super(scene, x, y);
 
     const pitch = scene.add.rectangle(0, 0, 1120, 600, 0x0d6a42, 1);
@@ -36,28 +40,13 @@ export class FieldView extends Phaser.GameObjects.Container {
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerOneLabel = this.createLabel(scene, -525, -260, 'Игрок 1');
-    const playerTwoLabel = this.createLabel(scene, 425, -260, 'Игрок 2');
+    const playerOneLabel = this.createLabel(scene, -525, -260, state.players[0].name);
+    const playerTwoLabel = this.createLabel(scene, 425, -260, state.players[1].name);
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerOneLabel]);
 
-    this.addCards(scene, TOP_FIELD, [
-      [490, 0],
-      [360, -115],
-      [360, 115],
-      [205, -165],
-      [205, 0],
-      [205, 165]
-    ]);
-
-    this.addCards(scene, BOTTOM_FIELD, [
-      [-490, 0],
-      [-360, -115],
-      [-360, 115],
-      [-205, -165],
-      [-205, 0],
-      [-205, 165]
-    ]);
+    this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect);
+    this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect);
 
     scene.add.existing(this);
   }
@@ -73,10 +62,52 @@ export class FieldView extends Phaser.GameObjects.Container {
       .setOrigin(0, 0.5);
   }
 
-  private addCards(scene: Phaser.Scene, cards: readonly FieldCardData[], positions: Array<[number, number]>): void {
-    cards.forEach((card, index) => {
-      const [cardX, cardY] = positions[index] ?? [0, 0];
-      this.add(new CardView(scene, cardX, cardY, card));
+  private addPlayerCards(
+    scene: Phaser.Scene,
+    player: Player,
+    positions: readonly FieldPositionView[],
+    state: Readonly<GameState>,
+    onTargetSelect: TargetSelectHandler
+  ): void {
+    positions.forEach((position) => {
+      const card = player.field[position.positionId];
+
+      if (card === null) {
+        this.addEmptySlot(scene, position.x, position.y);
+        return;
+      }
+
+      const highlighted = state.legalTargetPositionIds.includes(position.positionId);
+      this.add(
+        new CardView(scene, position.x, position.y, {
+          rank: card.rank,
+          suit: getCardSuitSymbol(card),
+          label: position.positionId === 'goalkeeper' ? 'GK' : '',
+          highlighted,
+          onClick: highlighted ? () => onTargetSelect(position.positionId) : undefined
+        })
+      );
     });
+  }
+
+  private addEmptySlot(scene: Phaser.Scene, x: number, y: number): void {
+    const slot = scene.add.rectangle(x, y, 96, 132, 0x0b5738, 0.18);
+    slot.setStrokeStyle(2, 0xcfe3d4, 0.25);
+    this.add(slot);
+  }
+}
+
+function getCardSuitSymbol(card: Card): string | undefined {
+  switch (card.suit) {
+    case 'HEARTS':
+      return '♥';
+    case 'DIAMONDS':
+      return '♦';
+    case 'CLUBS':
+      return '♣';
+    case 'SPADES':
+      return '♠';
+    default:
+      return undefined;
   }
 }

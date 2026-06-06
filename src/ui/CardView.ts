@@ -5,6 +5,8 @@ export interface CardViewOptions {
   suit?: string;
   faceDown?: boolean;
   label?: string;
+  highlighted?: boolean;
+  onClick?: () => void;
 }
 
 const CARD_WIDTH = 96;
@@ -15,12 +17,12 @@ export class CardView extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     const fillColor = options.faceDown ? 0x214f6b : 0xf6f1e7;
-    const strokeColor = options.faceDown ? 0x7bb8d8 : 0x1f2a2e;
+    const strokeColor = options.highlighted === true ? 0xf0c95a : options.faceDown ? 0x7bb8d8 : 0x1f2a2e;
     const rankColor = options.suit === '♥' || options.suit === '♦' ? '#b72f37' : '#1f2a2e';
     const positionLabel = options.label === 'GK' ? options.label : '';
 
     const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, fillColor, 1);
-    body.setStrokeStyle(2, strokeColor);
+    body.setStrokeStyle(options.highlighted === true ? 5 : 2, strokeColor);
 
     const title = scene.add
       .text(0, 0, options.faceDown ? '' : options.rank, {
@@ -41,6 +43,12 @@ export class CardView extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
 
     this.add([body, title, label]);
+
+    if (options.onClick !== undefined) {
+      body.setInteractive({ useHandCursor: true });
+      body.on('pointerdown', options.onClick);
+    }
+
     scene.add.existing(this);
   }
 }

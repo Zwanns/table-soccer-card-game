@@ -1,15 +1,34 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import type { GameState } from '../game';
 import { Button } from '../ui/Button';
 
+interface ResultSceneData {
+  state?: Readonly<GameState>;
+}
+
 export class ResultScene extends Phaser.Scene {
+  private state: Readonly<GameState> | null = null;
+
   public constructor() {
     super('ResultScene');
+  }
+
+  public init(data: ResultSceneData): void {
+    this.state = data.state ?? null;
   }
 
   public create(): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
+    const playerOne = this.state?.players[0];
+    const playerTwo = this.state?.players[1];
+    const playerOneGoals = playerOne?.goals ?? 0;
+    const playerTwoGoals = playerTwo?.goals ?? 0;
+    const winner = this.state?.winnerId === null
+      ? null
+      : this.state?.players.find((player) => player.id === this.state?.winnerId) ?? null;
+    const resultText = this.state?.isDraw === true ? 'Ничья' : `Победитель: ${winner?.name ?? 'не определен'}`;
 
     this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
 
@@ -23,7 +42,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 304, 'Экран результата', {
+      .text(centerX, 304, `${playerOne?.name ?? 'Игрок 1'} ${playerOneGoals} : ${playerTwoGoals} ${playerTwo?.name ?? 'Игрок 2'}`, {
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
@@ -32,13 +51,15 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 358, 'На этом этапе здесь показан только каркас сцены.', {
+      .text(centerX, 358, resultText, {
         color: '#c2d1dc',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px'
+        fontSize: '24px',
+        fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    new Button(this, centerX, 456, 'В меню', () => this.scene.start('MenuScene'));
+    new Button(this, centerX - 130, 456, 'Сыграть еще', () => this.scene.start('GameScene'));
+    new Button(this, centerX + 130, 456, 'В меню', () => this.scene.start('MenuScene'));
   }
 }
