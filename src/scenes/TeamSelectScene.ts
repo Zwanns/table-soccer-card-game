@@ -91,26 +91,28 @@ export class TeamSelectScene extends Phaser.Scene {
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, 440, 82, 0x0b2118, 0.82);
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
-    const flag = this.add.image(-170, 11, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(58, 42);
+    const flag = this.add.image(-164, 10, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(64, 46);
 
     const titleText = this.add
-      .text(-98, -20, title, {
+      .text(-116, -20, title, {
+        align: 'left',
         color: '#b9d5c3',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700'
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0.5);
     const teamText = this.add
-      .text(-98, 14, team.name, {
+      .text(-116, 14, team.name, {
+        align: 'left',
         color: slot === 1 ? '#f1d4d6' : '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: '26px',
         fontStyle: '700',
-        wordWrap: { width: 272 }
+        wordWrap: { width: 300 }
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0.5);
 
     panel.add([background, flag, titleText, teamText]);
     panel.setSize(440, 82);

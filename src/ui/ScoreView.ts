@@ -37,8 +37,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
   }
 
   private createFlag(scene: Phaser.Scene, x: number, flagCode: string): Phaser.GameObjects.Image {
-    const flag = scene.add.image(x, -11, getFlagAssetKey(flagCode));
-    flag.setDisplaySize(74, 52);
+    const flag = scene.add.image(x, -9, getFlagAssetKey(flagCode));
+    flag.setDisplaySize(58, 40);
     return flag;
   }
 
