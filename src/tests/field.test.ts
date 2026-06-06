@@ -28,6 +28,8 @@ function deck(ranks: CardRank[]): Deck {
 function playerWithDeck(ranks: CardRank[]): Player {
   return {
     id: 'PLAYER_1',
+    name: 'Player 1',
+    goals: 0,
     deck: deck(ranks),
     field: createEmptyField()
   };
