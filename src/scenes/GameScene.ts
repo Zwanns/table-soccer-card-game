@@ -26,6 +26,15 @@ interface RenderOptions {
   interactive?: boolean;
 }
 
+interface AttackAnimationContext {
+  attackerId: Player['id'];
+  defenderId: Player['id'];
+  positionId: FieldPositionId;
+  attackerCard: Card;
+}
+
+type AttackAnimationOutcome = 'defeat' | 'goal' | 'post' | 'save';
+
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
@@ -134,6 +143,7 @@ export class GameScene extends Phaser.Scene {
 
   private selectTarget(positionId: FieldPositionId): void {
     const engine = this.requireEngine();
+    const animationContext = this.createAttackAnimationContext(positionId);
     let state: GameState;
 
     try {
@@ -143,6 +153,17 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (animationContext !== null) {
+      this.animateAttackSelection(state, animationContext, getAttackAnimationOutcome(state, positionId), () =>
+        this.handleSelectedTargetState(state)
+      );
+      return;
+    }
+
+    this.handleSelectedTargetState(state);
+  }
+
+  private handleSelectedTargetState(state: GameState): void {
     if (state.phase === 'GAME_OVER') {
       this.openResult(state);
       return;
@@ -233,6 +254,112 @@ export class GameScene extends Phaser.Scene {
         onComplete?.();
       }
     });
+  }
+
+  private createAttackAnimationContext(positionId: FieldPositionId): AttackAnimationContext | null {
+    const state = this.requireEngine().getState();
+    const attacker = state.players.find((player) => player.id === state.activePlayerId);
+    const defender = state.players.find((player) => player.id !== state.activePlayerId);
+
+    if (attacker === undefined || defender === undefined || state.attackCard === null) {
+      return null;
+    }
+
+    if (defender.field[positionId] === null) {
+      return null;
+    }
+
+    return {
+      attackerId: attacker.id,
+      defenderId: defender.id,
+      positionId,
+      attackerCard: { ...state.attackCard }
+    };
+  }
+
+  private animateAttackSelection(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext,
+    outcome: AttackAnimationOutcome,
+    onComplete: () => void
+  ): void {
+    this.input.enabled = false;
+
+    const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
+    const startX = getPlayerDeckX(state, context.attackerId);
+    const card = new CardView(this, startX, DECK_Y, { rank: context.attackerCard.rank, color: context.attackerCard.color });
+    card.setScale(0.92);
+    card.setRotation(context.attackerId === state.players[0].id ? -0.1 : 0.1);
+
+    this.tweens.add({
+      targets: card,
+      x: target.x,
+      y: target.y,
+      scale: 1.04,
+      rotation: 0,
+      duration: 340,
+      ease: 'Cubic.easeIn',
+      onComplete: () => this.finishAttackAnimation(state, context, card, target, outcome, onComplete)
+    });
+  }
+
+  private finishAttackAnimation(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext,
+    card: CardView,
+    target: { x: number; y: number },
+    outcome: AttackAnimationOutcome,
+    onComplete: () => void
+  ): void {
+    this.showImpactPulse(target.x, target.y, outcome);
+
+    if (outcome === 'post' || outcome === 'save') {
+      const activeOnLeft = context.attackerId === state.players[0].id;
+      const reboundX = target.x + (activeOnLeft ? -180 : 180);
+      const reboundY = outcome === 'post' ? target.y - 145 : target.y + 84;
+
+      this.tweens.add({
+        targets: card,
+        x: reboundX,
+        y: reboundY,
+        alpha: 0,
+        rotation: activeOnLeft ? -0.7 : 0.7,
+        duration: 260,
+        ease: 'Cubic.easeOut',
+        onComplete: () => this.finishAnimationObject(card, onComplete)
+      });
+      return;
+    }
+
+    this.tweens.add({
+      targets: card,
+      alpha: 0,
+      scale: 1.12,
+      duration: 180,
+      ease: 'Sine.easeOut',
+      onComplete: () => this.finishAnimationObject(card, onComplete)
+    });
+  }
+
+  private showImpactPulse(x: number, y: number, outcome: AttackAnimationOutcome): void {
+    const color = outcome === 'save' ? 0xffffff : outcome === 'post' ? 0xf0c95a : 0x93f0b2;
+    const pulse = this.add.circle(x, y, 20, color, 0.2);
+    pulse.setStrokeStyle(4, color, 0.86);
+
+    this.tweens.add({
+      targets: pulse,
+      scale: outcome === 'goal' ? 2.4 : 1.8,
+      alpha: 0,
+      duration: 320,
+      ease: 'Sine.easeOut',
+      onComplete: () => pulse.destroy()
+    });
+  }
+
+  private finishAnimationObject(card: CardView, onComplete: () => void): void {
+    card.destroy();
+    this.input.enabled = true;
+    onComplete();
   }
 
   private animateRestoredCards(
@@ -337,6 +464,28 @@ function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimat
         ]
       : []
   );
+}
+
+function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: FieldPositionId): AttackAnimationOutcome {
+  if (positionId !== 'goalkeeper') {
+    return 'defeat';
+  }
+
+  const recentEvents = state.log.slice(-5);
+
+  if (recentEvents.some((event) => event.type === 'GOALPOST_HIT')) {
+    return 'post';
+  }
+
+  if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE')) {
+    return 'save';
+  }
+
+  if (recentEvents.some((event) => event.type === 'GOAL_SCORED')) {
+    return 'goal';
+  }
+
+  return 'defeat';
 }
 
 function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
