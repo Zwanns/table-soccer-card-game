@@ -16,6 +16,7 @@ export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private overlay: Phaser.GameObjects.Container | null = null;
+  private message: Phaser.GameObjects.Container | null = null;
 
   public constructor() {
     super('GameScene');
@@ -69,6 +70,9 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
     this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0]));
     this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1]));
+    if (state.phase === 'WAITING_FOR_TARGET') {
+      this.dynamicLayer.add(new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut()));
+    }
     this.dynamicLayer.add(new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId)));
 
     if (state.phase === 'ENDING_TURN') {
@@ -78,7 +82,14 @@ export class GameScene extends Phaser.Scene {
 
   private selectTarget(positionId: FieldPositionId): void {
     const engine = this.requireEngine();
-    const state = engine.selectTarget(positionId);
+    let state: GameState;
+
+    try {
+      state = engine.selectTarget(positionId);
+    } catch (error) {
+      this.showTemporaryMessage(error instanceof Error ? error.message : 'Недопустимая цель.');
+      return;
+    }
 
     if (state.phase === 'GAME_OVER') {
       this.openResult(state);
@@ -86,6 +97,37 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.render(state);
+  }
+
+  private declareOut(): void {
+    const engine = this.requireEngine();
+    const state = engine.declareOut();
+    this.render(state);
+  }
+
+  private showTemporaryMessage(message: string): void {
+    const centerX = SCENE_WIDTH / 2;
+
+    this.message?.destroy();
+    this.message = this.add.container(centerX, 112);
+
+    const background = this.add.rectangle(0, 0, 640, 46, 0x2d1f1f, 0.94);
+    background.setStrokeStyle(2, 0xf0c95a);
+    const text = this.add
+      .text(0, 0, message, {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        wordWrap: { width: 600 }
+      })
+      .setOrigin(0.5);
+
+    this.message.add([background, text]);
+    this.time.delayedCall(1600, () => {
+      this.message?.destroy();
+      this.message = null;
+    });
   }
 
   private showPassOverlay(state: Readonly<GameState>): void {
@@ -138,6 +180,10 @@ function createPlayerDeck(scene: Phaser.Scene, x: number, y: number, state: Read
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined
   });
+}
+
+function getDeckX(state: Readonly<GameState>): number {
+  return state.activePlayerId === state.players[0].id ? 115 : 1485;
 }
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {

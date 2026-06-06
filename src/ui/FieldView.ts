@@ -77,14 +77,13 @@ export class FieldView extends Phaser.GameObjects.Container {
         return;
       }
 
-      const highlighted = state.legalTargetPositionIds.includes(position.positionId);
+      const selectable = player.id !== state.activePlayerId && state.legalTargetPositionIds.includes(position.positionId);
       this.add(
         new CardView(scene, position.x, position.y, {
           rank: card.rank,
           suit: getCardSuitSymbol(card),
           label: position.positionId === 'goalkeeper' ? 'GK' : '',
-          highlighted,
-          onClick: highlighted ? () => onTargetSelect(position.positionId) : undefined
+          onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
         })
       );
     });

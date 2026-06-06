@@ -159,6 +159,24 @@ export class GameEngine {
     return this.state;
   }
 
+  public declareOut(): GameState {
+    if (this.state.phase !== 'WAITING_FOR_TARGET') {
+      throw new Error('Cannot declare OUT because the game is not waiting for target selection.');
+    }
+
+    const attackCard = this.state.attackCard;
+
+    if (attackCard === null) {
+      throw new Error('Cannot declare OUT because there is no active attack card.');
+    }
+
+    this.state.attackBank.push(attackCard);
+    this.state.attackCard = null;
+    this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
+    this.finishAttack('MISS');
+    return this.state;
+  }
+
   private setupInitialFields(): void {
     for (const player of this.state.players) {
       for (const positionId of RESTORE_ORDER) {
@@ -257,16 +275,11 @@ export class GameEngine {
       return;
     }
 
-    const legalTargets = getCardsInCurrentTargetLine(this.getOpponentPlayer().field)
-      .filter((entry) => canBeat(attackCard, entry.card))
-      .map((entry) => entry.positionId);
+    const legalTargets = getCardsInCurrentTargetLine(this.getOpponentPlayer().field).map((entry) => entry.positionId);
 
     this.state.legalTargetPositionIds = legalTargets;
 
     if (legalTargets.length === 0) {
-      this.state.attackBank.push(attackCard);
-      this.state.attackCard = null;
-      this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
       this.finishAttack('MISS');
       return;
     }

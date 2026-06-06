@@ -74,7 +74,7 @@ function createReadyEngine(playerOneDeck: CardRank[], playerTwoDeck: CardRank[] 
 }
 
 describe('game engine attacks', () => {
-  it('scenario 1: successful hit exposes only beatable midfield targets', () => {
+  it('scenario 1: successful hit exposes the current opponent midfield line without beat hints', () => {
     const engine = createReadyEngine(['7']);
     setPositions(engine.getState().players[1].field, {
       'midfielder-1': '6',
@@ -85,10 +85,14 @@ describe('game engine attacks', () => {
     const result = engine.startNextTurn();
 
     expect(result.phase).toBe('WAITING_FOR_TARGET');
-    expect(engine.getLegalTargets()).toEqual(['midfielder-1']);
+    expect(engine.getLegalTargets()).toEqual(['midfielder-1', 'midfielder-2', 'midfielder-3']);
+
+    const afterSelection = engine.selectTarget('midfielder-1');
+
+    expect(afterSelection.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
   });
 
-  it('scenario 2: special hit 6 beats A during an attack', () => {
+  it('scenario 2: special hit 6 beats A during an attack without revealing that hint in targets', () => {
     const engine = createReadyEngine(['6']);
     setPositions(engine.getState().players[1].field, {
       'midfielder-1': 'A',
@@ -98,10 +102,11 @@ describe('game engine attacks', () => {
 
     engine.startNextTurn();
 
-    expect(engine.getLegalTargets()).toEqual(['midfielder-1']);
+    expect(engine.getLegalTargets()).toEqual(['midfielder-1', 'midfielder-2', 'midfielder-3']);
+    expect(engine.selectTarget('midfielder-1').log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
   });
 
-  it('scenario 3: miss ends the attack, returns the attack card, and switches turn', () => {
+  it('scenario 3: OUT manually ends the attack, returns the attack card, and switches turn', () => {
     const engine = createReadyEngine(['3']);
     setPositions(engine.getState().players[1].field, {
       'midfielder-1': '10',
@@ -109,7 +114,13 @@ describe('game engine attacks', () => {
       'midfielder-3': 'Q'
     });
 
-    const result = engine.startNextTurn();
+    const waitingState = engine.startNextTurn();
+
+    expect(waitingState.phase).toBe('WAITING_FOR_TARGET');
+    expect(waitingState.activePlayerId).toBe('PLAYER_1');
+    expect(waitingState.attackCard?.rank).toBe('3');
+
+    const result = engine.declareOut();
     const attacker = result.players[0];
 
     expect(result.phase).toBe('ENDING_TURN');
