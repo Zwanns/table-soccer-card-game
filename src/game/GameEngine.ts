@@ -95,6 +95,15 @@ export class GameEngine {
       return this.state;
     }
 
+    this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+    return this.state;
+  }
+
+  public drawAttackCard(): GameState {
+    if (this.state.phase !== 'WAITING_FOR_ATTACK_CARD') {
+      throw new Error('Cannot draw an attack card because the game is not waiting for deck selection.');
+    }
+
     if (!this.drawNextAttackCard()) {
       return this.state;
     }
@@ -154,8 +163,7 @@ export class GameEngine {
       return this.state;
     }
 
-    this.drawNextAttackCard();
-    this.resolveAttackCard();
+    this.state.phase = 'WAITING_FOR_ATTACK_CARD';
     return this.state;
   }
 
@@ -280,6 +288,9 @@ export class GameEngine {
     this.state.legalTargetPositionIds = legalTargets;
 
     if (legalTargets.length === 0) {
+      this.state.attackBank.push(attackCard);
+      this.state.attackCard = null;
+      this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
       this.finishAttack('MISS');
       return;
     }

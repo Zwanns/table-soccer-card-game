@@ -82,7 +82,8 @@ describe('game engine attacks', () => {
       'midfielder-3': 'Q'
     });
 
-    const result = engine.startNextTurn();
+    expect(engine.startNextTurn().phase).toBe('WAITING_FOR_ATTACK_CARD');
+    const result = engine.drawAttackCard();
 
     expect(result.phase).toBe('WAITING_FOR_TARGET');
     expect(engine.getLegalTargets()).toEqual(['midfielder-1', 'midfielder-2', 'midfielder-3']);
@@ -101,6 +102,7 @@ describe('game engine attacks', () => {
     });
 
     engine.startNextTurn();
+    engine.drawAttackCard();
 
     expect(engine.getLegalTargets()).toEqual(['midfielder-1', 'midfielder-2', 'midfielder-3']);
     expect(engine.selectTarget('midfielder-1').log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
@@ -114,7 +116,8 @@ describe('game engine attacks', () => {
       'midfielder-3': 'Q'
     });
 
-    const waitingState = engine.startNextTurn();
+    expect(engine.startNextTurn().phase).toBe('WAITING_FOR_ATTACK_CARD');
+    const waitingState = engine.drawAttackCard();
 
     expect(waitingState.phase).toBe('WAITING_FOR_TARGET');
     expect(waitingState.activePlayerId).toBe('PLAYER_1');
@@ -138,12 +141,15 @@ describe('game engine attacks', () => {
     });
 
     engine.startNextTurn();
+    engine.drawAttackCard();
     expect(engine.getLegalTargets()).toEqual(['midfielder-1']);
 
     engine.selectTarget('midfielder-1');
+    engine.drawAttackCard();
     expect(engine.getLegalTargets()).toEqual(['defender-1']);
 
     engine.selectTarget('defender-1');
+    engine.drawAttackCard();
     expect(engine.getLegalTargets()).toEqual(['goalkeeper']);
   });
 
@@ -154,6 +160,7 @@ describe('game engine attacks', () => {
     });
 
     engine.startNextTurn();
+    engine.drawAttackCard();
     const result = engine.selectTarget('goalkeeper');
 
     expect(result.players[0].goals).toBe(1);
@@ -183,6 +190,7 @@ describe('game engine attacks', () => {
     });
 
     engine.startNextTurn();
+    engine.drawAttackCard();
     const result = engine.selectTarget('midfielder-1');
 
     expect(result.phase).toBe('ENDING_TURN');

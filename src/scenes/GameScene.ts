@@ -15,7 +15,6 @@ const FIELD_CENTER_Y = 400;
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
-  private overlay: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
 
   public constructor() {
@@ -48,7 +47,6 @@ export class GameScene extends Phaser.Scene {
     const centerY = SCENE_HEIGHT / 2;
 
     this.dynamicLayer?.destroy();
-    this.overlay?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
@@ -68,16 +66,24 @@ export class GameScene extends Phaser.Scene {
       scorers: getGoalScorers(state.log, state.players, state.players[1].id)
     }));
     this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
-    this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0]));
-    this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1]));
+    this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0], () => this.drawAttackCard()));
+    this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], () => this.drawAttackCard()));
     if (state.phase === 'WAITING_FOR_TARGET') {
       this.dynamicLayer.add(new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut()));
     }
     this.dynamicLayer.add(new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId)));
+  }
 
-    if (state.phase === 'ENDING_TURN') {
-      this.showPassOverlay(state);
+  private drawAttackCard(): void {
+    const engine = this.requireEngine();
+    const state = engine.drawAttackCard();
+
+    if (state.phase === 'GAME_OVER') {
+      this.openResult(state);
+      return;
     }
+
+    this.render(state);
   }
 
   private selectTarget(positionId: FieldPositionId): void {
@@ -96,13 +102,25 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (state.phase === 'ENDING_TURN') {
+      const scoredGoal = state.log.slice(-4).some((event) => event.type === 'GOAL_SCORED');
+      this.startTurn();
+
+      if (scoredGoal) {
+        this.showFlyingMessage('GOAL!!', 'goal');
+      }
+
+      return;
+    }
+
     this.render(state);
   }
 
   private declareOut(): void {
     const engine = this.requireEngine();
-    const state = engine.declareOut();
-    this.render(state);
+    engine.declareOut();
+    this.startTurn();
+    this.showFlyingMessage('Мяч потерян...', 'out');
   }
 
   private showTemporaryMessage(message: string): void {
@@ -130,34 +148,31 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private showPassOverlay(state: Readonly<GameState>): void {
-    const nextPlayer = state.players.find((player) => player.id === state.activePlayerId);
+  private showFlyingMessage(message: string, tone: 'goal' | 'out'): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
+    const fontSize = tone === 'goal' ? '76px' : '38px';
+    const color = tone === 'goal' ? '#f0c95a' : '#ffffff';
 
-    this.overlay?.destroy();
-    this.overlay = this.add.container(0, 0);
-    this.overlay.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x0b1712, 0.92));
-    this.overlay.add(
-      this.add
-        .text(centerX, centerY - 70, 'Ход завершен', {
-          color: '#ffffff',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '42px',
-          fontStyle: '700'
-        })
-        .setOrigin(0.5)
-    );
-    this.overlay.add(
-      this.add
-        .text(centerX, centerY - 18, `Передайте устройство: ${nextPlayer?.name ?? 'следующий игрок'}`, {
-          color: '#d9eadf',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '24px'
-        })
-        .setOrigin(0.5)
-    );
-    this.overlay.add(new Button(this, centerX, centerY + 70, 'Продолжить', () => this.startTurn()));
+    const text = this.add
+      .text(centerX, centerY - 40, message, {
+        color,
+        fontFamily: 'Arial, sans-serif',
+        fontSize,
+        fontStyle: '700',
+        stroke: '#123b2a',
+        strokeThickness: 5
+      })
+      .setOrigin(0.5);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 82,
+      alpha: 0,
+      duration: tone === 'goal' ? 1200 : 900,
+      ease: 'Sine.easeOut',
+      onComplete: () => text.destroy()
+    });
   }
 
   private openResult(state: Readonly<GameState>): void {
@@ -173,12 +188,20 @@ export class GameScene extends Phaser.Scene {
   }
 }
 
-function createPlayerDeck(scene: Phaser.Scene, x: number, y: number, state: Readonly<GameState>, player: Player): DeckView {
+function createPlayerDeck(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  state: Readonly<GameState>,
+  player: Player,
+  onDeckClick: () => void
+): DeckView {
   const isActive = state.activePlayerId === player.id;
 
   return new DeckView(scene, x, y, player.deck.cards.length, {
     active: isActive,
-    attackCardRank: isActive ? state.attackCard?.rank : undefined
+    attackCardRank: isActive ? state.attackCard?.rank : undefined,
+    onClick: isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
 }
 

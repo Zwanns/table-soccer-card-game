@@ -7,6 +7,7 @@ const DECK_HEIGHT = 132;
 export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
+  onClick?: () => void;
 }
 
 export class DeckView extends Phaser.GameObjects.Container {
@@ -48,6 +49,15 @@ export class DeckView extends Phaser.GameObjects.Container {
       });
 
       this.add(marker);
+    }
+
+    if (options.onClick !== undefined) {
+      this.setSize(DECK_WIDTH, DECK_HEIGHT);
+      this.setInteractive(
+        new Phaser.Geom.Rectangle(-DECK_WIDTH / 2, -DECK_HEIGHT / 2, DECK_WIDTH, DECK_HEIGHT),
+        Phaser.Geom.Rectangle.Contains
+      );
+      this.on('pointerdown', options.onClick);
     }
 
     scene.add.existing(this);
