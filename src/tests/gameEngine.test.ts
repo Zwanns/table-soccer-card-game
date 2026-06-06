@@ -256,6 +256,21 @@ describe('game engine attacks', () => {
     expect(result.log.at(-1)).toEqual({ type: 'GAME_OVER', winnerId: null });
   });
 
+  it('logs every card restored from the deck to the field', () => {
+    const engine = createReadyEngine(['9']);
+    engine.getState().players[0].field['defender-1'] = null;
+
+    const result = engine.startNextTurn();
+
+    expect(result.players[0].field['defender-1']?.rank).toBe('9');
+    expect(result.log).toContainEqual({
+      type: 'FIELD_CARD_RESTORED',
+      playerId: 'PLAYER_1',
+      positionId: 'defender-1',
+      card: card('9', '9_0')
+    });
+  });
+
   it('scenario 7: using the last attack card ends the attack but not the game', () => {
     const engine = createReadyEngine(['A']);
     setPositions(engine.getState().players[1].field, {

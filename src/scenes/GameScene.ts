@@ -1,21 +1,36 @@
 import Phaser from 'phaser';
+import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { GameEngine, type FieldPositionId, type GameEvent, type GameState, type Player } from '../game';
 import { Button } from '../ui/Button';
+import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { EventLogView } from '../ui/EventLogView';
-import { FieldView } from '../ui/FieldView';
+import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
 import { TeamStatsView } from '../ui/TeamStatsView';
 
 const FIELD_WIDTH = 1120;
 const FIELD_TOP = 100;
 const FIELD_CENTER_Y = 400;
+const DECK_Y = 560;
+
+interface RestoreAnimationEntry {
+  playerId: Player['id'];
+  positionId: FieldPositionId;
+  card: Card;
+}
+
+interface RenderOptions {
+  hiddenRestoredCards?: readonly RestoreAnimationEntry[];
+  interactive?: boolean;
+}
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
+  private animatedRestoreCount = 0;
 
   public constructor() {
     super('GameScene');
@@ -53,9 +68,10 @@ export class GameScene extends Phaser.Scene {
     this.render(state);
   }
 
-  private render(state: Readonly<GameState>): void {
+  private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
+    const interactive = options.interactive !== false;
 
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
@@ -77,14 +93,34 @@ export class GameScene extends Phaser.Scene {
       scorers: getGoalScorers(state.log, state.players, state.players[1].id)
     }));
     this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
-    this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0], 'right', () => this.drawAttackCard()));
-    this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], 'left', () => this.drawAttackCard()));
+    this.dynamicLayer.add(createPlayerDeck(this, 115, DECK_Y, state, state.players[0], 'right', interactive, () => this.drawAttackCard()));
+    this.dynamicLayer.add(
+      createPlayerDeck(this, 1485, DECK_Y, state, state.players[1], 'left', interactive, () => this.drawAttackCard())
+    );
     this.dynamicLayer.add(
       new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut(), {
-        disabled: state.phase !== 'WAITING_FOR_TARGET' || isGoalkeeperTargetLine(state.legalTargetPositionIds)
+        disabled: !interactive || state.phase !== 'WAITING_FOR_TARGET' || isGoalkeeperTargetLine(state.legalTargetPositionIds)
       })
     );
-    this.dynamicLayer.add(new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId)));
+    this.dynamicLayer.add(
+      new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
+        hiddenCards: options.hiddenRestoredCards,
+        interactive
+      })
+    );
+
+    const pendingRestores = getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
+
+    if (interactive && pendingRestores.length > 0) {
+      this.render(state, {
+        hiddenRestoredCards: pendingRestores,
+        interactive: false
+      });
+      this.animateRestoredCards(state, pendingRestores, () => {
+        this.animatedRestoreCount += pendingRestores.length;
+        this.render(state);
+      });
+    }
   }
 
   private drawAttackCard(): void {
@@ -196,6 +232,42 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private animateRestoredCards(
+    state: Readonly<GameState>,
+    entries: readonly RestoreAnimationEntry[],
+    onComplete: () => void,
+    index = 0
+  ): void {
+    const entry = entries[index];
+
+    if (entry === undefined) {
+      onComplete();
+      return;
+    }
+
+    const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, entry.playerId, entry.positionId);
+    const startX = getPlayerDeckX(state, entry.playerId);
+    const card = new CardView(this, startX, DECK_Y, { rank: entry.card.rank });
+    card.setScale(0.92);
+    card.setAlpha(0.92);
+    card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
+
+    this.tweens.add({
+      targets: card,
+      x: target.x,
+      y: target.y,
+      scale: 1,
+      alpha: 1,
+      rotation: 0,
+      duration: 620,
+      ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        card.destroy();
+        this.time.delayedCall(90, () => this.animateRestoredCards(state, entries, onComplete, index + 1));
+      }
+    });
+  }
+
   private openResult(state: Readonly<GameState>): void {
     this.scene.start('ResultScene', { state });
   }
@@ -216,6 +288,7 @@ function createPlayerDeck(
   state: Readonly<GameState>,
   player: Player,
   countSide: 'left' | 'right',
+  interactive: boolean,
   onDeckClick: () => void
 ): DeckView {
   const isActive = state.activePlayerId === player.id;
@@ -224,12 +297,30 @@ function createPlayerDeck(
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
     countSide,
-    onClick: isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
+    onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
 }
 
 function getDeckX(state: Readonly<GameState>): number {
   return state.activePlayerId === state.players[0].id ? 115 : 1485;
+}
+
+function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
+  return playerId === state.players[0].id ? 115 : 1485;
+}
+
+function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimationEntry[] {
+  return events.flatMap((event) =>
+    event.type === 'FIELD_CARD_RESTORED'
+      ? [
+          {
+            playerId: event.playerId,
+            positionId: event.positionId,
+            card: event.card
+          }
+        ]
+      : []
+  );
 }
 
 function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {

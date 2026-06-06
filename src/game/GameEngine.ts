@@ -197,6 +197,7 @@ export class GameEngine {
         }
 
         player.field[positionId] = card;
+        this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: player.id, positionId, card });
       }
 
       this.appendLog({ type: 'FIELD_RESTORED', playerId: player.id });
@@ -255,6 +256,10 @@ export class GameEngine {
     if (!result.ok) {
       this.finishGame('CANNOT_RESTORE_FIELD');
       return false;
+    }
+
+    for (const entry of result.restoredPositions) {
+      this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: activePlayer.id, positionId: entry.positionId, card: entry.card });
     }
 
     this.appendLog({ type: 'FIELD_RESTORED', playerId: activePlayer.id });

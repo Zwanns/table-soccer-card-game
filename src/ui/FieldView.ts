@@ -5,13 +5,23 @@ import { CardView } from './CardView';
 
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
 
-interface FieldPositionView {
+export interface FieldPositionView {
   positionId: FieldPositionId;
   x: number;
   y: number;
 }
 
-const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
+interface HiddenFieldCard {
+  playerId: Player['id'];
+  positionId: FieldPositionId;
+}
+
+export interface FieldViewOptions {
+  hiddenCards?: readonly HiddenFieldCard[];
+  interactive?: boolean;
+}
+
+export const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
   { positionId: 'goalkeeper', x: -490, y: 0 },
   { positionId: 'defender-1', x: -360, y: -115 },
   { positionId: 'defender-2', x: -360, y: 115 },
@@ -20,7 +30,7 @@ const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
   { positionId: 'midfielder-3', x: -205, y: 165 }
 ];
 
-const PLAYER_TWO_POSITIONS: readonly FieldPositionView[] = [
+export const PLAYER_TWO_POSITIONS: readonly FieldPositionView[] = [
   { positionId: 'goalkeeper', x: 490, y: 0 },
   { positionId: 'defender-1', x: 360, y: -115 },
   { positionId: 'defender-2', x: 360, y: 115 },
@@ -30,7 +40,14 @@ const PLAYER_TWO_POSITIONS: readonly FieldPositionView[] = [
 ];
 
 export class FieldView extends Phaser.GameObjects.Container {
-  public constructor(scene: Phaser.Scene, x: number, y: number, state: Readonly<GameState>, onTargetSelect: TargetSelectHandler) {
+  public constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    state: Readonly<GameState>,
+    onTargetSelect: TargetSelectHandler,
+    options: FieldViewOptions = {}
+  ) {
     super(scene, x, y);
 
     const pitch = scene.add.rectangle(0, 0, 1120, 600, 0x0d6a42, 1);
@@ -45,8 +62,8 @@ export class FieldView extends Phaser.GameObjects.Container {
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerOneLabel]);
 
-    this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect);
-    this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect);
+    this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
+    this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
 
     scene.add.existing(this);
   }
@@ -67,17 +84,19 @@ export class FieldView extends Phaser.GameObjects.Container {
     player: Player,
     positions: readonly FieldPositionView[],
     state: Readonly<GameState>,
-    onTargetSelect: TargetSelectHandler
+    onTargetSelect: TargetSelectHandler,
+    options: FieldViewOptions
   ): void {
     positions.forEach((position) => {
       const card = player.field[position.positionId];
 
-      if (card === null) {
+      if (card === null || isHidden(player.id, position.positionId, options.hiddenCards ?? [])) {
         this.addEmptySlot(scene, position.x, position.y);
         return;
       }
 
-      const selectable = player.id !== state.activePlayerId && state.legalTargetPositionIds.includes(position.positionId);
+      const selectable =
+        options.interactive !== false && player.id !== state.activePlayerId && state.legalTargetPositionIds.includes(position.positionId);
       this.add(
         new CardView(scene, position.x, position.y, {
           rank: card.rank,
@@ -94,6 +113,31 @@ export class FieldView extends Phaser.GameObjects.Container {
     slot.setStrokeStyle(2, 0xcfe3d4, 0.25);
     this.add(slot);
   }
+}
+
+export function getFieldCardPosition(
+  centerX: number,
+  centerY: number,
+  state: Readonly<GameState>,
+  playerId: Player['id'],
+  positionId: FieldPositionId
+): { x: number; y: number } {
+  const playerIndex = state.players.findIndex((player) => player.id === playerId);
+  const positions = playerIndex === 0 ? PLAYER_ONE_POSITIONS : PLAYER_TWO_POSITIONS;
+  const position = positions.find((item) => item.positionId === positionId);
+
+  if (position === undefined) {
+    throw new Error(`Unknown field position "${positionId}".`);
+  }
+
+  return {
+    x: centerX + position.x,
+    y: centerY + position.y
+  };
+}
+
+function isHidden(playerId: Player['id'], positionId: FieldPositionId, hiddenCards: readonly HiddenFieldCard[]): boolean {
+  return hiddenCards.some((card) => card.playerId === playerId && card.positionId === positionId);
 }
 
 function getCardSuitSymbol(card: Card): string | undefined {

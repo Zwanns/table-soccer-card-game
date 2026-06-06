@@ -1,10 +1,12 @@
 import type { Card } from '../cards';
+import type { FieldPositionId } from './PlayerField';
 import type { Player } from './Player';
 
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
   | { type: 'FIELD_RESTORED'; playerId: Player['id'] }
+  | { type: 'FIELD_CARD_RESTORED'; playerId: Player['id']; positionId: FieldPositionId; card: Card }
   | { type: 'ATTACK_CARD_DRAWN'; playerId: Player['id']; card: Card }
   | { type: 'TARGETS_AVAILABLE'; positionIds: string[] }
   | { type: 'CARD_DEFEATED'; attackerCard: Card; defenderCard: Card }
