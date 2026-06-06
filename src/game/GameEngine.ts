@@ -141,6 +141,10 @@ export class GameEngine {
       throw new Error('Cannot select a target because there is no active attack card.');
     }
 
+    if (positionId === 'goalkeeper') {
+      return this.resolveGoalkeeperShot(activePlayer, opponent, attackCard, targetCard);
+    }
+
     if (!canBeatFieldTarget(attackCard, targetCard, positionId)) {
       throw new Error(`Cannot select target "${positionId}" because the attack card cannot beat it.`);
     }
@@ -150,13 +154,6 @@ export class GameEngine {
     this.state.attackCard = null;
     this.state.legalTargetPositionIds = [];
     this.appendLog({ type: 'CARD_DEFEATED', attackerCard: attackCard, defenderCard: targetCard });
-
-    if (positionId === 'goalkeeper') {
-      this.scoreGoal();
-      clearField(opponent.field);
-      this.finishAttack('GOAL');
-      return this.state;
-    }
 
     if (activePlayer.deck.cards.length === 0) {
       this.finishAttack('NO_MORE_ATTACK_CARDS');
@@ -176,6 +173,10 @@ export class GameEngine {
 
     if (attackCard === null) {
       throw new Error('Cannot declare OUT because there is no active attack card.');
+    }
+
+    if (isGoalkeeperTargetLine(this.state.legalTargetPositionIds)) {
+      throw new Error('Cannot declare OUT during a goalkeeper shot.');
     }
 
     this.state.attackBank.push(attackCard);
@@ -283,10 +284,7 @@ export class GameEngine {
       return;
     }
 
-    const activePlayer = this.getActivePlayer();
-    const opponent = this.getOpponentPlayer();
-    const currentLine = getCurrentTargetLine(opponent.field);
-    const legalTargets = getCardsInCurrentTargetLine(opponent.field).map((entry) => entry.positionId);
+    const legalTargets = getCardsInCurrentTargetLine(this.getOpponentPlayer().field).map((entry) => entry.positionId);
 
     this.state.legalTargetPositionIds = legalTargets;
 
@@ -298,47 +296,51 @@ export class GameEngine {
       return;
     }
 
-    if (currentLine === 'GOALKEEPER') {
-      const goalkeeperCard = opponent.field.goalkeeper;
-
-      if (goalkeeperCard === null) {
-        return;
-      }
-
-      this.appendLog({
-        type: 'SHOT_ON_GOAL',
-        playerId: activePlayer.id,
-        attackerCard: attackCard,
-        goalkeeperCard
-      });
-
-      if (isGoalpostHit(attackCard, goalkeeperCard)) {
-        this.state.attackBank.push(attackCard);
-        this.state.attackCard = null;
-        this.state.legalTargetPositionIds = [];
-        this.appendLog({ type: 'GOALPOST_HIT', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
-
-        if (activePlayer.deck.cards.length === 0) {
-          this.finishAttack('NO_MORE_ATTACK_CARDS');
-          return;
-        }
-
-        this.state.phase = 'WAITING_FOR_ATTACK_CARD';
-        return;
-      }
-
-      if (!canBeatFieldTarget(attackCard, goalkeeperCard, 'goalkeeper')) {
-        this.state.attackBank.push(attackCard);
-        this.state.attackCard = null;
-        this.state.legalTargetPositionIds = [];
-        this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
-        this.finishAttack('MISS');
-        return;
-      }
-    }
-
     this.state.phase = 'WAITING_FOR_TARGET';
     this.appendLog({ type: 'TARGETS_AVAILABLE', positionIds: [...legalTargets] });
+  }
+
+  private resolveGoalkeeperShot(activePlayer: Player, opponent: Player, attackCard: Card, goalkeeperCard: Card): GameState {
+    this.appendLog({
+      type: 'SHOT_ON_GOAL',
+      playerId: activePlayer.id,
+      attackerCard: attackCard,
+      goalkeeperCard
+    });
+
+    if (isGoalpostHit(attackCard, goalkeeperCard)) {
+      this.state.attackBank.push(attackCard);
+      this.state.attackCard = null;
+      this.state.legalTargetPositionIds = [];
+      this.appendLog({ type: 'GOALPOST_HIT', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
+
+      if (activePlayer.deck.cards.length === 0) {
+        this.finishAttack('NO_MORE_ATTACK_CARDS');
+        return this.state;
+      }
+
+      this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+      return this.state;
+    }
+
+    if (!canBeatFieldTarget(attackCard, goalkeeperCard, 'goalkeeper')) {
+      this.state.attackBank.push(attackCard);
+      this.state.attackCard = null;
+      this.state.legalTargetPositionIds = [];
+      this.appendLog({ type: 'GOALKEEPER_SAVE', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
+      this.finishAttack('MISS');
+      return this.state;
+    }
+
+    opponent.field.goalkeeper = null;
+    this.state.attackBank.push(attackCard, goalkeeperCard);
+    this.state.attackCard = null;
+    this.state.legalTargetPositionIds = [];
+    this.appendLog({ type: 'CARD_DEFEATED', attackerCard: attackCard, defenderCard: goalkeeperCard });
+    this.scoreGoal();
+    clearField(opponent.field);
+    this.finishAttack('GOAL');
+    return this.state;
   }
 
   private finishAttack(_reason: FinishAttackReason): void {
@@ -464,6 +466,10 @@ function canBeatFieldTarget(attacker: Card, defender: Card, positionId: FieldPos
 
 function isGoalpostHit(attacker: Card, goalkeeper: Card): boolean {
   return isStrictGoalkeeperRank(goalkeeper.rank) && attacker.rank === goalkeeper.rank;
+}
+
+function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
+  return positionIds.length === 1 && positionIds[0] === 'goalkeeper';
 }
 
 function isStrictGoalkeeperRank(rank: Card['rank']): boolean {

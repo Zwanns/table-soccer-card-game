@@ -172,28 +172,48 @@ describe('game engine attacks', () => {
     expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A', '6']);
   });
 
-  it('counts a shot on goal when the attack card is drawn against the goalkeeper line', () => {
+  it('counts a shot on goal when the goalkeeper card is selected', () => {
     const engine = createReadyEngine(['A']);
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
 
     engine.startNextTurn();
-    const result = engine.drawAttackCard();
+    const waitingForShot = engine.drawAttackCard();
 
-    expect(result.phase).toBe('WAITING_FOR_TARGET');
+    expect(waitingForShot.phase).toBe('WAITING_FOR_TARGET');
+    expect(waitingForShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(0);
+
+    const result = engine.selectTarget('goalkeeper');
+
     expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
-    expect(result.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(false);
   });
 
-  it('treats equal 3-10 goalkeeper ranks as a goalpost hit and waits for the next shot card', () => {
+  it('forbids OUT during a goalkeeper shot', () => {
+    const engine = createReadyEngine(['A']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+
+    expect(() => engine.declareOut()).toThrow('Cannot declare OUT during a goalkeeper shot.');
+  });
+
+  it('treats equal 3-10 goalkeeper ranks as a goalpost hit after selecting the goalkeeper', () => {
     const engine = createReadyEngine(['6', 'A']);
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
 
     engine.startNextTurn();
-    const afterPost = engine.drawAttackCard();
+    const waitingForShot = engine.drawAttackCard();
+
+    expect(waitingForShot.phase).toBe('WAITING_FOR_TARGET');
+    expect(waitingForShot.attackCard?.rank).toBe('6');
+
+    const afterPost = engine.selectTarget('goalkeeper');
 
     expect(afterPost.phase).toBe('WAITING_FOR_ATTACK_CARD');
     expect(afterPost.attackCard).toBeNull();
@@ -204,22 +224,23 @@ describe('game engine attacks', () => {
     const nextShot = engine.drawAttackCard();
 
     expect(nextShot.phase).toBe('WAITING_FOR_TARGET');
-    expect(nextShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(2);
+    expect(nextShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
   });
 
-  it('ends the attack when a goalkeeper shot card cannot beat the goalkeeper', () => {
+  it('ends the attack with a goalkeeper save when the selected shot cannot beat the goalkeeper', () => {
     const engine = createReadyEngine(['5']);
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
 
     engine.startNextTurn();
-    const result = engine.drawAttackCard();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('goalkeeper');
 
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
     expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
-    expect(result.log.some((event) => event.type === 'ATTACK_MISSED')).toBe(true);
+    expect(result.log.some((event) => event.type === 'GOALKEEPER_SAVE')).toBe(true);
   });
 
   it('scenario 6: not enough cards to restore the field ends the game', () => {

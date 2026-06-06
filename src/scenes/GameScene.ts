@@ -81,7 +81,7 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], 'left', () => this.drawAttackCard()));
     this.dynamicLayer.add(
       new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut(), {
-        disabled: state.phase !== 'WAITING_FOR_TARGET'
+        disabled: state.phase !== 'WAITING_FOR_TARGET' || isGoalkeeperTargetLine(state.legalTargetPositionIds)
       })
     );
     this.dynamicLayer.add(new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId)));
@@ -117,16 +117,24 @@ export class GameScene extends Phaser.Scene {
 
     if (state.phase === 'ENDING_TURN') {
       const scoredGoal = state.log.slice(-4).some((event) => event.type === 'GOAL_SCORED');
+      const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
       this.startTurn();
 
       if (scoredGoal) {
         this.showFlyingMessage('GOAL!!', 'goal');
+      } else if (goalkeeperSave) {
+        this.showFlyingMessage('Голкипер!!', 'save');
       }
 
       return;
     }
 
+    const goalpostHit = state.log.at(-1)?.type === 'GOALPOST_HIT';
     this.render(state);
+
+    if (goalpostHit) {
+      this.showFlyingMessage('Штанга!', 'post');
+    }
   }
 
   private declareOut(): void {
@@ -161,11 +169,11 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private showFlyingMessage(message: string, tone: 'goal' | 'out'): void {
+  private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save'): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
-    const fontSize = tone === 'goal' ? '76px' : '38px';
-    const color = tone === 'goal' ? '#f0c95a' : '#ffffff';
+    const fontSize = tone === 'goal' ? '76px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
+    const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
 
     const text = this.add
       .text(centerX, centerY - 40, message, {
@@ -222,6 +230,10 @@ function createPlayerDeck(
 
 function getDeckX(state: Readonly<GameState>): number {
   return state.activePlayerId === state.players[0].id ? 115 : 1485;
+}
+
+function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
+  return positionIds.length === 1 && positionIds[0] === 'goalkeeper';
 }
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
