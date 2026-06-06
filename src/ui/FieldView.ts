@@ -31,42 +31,42 @@ export class FieldView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    const pitch = scene.add.rectangle(0, 0, 1248, 600, 0x0d6a42, 1);
+    const pitch = scene.add.rectangle(0, 0, 1120, 600, 0x0d6a42, 1);
     pitch.setStrokeStyle(3, 0xe2efe6);
 
     const centerLine = scene.add.rectangle(0, 0, 2, 580, 0xe2efe6, 0.42);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerOneLabel = this.createLabel(scene, -590, -260, 'Игрок 1');
-    const playerTwoLabel = this.createLabel(scene, 490, -260, 'Игрок 2');
-    const playerOneDeckLabel = this.createLabel(scene, -605, 254, 'Колода: 21');
-    const playerTwoDeckLabel = this.createLabel(scene, 490, 254, 'Колода: 21');
+    const playerOneLabel = this.createLabel(scene, -525, -260, 'Игрок 1');
+    const playerTwoLabel = this.createLabel(scene, 425, -260, 'Игрок 2');
+    const playerOneDeckLabel = this.createLabel(scene, -540, 254, 'Колода: 21');
+    const playerTwoDeckLabel = this.createLabel(scene, 425, 254, 'Колода: 21');
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerTwoDeckLabel, playerOneLabel, playerOneDeckLabel]);
 
     this.add([
-      new DeckView(scene, -570, 190, 21),
-      new DeckView(scene, 570, 190, 21),
+      new DeckView(scene, -505, 190, 21),
+      new DeckView(scene, 505, 190, 21),
       new StatusPanel(scene, 0, 268, 'A', 'Ход игрока 1')
     ]);
 
     this.addCards(scene, TOP_FIELD, [
-      [555, 0],
-      [410, -115],
-      [410, 115],
-      [235, -165],
-      [235, 0],
-      [235, 165]
+      [490, 0],
+      [360, -115],
+      [360, 115],
+      [205, -165],
+      [205, 0],
+      [205, 165]
     ]);
 
     this.addCards(scene, BOTTOM_FIELD, [
-      [-555, 0],
-      [-410, -115],
-      [-410, 115],
-      [-235, -165],
-      [-235, 0],
-      [-235, 165]
+      [-490, 0],
+      [-360, -115],
+      [-360, 115],
+      [-205, -165],
+      [-205, 0],
+      [-205, 165]
     ]);
 
     scene.add.existing(this);

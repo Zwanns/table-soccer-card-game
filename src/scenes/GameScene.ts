@@ -18,12 +18,12 @@ export class GameScene extends Phaser.Scene {
     new Button(this, 280, 42, 'В меню', () => this.scene.start('MenuScene'));
     new ScoreView(this, centerX, 42, 0, 0);
     new Button(this, 1320, 42, 'Результат', () => this.scene.start('ResultScene'));
-    new TeamStatsView(this, 88, 280, {
+    new TeamStatsView(this, 115, 280, {
       align: 'left',
       shots: 0,
       scorers: []
     });
-    new TeamStatsView(this, 1512, 280, {
+    new TeamStatsView(this, 1485, 280, {
       align: 'right',
       shots: 0,
       scorers: []
