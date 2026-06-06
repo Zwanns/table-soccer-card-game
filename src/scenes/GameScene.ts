@@ -156,8 +156,8 @@ export class GameScene extends Phaser.Scene {
         this.render(state, { interactive: false });
         this.showFlyingMessage('GOAL!!', 'goal', () => this.startTurn());
       } else if (goalkeeperSave) {
-        this.startTurn();
-        this.showFlyingMessage('Голкипер!!', 'save');
+        this.render(state, { interactive: false });
+        this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
       } else {
         this.startTurn();
       }
@@ -226,7 +226,7 @@ export class GameScene extends Phaser.Scene {
       targets: text,
       y: text.y - 82,
       alpha: 0,
-      duration: tone === 'goal' ? 1900 : 900,
+      duration: tone === 'goal' || tone === 'save' ? 1900 : 900,
       ease: 'Sine.easeOut',
       onComplete: () => {
         text.destroy();
