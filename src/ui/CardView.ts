@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
+import type { CardColor } from '../cards';
 
 export interface CardViewOptions {
   rank: string;
   suit?: string;
+  color?: CardColor;
   faceDown?: boolean;
   label?: string;
   highlighted?: boolean;
@@ -18,7 +20,7 @@ export class CardView extends Phaser.GameObjects.Container {
 
     const fillColor = options.faceDown ? 0x214f6b : 0xf6f1e7;
     const strokeColor = options.highlighted === true ? 0xf0c95a : options.faceDown ? 0x7bb8d8 : 0x1f2a2e;
-    const rankColor = options.suit === '♥' || options.suit === '♦' ? '#b72f37' : '#1f2a2e';
+    const rankColor = getRankColor(options);
     const positionLabel = options.label === 'GK' ? options.label : '';
 
     const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, fillColor, 1);
@@ -51,4 +53,16 @@ export class CardView extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
   }
+}
+
+function getRankColor(options: CardViewOptions): string {
+  if (options.color === 'RED') {
+    return '#b72f37';
+  }
+
+  if (options.color === 'BLACK') {
+    return '#1f2a2e';
+  }
+
+  return options.suit === '♥' || options.suit === '♦' ? '#b72f37' : '#1f2a2e';
 }

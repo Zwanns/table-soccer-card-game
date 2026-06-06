@@ -49,8 +49,8 @@ export class GameEngine {
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
     const players: [Player, Player] = [
-      createPlayer('PLAYER_1', options.player1Name ?? 'Player 1', shuffleDeck(playerOneDeck, this.random)),
-      createPlayer('PLAYER_2', options.player2Name ?? 'Player 2', shuffleDeck(playerTwoDeck, this.random))
+      createPlayer('PLAYER_1', options.player1Name ?? 'Player 1', 'RED', shuffleDeck(playerOneDeck, this.random)),
+      createPlayer('PLAYER_2', options.player2Name ?? 'Player 2', 'BLACK', shuffleDeck(playerTwoDeck, this.random))
     ];
 
     this.state = createInitialState(players);
@@ -188,16 +188,15 @@ export class GameEngine {
 
   private setupInitialFields(): void {
     for (const player of this.state.players) {
-      for (const positionId of RESTORE_ORDER) {
-        const card = drawTopCard(player.deck);
+      const result = restoreField(player);
 
-        if (card === null) {
-          this.finishGame('NO_FIRST_PLAYER_CARD');
-          return;
-        }
+      if (!result.ok) {
+        this.finishGame('NO_FIRST_PLAYER_CARD');
+        return;
+      }
 
-        player.field[positionId] = card;
-        this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: player.id, positionId, card });
+      for (const entry of result.restoredPositions) {
+        this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: player.id, positionId: entry.positionId, card: entry.card });
       }
 
       this.appendLog({ type: 'FIELD_RESTORED', playerId: player.id });
@@ -350,6 +349,7 @@ export class GameEngine {
 
   private finishAttack(_reason: FinishAttackReason): void {
     const activePlayer = this.getActivePlayer();
+    assignCardsToPlayer(this.state.attackBank, activePlayer);
     addCardsToBottom(activePlayer.deck, this.state.attackBank);
     this.state.attackBank = [];
     this.state.attackCard = null;
@@ -419,8 +419,8 @@ export class GameEngine {
 }
 
 function createInitialState(players: [Player, Player] = [
-  createPlayer('PLAYER_1', 'Player 1', { cards: [] }),
-  createPlayer('PLAYER_2', 'Player 2', { cards: [] })
+  createPlayer('PLAYER_1', 'Player 1', 'RED', { cards: [] }),
+  createPlayer('PLAYER_2', 'Player 2', 'BLACK', { cards: [] })
 ]): GameState {
   return {
     players,
@@ -436,10 +436,11 @@ function createInitialState(players: [Player, Player] = [
   };
 }
 
-function createPlayer(id: string, name: string, deck: Deck): Player {
+function createPlayer(id: string, name: string, teamColor: Player['teamColor'], deck: Deck): Player {
   return {
     id,
     name,
+    teamColor,
     goals: 0,
     deck,
     field: createEmptyField()
@@ -475,6 +476,12 @@ function isGoalpostHit(attacker: Card, goalkeeper: Card): boolean {
 
 function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
   return positionIds.length === 1 && positionIds[0] === 'goalkeeper';
+}
+
+function assignCardsToPlayer(cards: readonly Card[], player: Player): void {
+  for (const card of cards) {
+    card.color = player.teamColor;
+  }
 }
 
 function isStrictGoalkeeperRank(rank: Card['rank']): boolean {

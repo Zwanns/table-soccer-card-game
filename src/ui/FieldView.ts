@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import type { Card } from '../cards';
 import type { FieldPositionId, GameState, Player } from '../game';
 import { CardView } from './CardView';
 
@@ -100,7 +99,7 @@ export class FieldView extends Phaser.GameObjects.Container {
       this.add(
         new CardView(scene, position.x, position.y, {
           rank: card.rank,
-          suit: getCardSuitSymbol(card),
+          color: card.color,
           label: position.positionId === 'goalkeeper' ? 'GK' : '',
           onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
         })
@@ -138,19 +137,4 @@ export function getFieldCardPosition(
 
 function isHidden(playerId: Player['id'], positionId: FieldPositionId, hiddenCards: readonly HiddenFieldCard[]): boolean {
   return hiddenCards.some((card) => card.playerId === playerId && card.positionId === positionId);
-}
-
-function getCardSuitSymbol(card: Card): string | undefined {
-  switch (card.suit) {
-    case 'HEARTS':
-      return '♥';
-    case 'DIAMONDS':
-      return '♦';
-    case 'CLUBS':
-      return '♣';
-    case 'SPADES':
-      return '♠';
-    default:
-      return undefined;
-  }
 }

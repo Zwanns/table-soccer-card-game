@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { CardColor } from '../cards';
 import { CardView } from './CardView';
 
 const DECK_WIDTH = 96;
@@ -7,6 +8,7 @@ const DECK_HEIGHT = 132;
 export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
+  attackCardColor?: CardColor;
   countSide?: 'left' | 'right';
   onClick?: () => void;
 }
@@ -34,7 +36,7 @@ export class DeckView extends Phaser.GameObjects.Container {
     this.add([back, front, countText]);
 
     if (options.attackCardRank !== undefined) {
-      this.add(new CardView(scene, 0, 0, { rank: options.attackCardRank }));
+      this.add(new CardView(scene, 0, 0, { rank: options.attackCardRank, color: options.attackCardColor }));
     }
 
     if (options.active === true) {

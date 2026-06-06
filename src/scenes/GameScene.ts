@@ -249,7 +249,7 @@ export class GameScene extends Phaser.Scene {
 
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, entry.playerId, entry.positionId);
     const startX = getPlayerDeckX(state, entry.playerId);
-    const card = new CardView(this, startX, DECK_Y, { rank: entry.card.rank });
+    const card = new CardView(this, startX, DECK_Y, { rank: entry.card.rank, color: entry.card.color });
     card.setScale(0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
@@ -311,6 +311,7 @@ function createPlayerDeck(
   return new DeckView(scene, x, y, player.deck.cards.length, {
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
+    attackCardColor: isActive ? state.attackCard?.color : undefined,
     countSide,
     onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });

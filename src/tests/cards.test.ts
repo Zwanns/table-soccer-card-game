@@ -66,12 +66,12 @@ describe('player decks', () => {
     expect(playerTwoDeck.cards.filter((deckCard) => deckCard.rank === 'JOKER')).toHaveLength(1);
   });
 
-  it('splits standard cards by player color', () => {
+  it('splits cards by player color', () => {
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
 
-    expect(playerOneDeck.cards.filter((deckCard) => deckCard.color === 'RED')).toHaveLength(26);
+    expect(playerOneDeck.cards.filter((deckCard) => deckCard.color === 'RED')).toHaveLength(27);
     expect(playerOneDeck.cards.filter((deckCard) => deckCard.color === 'BLACK')).toHaveLength(0);
-    expect(playerTwoDeck.cards.filter((deckCard) => deckCard.color === 'BLACK')).toHaveLength(26);
+    expect(playerTwoDeck.cards.filter((deckCard) => deckCard.color === 'BLACK')).toHaveLength(27);
     expect(playerTwoDeck.cards.filter((deckCard) => deckCard.color === 'RED')).toHaveLength(0);
   });
 

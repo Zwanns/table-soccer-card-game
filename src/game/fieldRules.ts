@@ -41,12 +41,10 @@ export function restoreField(player: Player): RestoreFieldResult {
   }
 
   const drawnCards = player.deck.cards.slice(0, requiredCards);
-  const restoredPositions = emptyPositions.map((positionId, index) => ({
-    positionId,
-    card: drawnCards[index] as Card
-  }));
+  const restoredPositions = createRestoredPositions(emptyPositions, drawnCards);
 
   for (const entry of restoredPositions) {
+    entry.card.color = player.teamColor;
     player.field[entry.positionId] = entry.card;
   }
 
@@ -56,6 +54,30 @@ export function restoreField(player: Player): RestoreFieldResult {
     ok: true,
     restoredPositions
   };
+}
+
+function createRestoredPositions(emptyPositions: readonly FieldPositionId[], drawnCards: readonly Card[]): FieldCardEntry[] {
+  const cards = [...drawnCards];
+
+  return emptyPositions.map((positionId) => {
+    if (positionId === 'goalkeeper') {
+      const goalkeeperCardIndex = cards.findIndex((card) => card.rank !== 'JOKER');
+      const cardIndex = goalkeeperCardIndex === -1 ? 0 : goalkeeperCardIndex;
+      const [card] = cards.splice(cardIndex, 1);
+
+      return {
+        positionId,
+        card: card as Card
+      };
+    }
+
+    const [card] = cards.splice(0, 1);
+
+    return {
+      positionId,
+      card: card as Card
+    };
+  });
 }
 
 export function getCurrentTargetLine(field: PlayerField): TargetLine | null {

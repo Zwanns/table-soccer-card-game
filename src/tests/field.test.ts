@@ -29,6 +29,7 @@ function playerWithDeck(ranks: CardRank[]): Player {
   return {
     id: 'PLAYER_1',
     name: 'Player 1',
+    teamColor: 'RED',
     goals: 0,
     deck: deck(ranks),
     field: createEmptyField()
@@ -84,6 +85,17 @@ describe('player field restoration', () => {
     expect(player.field['midfielder-2']?.rank).toBe('6');
     expect(player.field['midfielder-3']?.rank).toBe('7');
     expect(player.deck.cards.map((deckCard) => deckCard.rank)).toEqual(['8']);
+  });
+
+  it('moves a joker drawn for goalkeeper to defender and puts the next card in goal', () => {
+    const player = playerWithDeck(['JOKER', '5', '6', '7', '8', '9']);
+    const result = restoreField(player);
+
+    expect(result.ok).toBe(true);
+    expect(player.field.goalkeeper?.rank).toBe('5');
+    expect(player.field['defender-1']?.rank).toBe('JOKER');
+    expect(player.field.goalkeeper?.color).toBe('RED');
+    expect(player.field['defender-1']?.color).toBe('RED');
   });
 
   it('fills only empty positions', () => {

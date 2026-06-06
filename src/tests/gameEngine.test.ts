@@ -28,6 +28,7 @@ function player(id: string, ranks: CardRank[]): Player {
   return {
     id,
     name: id,
+    teamColor: id === 'PLAYER_1' ? 'RED' : 'BLACK',
     goals: 0,
     deck: deck(ranks),
     field: createEmptyField()
@@ -286,6 +287,22 @@ describe('game engine attacks', () => {
     expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A', '6']);
     expect(result.winnerId).toBeNull();
     expect(result.isDraw).toBe(false);
+  });
+
+  it('recolors defeated opponent cards to the attacking player color when ownership changes', () => {
+    const engine = createReadyEngine(['A']);
+    engine.getState().players[1].field['midfielder-1'] = {
+      ...card('6', 'BLACK_TARGET'),
+      color: 'BLACK',
+      suit: 'SPADES'
+    };
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-1');
+
+    expect(result.players[0].deck.cards.map((deckCard) => deckCard.color)).toEqual(['RED', 'RED']);
+    expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A', '6']);
   });
 
   it('scenario 8: first player selection uses base rank values without special hits', () => {
