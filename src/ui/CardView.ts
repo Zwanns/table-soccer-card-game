@@ -7,8 +7,8 @@ export interface CardViewOptions {
   label?: string;
 }
 
-const CARD_WIDTH = 72;
-const CARD_HEIGHT = 98;
+const CARD_WIDTH = 84;
+const CARD_HEIGHT = 116;
 
 export class CardView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
@@ -22,19 +22,19 @@ export class CardView extends Phaser.GameObjects.Container {
     body.setStrokeStyle(2, strokeColor);
 
     const title = scene.add
-      .text(0, options.suit === undefined ? 0 : -16, options.faceDown ? '' : options.rank, {
+      .text(0, options.suit === undefined ? 0 : -19, options.faceDown ? '' : options.rank, {
         color: rankColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '18px' : '28px',
+        fontSize: options.rank.length > 2 ? '20px' : '32px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
     const suit = scene.add
-      .text(0, 18, options.faceDown ? '' : options.suit ?? '', {
+      .text(0, 22, options.faceDown ? '' : options.suit ?? '', {
         color: rankColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: '28px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -43,7 +43,7 @@ export class CardView extends Phaser.GameObjects.Container {
       .text(0, CARD_HEIGHT / 2 + 16, options.label ?? '', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px'
+        fontSize: '18px'
       })
       .setOrigin(0.5);
 

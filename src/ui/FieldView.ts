@@ -31,42 +31,42 @@ export class FieldView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    const pitch = scene.add.rectangle(0, 0, 1232, 520, 0x0d6a42, 1);
+    const pitch = scene.add.rectangle(0, 0, 1248, 600, 0x0d6a42, 1);
     pitch.setStrokeStyle(3, 0xe2efe6);
 
-    const centerLine = scene.add.rectangle(0, 0, 2, 500, 0xe2efe6, 0.42);
+    const centerLine = scene.add.rectangle(0, 0, 2, 580, 0xe2efe6, 0.42);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerOneLabel = this.createLabel(scene, -585, -220, 'Игрок 1');
-    const playerTwoLabel = this.createLabel(scene, 485, -220, 'Игрок 2');
-    const playerOneDeckLabel = this.createLabel(scene, -585, 214, 'Колода: 21');
-    const playerTwoDeckLabel = this.createLabel(scene, 485, 214, 'Колода: 21');
+    const playerOneLabel = this.createLabel(scene, -590, -260, 'Игрок 1');
+    const playerTwoLabel = this.createLabel(scene, 490, -260, 'Игрок 2');
+    const playerOneDeckLabel = this.createLabel(scene, -605, 254, 'Колода: 21');
+    const playerTwoDeckLabel = this.createLabel(scene, 490, 254, 'Колода: 21');
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerTwoDeckLabel, playerOneLabel, playerOneDeckLabel]);
 
     this.add([
-      new DeckView(scene, -540, 160, 21),
-      new DeckView(scene, 540, 160, 21),
-      new StatusPanel(scene, 0, 220, 'A ♥', 'Ход игрока 1')
+      new DeckView(scene, -570, 190, 21),
+      new DeckView(scene, 570, 190, 21),
+      new StatusPanel(scene, 0, 268, 'A ♥', 'Ход игрока 1')
     ]);
 
     this.addCards(scene, TOP_FIELD, [
-      [535, 0],
-      [390, -74],
-      [390, 74],
-      [220, -108],
-      [220, 0],
-      [220, 108]
+      [555, 0],
+      [410, -90],
+      [410, 90],
+      [235, -132],
+      [235, 0],
+      [235, 132]
     ]);
 
     this.addCards(scene, BOTTOM_FIELD, [
-      [-535, 0],
-      [-390, -74],
-      [-390, 74],
-      [-220, -108],
-      [-220, 0],
-      [-220, 108]
+      [-555, 0],
+      [-410, -90],
+      [-410, 90],
+      [-235, -132],
+      [-235, 0],
+      [-235, 132]
     ]);
 
     scene.add.existing(this);
