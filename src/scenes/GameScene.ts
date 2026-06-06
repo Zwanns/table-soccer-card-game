@@ -88,7 +88,9 @@ export class GameScene extends Phaser.Scene {
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(new Button(this, centerX - FIELD_WIDTH / 2 + 110, 42, 'В меню', () => this.scene.start('MenuScene')));
-    this.dynamicLayer.add(new ScoreView(this, centerX, 42, state.players[0].goals, state.players[1].goals));
+    this.dynamicLayer.add(
+      new ScoreView(this, centerX, 42, state.players[0].name, state.players[1].name, state.players[0].goals, state.players[1].goals)
+    );
     this.dynamicLayer.add(
       new Button(this, centerX + FIELD_WIDTH / 2 - 110, 42, 'Результат', () => this.openResult(state))
     );

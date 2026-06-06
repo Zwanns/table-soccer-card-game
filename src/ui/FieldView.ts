@@ -56,26 +56,12 @@ export class FieldView extends Phaser.GameObjects.Container {
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerOneLabel = this.createLabel(scene, -525, -260, state.players[0].name);
-    const playerTwoLabel = this.createLabel(scene, 425, -260, state.players[1].name);
-
-    this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerOneLabel]);
+    this.add([pitch, centerLine, centerCircle]);
 
     this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
     this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
 
     scene.add.existing(this);
-  }
-
-  private createLabel(scene: Phaser.Scene, x: number, y: number, text: string): Phaser.GameObjects.Text {
-    return scene.add
-      .text(x, y, text, {
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
   }
 
   private addPlayerCards(
