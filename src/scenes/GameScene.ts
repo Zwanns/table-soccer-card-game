@@ -151,12 +151,15 @@ export class GameScene extends Phaser.Scene {
     if (state.phase === 'ENDING_TURN') {
       const scoredGoal = state.log.slice(-4).some((event) => event.type === 'GOAL_SCORED');
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
-      this.startTurn();
 
       if (scoredGoal) {
-        this.showFlyingMessage('GOAL!!', 'goal');
+        this.render(state, { interactive: false });
+        this.showFlyingMessage('GOAL!!', 'goal', () => this.startTurn());
       } else if (goalkeeperSave) {
+        this.startTurn();
         this.showFlyingMessage('Голкипер!!', 'save');
+      } else {
+        this.startTurn();
       }
 
       return;
@@ -202,7 +205,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save'): void {
+  private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save', onComplete?: () => void): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
     const fontSize = tone === 'goal' ? '76px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
@@ -223,9 +226,12 @@ export class GameScene extends Phaser.Scene {
       targets: text,
       y: text.y - 82,
       alpha: 0,
-      duration: tone === 'goal' ? 1200 : 900,
+      duration: tone === 'goal' ? 1900 : 900,
       ease: 'Sine.easeOut',
-      onComplete: () => text.destroy()
+      onComplete: () => {
+        text.destroy();
+        onComplete?.();
+      }
     });
   }
 
