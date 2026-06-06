@@ -20,53 +20,55 @@ const TOP_FIELD: readonly FieldCardData[] = [
 ];
 
 const BOTTOM_FIELD: readonly FieldCardData[] = [
-  { rank: 'J', suit: '♥', label: 'M1' },
-  { rank: '8', suit: '♦', label: 'M2' },
-  { rank: '6', suit: '♥', label: 'M3' },
+  { rank: 'A', suit: '♦', label: 'GK' },
   { rank: 'Q', suit: '♦', label: 'D1' },
   { rank: '9', suit: '♥', label: 'D2' },
-  { rank: 'A', suit: '♦', label: 'GK' }
+  { rank: 'J', suit: '♥', label: 'M1' },
+  { rank: '8', suit: '♦', label: 'M2' },
+  { rank: '6', suit: '♥', label: 'M3' }
 ];
 
 export class FieldView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
 
-    const pitch = scene.add.rectangle(0, 0, 1120, 620, 0x0d6a42, 1);
+    const pitch = scene.add.rectangle(0, 0, 1160, 560, 0x0d6a42, 1);
     pitch.setStrokeStyle(3, 0xe2efe6);
 
-    const centerLine = scene.add.line(0, 0, -520, 0, 520, 0, 0xe2efe6, 0.55);
+    const centerLine = scene.add.line(0, 0, 0, -250, 0, 250, 0xe2efe6, 0.55);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    const playerTwoLabel = this.createLabel(scene, -515, -280, 'Игрок 2');
-    const playerTwoDeckLabel = this.createLabel(scene, 400, -280, 'Колода: 21');
-    const playerOneLabel = this.createLabel(scene, -515, 234, 'Игрок 1');
-    const playerOneDeckLabel = this.createLabel(scene, 400, 234, 'Колода: 21');
+    const playerOneLabel = this.createLabel(scene, -535, -238, 'Игрок 1');
+    const playerTwoLabel = this.createLabel(scene, 430, -238, 'Игрок 2');
+    const playerOneDeckLabel = this.createLabel(scene, -535, 224, 'Колода: 21');
+    const playerTwoDeckLabel = this.createLabel(scene, 430, 224, 'Колода: 21');
 
     this.add([pitch, centerLine, centerCircle, playerTwoLabel, playerTwoDeckLabel, playerOneLabel, playerOneDeckLabel]);
 
-    new DeckView(scene, x + 500, y - 230, 21);
-    new DeckView(scene, x + 500, y + 250, 21);
-    new ScoreView(scene, x, y, 0, 0);
-    new StatusPanel(scene, x, y + 296, 'A ♥', 'Ход игрока 1');
+    this.add([
+      new DeckView(scene, -492, 170, 21),
+      new DeckView(scene, 492, 170, 21),
+      new ScoreView(scene, 0, -210, 0, 0),
+      new StatusPanel(scene, 0, 240, 'A ♥', 'Ход игрока 1')
+    ]);
 
     this.addCards(scene, TOP_FIELD, [
-      [0, -220],
-      [-120, -130],
-      [120, -130],
-      [-200, -42],
-      [0, -42],
-      [200, -42]
+      [455, 0],
+      [315, -74],
+      [315, 74],
+      [150, -108],
+      [150, 0],
+      [150, 108]
     ]);
 
     this.addCards(scene, BOTTOM_FIELD, [
-      [-200, 86],
-      [0, 86],
-      [200, 86],
-      [-120, 176],
-      [120, 176],
-      [0, 264]
+      [-455, 0],
+      [-315, -74],
+      [-315, 74],
+      [-150, -108],
+      [-150, 0],
+      [-150, 108]
     ]);
 
     scene.add.existing(this);
@@ -86,7 +88,7 @@ export class FieldView extends Phaser.GameObjects.Container {
   private addCards(scene: Phaser.Scene, cards: readonly FieldCardData[], positions: Array<[number, number]>): void {
     cards.forEach((card, index) => {
       const [cardX, cardY] = positions[index] ?? [0, 0];
-      new CardView(scene, this.x + cardX, this.y + cardY, card);
+      this.add(new CardView(scene, cardX, cardY, card));
     });
   }
 }
