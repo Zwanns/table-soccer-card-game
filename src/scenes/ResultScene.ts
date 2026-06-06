@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE } from '../config';
+import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from '../ui/Button';
 
 export class ResultScene extends Phaser.Scene {
@@ -8,10 +8,13 @@ export class ResultScene extends Phaser.Scene {
   }
 
   public create(): void {
-    this.add.rectangle(640, 360, 1280, 720, 0x142231);
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+
+    this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
 
     this.add
-      .text(640, 220, GAME_TITLE, {
+      .text(centerX, 220, GAME_TITLE, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '54px',
@@ -20,7 +23,7 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(640, 304, 'Экран результата', {
+      .text(centerX, 304, 'Экран результата', {
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
@@ -29,13 +32,13 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(640, 358, 'На этом этапе здесь показан только каркас сцены.', {
+      .text(centerX, 358, 'На этом этапе здесь показан только каркас сцены.', {
         color: '#c2d1dc',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px'
       })
       .setOrigin(0.5);
 
-    new Button(this, 640, 456, 'В меню', () => this.scene.start('MenuScene'));
+    new Button(this, centerX, 456, 'В меню', () => this.scene.start('MenuScene'));
   }
 }

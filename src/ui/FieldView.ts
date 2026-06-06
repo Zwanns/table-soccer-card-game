@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { CardView } from './CardView';
 import { DeckView } from './DeckView';
 import { StatusPanel } from './StatusPanel';
-import { TeamStatsView } from './TeamStatsView';
 
 interface FieldCardData {
   rank: string;
@@ -49,17 +48,7 @@ export class FieldView extends Phaser.GameObjects.Container {
     this.add([
       new DeckView(scene, -570, 190, 21),
       new DeckView(scene, 570, 190, 21),
-      new StatusPanel(scene, 0, 268, 'A', 'Ход игрока 1'),
-      new TeamStatsView(scene, -495, -150, {
-        align: 'left',
-        shots: 0,
-        scorers: []
-      }),
-      new TeamStatsView(scene, 495, -150, {
-        align: 'right',
-        shots: 0,
-        scorers: []
-      })
+      new StatusPanel(scene, 0, 268, 'A', 'Ход игрока 1')
     ]);
 
     this.addCards(scene, TOP_FIELD, [

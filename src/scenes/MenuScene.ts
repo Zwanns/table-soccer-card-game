@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE } from '../config';
+import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from '../ui/Button';
 
 export class MenuScene extends Phaser.Scene {
@@ -10,10 +10,13 @@ export class MenuScene extends Phaser.Scene {
   }
 
   public create(): void {
-    this.add.rectangle(640, 360, 1280, 720, 0x0b5f3a);
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+
+    this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x0b5f3a);
 
     this.add
-      .text(640, 190, GAME_TITLE, {
+      .text(centerX, 190, GAME_TITLE, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '64px',
@@ -22,15 +25,15 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(640, 248, 'Браузерная карточная игра', {
+      .text(centerX, 248, 'Браузерная карточная игра', {
         color: '#d7eadc',
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px'
       })
       .setOrigin(0.5);
 
-    new Button(this, 640, 340, 'Новая игра', () => this.scene.start('GameScene'));
-    new Button(this, 640, 410, 'Правила', () => this.toggleRules());
+    new Button(this, centerX, 340, 'Новая игра', () => this.scene.start('GameScene'));
+    new Button(this, centerX, 410, 'Правила', () => this.toggleRules());
   }
 
   private toggleRules(): void {
@@ -40,7 +43,7 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
-    const panel = this.add.container(640, 540);
+    const panel = this.add.container(SCENE_WIDTH / 2, 540);
     const background = this.add.rectangle(0, 0, 620, 94, 0x173d2b, 0.98);
     background.setStrokeStyle(2, 0x9dd2a7);
 

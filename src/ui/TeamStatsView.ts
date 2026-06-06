@@ -10,7 +10,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: TeamStatsViewOptions) {
     super(scene, x, y);
 
-    const width = 220;
+    const width = 160;
     const height = 112;
     const textOriginX = options.align === 'left' ? 0 : 1;
     const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
@@ -25,7 +25,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
         align: textAlign,
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '16px',
         fontStyle: '700'
       })
       .setOrigin(textOriginX, 0.5);
@@ -35,7 +35,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
         align: textAlign,
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '17px'
+        fontSize: '15px'
       })
       .setOrigin(textOriginX, 0.5);
 
@@ -44,7 +44,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
         align: textAlign,
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
+        fontSize: '15px',
         wordWrap: { width: width - 32 }
       })
       .setOrigin(textOriginX, 0.5);
