@@ -53,20 +53,20 @@ export class FieldView extends Phaser.GameObjects.Container {
 
     this.addCards(scene, TOP_FIELD, [
       [555, 0],
-      [410, -90],
-      [410, 90],
-      [235, -132],
+      [410, -115],
+      [410, 115],
+      [235, -165],
       [235, 0],
-      [235, 132]
+      [235, 165]
     ]);
 
     this.addCards(scene, BOTTOM_FIELD, [
       [-555, 0],
-      [-410, -90],
-      [-410, 90],
-      [-235, -132],
+      [-410, -115],
+      [-410, 115],
+      [-235, -165],
       [-235, 0],
-      [-235, 132]
+      [-235, 165]
     ]);
 
     scene.add.existing(this);

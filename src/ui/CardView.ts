@@ -7,8 +7,8 @@ export interface CardViewOptions {
   label?: string;
 }
 
-const CARD_WIDTH = 84;
-const CARD_HEIGHT = 116;
+const CARD_WIDTH = 96;
+const CARD_HEIGHT = 132;
 
 export class CardView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
@@ -17,37 +17,30 @@ export class CardView extends Phaser.GameObjects.Container {
     const fillColor = options.faceDown ? 0x214f6b : 0xf6f1e7;
     const strokeColor = options.faceDown ? 0x7bb8d8 : 0x1f2a2e;
     const rankColor = options.suit === '♥' || options.suit === '♦' ? '#b72f37' : '#1f2a2e';
+    const positionLabel = options.label === 'GK' ? options.label : '';
 
     const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, fillColor, 1);
     body.setStrokeStyle(2, strokeColor);
 
     const title = scene.add
-      .text(0, options.suit === undefined ? 0 : -19, options.faceDown ? '' : options.rank, {
+      .text(0, 0, options.faceDown ? '' : options.rank, {
         color: rankColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '20px' : '32px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
-    const suit = scene.add
-      .text(0, 22, options.faceDown ? '' : options.suit ?? '', {
-        color: rankColor,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: options.rank.length > 2 ? '24px' : '40px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
     const label = scene.add
-      .text(0, CARD_HEIGHT / 2 + 16, options.label ?? '', {
+      .text(0, CARD_HEIGHT / 2 + 18, positionLabel, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px'
+        fontSize: '20px',
+        fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    this.add([body, title, suit, label]);
+    this.add([body, title, label]);
     scene.add.existing(this);
   }
 }

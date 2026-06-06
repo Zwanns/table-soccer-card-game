@@ -13,6 +13,6 @@ export class GameScene extends Phaser.Scene {
     new Button(this, 172, 42, 'В меню', () => this.scene.start('MenuScene'));
     new ScoreView(this, 640, 42, 0, 0);
     new Button(this, 1108, 42, 'Результат', () => this.scene.start('ResultScene'));
-    new FieldView(this, 640, 382);
+    new FieldView(this, 640, 400);
   }
 }
