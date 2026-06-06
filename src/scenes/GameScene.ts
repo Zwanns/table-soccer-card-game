@@ -181,6 +181,7 @@ export class GameScene extends Phaser.Scene {
 
       if (scoredGoal) {
         this.render(state, { interactive: false });
+        this.playSound('sound-goal-hit', 0.62);
         this.playSound('sound-goal', 0.72);
         this.showFlyingMessage('GOAL!!', 'goal', () => this.startTurn());
       } else if (goalkeeperSave) {
