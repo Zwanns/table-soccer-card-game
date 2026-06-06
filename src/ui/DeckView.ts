@@ -35,8 +35,17 @@ export class DeckView extends Phaser.GameObjects.Container {
     }
 
     if (options.active === true) {
-      const marker = scene.add.image(0, -DECK_HEIGHT / 2 - 36, 'turn-ball');
-      marker.setDisplaySize(42, 42);
+      const marker = scene.add.image(0, -DECK_HEIGHT / 2 - 30, 'turn-ball');
+      marker.setDisplaySize(34, 34);
+
+      scene.tweens.add({
+        targets: marker,
+        y: marker.y - 6,
+        duration: 720,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1
+      });
 
       this.add(marker);
     }
