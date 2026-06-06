@@ -8,6 +8,7 @@ export type GameEvent =
   | { type: 'ATTACK_CARD_DRAWN'; playerId: Player['id']; card: Card }
   | { type: 'TARGETS_AVAILABLE'; positionIds: string[] }
   | { type: 'CARD_DEFEATED'; attackerCard: Card; defenderCard: Card }
+  | { type: 'SHOT_ON_GOAL'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'ATTACK_MISSED'; card: Card }
   | { type: 'GOAL_SCORED'; playerId: Player['id'] }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }

@@ -145,6 +145,15 @@ export class GameEngine {
       throw new Error(`Cannot select target "${positionId}" because the attack card cannot beat it.`);
     }
 
+    if (positionId === 'goalkeeper') {
+      this.appendLog({
+        type: 'SHOT_ON_GOAL',
+        playerId: activePlayer.id,
+        attackerCard: attackCard,
+        goalkeeperCard: targetCard
+      });
+    }
+
     opponent.field[positionId] = null;
     this.state.attackBank.push(attackCard, targetCard);
     this.state.attackCard = null;

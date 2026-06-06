@@ -91,6 +91,7 @@ describe('game engine attacks', () => {
     const afterSelection = engine.selectTarget('midfielder-1');
 
     expect(afterSelection.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
+    expect(afterSelection.log.some((event) => event.type === 'SHOT_ON_GOAL')).toBe(false);
   });
 
   it('scenario 2: special hit 6 beats A during an attack without revealing that hint in targets', () => {
@@ -164,6 +165,7 @@ describe('game engine attacks', () => {
     const result = engine.selectTarget('goalkeeper');
 
     expect(result.players[0].goals).toBe(1);
+    expect(result.log.some((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toBe(true);
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
     expect(Object.values(result.players[1].field)).toEqual([null, null, null, null, null, null]);

@@ -214,7 +214,7 @@ function getDeckX(state: Readonly<GameState>): number {
 }
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
-  return events.filter((event) => event.type === 'ATTACK_CARD_DRAWN' && event.playerId === playerId).length;
+  return events.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === playerId).length;
 }
 
 function getGoalScorers(events: readonly GameEvent[], players: readonly Player[], playerId: Player['id']): string[] {
