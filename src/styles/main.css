@@ -1,3 +1,9 @@
+@font-face {
+  font-family: 'DS-Digital';
+  src: url('../../Fonts/DS-DIGI.TTF') format('truetype');
+  font-display: swap;
+}
+
 html,
 body,
 #app {
