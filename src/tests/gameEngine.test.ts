@@ -28,6 +28,7 @@ function player(id: string, ranks: CardRank[]): Player {
   return {
     id,
     name: id,
+    flagCode: id === 'PLAYER_1' ? 'fr' : 'es',
     teamColor: id === 'PLAYER_1' ? 'RED' : 'BLACK',
     goals: 0,
     deck: deck(ranks),

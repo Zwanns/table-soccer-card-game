@@ -4,6 +4,7 @@ import type { PlayerField } from './PlayerField';
 export interface Player {
   id: string;
   name: string;
+  flagCode: string;
   teamColor: Exclude<CardColor, 'JOKER'>;
   goals: number;
   deck: Deck;

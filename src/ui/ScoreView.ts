@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getFlagAssetKey } from '../data/nationalTeams';
 
 export class ScoreView extends Phaser.GameObjects.Container {
   public constructor(
@@ -7,16 +8,20 @@ export class ScoreView extends Phaser.GameObjects.Container {
     y: number,
     playerOneName: string,
     playerTwoName: string,
+    playerOneFlagCode: string,
+    playerTwoFlagCode: string,
     playerOneGoals: number,
     playerTwoGoals: number
   ) {
     super(scene, x, y);
 
-    const background = scene.add.rectangle(0, 0, 420, 78, 0x08120f, 0.92);
+    const background = scene.add.rectangle(0, 0, 520, 78, 0x08120f, 0.92);
     background.setStrokeStyle(2, 0x436b58, 0.95);
 
-    const playerOneLabel = this.createPlayerLabel(scene, -186, playerOneName, 'left');
-    const playerTwoLabel = this.createPlayerLabel(scene, 186, playerTwoName, 'right');
+    const playerOneFlag = this.createFlag(scene, -176, playerOneFlagCode);
+    const playerTwoFlag = this.createFlag(scene, 176, playerTwoFlagCode);
+    const playerOneLabel = this.createPlayerLabel(scene, -176, 26, playerOneName);
+    const playerTwoLabel = this.createPlayerLabel(scene, 176, 26, playerTwoName);
 
     const label = scene.add
       .text(0, -1, `${playerOneGoals}:${playerTwoGoals}`, {
@@ -27,20 +32,26 @@ export class ScoreView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([background, playerOneLabel, playerTwoLabel, label]);
+    this.add([background, playerOneFlag, playerTwoFlag, playerOneLabel, playerTwoLabel, label]);
     scene.add.existing(this);
   }
 
-  private createPlayerLabel(scene: Phaser.Scene, x: number, text: string, align: 'left' | 'right'): Phaser.GameObjects.Text {
+  private createFlag(scene: Phaser.Scene, x: number, flagCode: string): Phaser.GameObjects.Image {
+    const flag = scene.add.image(x, -11, getFlagAssetKey(flagCode));
+    flag.setDisplaySize(74, 52);
+    return flag;
+  }
+
+  private createPlayerLabel(scene: Phaser.Scene, x: number, y: number, text: string): Phaser.GameObjects.Text {
     return scene.add
-      .text(x, 0, text, {
-        align,
+      .text(x, y, text, {
+        align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '14px',
         fontStyle: '700',
-        wordWrap: { width: 128 }
+        wordWrap: { width: 130 }
       })
-      .setOrigin(align === 'left' ? 0 : 1, 0.5);
+      .setOrigin(0.5);
   }
 }

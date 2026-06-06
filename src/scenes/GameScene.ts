@@ -44,6 +44,8 @@ export class GameScene extends Phaser.Scene {
   private startWhistlePlayed = false;
   private player1Name = 'France';
   private player2Name = 'Spain';
+  private player1FlagCode = 'fr';
+  private player2FlagCode = 'es';
 
   public constructor() {
     super('GameScene');
@@ -52,6 +54,8 @@ export class GameScene extends Phaser.Scene {
   public init(data: Partial<TeamSelectionData>): void {
     this.player1Name = data.player1Name ?? 'France';
     this.player2Name = data.player2Name ?? 'Spain';
+    this.player1FlagCode = data.player1FlagCode ?? 'fr';
+    this.player2FlagCode = data.player2FlagCode ?? 'es';
     this.animatedRestoreCount = 0;
     this.startWhistlePlayed = false;
   }
@@ -60,7 +64,9 @@ export class GameScene extends Phaser.Scene {
     this.engine = new GameEngine();
     this.engine.startNewGame({
       player1Name: this.player1Name,
-      player2Name: this.player2Name
+      player2Name: this.player2Name,
+      player1FlagCode: this.player1FlagCode,
+      player2FlagCode: this.player2FlagCode
     });
     this.startTurn();
   }
@@ -99,7 +105,17 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(new Button(this, centerX - FIELD_WIDTH / 2 + 110, 42, 'В меню', () => this.scene.start('MenuScene')));
     this.dynamicLayer.add(
-      new ScoreView(this, centerX, 42, state.players[0].name, state.players[1].name, state.players[0].goals, state.players[1].goals)
+      new ScoreView(
+        this,
+        centerX,
+        42,
+        state.players[0].name,
+        state.players[1].name,
+        state.players[0].flagCode,
+        state.players[1].flagCode,
+        state.players[0].goals,
+        state.players[1].goals
+      )
     );
     this.dynamicLayer.add(
       new Button(this, centerX + FIELD_WIDTH / 2 - 110, 42, 'Результат', () => this.openResult(state))

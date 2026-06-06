@@ -30,6 +30,8 @@ export interface StartNewGameOptions {
   seed?: string;
   player1Name?: string;
   player2Name?: string;
+  player1FlagCode?: string;
+  player2FlagCode?: string;
 }
 
 type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS';
@@ -49,8 +51,20 @@ export class GameEngine {
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
     const players: [Player, Player] = [
-      createPlayer('PLAYER_1', options.player1Name ?? 'Player 1', 'RED', shuffleDeck(playerOneDeck, this.random)),
-      createPlayer('PLAYER_2', options.player2Name ?? 'Player 2', 'BLACK', shuffleDeck(playerTwoDeck, this.random))
+      createPlayer(
+        'PLAYER_1',
+        options.player1Name ?? 'Player 1',
+        options.player1FlagCode ?? 'fr',
+        'RED',
+        shuffleDeck(playerOneDeck, this.random)
+      ),
+      createPlayer(
+        'PLAYER_2',
+        options.player2Name ?? 'Player 2',
+        options.player2FlagCode ?? 'es',
+        'BLACK',
+        shuffleDeck(playerTwoDeck, this.random)
+      )
     ];
 
     this.state = createInitialState(players);
@@ -419,8 +433,8 @@ export class GameEngine {
 }
 
 function createInitialState(players: [Player, Player] = [
-  createPlayer('PLAYER_1', 'Player 1', 'RED', { cards: [] }),
-  createPlayer('PLAYER_2', 'Player 2', 'BLACK', { cards: [] })
+  createPlayer('PLAYER_1', 'Player 1', 'fr', 'RED', { cards: [] }),
+  createPlayer('PLAYER_2', 'Player 2', 'es', 'BLACK', { cards: [] })
 ]): GameState {
   return {
     players,
@@ -436,10 +450,11 @@ function createInitialState(players: [Player, Player] = [
   };
 }
 
-function createPlayer(id: string, name: string, teamColor: Player['teamColor'], deck: Deck): Player {
+function createPlayer(id: string, name: string, flagCode: string, teamColor: Player['teamColor'], deck: Deck): Player {
   return {
     id,
     name,
+    flagCode,
     teamColor,
     goals: 0,
     deck,

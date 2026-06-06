@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GAME_TITLE } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
@@ -20,5 +22,12 @@ describe('project scaffold', () => {
     expect(teamNames).toEqual([...teamNames].sort((first, second) => first.localeCompare(second)));
     expect(teamNames).toEqual(expect.arrayContaining(['Armenia', 'Belarus', 'Georgia', 'Kazakhstan']));
     expect(teamNames).not.toEqual(expect.arrayContaining(['Russia', 'Burkina Faso', 'DR Congo', 'Jordan']));
+  });
+
+  it('has a local svg flag for every national team', () => {
+    for (const team of NATIONAL_TEAMS) {
+      expect(team.flagCode).not.toBe('');
+      expect(existsSync(join(process.cwd(), 'flags', `${team.flagCode}.svg`))).toBe(true);
+    }
   });
 });

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 
 type TeamSlot = 1 | 2;
@@ -12,6 +12,8 @@ const DEFAULT_TEAM_TWO = 'Spain';
 export interface TeamSelectionData {
   player1Name: string;
   player2Name: string;
+  player1FlagCode: string;
+  player2FlagCode: string;
 }
 
 export class TeamSelectScene extends Phaser.Scene {
@@ -54,8 +56,8 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createSelectedPanel(370, 126, 'Team 1', this.selectedTeamOne, 1);
-    this.createSelectedPanel(1230, 126, 'Team 2', this.selectedTeamTwo, 2);
+    this.createSelectedPanel(370, 126, 'Team 1', this.getSelectedTeam(1), 1);
+    this.createSelectedPanel(1230, 126, 'Team 2', this.getSelectedTeam(2), 2);
 
     this.add
       .text(centerX, 126, 'VS', {
@@ -84,14 +86,16 @@ export class TeamSelectScene extends Phaser.Scene {
     });
   }
 
-  private createSelectedPanel(x: number, y: number, title: string, teamName: string, slot: TeamSlot): void {
+  private createSelectedPanel(x: number, y: number, title: string, team: NationalTeam, slot: TeamSlot): void {
     const isActive = this.activeSlot === slot;
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, 440, 82, 0x0b2118, 0.82);
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
+    const flag = this.add.image(-170, 11, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(58, 42);
 
     const titleText = this.add
-      .text(0, -20, title, {
+      .text(-98, -20, title, {
         color: '#b9d5c3',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
@@ -99,15 +103,16 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const teamText = this.add
-      .text(0, 14, teamName, {
+      .text(-98, 14, team.name, {
         color: slot === 1 ? '#f1d4d6' : '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
-        fontStyle: '700'
+        fontStyle: '700',
+        wordWrap: { width: 272 }
       })
       .setOrigin(0.5);
 
-    panel.add([background, titleText, teamText]);
+    panel.add([background, flag, titleText, teamText]);
     panel.setSize(440, 82);
     panel.setInteractive({ useHandCursor: true });
     panel.on('pointerdown', () => {
@@ -147,6 +152,8 @@ export class TeamSelectScene extends Phaser.Scene {
     const background = this.add.rectangle(0, 0, width, height, isSelected ? 0xf0c95a : 0x143f2c, isSelected ? 0.96 : 0.9);
     const strokeColor = isTeamOne ? 0xc43845 : isTeamTwo ? 0xd9eadf : 0x5f9572;
     background.setStrokeStyle(isSelected ? 3 : 2, strokeColor, 0.95);
+    const flag = this.add.image(-width / 2 + 29, 11, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(38, 28);
 
     const rankText = this.add
       .text(-width / 2 + 13, -14, String(team.rank), {
@@ -157,17 +164,17 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     const teamText = this.add
-      .text(0, 8, team.name, {
+      .text(24, 8, team.name, {
         align: 'center',
         color: isSelected ? '#1f2a2e' : '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         fontStyle: '700',
-        wordWrap: { width: width - 18 }
+        wordWrap: { width: width - 62 }
       })
       .setOrigin(0.5);
 
-    option.add([background, rankText, teamText]);
+    option.add([background, flag, rankText, teamText]);
     option.setSize(width, height);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
@@ -213,7 +220,9 @@ export class TeamSelectScene extends Phaser.Scene {
   private startMatch(): void {
     const data: TeamSelectionData = {
       player1Name: this.selectedTeamOne,
-      player2Name: this.selectedTeamTwo
+      player2Name: this.selectedTeamTwo,
+      player1FlagCode: this.getSelectedTeam(1).flagCode,
+      player2FlagCode: this.getSelectedTeam(2).flagCode
     };
 
     this.scene.start('GameScene', data);
@@ -236,6 +245,11 @@ export class TeamSelectScene extends Phaser.Scene {
       this.message?.destroy();
       this.message = null;
     });
+  }
+
+  private getSelectedTeam(slot: TeamSlot): NationalTeam {
+    const teamName = slot === 1 ? this.selectedTeamOne : this.selectedTeamTwo;
+    return NATIONAL_TEAMS.find((team) => team.name === teamName) ?? NATIONAL_TEAMS[0];
   }
 }
 
