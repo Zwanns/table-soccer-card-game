@@ -52,12 +52,10 @@ export class DeckView extends Phaser.GameObjects.Container {
     }
 
     if (options.onClick !== undefined) {
-      this.setSize(DECK_WIDTH, DECK_HEIGHT);
-      this.setInteractive(
-        new Phaser.Geom.Rectangle(-DECK_WIDTH / 2, -DECK_HEIGHT / 2, DECK_WIDTH, DECK_HEIGHT),
-        Phaser.Geom.Rectangle.Contains
-      );
-      this.on('pointerdown', options.onClick);
+      const clickTarget = scene.add.rectangle(0, 0, DECK_WIDTH + 24, DECK_HEIGHT + 24, 0xffffff, 0.01);
+      clickTarget.setInteractive({ useHandCursor: true });
+      clickTarget.on('pointerdown', options.onClick);
+      this.add(clickTarget);
     }
 
     scene.add.existing(this);

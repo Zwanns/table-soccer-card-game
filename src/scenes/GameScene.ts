@@ -68,9 +68,11 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
     this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0], () => this.drawAttackCard()));
     this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], () => this.drawAttackCard()));
-    if (state.phase === 'WAITING_FOR_TARGET') {
-      this.dynamicLayer.add(new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut()));
-    }
+    this.dynamicLayer.add(
+      new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut(), {
+        disabled: state.phase !== 'WAITING_FOR_TARGET'
+      })
+    );
     this.dynamicLayer.add(new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId)));
   }
 

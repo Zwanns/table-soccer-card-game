@@ -5,7 +5,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     const label = scene.add
-      .text(0, 0, `${playerTwoGoals} : ${playerOneGoals}`, {
+      .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '38px',
