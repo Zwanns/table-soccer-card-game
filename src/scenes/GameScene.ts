@@ -66,8 +66,8 @@ export class GameScene extends Phaser.Scene {
       scorers: getGoalScorers(state.log, state.players, state.players[1].id)
     }));
     this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
-    this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0], () => this.drawAttackCard()));
-    this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], () => this.drawAttackCard()));
+    this.dynamicLayer.add(createPlayerDeck(this, 115, 560, state, state.players[0], 'right', () => this.drawAttackCard()));
+    this.dynamicLayer.add(createPlayerDeck(this, 1485, 560, state, state.players[1], 'left', () => this.drawAttackCard()));
     this.dynamicLayer.add(
       new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut(), {
         disabled: state.phase !== 'WAITING_FOR_TARGET'
@@ -196,6 +196,7 @@ function createPlayerDeck(
   y: number,
   state: Readonly<GameState>,
   player: Player,
+  countSide: 'left' | 'right',
   onDeckClick: () => void
 ): DeckView {
   const isActive = state.activePlayerId === player.id;
@@ -203,6 +204,7 @@ function createPlayerDeck(
   return new DeckView(scene, x, y, player.deck.cards.length, {
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
+    countSide,
     onClick: isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
 }

@@ -7,6 +7,7 @@ const DECK_HEIGHT = 132;
 export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
+  countSide?: 'left' | 'right';
   onClick?: () => void;
 }
 
@@ -20,11 +21,12 @@ export class DeckView extends Phaser.GameObjects.Container {
     const front = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b);
     front.setStrokeStyle(2, 0x9ed0e0);
 
+    const countOffsetX = options.countSide === 'left' ? -76 : 76;
     const countText = scene.add
-      .text(0, DECK_HEIGHT / 2 + 42, `${count}`, {
+      .text(countOffsetX, 0, `${count}`, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: '22px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
