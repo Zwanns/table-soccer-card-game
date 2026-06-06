@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { getFlagAssetUrl } from '../data/flagAssets';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
 
 export class BootScene extends Phaser.Scene {
@@ -11,7 +10,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('turn-ball', 'cards/ball.webp');
 
     for (const team of NATIONAL_TEAMS) {
-      this.load.svg(getFlagAssetKey(team.flagCode), getFlagAssetUrl(team.flagCode), { width: 96, height: 72 });
+      this.load.svg(getFlagAssetKey(team.flagCode), `flags/${team.flagCode}.svg`, { width: 96, height: 72 });
     }
 
     this.load.audio('sound-whistle-start', 'Sounds/referees-whistle_start.mp3');

@@ -27,7 +27,7 @@ describe('project scaffold', () => {
   it('has a local svg flag for every national team', () => {
     for (const team of NATIONAL_TEAMS) {
       expect(team.flagCode).not.toBe('');
-      expect(existsSync(join(process.cwd(), 'flags', `${team.flagCode}.svg`))).toBe(true);
+      expect(existsSync(join(process.cwd(), 'public', 'flags', `${team.flagCode}.svg`))).toBe(true);
     }
   });
 });
