@@ -5,7 +5,6 @@ import { GameEngine, type FieldPositionId, type GameEvent, type GameState, type 
 import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
-import { EventLogView } from '../ui/EventLogView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
 import { TeamStatsView } from '../ui/TeamStatsView';
@@ -130,7 +129,6 @@ export class GameScene extends Phaser.Scene {
       shots: getShotsForPlayer(state.log, state.players[1].id),
       scorers: getGoalScorers(state.log, state.players, state.players[1].id)
     }));
-    this.dynamicLayer.add(new EventLogView(this, 115, 360, state.log, state.players));
     this.dynamicLayer.add(createPlayerDeck(this, 115, DECK_Y, state, state.players[0], 'right', interactive, () => this.drawAttackCard()));
     this.dynamicLayer.add(
       createPlayerDeck(this, 1485, DECK_Y, state, state.players[1], 'left', interactive, () => this.drawAttackCard())
