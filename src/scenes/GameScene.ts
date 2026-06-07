@@ -14,6 +14,7 @@ const FIELD_WIDTH = 1120;
 const FIELD_TOP = 100;
 const FIELD_CENTER_Y = 400;
 const DECK_Y = 560;
+const OUT_BUTTON_Y = 673;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -134,7 +135,7 @@ export class GameScene extends Phaser.Scene {
       createPlayerDeck(this, 1485, DECK_Y, state, state.players[1], 'left', interactive, () => this.drawAttackCard())
     );
     this.dynamicLayer.add(
-      new Button(this, getDeckX(state), 686, 'OUT', () => this.declareOut(), {
+      new Button(this, getDeckX(state), OUT_BUTTON_Y, 'OUT', () => this.declareOut(), {
         disabled: !interactive || state.phase !== 'WAITING_FOR_TARGET' || isGoalkeeperTargetLine(state.legalTargetPositionIds)
       })
     );
