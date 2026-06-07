@@ -20,6 +20,22 @@ describe('project scaffold', () => {
     expect(gameSceneSource).not.toContain('"OUT"');
   });
 
+  it('prepares the main menu asset folder and architecture', () => {
+    const menuSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    expect(existsSync(join(process.cwd(), 'public', 'menu'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'menu', 'README.md'))).toBe(true);
+    expect(menuSceneSource).toContain('createBackground');
+    expect(menuSceneSource).toContain('createOverlay');
+    expect(menuSceneSource).toContain('createDecor');
+    expect(menuSceneSource).toContain('createTitle');
+    expect(menuSceneSource).toContain('createButtons');
+    expect(menuSceneSource).toContain('createFooter');
+    expect(menuSceneSource).toContain('MENU_LAYOUT');
+    expect(bootSceneSource).toContain('MENU_ASSETS.background');
+  });
+
   it('provides 64 unique national teams for match setup', () => {
     const teamNames = NATIONAL_TEAMS.map((team) => team.name);
 
