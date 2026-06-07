@@ -4,6 +4,8 @@ export type { StartNewGameOptions } from './GameEngine';
 export type { GameEvent } from './GameEvent';
 export type { GamePhase } from './GamePhase';
 export type { GameState } from './GameState';
+export type { PlayerMatchStats } from './matchStats';
+export { getMatchStats } from './matchStats';
 export type { FieldCardEntry, FieldPositionId, PlayerField, TargetLine } from './PlayerField';
 export {
   createEmptyField,

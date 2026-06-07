@@ -3,6 +3,7 @@ import type { Card, CardRank, Deck } from '../cards';
 import {
   createEmptyField,
   GameEngine,
+  getMatchStats,
   type FieldPositionId,
   type GameState,
   type Player,
@@ -318,6 +319,39 @@ describe('game engine attacks', () => {
     expect(engine.getState().log.at(-1)).toEqual({
       type: 'FIRST_PLAYER_SELECTED',
       playerId: 'PLAYER_2'
+    });
+  });
+
+  it('summarizes final match statistics from the event log', () => {
+    const gameState = state([], []);
+    gameState.players[0].goals = 1;
+    gameState.players[1].goals = 0;
+    gameState.log.push(
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: card('6') },
+      { type: 'GOAL_SCORED', playerId: 'PLAYER_1' },
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: card('7') },
+      { type: 'GOALPOST_HIT', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: card('7') },
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: card('8') },
+      { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: card('8') }
+    );
+
+    const [playerOneStats, playerTwoStats] = getMatchStats(gameState);
+
+    expect(playerOneStats).toEqual({
+      playerId: 'PLAYER_1',
+      goals: 1,
+      shots: 1,
+      goalpostHits: 0,
+      goalkeeperSaves: 1,
+      shotAccuracy: 100
+    });
+    expect(playerTwoStats).toEqual({
+      playerId: 'PLAYER_2',
+      goals: 0,
+      shots: 2,
+      goalpostHits: 1,
+      goalkeeperSaves: 0,
+      shotAccuracy: 0
     });
   });
 });
