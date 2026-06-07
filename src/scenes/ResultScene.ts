@@ -46,14 +46,16 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.add
-      .text(centerX, 186, `${playerOne?.name ?? 'France'} ${playerOneGoals} : ${playerTwoGoals} ${playerTwo?.name ?? 'Spain'}`, {
-        color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
+    this.createScoreLine(
+      centerX,
+      186,
+      playerOne?.name ?? 'France',
+      playerTwo?.name ?? 'Spain',
+      playerOne?.flagCode ?? 'fr',
+      playerTwo?.flagCode ?? 'es',
+      playerOneGoals,
+      playerTwoGoals
+    );
 
     this.add
       .text(centerX, 236, resultText, {
@@ -90,8 +92,8 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const playerOneHeader = this.createTeamHeader(-250, -88, playerOne.name, playerOne.flagCode);
-    const playerTwoHeader = this.createTeamHeader(250, -88, playerTwo.name, playerTwo.flagCode);
+    const playerOneHeader = this.createTeamName(-250, -88, playerOne.name);
+    const playerTwoHeader = this.createTeamName(250, -88, playerTwo.name);
 
     panel.add([background, title, playerOneHeader, playerTwoHeader]);
 
@@ -100,33 +102,78 @@ export class ResultScene extends Phaser.Scene {
       ['Удары', String(playerOneStats.shots), String(playerTwoStats.shots)],
       ['Штанги', String(playerOneStats.goalpostHits), String(playerTwoStats.goalpostHits)],
       ['Сэйвы GK', String(playerOneStats.goalkeeperSaves), String(playerTwoStats.goalkeeperSaves)],
-      ['Реализация', formatPercent(playerOneStats.shotAccuracy), formatPercent(playerTwoStats.shotAccuracy)]
+      ['Реализация', formatPercent(playerOneStats.shotAccuracy), formatPercent(playerTwoStats.shotAccuracy)],
+      ['Владение мячом', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
     ];
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
-      const rowY = -34 + index * 36;
+      const rowY = -48 + index * 34;
       panel.add(this.createStatsValue(-250, rowY, playerOneValue));
       panel.add(this.createStatsLabel(rowY, label));
       panel.add(this.createStatsValue(250, rowY, playerTwoValue));
     });
   }
 
-  private createTeamHeader(x: number, y: number, name: string, flagCode: string): Phaser.GameObjects.Container {
-    const header = this.add.container(x, y);
-    const flag = this.add.image(-58, 0, getFlagAssetKey(flagCode));
-    flag.setDisplaySize(48, 34);
-    const text = this.add
-      .text(-22, 0, name, {
+  private createScoreLine(
+    x: number,
+    y: number,
+    playerOneName: string,
+    playerTwoName: string,
+    playerOneFlagCode: string,
+    playerTwoFlagCode: string,
+    playerOneGoals: number,
+    playerTwoGoals: number
+  ): void {
+    const scoreLine = this.add.container(x, y);
+    const playerOneFlag = this.add.image(-280, 0, getFlagAssetKey(playerOneFlagCode));
+    playerOneFlag.setDisplaySize(52, 36);
+    const playerTwoFlag = this.add.image(280, 0, getFlagAssetKey(playerTwoFlagCode));
+    playerTwoFlag.setDisplaySize(52, 36);
+
+    const playerOneText = this.add
+      .text(-244, 0, playerOneName, {
+        color: '#dfeaf2',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: '700',
+        wordWrap: { width: 210 }
+      })
+      .setOrigin(0, 0.5);
+
+    const score = this.add
+      .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
+        color: '#dfeaf2',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const playerTwoText = this.add
+      .text(244, 0, playerTwoName, {
+        align: 'right',
+        color: '#dfeaf2',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: '700',
+        wordWrap: { width: 210 }
+      })
+      .setOrigin(1, 0.5);
+
+    scoreLine.add([playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag]);
+  }
+
+  private createTeamName(x: number, y: number, name: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, name, {
+        align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700',
-        wordWrap: { width: 180 }
+        wordWrap: { width: 190 }
       })
-      .setOrigin(0, 0.5);
-
-    header.add([flag, text]);
-    return header;
+      .setOrigin(0.5);
   }
 
   private createStatsLabel(y: number, text: string): Phaser.GameObjects.Text {

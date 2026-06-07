@@ -9,7 +9,14 @@ export type GameEvent =
   | { type: 'FIELD_CARD_RESTORED'; playerId: Player['id']; positionId: FieldPositionId; card: Card }
   | { type: 'ATTACK_CARD_DRAWN'; playerId: Player['id']; card: Card }
   | { type: 'TARGETS_AVAILABLE'; positionIds: string[] }
-  | { type: 'CARD_DEFEATED'; attackerCard: Card; defenderCard: Card }
+  | {
+      type: 'CARD_DEFEATED';
+      playerId: Player['id'];
+      turnNumber: number;
+      positionId: FieldPositionId;
+      attackerCard: Card;
+      defenderCard: Card;
+    }
   | { type: 'SHOT_ON_GOAL'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'GOALPOST_HIT'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'GOALKEEPER_SAVE'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }

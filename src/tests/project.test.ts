@@ -1,12 +1,16 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { GAME_TITLE } from '../config';
+import { GAME_TITLE, GAME_VERSION } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
 describe('project scaffold', () => {
   it('uses the required game title', () => {
-    expect(GAME_TITLE).toBe('Table Soccer');
+    expect(GAME_TITLE).toBe('Total Soccer Mundial');
+  });
+
+  it('uses the required game version', () => {
+    expect(GAME_VERSION).toBe('0.6a');
   });
 
   it('provides 64 unique national teams for match setup', () => {

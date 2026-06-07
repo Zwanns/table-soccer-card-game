@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { GameEngine, type FieldPositionId, type GameEvent, type GameState, type Player } from '../game';
+import { GameEngine, getTeamAdvantage, type FieldPositionId, type GameEvent, type GameState, type Player } from '../game';
+import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
@@ -143,6 +144,11 @@ export class GameScene extends Phaser.Scene {
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
         hiddenCards: options.hiddenRestoredCards,
         interactive
+      })
+    );
+    this.dynamicLayer.add(
+      new AdvantageView(this, centerX, 94, {
+        advantage: getTeamAdvantage(state)
       })
     );
 

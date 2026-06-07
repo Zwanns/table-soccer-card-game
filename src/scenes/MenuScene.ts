@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from '../ui/Button';
 
 export class MenuScene extends Phaser.Scene {
@@ -29,6 +29,15 @@ export class MenuScene extends Phaser.Scene {
         color: '#d7eadc',
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px'
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(centerX, 282, `v${GAME_VERSION}`, {
+        color: '#b8d2c1',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700'
       })
       .setOrigin(0.5);
 

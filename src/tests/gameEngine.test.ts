@@ -4,6 +4,7 @@ import {
   createEmptyField,
   GameEngine,
   getMatchStats,
+  getTeamAdvantage,
   type FieldPositionId,
   type GameState,
   type Player,
@@ -95,6 +96,25 @@ describe('game engine attacks', () => {
 
     expect(afterSelection.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
     expect(afterSelection.log.some((event) => event.type === 'SHOT_ON_GOAL')).toBe(false);
+  });
+
+  it('logs the attacking player and turn number when a card is defeated', () => {
+    const engine = createReadyEngine(['A']);
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '6'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-1');
+
+    expect(result.log.find((event) => event.type === 'CARD_DEFEATED')).toMatchObject({
+      type: 'CARD_DEFEATED',
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      positionId: 'midfielder-1',
+      defenderCard: { rank: '6' }
+    });
   });
 
   it('scenario 2: special hit 6 beats A during an attack without revealing that hint in targets', () => {
@@ -343,7 +363,8 @@ describe('game engine attacks', () => {
       shots: 1,
       goalpostHits: 0,
       goalkeeperSaves: 1,
-      shotAccuracy: 100
+      shotAccuracy: 100,
+      possession: 50
     });
     expect(playerTwoStats).toEqual({
       playerId: 'PLAYER_2',
@@ -351,7 +372,157 @@ describe('game engine attacks', () => {
       shots: 2,
       goalpostHits: 1,
       goalkeeperSaves: 0,
-      shotAccuracy: 0
+      shotAccuracy: 0,
+      possession: 50
+    });
+  });
+
+  it('summarizes whole-match possession from max attack depth per turn', () => {
+    const gameState = state([], []);
+    gameState.turnNumber = 6;
+    gameState.log.push(
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 1,
+        positionId: 'midfielder-1',
+        attackerCard: card('6'),
+        defenderCard: card('5')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 1,
+        positionId: 'defender-1',
+        attackerCard: card('8'),
+        defenderCard: card('7')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_2',
+        turnNumber: 2,
+        positionId: 'midfielder-2',
+        attackerCard: card('7'),
+        defenderCard: card('6')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 5,
+        positionId: 'goalkeeper',
+        attackerCard: card('A'),
+        defenderCard: card('K')
+      }
+    );
+
+    const [playerOneStats, playerTwoStats] = getMatchStats(gameState);
+
+    expect(playerOneStats.possession).toBe(61);
+    expect(playerTwoStats.possession).toBe(39);
+  });
+
+  it('calculates team advantage from max attack depth per turn in the last five turns', () => {
+    const gameState = state([], []);
+    gameState.turnNumber = 6;
+    gameState.log.push(
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 1,
+        positionId: 'goalkeeper',
+        attackerCard: card('JOKER'),
+        defenderCard: card('JOKER')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_2',
+        turnNumber: 2,
+        positionId: 'midfielder-1',
+        attackerCard: card('10'),
+        defenderCard: card('10')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 3,
+        positionId: 'midfielder-2',
+        attackerCard: card('Q'),
+        defenderCard: card('Q')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 3,
+        positionId: 'defender-1',
+        attackerCard: card('K'),
+        defenderCard: card('K')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 5,
+        positionId: 'goalkeeper',
+        attackerCard: card('A'),
+        defenderCard: card('A')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_2',
+        turnNumber: 6,
+        positionId: 'defender-2',
+        attackerCard: card('K'),
+        defenderCard: card('K')
+      }
+    );
+
+    expect(getTeamAdvantage(gameState)).toEqual({
+      playerOnePoints: 5,
+      playerTwoPoints: 3,
+      difference: 2,
+      balance: 2 / 15,
+      playerOneShare: 0.5 + (2 / 15) * 0.5,
+      leadingPlayerId: 'PLAYER_1',
+      windowStartTurn: 2,
+      windowEndTurn: 6
+    });
+  });
+
+  it('keeps advantage close to neutral for shallow pressure against no progress', () => {
+    const gameState = state([], []);
+    gameState.turnNumber = 5;
+    gameState.log.push(
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 1,
+        positionId: 'midfielder-1',
+        attackerCard: card('6'),
+        defenderCard: card('5')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 3,
+        positionId: 'midfielder-2',
+        attackerCard: card('7'),
+        defenderCard: card('6')
+      },
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 5,
+        positionId: 'midfielder-3',
+        attackerCard: card('8'),
+        defenderCard: card('7')
+      }
+    );
+
+    expect(getTeamAdvantage(gameState)).toMatchObject({
+      playerOnePoints: 3,
+      playerTwoPoints: 0,
+      difference: 3,
+      balance: 3 / 15,
+      playerOneShare: 0.6
     });
   });
 });

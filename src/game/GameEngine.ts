@@ -167,7 +167,14 @@ export class GameEngine {
     this.state.attackBank.push(attackCard, targetCard);
     this.state.attackCard = null;
     this.state.legalTargetPositionIds = [];
-    this.appendLog({ type: 'CARD_DEFEATED', attackerCard: attackCard, defenderCard: targetCard });
+    this.appendLog({
+      type: 'CARD_DEFEATED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId,
+      attackerCard: attackCard,
+      defenderCard: targetCard
+    });
 
     if (activePlayer.deck.cards.length === 0) {
       this.finishAttack('NO_MORE_ATTACK_CARDS');
@@ -354,7 +361,14 @@ export class GameEngine {
     this.state.attackBank.push(attackCard, goalkeeperCard);
     this.state.attackCard = null;
     this.state.legalTargetPositionIds = [];
-    this.appendLog({ type: 'CARD_DEFEATED', attackerCard: attackCard, defenderCard: goalkeeperCard });
+    this.appendLog({
+      type: 'CARD_DEFEATED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId: 'goalkeeper',
+      attackerCard: attackCard,
+      defenderCard: goalkeeperCard
+    });
     this.scoreGoal();
     clearField(opponent.field);
     this.finishAttack('GOAL');
