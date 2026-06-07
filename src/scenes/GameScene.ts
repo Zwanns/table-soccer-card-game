@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
+  private exitConfirmModal: Phaser.GameObjects.Container | null = null;
   private animatedRestoreCount = 0;
   private startWhistlePlayed = false;
   private player1Name = 'France';
@@ -58,6 +59,8 @@ export class GameScene extends Phaser.Scene {
     this.player2FlagCode = data.player2FlagCode ?? 'es';
     this.animatedRestoreCount = 0;
     this.startWhistlePlayed = false;
+    this.exitConfirmModal?.destroy();
+    this.exitConfirmModal = null;
   }
 
   public create(): void {
@@ -103,7 +106,7 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer = this.add.container(0, 0);
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
-    this.dynamicLayer.add(new Button(this, centerX - FIELD_WIDTH / 2 + 110, 42, 'В меню', () => this.scene.start('MenuScene')));
+    this.dynamicLayer.add(new Button(this, centerX - FIELD_WIDTH / 2 + 110, 42, 'В меню', () => this.openExitConfirmModal()));
     this.dynamicLayer.add(
       new ScoreView(
         this,
@@ -257,6 +260,54 @@ export class GameScene extends Phaser.Scene {
       this.message?.destroy();
       this.message = null;
     });
+  }
+
+  private openExitConfirmModal(): void {
+    if (this.exitConfirmModal !== null) {
+      return;
+    }
+
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+    const modal = this.add.container(0, 0);
+    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.68);
+    overlay.setInteractive();
+
+    const panel = this.add.container(centerX, centerY);
+    const background = this.add.rectangle(0, 0, 620, 260, 0x0b2118, 0.98);
+    background.setStrokeStyle(2, 0xf0c95a, 0.95);
+
+    const title = this.add
+      .text(0, -82, 'Выйти в меню?', {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '28px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const text = this.add
+      .text(0, -22, 'Текущая партия не сохранится. Вы точно хотите покинуть матч?', {
+        align: 'center',
+        color: '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '20px',
+        wordWrap: { width: 520 }
+      })
+      .setOrigin(0.5);
+
+    const leaveButton = new Button(this, -125, 76, 'В меню', () => this.scene.start('MenuScene'));
+    const stayButton = new Button(this, 125, 76, 'Остаться', () => this.closeExitConfirmModal());
+
+    panel.add([background, title, text, leaveButton, stayButton]);
+    modal.add([overlay, panel]);
+    this.exitConfirmModal = modal;
+  }
+
+  private closeExitConfirmModal(): void {
+    this.exitConfirmModal?.destroy();
+    this.exitConfirmModal = null;
   }
 
   private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save', onComplete?: () => void): void {
