@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getFallbackCoverPath, getFallbackCoverTextureKey } from '../assets/teamCover';
 import { MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
 
@@ -13,6 +14,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image(MENU_ASSETS.ball, MENU_ASSET_PATHS.ball);
     this.load.image(MENU_ASSETS.flags, MENU_ASSET_PATHS.flags);
     this.load.image('turn-ball', 'cards/ball.webp');
+    this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath());
 
     for (const team of NATIONAL_TEAMS) {
       this.load.svg(getFlagAssetKey(team.flagCode), `flags/${team.flagCode}.svg`, { width: 96, height: 72 });

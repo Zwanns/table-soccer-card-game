@@ -1,4 +1,10 @@
 import Phaser from 'phaser';
+import {
+  getFallbackCoverTextureKey,
+  markTeamCoverLoadFailed,
+  queueTeamCoverLoad,
+  resolveTeamCoverLoadResult
+} from '../assets/teamCover';
 import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { GameEngine, getTeamAdvantage, type FieldPositionId, type GameEvent, type GameState, type Player } from '../game';
@@ -8,7 +14,6 @@ import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
-import { TeamStatsView } from '../ui/TeamStatsView';
 import type { TeamSelectionData } from './TeamSelectScene';
 
 const FIELD_WIDTH = 1120;
@@ -47,6 +52,8 @@ export class GameScene extends Phaser.Scene {
   private player2Name = 'Spain';
   private player1FlagCode = 'fr';
   private player2FlagCode = 'es';
+  private player1CoverTextureKey = getFallbackCoverTextureKey();
+  private player2CoverTextureKey = getFallbackCoverTextureKey();
 
   public constructor() {
     super('GameScene');
@@ -57,13 +64,24 @@ export class GameScene extends Phaser.Scene {
     this.player2Name = data.player2Name ?? 'Spain';
     this.player1FlagCode = data.player1FlagCode ?? 'fr';
     this.player2FlagCode = data.player2FlagCode ?? 'es';
+    this.player1CoverTextureKey = getFallbackCoverTextureKey();
+    this.player2CoverTextureKey = getFallbackCoverTextureKey();
     this.animatedRestoreCount = 0;
     this.startWhistlePlayed = false;
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
   }
 
+  public preload(): void {
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleLoadError, this);
+    queueTeamCoverLoad(this, this.player1FlagCode);
+    queueTeamCoverLoad(this, this.player2FlagCode);
+  }
+
   public create(): void {
+    this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleLoadError, this);
+    this.player1CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player1Name, this.player1FlagCode);
+    this.player2CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player2Name, this.player2FlagCode);
     this.engine = new GameEngine();
     this.engine.startNewGame({
       player1Name: this.player1Name,
@@ -106,7 +124,20 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer = this.add.container(0, 0);
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
-    this.dynamicLayer.add(new Button(this, centerX - FIELD_WIDTH / 2 + 110, 42, 'В меню', () => this.openExitConfirmModal()));
+    this.dynamicLayer.add(
+      new Button(this, 120, 34, 'В меню', () => this.openExitConfirmModal(), {
+        fontSize: '20px',
+        height: 46,
+        width: 180
+      })
+    );
+    this.dynamicLayer.add(
+      new Button(this, 120, 90, 'Результат', () => this.openResult(state), {
+        fontSize: '20px',
+        height: 46,
+        width: 180
+      })
+    );
     this.dynamicLayer.add(
       new ScoreView(
         this,
@@ -117,25 +148,36 @@ export class GameScene extends Phaser.Scene {
         state.players[0].flagCode,
         state.players[1].flagCode,
         state.players[0].goals,
-        state.players[1].goals
+        state.players[1].goals,
+        getShotsForPlayer(state.log, state.players[0].id),
+        getShotsForPlayer(state.log, state.players[1].id)
       )
     );
     this.dynamicLayer.add(
-      new Button(this, centerX + FIELD_WIDTH / 2 - 110, 42, 'Результат', () => this.openResult(state))
+      createPlayerDeck(
+        this,
+        115,
+        DECK_Y,
+        state,
+        state.players[0],
+        'right',
+        this.player1CoverTextureKey,
+        interactive,
+        () => this.drawAttackCard()
+      )
     );
-    this.dynamicLayer.add(new TeamStatsView(this, 115, FIELD_TOP + 63, {
-      align: 'left',
-      shots: getShotsForPlayer(state.log, state.players[0].id),
-      scorers: getGoalScorers(state.log, state.players, state.players[0].id)
-    }));
-    this.dynamicLayer.add(new TeamStatsView(this, 1485, FIELD_TOP + 63, {
-      align: 'right',
-      shots: getShotsForPlayer(state.log, state.players[1].id),
-      scorers: getGoalScorers(state.log, state.players, state.players[1].id)
-    }));
-    this.dynamicLayer.add(createPlayerDeck(this, 115, DECK_Y, state, state.players[0], 'right', interactive, () => this.drawAttackCard()));
     this.dynamicLayer.add(
-      createPlayerDeck(this, 1485, DECK_Y, state, state.players[1], 'left', interactive, () => this.drawAttackCard())
+      createPlayerDeck(
+        this,
+        1485,
+        DECK_Y,
+        state,
+        state.players[1],
+        'left',
+        this.player2CoverTextureKey,
+        interactive,
+        () => this.drawAttackCard()
+      )
     );
     this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
@@ -459,6 +501,20 @@ export class GameScene extends Phaser.Scene {
     this.sound.play(key, { volume });
   }
 
+  private handleLoadError(file: Phaser.Loader.File): void {
+    markTeamCoverLoadFailed(file.key);
+  }
+
+  private resolvePlayerCoverTextureKey(teamName: string, flagCode: string): string {
+    const result = resolveTeamCoverLoadResult(this.textures, flagCode);
+
+    if (result.usedFallback) {
+      console.warn(`Cover not found for ${teamName}. Falling back to covers/none.webp.`);
+    }
+
+    return result.textureKey;
+  }
+
   private animateRestoredCards(
     state: Readonly<GameState>,
     entries: readonly RestoreAnimationEntry[],
@@ -527,6 +583,7 @@ function createPlayerDeck(
   state: Readonly<GameState>,
   player: Player,
   countSide: 'left' | 'right',
+  coverTextureKey: string,
   interactive: boolean,
   onDeckClick: () => void
 ): DeckView {
@@ -536,6 +593,7 @@ function createPlayerDeck(
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
     attackCardColor: isActive ? state.attackCard?.color : undefined,
+    coverTextureKey,
     countSide,
     onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
@@ -583,12 +641,4 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
   return events.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === playerId).length;
-}
-
-function getGoalScorers(events: readonly GameEvent[], players: readonly Player[], playerId: Player['id']): string[] {
-  const player = players.find((item) => item.id === playerId);
-
-  return events
-    .filter((event) => event.type === 'GOAL_SCORED' && event.playerId === playerId)
-    .map(() => player?.name ?? playerId);
 }

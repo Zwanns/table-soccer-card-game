@@ -10,7 +10,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('0.7a');
+    expect(GAME_VERSION).toBe('0.7c');
   });
 
   it('does not render an OUT button in the match scene', () => {
@@ -56,5 +56,10 @@ describe('project scaffold', () => {
       expect(team.flagCode).not.toBe('');
       expect(existsSync(join(process.cwd(), 'public', 'flags', `${team.flagCode}.svg`))).toBe(true);
     }
+  });
+
+  it('provides the national deck cover folder and fallback cover', () => {
+    expect(existsSync(join(process.cwd(), 'public', 'covers'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'covers', 'none.webp'))).toBe(true);
   });
 });

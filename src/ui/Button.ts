@@ -2,14 +2,17 @@ import Phaser from 'phaser';
 
 export interface ButtonOptions {
   disabled?: boolean;
+  fontSize?: string;
+  height?: number;
+  width?: number;
 }
 
 export class Button extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, text: string, onClick: () => void, options: ButtonOptions = {}) {
     super(scene, x, y);
 
-    const width = 220;
-    const height = 54;
+    const width = options.width ?? 220;
+    const height = options.height ?? 54;
     const disabled = options.disabled === true;
     const baseColor = disabled ? 0x6d746f : 0xf0c95a;
     const hoverColor = disabled ? 0x6d746f : 0xffd978;
@@ -20,7 +23,7 @@ export class Button extends Phaser.GameObjects.Container {
       .text(0, 0, text, {
         color: disabled ? '#c6d0ca' : '#1f2a2e',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+        fontSize: options.fontSize ?? '22px',
         fontStyle: '700'
       })
       .setOrigin(0.5);

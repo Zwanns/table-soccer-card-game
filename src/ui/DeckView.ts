@@ -1,14 +1,16 @@
 import Phaser from 'phaser';
+import { fitImageContain, getFallbackCoverTextureKey } from '../assets/teamCover';
 import type { CardColor } from '../cards';
-import { CardView } from './CardView';
+import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
-const DECK_WIDTH = 96;
-const DECK_HEIGHT = 132;
+const DECK_WIDTH = CARD_WIDTH;
+const DECK_HEIGHT = CARD_HEIGHT;
 
 export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
   attackCardColor?: CardColor;
+  coverTextureKey?: string;
   countSide?: 'left' | 'right';
   onClick?: () => void;
 }
@@ -20,10 +22,16 @@ export class DeckView extends Phaser.GameObjects.Container {
     const back = scene.add.rectangle(-10, 10, DECK_WIDTH, DECK_HEIGHT, 0x17384c);
     back.setStrokeStyle(2, 0x85bfd5);
 
-    const front = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b);
-    front.setStrokeStyle(2, 0x9ed0e0);
+    const frontBackground = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b);
+    const cover = scene.add.image(0, 0, options.coverTextureKey ?? getFallbackCoverTextureKey());
+    fitImageContain(cover, {
+      width: DECK_WIDTH,
+      height: DECK_HEIGHT
+    });
+    const frontBorder = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b, 0);
+    frontBorder.setStrokeStyle(2, 0x9ed0e0);
 
-    const countOffsetX = options.countSide === 'left' ? -76 : 76;
+    const countOffsetX = options.countSide === 'left' ? -84 : 84;
     const countText = scene.add
       .text(countOffsetX, 0, `${count}`, {
         color: '#ffffff',
@@ -33,7 +41,7 @@ export class DeckView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([back, front, countText]);
+    this.add([back, frontBackground, cover, frontBorder, countText]);
 
     if (options.attackCardRank !== undefined) {
       this.add(new CardView(scene, 0, 0, { rank: options.attackCardRank, color: options.attackCardColor }));

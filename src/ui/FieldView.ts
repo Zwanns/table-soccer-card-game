@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { FieldPositionId, GameState, Player } from '../game';
-import { CardView } from './CardView';
+import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
 
@@ -56,7 +56,7 @@ export class FieldView extends Phaser.GameObjects.Container {
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    this.add([pitch, centerLine, centerCircle]);
+    this.add([pitch, this.createPitchMarkings(scene), centerLine, centerCircle]);
 
     this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
     this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
@@ -76,7 +76,7 @@ export class FieldView extends Phaser.GameObjects.Container {
       const card = player.field[position.positionId];
 
       if (card === null || isHidden(player.id, position.positionId, options.hiddenCards ?? [])) {
-        this.addEmptySlot(scene, position.x, position.y);
+        this.addTacticalMarker(scene, position.x, position.y, player.teamColor);
         return;
       }
 
@@ -93,10 +93,42 @@ export class FieldView extends Phaser.GameObjects.Container {
     });
   }
 
-  private addEmptySlot(scene: Phaser.Scene, x: number, y: number): void {
-    const slot = scene.add.rectangle(x, y, 96, 132, 0x0b5738, 0.18);
-    slot.setStrokeStyle(2, 0xcfe3d4, 0.25);
-    this.add(slot);
+  private addTacticalMarker(scene: Phaser.Scene, x: number, y: number, teamColor: Player['teamColor']): void {
+    const markerColor = teamColor === 'RED' ? 0xc43845 : 0xd9eadf;
+    const shadow = scene.add.circle(x + 3, y + 4, 17, 0x062519, 0.34);
+    const outer = scene.add.circle(x, y, 16, markerColor, 0.18);
+    outer.setStrokeStyle(3, markerColor, 0.82);
+    const inner = scene.add.circle(x, y, 6, markerColor, 0.92);
+
+    this.add([shadow, outer, inner]);
+  }
+
+  private createPitchMarkings(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
+    const markings = scene.add.graphics();
+    const lineColor = 0xe2efe6;
+    const lineAlpha = 0.42;
+    const lineWidth = 2;
+
+    markings.lineStyle(lineWidth, lineColor, lineAlpha);
+
+    markings.strokeRect(-560, -180, 150, 360);
+    markings.strokeRect(410, -180, 150, 360);
+
+    markings.strokeRect(-560, -95, 70, 190);
+    markings.strokeRect(490, -95, 70, 190);
+
+    markings.strokeCircle(-450, 0, 4);
+    markings.strokeCircle(450, 0, 4);
+
+    markings.beginPath();
+    markings.arc(-450, 0, 72, Phaser.Math.DegToRad(-56), Phaser.Math.DegToRad(56), false);
+    markings.strokePath();
+
+    markings.beginPath();
+    markings.arc(450, 0, 72, Phaser.Math.DegToRad(124), Phaser.Math.DegToRad(236), false);
+    markings.strokePath();
+
+    return markings;
   }
 }
 

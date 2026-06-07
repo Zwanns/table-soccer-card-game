@@ -11,8 +11,8 @@ export interface CardViewOptions {
   onClick?: () => void;
 }
 
-const CARD_WIDTH = 96;
-const CARD_HEIGHT = 132;
+export const CARD_WIDTH = 108;
+export const CARD_HEIGHT = 148.5;
 
 export class CardView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
