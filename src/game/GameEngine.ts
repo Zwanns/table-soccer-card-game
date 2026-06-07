@@ -160,7 +160,7 @@ export class GameEngine {
     }
 
     if (!canBeatFieldTarget(attackCard, targetCard, positionId)) {
-      throw new Error(`Cannot select target "${positionId}" because the attack card cannot beat it.`);
+      return this.resolveFailedFieldDuel(activePlayer, attackCard, targetCard, positionId);
     }
 
     opponent.field[positionId] = null;
@@ -182,28 +182,6 @@ export class GameEngine {
     }
 
     this.state.phase = 'WAITING_FOR_ATTACK_CARD';
-    return this.state;
-  }
-
-  public declareOut(): GameState {
-    if (this.state.phase !== 'WAITING_FOR_TARGET') {
-      throw new Error('Cannot declare OUT because the game is not waiting for target selection.');
-    }
-
-    const attackCard = this.state.attackCard;
-
-    if (attackCard === null) {
-      throw new Error('Cannot declare OUT because there is no active attack card.');
-    }
-
-    if (isGoalkeeperTargetLine(this.state.legalTargetPositionIds)) {
-      throw new Error('Cannot declare OUT during a goalkeeper shot.');
-    }
-
-    this.state.attackBank.push(attackCard);
-    this.state.attackCard = null;
-    this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
-    this.finishAttack('MISS');
     return this.state;
   }
 
@@ -375,6 +353,28 @@ export class GameEngine {
     return this.state;
   }
 
+  private resolveFailedFieldDuel(
+    activePlayer: Player,
+    attackCard: Card,
+    defenderCard: Card,
+    positionId: FieldPositionId
+  ): GameState {
+    this.state.attackBank.push(attackCard);
+    this.state.attackCard = null;
+    this.state.legalTargetPositionIds = [];
+    this.appendLog({
+      type: 'ATTACK_MISSED',
+      card: attackCard,
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId,
+      attackerCard: attackCard,
+      defenderCard
+    });
+    this.finishAttack('MISS');
+    return this.state;
+  }
+
   private finishAttack(_reason: FinishAttackReason): void {
     const activePlayer = this.getActivePlayer();
     assignCardsToPlayer(this.state.attackBank, activePlayer);
@@ -501,10 +501,6 @@ function canBeatFieldTarget(attacker: Card, defender: Card, positionId: FieldPos
 
 function isGoalpostHit(attacker: Card, goalkeeper: Card): boolean {
   return isStrictGoalkeeperRank(goalkeeper.rank) && attacker.rank === goalkeeper.rank;
-}
-
-function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
-  return positionIds.length === 1 && positionIds[0] === 'goalkeeper';
 }
 
 function assignCardsToPlayer(cards: readonly Card[], player: Player): void {

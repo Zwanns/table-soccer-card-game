@@ -15,7 +15,6 @@ const FIELD_WIDTH = 1120;
 const FIELD_TOP = 100;
 const FIELD_CENTER_Y = 400;
 const DECK_Y = 560;
-const OUT_BUTTON_Y = 673;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -35,7 +34,7 @@ interface AttackAnimationContext {
   attackerCard: Card;
 }
 
-type AttackAnimationOutcome = 'defeat' | 'goal' | 'post' | 'save';
+type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
@@ -136,11 +135,6 @@ export class GameScene extends Phaser.Scene {
       createPlayerDeck(this, 1485, DECK_Y, state, state.players[1], 'left', interactive, () => this.drawAttackCard())
     );
     this.dynamicLayer.add(
-      new Button(this, getDeckX(state), OUT_BUTTON_Y, 'OUT', () => this.declareOut(), {
-        disabled: !interactive || state.phase !== 'WAITING_FOR_TARGET' || isGoalkeeperTargetLine(state.legalTargetPositionIds)
-      })
-    );
-    this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
         hiddenCards: options.hiddenRestoredCards,
         interactive
@@ -211,6 +205,7 @@ export class GameScene extends Phaser.Scene {
     if (state.phase === 'ENDING_TURN') {
       const scoredGoal = state.log.slice(-4).some((event) => event.type === 'GOAL_SCORED');
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
+      const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
 
       if (scoredGoal) {
         this.render(state, { interactive: false });
@@ -220,6 +215,9 @@ export class GameScene extends Phaser.Scene {
         this.render(state, { interactive: false });
         this.playSound('sound-goalkeeper-save', 0.72);
         this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
+      } else if (missedAttack) {
+        this.render(state, { interactive: false });
+        this.showFlyingMessage('Мяч потерян...', 'out', () => this.startTurn());
       } else {
         this.startTurn();
       }
@@ -234,13 +232,6 @@ export class GameScene extends Phaser.Scene {
       this.playSound('sound-goalpost', 0.72);
       this.showFlyingMessage('Штанга!', 'post');
     }
-  }
-
-  private declareOut(): void {
-    const engine = this.requireEngine();
-    engine.declareOut();
-    this.startTurn();
-    this.showFlyingMessage('Мяч потерян...', 'out');
   }
 
   private showTemporaryMessage(message: string): void {
@@ -355,7 +346,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     this.showImpactPulse(target.x, target.y, outcome);
 
-    if (outcome === 'post' || outcome === 'save') {
+    if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
       const activeOnLeft = context.attackerId === state.players[0].id;
       const reboundX = target.x + (activeOnLeft ? -180 : 180);
       const reboundY = outcome === 'post' ? target.y - 145 : target.y + 84;
@@ -384,7 +375,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showImpactPulse(x: number, y: number, outcome: AttackAnimationOutcome): void {
-    const color = outcome === 'save' ? 0xffffff : outcome === 'post' ? 0xf0c95a : 0x93f0b2;
+    const color = outcome === 'save' || outcome === 'miss' ? 0xffffff : outcome === 'post' ? 0xf0c95a : 0x93f0b2;
     const pulse = this.add.circle(x, y, 20, color, 0.2);
     pulse.setStrokeStyle(4, color, 0.86);
 
@@ -499,10 +490,6 @@ function createPlayerDeck(
   });
 }
 
-function getDeckX(state: Readonly<GameState>): number {
-  return state.activePlayerId === state.players[0].id ? 115 : 1485;
-}
-
 function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
   return playerId === state.players[0].id ? 115 : 1485;
 }
@@ -523,7 +510,7 @@ function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimat
 
 function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: FieldPositionId): AttackAnimationOutcome {
   if (positionId !== 'goalkeeper') {
-    return 'defeat';
+    return state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat';
   }
 
   const recentEvents = state.log.slice(-5);
@@ -541,10 +528,6 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
   }
 
   return 'defeat';
-}
-
-function isGoalkeeperTargetLine(positionIds: readonly string[]): boolean {
-  return positionIds.length === 1 && positionIds[0] === 'goalkeeper';
 }
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {

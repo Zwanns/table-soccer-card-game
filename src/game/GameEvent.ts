@@ -20,7 +20,15 @@ export type GameEvent =
   | { type: 'SHOT_ON_GOAL'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'GOALPOST_HIT'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
   | { type: 'GOALKEEPER_SAVE'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: Card }
-  | { type: 'ATTACK_MISSED'; card: Card }
+  | {
+      type: 'ATTACK_MISSED';
+      card: Card;
+      playerId?: Player['id'];
+      turnNumber?: number;
+      positionId?: FieldPositionId;
+      attackerCard?: Card;
+      defenderCard?: Card;
+    }
   | { type: 'GOAL_SCORED'; playerId: Player['id'] }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
   | { type: 'GAME_OVER'; winnerId: Player['id'] | null };

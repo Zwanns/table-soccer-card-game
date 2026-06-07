@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GAME_TITLE, GAME_VERSION } from '../config';
@@ -6,11 +6,18 @@ import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
 describe('project scaffold', () => {
   it('uses the required game title', () => {
-    expect(GAME_TITLE).toBe('Total Soccer Mundial');
+    expect(GAME_TITLE).toBe('Total Soccer: Mundial');
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('0.6a');
+    expect(GAME_VERSION).toBe('0.7a');
+  });
+
+  it('does not render an OUT button in the match scene', () => {
+    const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+
+    expect(gameSceneSource).not.toContain("'OUT'");
+    expect(gameSceneSource).not.toContain('"OUT"');
   });
 
   it('provides 64 unique national teams for match setup', () => {

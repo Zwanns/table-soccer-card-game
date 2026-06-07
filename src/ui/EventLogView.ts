@@ -56,7 +56,9 @@ function formatEvent(event: GameEvent, players: readonly Player[]): string {
     case 'GOALKEEPER_SAVE':
       return `Сэйв: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
     case 'ATTACK_MISSED':
-      return `Промах: ${event.card.rank}`;
+      return event.playerId === undefined
+        ? `Промах: ${event.card.rank}`
+        : `${playerName ?? event.playerId}: потеря ${event.card.rank}`;
     case 'GOAL_SCORED':
       return `Гол: ${playerName ?? event.playerId}`;
     case 'TURN_ENDED':

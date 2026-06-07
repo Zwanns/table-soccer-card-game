@@ -132,7 +132,7 @@ describe('game engine attacks', () => {
     expect(engine.selectTarget('midfielder-1').log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
   });
 
-  it('scenario 3: OUT manually ends the attack, returns the attack card, and switches turn', () => {
+  it('scenario 3: failing to beat a midfield card returns the attack card and switches turn', () => {
     const engine = createReadyEngine(['3']);
     setPositions(engine.getState().players[1].field, {
       'midfielder-1': '10',
@@ -147,13 +147,107 @@ describe('game engine attacks', () => {
     expect(waitingState.activePlayerId).toBe('PLAYER_1');
     expect(waitingState.attackCard?.rank).toBe('3');
 
-    const result = engine.declareOut();
+    const result = engine.selectTarget('midfielder-1');
     const attacker = result.players[0];
 
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.players[1].field['midfielder-1']?.rank).toBe('10');
     expect(attacker.deck.cards.map((deckCard) => deckCard.rank)).toEqual(['3']);
-    expect(result.log.at(-2)).toEqual({ type: 'ATTACK_MISSED', card: card('3', '3_0') });
+    expect(result.log.at(-2)).toMatchObject({
+      type: 'ATTACK_MISSED',
+      card: card('3', '3_0'),
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      positionId: 'midfielder-1',
+      attackerCard: card('3', '3_0'),
+      defenderCard: card('10', 'midfielder-1_10')
+    });
+  });
+
+  it('ends the attack when a defender cannot be beaten', () => {
+    const engine = createReadyEngine(['5']);
+    setPositions(engine.getState().players[1].field, {
+      'defender-1': 'K',
+      'defender-2': 'Q'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('defender-1');
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.players[1].field['defender-1']?.rank).toBe('K');
+    expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['5']);
+    expect(result.log.at(-2)).toMatchObject({
+      type: 'ATTACK_MISSED',
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      positionId: 'defender-1',
+      defenderCard: { rank: 'K' }
+    });
+  });
+
+  it('lets the selected card determine success or possession loss within a mixed line', () => {
+    const successEngine = createReadyEngine(['8']);
+    setPositions(successEngine.getState().players[1].field, {
+      'midfielder-1': '5',
+      'midfielder-2': '9',
+      'midfielder-3': 'K'
+    });
+
+    successEngine.startNextTurn();
+    successEngine.drawAttackCard();
+    const afterSuccess = successEngine.selectTarget('midfielder-1');
+
+    expect(afterSuccess.phase).toBe('ENDING_TURN');
+    expect(afterSuccess.players[1].field['midfielder-1']).toBeNull();
+    expect(afterSuccess.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
+
+    const failNineEngine = createReadyEngine(['8']);
+    setPositions(failNineEngine.getState().players[1].field, {
+      'midfielder-1': '5',
+      'midfielder-2': '9',
+      'midfielder-3': 'K'
+    });
+
+    failNineEngine.startNextTurn();
+    failNineEngine.drawAttackCard();
+    const afterNineFail = failNineEngine.selectTarget('midfielder-2');
+
+    expect(afterNineFail.players[1].field['midfielder-2']?.rank).toBe('9');
+    expect(afterNineFail.log.at(-2)).toMatchObject({ type: 'ATTACK_MISSED', positionId: 'midfielder-2' });
+
+    const failKingEngine = createReadyEngine(['8']);
+    setPositions(failKingEngine.getState().players[1].field, {
+      'midfielder-1': '5',
+      'midfielder-2': '9',
+      'midfielder-3': 'K'
+    });
+
+    failKingEngine.startNextTurn();
+    failKingEngine.drawAttackCard();
+    const afterKingFail = failKingEngine.selectTarget('midfielder-3');
+
+    expect(afterKingFail.players[1].field['midfielder-3']?.rank).toBe('K');
+    expect(afterKingFail.log.at(-2)).toMatchObject({ type: 'ATTACK_MISSED', positionId: 'midfielder-3' });
+  });
+
+  it('does not allow another target selection after a failed field duel ends the turn', () => {
+    const engine = createReadyEngine(['3']);
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '10',
+      'midfielder-2': 'J'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-1');
+
+    expect(() => engine.selectTarget('midfielder-2')).toThrow(
+      'Cannot select a target because the game is not waiting for target selection.'
+    );
   });
 
   it('scenario 4: target line moves from midfield to defense to goalkeeper', () => {
@@ -210,18 +304,6 @@ describe('game engine attacks', () => {
     const result = engine.selectTarget('goalkeeper');
 
     expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
-  });
-
-  it('forbids OUT during a goalkeeper shot', () => {
-    const engine = createReadyEngine(['A']);
-    setPositions(engine.getState().players[1].field, {
-      goalkeeper: '6'
-    });
-
-    engine.startNextTurn();
-    engine.drawAttackCard();
-
-    expect(() => engine.declareOut()).toThrow('Cannot declare OUT during a goalkeeper shot.');
   });
 
   it('treats equal 3-10 goalkeeper ranks as a goalpost hit after selecting the goalkeeper', () => {
