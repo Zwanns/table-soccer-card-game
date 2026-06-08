@@ -7,9 +7,22 @@ import {
 } from '../assets/teamCover';
 import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { GameEngine, getTeamAdvantage, type FieldPositionId, type GameEvent, type GameState, type Player } from '../game';
+import {
+  GameEngine,
+  getFieldPlayerForCard,
+  getStartingGoalkeeper,
+  getTeamAdvantage,
+  type FieldCard,
+  type FieldPositionId,
+  type GameEvent,
+  type GameState,
+  type Player
+} from '../game';
+import type { GoalkeeperCard } from '../cards';
+import { getGoalkeeperKitAssetKey } from '../data/teamKits';
 import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
+import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
@@ -24,7 +37,7 @@ const DECK_Y = 560;
 interface RestoreAnimationEntry {
   playerId: Player['id'];
   positionId: FieldPositionId;
-  card: Card;
+  card: FieldCard;
 }
 
 interface RenderOptions {
@@ -37,6 +50,7 @@ interface AttackAnimationContext {
   defenderId: Player['id'];
   positionId: FieldPositionId;
   attackerCard: Card;
+  attackerProfile?: CardPlayerProfile;
 }
 
 type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
@@ -399,7 +413,8 @@ export class GameScene extends Phaser.Scene {
       attackerId: attacker.id,
       defenderId: defender.id,
       positionId,
-      attackerCard: { ...state.attackCard }
+      attackerCard: { ...state.attackCard },
+      attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
     };
   }
 
@@ -413,7 +428,11 @@ export class GameScene extends Phaser.Scene {
 
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
     const startX = getPlayerDeckX(state, context.attackerId);
-    const card = new CardView(this, startX, DECK_Y, { rank: context.attackerCard.rank, color: context.attackerCard.color });
+    const card = new CardView(this, startX, DECK_Y, {
+      rank: context.attackerCard.rank,
+      color: context.attackerCard.color,
+      playerProfile: context.attackerProfile
+    });
     card.setScale(0.92);
     card.setRotation(context.attackerId === state.players[0].id ? -0.1 : 0.1);
 
@@ -529,7 +548,23 @@ export class GameScene extends Phaser.Scene {
 
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, entry.playerId, entry.positionId);
     const startX = getPlayerDeckX(state, entry.playerId);
-    const card = new CardView(this, startX, DECK_Y, { rank: entry.card.rank, color: entry.card.color });
+    const player = state.players.find((candidate) => candidate.id === entry.playerId);
+    const isGoalkeeper = entry.positionId === 'goalkeeper';
+    const profile =
+      player === undefined || isGoalkeeper
+        ? undefined
+        : resolveFieldCardProfile(state, player, entry.card as Card);
+    const setup = player === undefined ? undefined : state.matchSetups[player.id];
+    const goalkeeperProfile =
+      isGoalkeeper && setup !== undefined
+        ? createGoalkeeperCardProfile(setup.teamId, getStartingGoalkeeper(setup), (entry.card as GoalkeeperCard).rank)
+        : undefined;
+    const card = new CardView(this, startX, DECK_Y, {
+      rank: entry.card.rank,
+      color: isGoalkeeper || player === undefined ? player?.teamColor ?? 'BLACK' : (entry.card as Card).color,
+      playerProfile: isGoalkeeper ? goalkeeperProfile : profile,
+      kitTextureKey: isGoalkeeper && setup !== undefined ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId) : undefined
+    });
     card.setScale(0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
@@ -593,6 +628,8 @@ function createPlayerDeck(
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
     attackCardColor: isActive ? state.attackCard?.color : undefined,
+    attackCardPlayerProfile:
+      isActive && state.attackCard !== null ? resolveFieldCardProfile(state, player, state.attackCard) : undefined,
     coverTextureKey,
     countSide,
     onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
@@ -601,6 +638,12 @@ function createPlayerDeck(
 
 function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
   return playerId === state.players[0].id ? 115 : 1485;
+}
+
+function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, card: Card): CardPlayerProfile | undefined {
+  const setup = state.matchSetups[player.id];
+
+  return setup === undefined ? undefined : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card));
 }
 
 function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimationEntry[] {

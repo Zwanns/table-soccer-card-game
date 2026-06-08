@@ -1,4 +1,4 @@
-import type { Card } from '../cards';
+import { drawTopCard, type Card, type GoalkeeperCard } from '../cards';
 import type { Player } from './Player';
 import {
   RESTORE_ORDER,
@@ -6,6 +6,7 @@ import {
   TARGET_LINE_POSITIONS,
   type FieldCardEntry,
   type FieldPositionId,
+  isOutfieldPosition,
   type PlayerField,
   type TargetLine
 } from './PlayerField';
@@ -28,27 +29,40 @@ export function getEmptyPositionsInRestoreOrder(field: PlayerField): FieldPositi
 
 export function restoreField(player: Player): RestoreFieldResult {
   const emptyPositions = getEmptyPositionsInRestoreOrder(player.field);
-  const requiredCards = emptyPositions.length;
+  const needsGoalkeeper = emptyPositions.includes('goalkeeper');
+  const requiredOutfieldCards = emptyPositions.filter(isOutfieldPosition).length;
   const availableCards = player.deck.cards.length;
 
-  if (availableCards < requiredCards) {
+  if (availableCards < requiredOutfieldCards) {
     return {
       ok: false,
       reason: 'NOT_ENOUGH_CARDS',
-      requiredCards,
+      requiredCards: requiredOutfieldCards,
       availableCards
     };
   }
 
-  const drawnCards = player.deck.cards.slice(0, requiredCards);
-  const restoredPositions = createRestoredPositions(emptyPositions, drawnCards);
-
-  for (const entry of restoredPositions) {
-    entry.card.color = player.teamColor;
-    player.field[entry.positionId] = entry.card;
+  if (needsGoalkeeper && player.goalkeeperDeck.getSize() === 0) {
+    return {
+      ok: false,
+      reason: 'NOT_ENOUGH_CARDS',
+      requiredCards: 1,
+      availableCards: 0
+    };
   }
 
-  player.deck.cards.splice(0, requiredCards);
+  const restoredPositions = createRestoredPositions(player, emptyPositions);
+
+  for (const entry of restoredPositions) {
+    if (entry.positionId === 'goalkeeper') {
+      player.field.goalkeeper = entry.card as GoalkeeperCard;
+      continue;
+    }
+
+    const card = entry.card as Card;
+    card.color = player.teamColor;
+    player.field[entry.positionId] = card;
+  }
 
   return {
     ok: true,
@@ -56,26 +70,32 @@ export function restoreField(player: Player): RestoreFieldResult {
   };
 }
 
-function createRestoredPositions(emptyPositions: readonly FieldPositionId[], drawnCards: readonly Card[]): FieldCardEntry[] {
-  const cards = [...drawnCards];
-
+function createRestoredPositions(player: Player, emptyPositions: readonly FieldPositionId[]): FieldCardEntry[] {
   return emptyPositions.map((positionId) => {
     if (positionId === 'goalkeeper') {
-      const goalkeeperCardIndex = cards.findIndex((card) => card.rank !== 'JOKER');
-      const cardIndex = goalkeeperCardIndex === -1 ? 0 : goalkeeperCardIndex;
-      const [card] = cards.splice(cardIndex, 1);
+      const card = player.goalkeeperDeck.drawTop();
 
       return {
         positionId,
-        card: card as Card
+        card,
+        cardKind: 'goalkeeper',
+        cardRank: card.rank
       };
     }
 
-    const [card] = cards.splice(0, 1);
+    const card = drawTopCard(player.deck);
+
+    if (card === null) {
+      throw new Error('Cannot restore outfield position without a main deck card.');
+    }
+
+    card.color = player.teamColor;
 
     return {
       positionId,
-      card: card as Card
+      card,
+      cardKind: 'outfield',
+      cardRank: card.rank
     };
   });
 }
@@ -100,6 +120,15 @@ export function getCardsInCurrentTargetLine(field: PlayerField): FieldCardEntry[
   return TARGET_LINE_POSITIONS[line].flatMap((positionId) => {
     const card = field[positionId];
 
-    return card === null ? [] : [{ positionId, card }];
+    return card === null
+      ? []
+      : [
+          {
+            positionId,
+            card,
+            cardKind: positionId === 'goalkeeper' ? 'goalkeeper' : 'outfield',
+            cardRank: card.rank
+          }
+        ];
   });
 }

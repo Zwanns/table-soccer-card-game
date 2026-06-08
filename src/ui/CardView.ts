@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import type { CardColor } from '../cards';
+import { CardTooltipView } from './CardTooltipView';
+import type { CardPlayerProfile } from './cardPlayerProfile';
+import { KitCardFaceView } from './KitCardFaceView';
 
 export interface CardViewOptions {
   rank: string;
@@ -8,6 +11,8 @@ export interface CardViewOptions {
   faceDown?: boolean;
   label?: string;
   highlighted?: boolean;
+  playerProfile?: CardPlayerProfile;
+  kitTextureKey?: string;
   onClick?: () => void;
 }
 
@@ -15,25 +20,28 @@ export const CARD_WIDTH = 108;
 export const CARD_HEIGHT = 148.5;
 
 export class CardView extends Phaser.GameObjects.Container {
+  private tooltip: CardTooltipView | null = null;
+
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
     super(scene, x, y);
 
-    const fillColor = options.faceDown ? 0x214f6b : 0xf6f1e7;
-    const strokeColor = options.highlighted === true ? 0xf0c95a : options.faceDown ? 0x7bb8d8 : 0x1f2a2e;
-    const rankColor = getRankColor(options);
     const positionLabel = options.label === 'GK' ? options.label : '';
 
-    const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, fillColor, 1);
-    body.setStrokeStyle(options.highlighted === true ? 5 : 2, strokeColor);
-
-    const title = scene.add
-      .text(0, 0, options.faceDown ? '' : options.rank, {
-        color: rankColor,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '24px' : '40px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
+    if (options.faceDown === true) {
+      const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0x214f6b, 1);
+      body.setStrokeStyle(options.highlighted === true ? 5 : 2, options.highlighted === true ? 0xf0c95a : 0x7bb8d8);
+      this.add(body);
+    } else {
+      this.add(
+        new KitCardFaceView(scene, 0, 0, {
+          rank: options.rank,
+          teamColor: options.color,
+          highlighted: options.highlighted,
+          shirtNumber: options.playerProfile?.shirtNumber,
+          kitTextureKey: options.kitTextureKey
+        })
+      );
+    }
 
     const label = scene.add
       .text(0, CARD_HEIGHT / 2 + 18, positionLabel, {
@@ -44,25 +52,44 @@ export class CardView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([body, title, label]);
+    this.add(label);
 
-    if (options.onClick !== undefined) {
-      body.setInteractive({ useHandCursor: true });
-      body.on('pointerdown', options.onClick);
+    if (options.onClick !== undefined || (options.faceDown !== true && options.playerProfile !== undefined)) {
+      const hitArea = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0.01);
+      if (options.onClick !== undefined) {
+        hitArea.setInteractive({ useHandCursor: true });
+      } else {
+        hitArea.setInteractive();
+      }
+      hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile));
+      hitArea.on('pointerout', () => this.hideTooltip());
+
+      if (options.onClick !== undefined) {
+        hitArea.on('pointerdown', options.onClick);
+      }
+
+      this.add(hitArea);
     }
 
     scene.add.existing(this);
   }
-}
 
-function getRankColor(options: CardViewOptions): string {
-  if (options.color === 'RED') {
-    return '#b72f37';
+  public override destroy(fromScene?: boolean): void {
+    this.hideTooltip();
+    super.destroy(fromScene);
   }
 
-  if (options.color === 'BLACK') {
-    return '#1f2a2e';
+  private showTooltip(scene: Phaser.Scene, profile?: CardPlayerProfile): void {
+    if (profile === undefined || this.tooltip !== null) {
+      return;
+    }
+
+    this.tooltip = new CardTooltipView(scene, CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, profile);
+    this.add(this.tooltip);
   }
 
-  return options.suit === '♥' || options.suit === '♦' ? '#b72f37' : '#1f2a2e';
+  private hideTooltip(): void {
+    this.tooltip?.destroy();
+    this.tooltip = null;
+  }
 }

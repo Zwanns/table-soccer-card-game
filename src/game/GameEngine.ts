@@ -1,6 +1,7 @@
 import {
   addCardsToBottom,
   canBeat,
+  createGoalkeeperDeck,
   createPlayerDecks,
   createSeededRandom,
   drawTopCard,
@@ -8,10 +9,14 @@ import {
   shuffleDeck,
   type Card,
   type Deck,
+  type GoalkeeperCard,
   type RandomGenerator
 } from '../cards';
+import { createDefaultSquad } from '../data/defaultSquads';
+import { loadSquad } from '../services/squadStorage';
 import type { GameEvent } from './GameEvent';
 import type { GameState } from './GameState';
+import { createMatchTeamSetup, pickGoalkeeperKitId, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
 import {
   createEmptyField,
@@ -48,26 +53,48 @@ export class GameEngine {
 
   public startNewGame(options: StartNewGameOptions = {}): GameState {
     this.random = options.seed === undefined ? Math.random : createSeededRandom(hashSeed(options.seed));
+    const setupRandom =
+      options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:match-setup`));
+    const playerOneTeamId = options.player1FlagCode ?? 'fr';
+    const playerTwoTeamId = options.player2FlagCode ?? 'es';
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
     const players: [Player, Player] = [
       createPlayer(
         'PLAYER_1',
         options.player1Name ?? 'Player 1',
-        options.player1FlagCode ?? 'fr',
+        playerOneTeamId,
         'RED',
-        shuffleDeck(playerOneDeck, this.random)
+        shuffleDeck(playerOneDeck, this.random),
+        createGoalkeeperDeck(
+          options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_1:gk-deck`))
+        )
       ),
       createPlayer(
         'PLAYER_2',
         options.player2Name ?? 'Player 2',
-        options.player2FlagCode ?? 'es',
+        playerTwoTeamId,
         'BLACK',
-        shuffleDeck(playerTwoDeck, this.random)
+        shuffleDeck(playerTwoDeck, this.random),
+        createGoalkeeperDeck(
+          options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_2:gk-deck`))
+        )
       )
     ];
+    const matchSetups: MatchTeamSetups = {
+      [players[0].id]: createMatchTeamSetup({
+        teamId: playerOneTeamId,
+        squad: loadSquad(playerOneTeamId),
+        goalkeeperKitId: pickGoalkeeperKitId(setupRandom)
+      }),
+      [players[1].id]: createMatchTeamSetup({
+        teamId: playerTwoTeamId,
+        squad: loadSquad(playerTwoTeamId),
+        goalkeeperKitId: pickGoalkeeperKitId(setupRandom)
+      })
+    };
 
-    this.state = createInitialState(players);
+    this.state = createInitialState(players, matchSetups);
     this.appendLog({ type: 'GAME_STARTED' });
     this.setupInitialFields();
     this.determineFirstPlayer();
@@ -156,15 +183,17 @@ export class GameEngine {
     }
 
     if (positionId === 'goalkeeper') {
-      return this.resolveGoalkeeperShot(activePlayer, opponent, attackCard, targetCard);
+      return this.resolveGoalkeeperShot(activePlayer, opponent, attackCard, targetCard as GoalkeeperCard);
     }
 
-    if (!canBeatFieldTarget(attackCard, targetCard, positionId)) {
-      return this.resolveFailedFieldDuel(activePlayer, attackCard, targetCard, positionId);
+    const outfieldTargetCard = targetCard as Card;
+
+    if (!canBeatFieldTarget(attackCard, outfieldTargetCard, positionId)) {
+      return this.resolveFailedFieldDuel(activePlayer, attackCard, outfieldTargetCard, positionId);
     }
 
     opponent.field[positionId] = null;
-    this.state.attackBank.push(attackCard, targetCard);
+    this.state.attackBank.push(attackCard, outfieldTargetCard);
     this.state.attackCard = null;
     this.state.legalTargetPositionIds = [];
     this.appendLog({
@@ -173,7 +202,7 @@ export class GameEngine {
       turnNumber: this.state.turnNumber,
       positionId,
       attackerCard: attackCard,
-      defenderCard: targetCard
+      defenderCard: outfieldTargetCard
     });
 
     if (activePlayer.deck.cards.length === 0) {
@@ -195,7 +224,15 @@ export class GameEngine {
       }
 
       for (const entry of result.restoredPositions) {
-        this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: player.id, positionId: entry.positionId, card: entry.card });
+        this.appendLog({
+          type: 'FIELD_CARD_RESTORED',
+          playerId: player.id,
+          turnNumber: this.state.turnNumber,
+          positionId: entry.positionId,
+          card: entry.card,
+          cardKind: entry.cardKind,
+          cardRank: entry.cardRank
+        });
       }
 
       this.appendLog({ type: 'FIELD_RESTORED', playerId: player.id });
@@ -257,7 +294,15 @@ export class GameEngine {
     }
 
     for (const entry of result.restoredPositions) {
-      this.appendLog({ type: 'FIELD_CARD_RESTORED', playerId: activePlayer.id, positionId: entry.positionId, card: entry.card });
+      this.appendLog({
+        type: 'FIELD_CARD_RESTORED',
+        playerId: activePlayer.id,
+        turnNumber: this.state.turnNumber,
+        positionId: entry.positionId,
+        card: entry.card,
+        cardKind: entry.cardKind,
+        cardRank: entry.cardRank
+      });
     }
 
     this.appendLog({ type: 'FIELD_RESTORED', playerId: activePlayer.id });
@@ -303,7 +348,12 @@ export class GameEngine {
     this.appendLog({ type: 'TARGETS_AVAILABLE', positionIds: [...legalTargets] });
   }
 
-  private resolveGoalkeeperShot(activePlayer: Player, opponent: Player, attackCard: Card, goalkeeperCard: Card): GameState {
+  private resolveGoalkeeperShot(
+    activePlayer: Player,
+    opponent: Player,
+    attackCard: Card,
+    goalkeeperCard: GoalkeeperCard
+  ): GameState {
     this.appendLog({
       type: 'SHOT_ON_GOAL',
       playerId: activePlayer.id,
@@ -336,7 +386,7 @@ export class GameEngine {
     }
 
     opponent.field.goalkeeper = null;
-    this.state.attackBank.push(attackCard, goalkeeperCard);
+    this.state.attackBank.push(attackCard);
     this.state.attackCard = null;
     this.state.legalTargetPositionIds = [];
     this.appendLog({
@@ -348,6 +398,13 @@ export class GameEngine {
       defenderCard: goalkeeperCard
     });
     this.scoreGoal();
+    recycleGoalkeeperCard(opponent, goalkeeperCard);
+    this.appendLog({
+      type: 'GOALKEEPER_CARD_RECYCLED',
+      playerId: opponent.id,
+      turnNumber: this.state.turnNumber,
+      goalkeeperRank: goalkeeperCard.rank
+    });
     clearField(opponent.field);
     this.finishAttack('GOAL');
     return this.state;
@@ -449,9 +506,10 @@ export class GameEngine {
 function createInitialState(players: [Player, Player] = [
   createPlayer('PLAYER_1', 'Player 1', 'fr', 'RED', { cards: [] }),
   createPlayer('PLAYER_2', 'Player 2', 'es', 'BLACK', { cards: [] })
-]): GameState {
+], matchSetups: MatchTeamSetups = createDefaultMatchSetups(players)): GameState {
   return {
     players,
+    matchSetups,
     activePlayerId: null,
     phase: 'NOT_STARTED',
     attackCard: null,
@@ -464,7 +522,29 @@ function createInitialState(players: [Player, Player] = [
   };
 }
 
-function createPlayer(id: string, name: string, flagCode: string, teamColor: Player['teamColor'], deck: Deck): Player {
+function createDefaultMatchSetups(players: [Player, Player]): MatchTeamSetups {
+  return {
+    [players[0].id]: createMatchTeamSetup({
+      teamId: players[0].flagCode,
+      squad: createDefaultSquad(players[0].flagCode),
+      goalkeeperKitId: 'gk-1'
+    }),
+    [players[1].id]: createMatchTeamSetup({
+      teamId: players[1].flagCode,
+      squad: createDefaultSquad(players[1].flagCode),
+      goalkeeperKitId: 'gk-2'
+    })
+  };
+}
+
+function createPlayer(
+  id: string,
+  name: string,
+  flagCode: string,
+  teamColor: Player['teamColor'],
+  deck: Deck,
+  goalkeeperDeck = createGoalkeeperDeck(createSeededRandom(hashSeed(`${id}:${flagCode}:goalkeeper-deck`)))
+): Player {
   return {
     id,
     name,
@@ -472,6 +552,7 @@ function createPlayer(id: string, name: string, flagCode: string, teamColor: Pla
     teamColor,
     goals: 0,
     deck,
+    goalkeeperDeck,
     field: createEmptyField()
   };
 }
@@ -491,15 +572,15 @@ function isFieldPositionId(positionId: string): positionId is FieldPositionId {
   return RESTORE_ORDER.includes(positionId as FieldPositionId);
 }
 
-function canBeatFieldTarget(attacker: Card, defender: Card, positionId: FieldPositionId): boolean {
+function canBeatFieldTarget(attacker: Card, defender: Card | GoalkeeperCard, positionId: FieldPositionId): boolean {
   if (positionId === 'goalkeeper' && isStrictGoalkeeperRank(defender.rank)) {
     return getRankValue(attacker.rank) > getRankValue(defender.rank);
   }
 
-  return canBeat(attacker, defender);
+  return canBeat(attacker, defender as Card);
 }
 
-function isGoalpostHit(attacker: Card, goalkeeper: Card): boolean {
+function isGoalpostHit(attacker: Card, goalkeeper: GoalkeeperCard): boolean {
   return isStrictGoalkeeperRank(goalkeeper.rank) && attacker.rank === goalkeeper.rank;
 }
 
@@ -509,7 +590,11 @@ function assignCardsToPlayer(cards: readonly Card[], player: Player): void {
   }
 }
 
-function isStrictGoalkeeperRank(rank: Card['rank']): boolean {
+function recycleGoalkeeperCard(player: Player, card: GoalkeeperCard): void {
+  player.goalkeeperDeck.returnToBottom(card);
+}
+
+function isStrictGoalkeeperRank(rank: Card['rank'] | GoalkeeperCard['rank']): boolean {
   return ['3', '4', '5', '6', '7', '8', '9', '10'].includes(rank);
 }
 

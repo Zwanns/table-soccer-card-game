@@ -1,4 +1,4 @@
-import type { Card } from '../cards';
+import type { Card, CardRank, GoalkeeperCard, GoalkeeperRank } from '../cards';
 
 export type FieldPositionId =
   | 'goalkeeper'
@@ -10,11 +10,19 @@ export type FieldPositionId =
 
 export type TargetLine = 'MIDFIELD' | 'DEFENSE' | 'GOALKEEPER';
 
-export type PlayerField = Record<FieldPositionId, Card | null>;
+export type OutfieldPositionId = Exclude<FieldPositionId, 'goalkeeper'>;
+
+export type FieldCard = Card | GoalkeeperCard;
+
+export type PlayerField = {
+  goalkeeper: GoalkeeperCard | null;
+} & Record<OutfieldPositionId, Card | null>;
 
 export interface FieldCardEntry {
   positionId: FieldPositionId;
-  card: Card;
+  card: FieldCard;
+  cardKind: 'outfield' | 'goalkeeper';
+  cardRank: CardRank | GoalkeeperRank;
 }
 
 export const RESTORE_ORDER: readonly FieldPositionId[] = [
@@ -43,4 +51,12 @@ export function createEmptyField(): PlayerField {
     'midfielder-2': null,
     'midfielder-3': null
   };
+}
+
+export function isOutfieldPosition(positionId: FieldPositionId): positionId is OutfieldPositionId {
+  return positionId !== 'goalkeeper';
+}
+
+export function isGoalkeeperCard(card: FieldCard): card is GoalkeeperCard {
+  return 'kind' in card && card.kind === 'goalkeeper';
 }

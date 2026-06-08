@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { fitImageContain, getFallbackCoverTextureKey } from '../assets/teamCover';
 import type { CardColor } from '../cards';
+import type { CardPlayerProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
 const DECK_WIDTH = CARD_WIDTH;
@@ -10,6 +11,7 @@ export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
   attackCardColor?: CardColor;
+  attackCardPlayerProfile?: CardPlayerProfile;
   coverTextureKey?: string;
   countSide?: 'left' | 'right';
   onClick?: () => void;
@@ -44,7 +46,13 @@ export class DeckView extends Phaser.GameObjects.Container {
     this.add([back, frontBackground, cover, frontBorder, countText]);
 
     if (options.attackCardRank !== undefined) {
-      this.add(new CardView(scene, 0, 0, { rank: options.attackCardRank, color: options.attackCardColor }));
+      this.add(
+        new CardView(scene, 0, 0, {
+          rank: options.attackCardRank,
+          color: options.attackCardColor,
+          playerProfile: options.attackCardPlayerProfile
+        })
+      );
     }
 
     if (options.active === true) {

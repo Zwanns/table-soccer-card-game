@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Card, CardRank, Deck } from '../cards';
+import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperRank } from '../cards';
 import {
+  createMatchTeamSetup,
   createEmptyField,
   GameEngine,
   getMatchStats,
@@ -10,6 +11,7 @@ import {
   type Player,
   type PlayerField
 } from '../game';
+import { createDefaultSquad } from '../data/defaultSquads';
 
 function card(rank: CardRank, id: string = rank): Card {
   return {
@@ -26,6 +28,17 @@ function deck(ranks: CardRank[]): Deck {
   };
 }
 
+function goalkeeperCard(rank: GoalkeeperRank): { kind: 'goalkeeper'; rank: GoalkeeperRank } {
+  return {
+    kind: 'goalkeeper',
+    rank
+  };
+}
+
+function goalkeeperDeck(ranks: GoalkeeperRank[] = ['3', '4', '5', '6', '7', '8']): GoalkeeperDeck {
+  return new GoalkeeperDeck(ranks.map((rank) => goalkeeperCard(rank)));
+}
+
 function player(id: string, ranks: CardRank[]): Player {
   return {
     id,
@@ -34,6 +47,7 @@ function player(id: string, ranks: CardRank[]): Player {
     teamColor: id === 'PLAYER_1' ? 'RED' : 'BLACK',
     goals: 0,
     deck: deck(ranks),
+    goalkeeperDeck: goalkeeperDeck(),
     field: createEmptyField()
   };
 }
@@ -43,6 +57,18 @@ function state(playerOneDeck: CardRank[], playerTwoDeck: CardRank[]): GameState 
 
   return {
     players,
+    matchSetups: {
+      PLAYER_1: createMatchTeamSetup({
+        teamId: 'fr',
+        squad: createDefaultSquad('fr'),
+        goalkeeperKitId: 'gk-1'
+      }),
+      PLAYER_2: createMatchTeamSetup({
+        teamId: 'es',
+        squad: createDefaultSquad('es'),
+        goalkeeperKitId: 'gk-2'
+      })
+    },
     activePlayerId: 'PLAYER_1',
     phase: 'ENDING_TURN',
     attackCard: null,
@@ -56,7 +82,7 @@ function state(playerOneDeck: CardRank[], playerTwoDeck: CardRank[]): GameState 
 }
 
 function fillField(field: PlayerField): void {
-  field.goalkeeper = card('2', 'FIELD_GK');
+  field.goalkeeper = goalkeeperCard('3');
   field['defender-1'] = card('3', 'FIELD_D1');
   field['defender-2'] = card('4', 'FIELD_D2');
   field['midfielder-1'] = card('5', 'FIELD_M1');
@@ -66,6 +92,11 @@ function fillField(field: PlayerField): void {
 
 function setPositions(field: PlayerField, entries: Partial<Record<FieldPositionId, CardRank>>): void {
   for (const [positionId, rank] of Object.entries(entries) as Array<[FieldPositionId, CardRank]>) {
+    if (positionId === 'goalkeeper') {
+      field.goalkeeper = goalkeeperCard(rank as GoalkeeperRank);
+      continue;
+    }
+
     field[positionId] = card(rank, `${positionId}_${rank}`);
   }
 }
@@ -286,7 +317,36 @@ describe('game engine attacks', () => {
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
     expect(Object.values(result.players[1].field)).toEqual([null, null, null, null, null, null]);
-    expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A', '6']);
+    expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
+    expect(result.players[0].deck.cards.some((deckCard) => deckCard.rank === '6')).toBe(false);
+  });
+
+  it('recycles a beaten goalkeeper to the bottom of the defending goalkeeper deck', () => {
+    const gameState = state(['A'], ['2', '3', '4', '5', '6']);
+    fillField(gameState.players[0].field);
+    gameState.players[1].goalkeeperDeck = goalkeeperDeck(['Q', 'K']);
+    gameState.players[1].field.goalkeeper = goalkeeperCard('6');
+    const engine = new GameEngine(gameState);
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const afterGoal = engine.selectTarget('goalkeeper');
+
+    expect(afterGoal.players[1].field.goalkeeper).toBeNull();
+    expect(afterGoal.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['Q', 'K', '6']);
+    expect(afterGoal.attackBank).toEqual([]);
+    expect(afterGoal.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
+    expect(afterGoal.log).toContainEqual({
+      type: 'GOALKEEPER_CARD_RECYCLED',
+      playerId: 'PLAYER_2',
+      turnNumber: 1,
+      goalkeeperRank: '6'
+    });
+
+    const restored = engine.startNextTurn();
+
+    expect(restored.players[1].field.goalkeeper?.rank).toBe('Q');
+    expect(restored.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['K', '6']);
   });
 
   it('counts a shot on goal when the goalkeeper card is selected', () => {
@@ -311,6 +371,8 @@ describe('game engine attacks', () => {
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
+    const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
+    const originalGoalkeeperDeck = engine.getState().players[1].goalkeeperDeck.toArray();
 
     engine.startNextTurn();
     const waitingForShot = engine.drawAttackCard();
@@ -323,6 +385,8 @@ describe('game engine attacks', () => {
     expect(afterPost.phase).toBe('WAITING_FOR_ATTACK_CARD');
     expect(afterPost.attackCard).toBeNull();
     expect(afterPost.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
+    expect(afterPost.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
+    expect(afterPost.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
     expect(afterPost.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
     expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
 
@@ -337,6 +401,8 @@ describe('game engine attacks', () => {
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
+    const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
+    const originalGoalkeeperDeck = engine.getState().players[1].goalkeeperDeck.toArray();
 
     engine.startNextTurn();
     engine.drawAttackCard();
@@ -344,13 +410,15 @@ describe('game engine attacks', () => {
 
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
+    expect(result.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
     expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
     expect(result.log.some((event) => event.type === 'GOALKEEPER_SAVE')).toBe(true);
   });
 
   it('scenario 6: not enough cards to restore the field ends the game', () => {
     const gameState = state(['2', '3', '4'], []);
-    gameState.players[0].field.goalkeeper = card('A');
+    gameState.players[0].field.goalkeeper = goalkeeperCard('A');
     gameState.players[0].field['defender-1'] = card('K');
     const engine = new GameEngine(gameState);
 
@@ -371,8 +439,11 @@ describe('game engine attacks', () => {
     expect(result.log).toContainEqual({
       type: 'FIELD_CARD_RESTORED',
       playerId: 'PLAYER_1',
+      turnNumber: 1,
       positionId: 'defender-1',
-      card: card('9', '9_0')
+      card: card('9', '9_0'),
+      cardKind: 'outfield',
+      cardRank: '9'
     });
   });
 
@@ -429,12 +500,12 @@ describe('game engine attacks', () => {
     gameState.players[0].goals = 1;
     gameState.players[1].goals = 0;
     gameState.log.push(
-      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: card('6') },
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: goalkeeperCard('6') },
       { type: 'GOAL_SCORED', playerId: 'PLAYER_1' },
-      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: card('7') },
-      { type: 'GOALPOST_HIT', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: card('7') },
-      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: card('8') },
-      { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: card('8') }
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
+      { type: 'GOALPOST_HIT', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
+      { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
+      { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') }
     );
 
     const [playerOneStats, playerTwoStats] = getMatchStats(gameState);

@@ -1,4 +1,4 @@
-import type { CardColor, Deck } from '../cards';
+import type { CardColor, Deck, GoalkeeperDeck } from '../cards';
 import type { PlayerField } from './PlayerField';
 
 export interface Player {
@@ -8,5 +8,6 @@ export interface Player {
   teamColor: Exclude<CardColor, 'JOKER'>;
   goals: number;
   deck: Deck;
+  goalkeeperDeck: GoalkeeperDeck;
   field: PlayerField;
 }

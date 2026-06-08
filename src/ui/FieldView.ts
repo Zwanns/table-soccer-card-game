@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import type { FieldPositionId, GameState, Player } from '../game';
+import { getFieldPlayerForCard, getStartingGoalkeeper, type FieldPositionId, type GameState, type Player } from '../game';
+import type { Card, GoalkeeperCard } from '../cards';
+import { getGoalkeeperKitAssetKey } from '../data/teamKits';
+import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
@@ -82,11 +85,20 @@ export class FieldView extends Phaser.GameObjects.Container {
 
       const selectable =
         options.interactive !== false && player.id !== state.activePlayerId && state.legalTargetPositionIds.includes(position.positionId);
+      const setup = state.matchSetups[player.id];
+      const isGoalkeeper = position.positionId === 'goalkeeper';
       this.add(
         new CardView(scene, position.x, position.y, {
           rank: card.rank,
-          color: card.color,
-          label: position.positionId === 'goalkeeper' ? 'GK' : '',
+          color: isGoalkeeper ? player.teamColor : (card as Card).color,
+          playerProfile:
+            setup === undefined
+              ? undefined
+              : isGoalkeeper
+                ? createGoalkeeperCardProfile(setup.teamId, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
+                : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card as Card)),
+          kitTextureKey: isGoalkeeper && setup !== undefined ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId) : undefined,
+          label: isGoalkeeper ? 'GK' : '',
           onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
         })
       );
