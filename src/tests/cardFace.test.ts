@@ -75,7 +75,7 @@ describe('card face profile resolver', () => {
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Игрок A\n№17\nНоминал: A');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Игрок A\n№ 17');
   });
 });
 
@@ -97,11 +97,19 @@ describe('kit card face rendering contracts', () => {
 
   it('uses the kit card face and tooltip in CardView', () => {
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+    const tooltipSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardTooltipView.ts'), 'utf8');
 
     expect(cardViewSource).toContain('KitCardFaceView');
     expect(cardViewSource).toContain('CardTooltipView');
     expect(cardViewSource).toContain('options.faceDown === true');
     expect(cardViewSource).toContain('playerProfile');
+    expect(cardViewSource).toContain('raiseAboveSiblingCards');
+    expect(cardViewSource).toContain('bringToTop');
+    expect(cardViewSource).toContain('getWorldTransformMatrix');
+    expect(cardViewSource).not.toContain('this.add(this.tooltip)');
+    expect(tooltipSource).toContain('TOOLTIP_PADDING_X');
+    expect(tooltipSource).toContain('setDepth(10000)');
+    expect(tooltipSource).not.toContain('setStrokeStyle');
   });
 
   it('renders a white card face with top-left rank and fallback kit geometry', () => {

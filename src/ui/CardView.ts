@@ -84,12 +84,25 @@ export class CardView extends Phaser.GameObjects.Container {
       return;
     }
 
-    this.tooltip = new CardTooltipView(scene, CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, profile);
-    this.add(this.tooltip);
+    this.raiseAboveSiblingCards();
+    const tooltipPosition = this.getTooltipPosition();
+    this.tooltip = new CardTooltipView(scene, tooltipPosition.x, tooltipPosition.y, profile);
   }
 
   private hideTooltip(): void {
     this.tooltip?.destroy();
     this.tooltip = null;
+  }
+
+  private raiseAboveSiblingCards(): void {
+    this.setDepth(1000);
+    this.parentContainer?.bringToTop(this);
+  }
+
+  private getTooltipPosition(): Phaser.Math.Vector2 {
+    const position = new Phaser.Math.Vector2();
+
+    this.getWorldTransformMatrix().transformPoint(CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, position);
+    return position;
   }
 }
