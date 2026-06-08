@@ -1,6 +1,7 @@
 import type { GameState } from './GameState';
 import type { FieldPositionId } from './PlayerField';
 import type { Player } from './Player';
+import type { ScorerSnapshot } from './GameEvent';
 
 const POSITION_ADVANCEMENT_POINTS: Record<FieldPositionId, number> = {
   'midfielder-1': 1,
@@ -14,12 +15,17 @@ const POSITION_ADVANCEMENT_POINTS: Record<FieldPositionId, number> = {
 export interface PlayerMatchStats {
   playerId: Player['id'];
   goals: number;
+  scorers: GoalScorerStat[];
   shots: number;
   goalpostHits: number;
   goalkeeperSaves: number;
   shotAccuracy: number;
   possession: number;
 }
+
+export type GoalScorerStat = ScorerSnapshot & {
+  turnNumber: number;
+};
 
 export function getMatchStats(state: Readonly<GameState>): [PlayerMatchStats, PlayerMatchStats] {
   const [playerOne, playerTwo] = state.players;
@@ -40,10 +46,21 @@ function createPlayerMatchStats(
   const shots = state.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === player.id).length;
   const goalpostHits = state.log.filter((event) => event.type === 'GOALPOST_HIT' && event.playerId === player.id).length;
   const goalkeeperSaves = state.log.filter((event) => event.type === 'GOALKEEPER_SAVE' && event.playerId === opponent.id).length;
+  const scorers = state.log.flatMap((event) =>
+    event.type === 'GOAL_SCORED' && event.playerId === player.id
+      ? [
+          {
+            ...event.scorer,
+            turnNumber: event.turnNumber
+          }
+        ]
+      : []
+  );
 
   return {
     playerId: player.id,
     goals: player.goals,
+    scorers,
     shots,
     goalpostHits,
     goalkeeperSaves,

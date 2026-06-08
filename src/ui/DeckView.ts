@@ -11,6 +11,7 @@ export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
   attackCardColor?: CardColor;
+  attackCardKitTextureKey?: string;
   attackCardPlayerProfile?: CardPlayerProfile;
   coverTextureKey?: string;
   countSide?: 'left' | 'right';
@@ -50,6 +51,7 @@ export class DeckView extends Phaser.GameObjects.Container {
         new CardView(scene, 0, 0, {
           rank: options.attackCardRank,
           color: options.attackCardColor,
+          kitTextureKey: options.attackCardKitTextureKey,
           playerProfile: options.attackCardPlayerProfile
         })
       );

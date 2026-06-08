@@ -77,8 +77,8 @@ export class ResultScene extends Phaser.Scene {
   private createMatchStatsPanel(x: number, y: number, state: Readonly<GameState>): void {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
-    const width = 760;
-    const height = 290;
+    const width = 840;
+    const height = 340;
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, width, height, 0x0b2118, 0.88);
     background.setStrokeStyle(2, 0x5f9572, 0.95);
@@ -92,8 +92,8 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const playerOneHeader = this.createTeamName(-250, -88, playerOne.name);
-    const playerTwoHeader = this.createTeamName(250, -88, playerTwo.name);
+    const playerOneHeader = this.createTeamName(-285, -108, playerOne.name);
+    const playerTwoHeader = this.createTeamName(285, -108, playerTwo.name);
 
     panel.add([background, title, playerOneHeader, playerTwoHeader]);
 
@@ -107,11 +107,15 @@ export class ResultScene extends Phaser.Scene {
     ];
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
-      const rowY = -48 + index * 34;
-      panel.add(this.createStatsValue(-250, rowY, playerOneValue));
+      const rowY = -70 + index * 30;
+      panel.add(this.createStatsValue(-285, rowY, playerOneValue));
       panel.add(this.createStatsLabel(rowY, label));
-      panel.add(this.createStatsValue(250, rowY, playerTwoValue));
+      panel.add(this.createStatsValue(285, rowY, playerTwoValue));
     });
+
+    panel.add(this.createScorersList(-285, 122, formatFinalScorers(playerOneStats)));
+    panel.add(this.createStatsLabel(122, 'ĐĐ˛Ń‚ĐľŃ€Ń‹'));
+    panel.add(this.createScorersList(285, 122, formatFinalScorers(playerTwoStats)));
   }
 
   private createScoreLine(
@@ -199,8 +203,31 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
   }
+
+  private createScorersList(x: number, y: number, text: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, text, {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: '700',
+        wordWrap: { width: 250 }
+      })
+      .setOrigin(0.5);
+  }
 }
 
 function formatPercent(value: PlayerMatchStats['shotAccuracy']): string {
   return `${value}%`;
+}
+
+function formatFinalScorers(stats: PlayerMatchStats): string {
+  if (stats.scorers.length === 0) {
+    return 'ĐżĐľĐşĐ° Đ˝ĐµŃ‚';
+  }
+
+  return stats.scorers
+    .map((scorer) => `${scorer.playerName} (#${scorer.shirtNumber}), Ń…ĐľĐ´ ${scorer.turnNumber}`)
+    .join('\n');
 }

@@ -2,6 +2,13 @@ import type { Card, CardRank, GoalkeeperCard, GoalkeeperRank } from '../cards';
 import type { FieldCard, FieldPositionId } from './PlayerField';
 import type { Player } from './Player';
 
+export type ScorerSnapshot = {
+  playerName: string;
+  shirtNumber: number;
+  rank: CardRank;
+  teamId: string;
+};
+
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
@@ -43,6 +50,6 @@ export type GameEvent =
       attackerCard?: Card;
       defenderCard?: Card;
     }
-  | { type: 'GOAL_SCORED'; playerId: Player['id'] }
+  | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; scorer: ScorerSnapshot }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
   | { type: 'GAME_OVER'; winnerId: Player['id'] | null };

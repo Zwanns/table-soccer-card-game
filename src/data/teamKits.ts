@@ -19,6 +19,30 @@ export type MatchTeamKitSelection = {
   goalkeeperKitId: GoalkeeperKitId;
 };
 
+export type KitAssetKind = 'field' | 'goalkeeper';
+
+export type KitAssetDescriptor = {
+  kind: KitAssetKind;
+  textureKey: string;
+  path: string;
+};
+
+export type KitAssetLoadSummary = {
+  loadedTextureKeys: string[];
+  skippedTextureKeys: string[];
+};
+
+export type KitTextureScene = {
+  textures: {
+    exists(textureKey: string): boolean;
+    addImage(textureKey: string, image: HTMLImageElement): unknown;
+  };
+};
+
+export type LoadAvailableKitTexturesOptions = {
+  timeoutMs?: number;
+};
+
 export const FIELD_KIT_VARIANTS: readonly FieldKitVariant[] = ['home', 'away'];
 
 export const GOALKEEPER_KIT_IDS: readonly GoalkeeperKitId[] = [
@@ -57,3 +81,107 @@ export function createTeamKitConfig(teamId: string): TeamKitConfig {
 export const TEAM_KIT_CONFIGS: readonly TeamKitConfig[] = NATIONAL_TEAMS.map((team) =>
   createTeamKitConfig(team.flagCode)
 );
+
+export function getTeamKitAssetDescriptors(teamId: string): KitAssetDescriptor[] {
+  return FIELD_KIT_VARIANTS.map((variant) => ({
+    kind: 'field',
+    textureKey: getTeamKitAssetKey(teamId, variant),
+    path: getTeamKitAssetPath(teamId, variant)
+  }));
+}
+
+export function getGoalkeeperKitAssetDescriptors(): KitAssetDescriptor[] {
+  return GOALKEEPER_KIT_IDS.map((goalkeeperKitId) => ({
+    kind: 'goalkeeper',
+    textureKey: getGoalkeeperKitAssetKey(goalkeeperKitId),
+    path: getGoalkeeperKitAssetPath(goalkeeperKitId)
+  }));
+}
+
+export function getAllKitAssetDescriptors(): KitAssetDescriptor[] {
+  return [
+    ...NATIONAL_TEAMS.flatMap((team) => getTeamKitAssetDescriptors(team.flagCode)),
+    ...getGoalkeeperKitAssetDescriptors()
+  ];
+}
+
+export async function loadAvailableKitTextures(
+  scene: KitTextureScene,
+  descriptors: readonly KitAssetDescriptor[] = getAllKitAssetDescriptors(),
+  options: LoadAvailableKitTexturesOptions = {}
+): Promise<KitAssetLoadSummary> {
+  const loadedTextureKeys: string[] = [];
+  const skippedTextureKeys: string[] = [];
+  const timeoutMs = options.timeoutMs ?? 1800;
+
+  await Promise.all(
+    descriptors.map(async (descriptor) => {
+      if (scene.textures.exists(descriptor.textureKey)) {
+        loadedTextureKeys.push(descriptor.textureKey);
+        return;
+      }
+
+      const image = await loadOptionalImage(descriptor.path, timeoutMs);
+
+      if (image === null) {
+        skippedTextureKeys.push(descriptor.textureKey);
+        return;
+      }
+
+      scene.textures.addImage(descriptor.textureKey, image);
+      loadedTextureKeys.push(descriptor.textureKey);
+    })
+  );
+
+  return {
+    loadedTextureKeys,
+    skippedTextureKeys
+  };
+}
+
+async function loadOptionalImage(path: string, timeoutMs: number): Promise<HTMLImageElement | null> {
+  if (!(await isReachableImage(path))) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    if (typeof Image === 'undefined') {
+      resolve(null);
+      return;
+    }
+
+    const image = new Image();
+    const timeout = setTimeout(() => {
+      image.onload = null;
+      image.onerror = null;
+      resolve(null);
+    }, timeoutMs);
+
+    image.onload = () => {
+      clearTimeout(timeout);
+      resolve(image);
+    };
+    image.onerror = () => {
+      clearTimeout(timeout);
+      resolve(null);
+    };
+    image.src = path;
+  });
+}
+
+async function isReachableImage(path: string): Promise<boolean> {
+  if (typeof fetch !== 'function') {
+    return true;
+  }
+
+  try {
+    const response = await fetch(path, {
+      cache: 'no-cache',
+      method: 'HEAD'
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

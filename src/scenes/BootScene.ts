@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getFallbackCoverPath, getFallbackCoverTextureKey } from '../assets/teamCover';
 import { MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
+import { loadAvailableKitTextures } from '../data/teamKits';
 
 export class BootScene extends Phaser.Scene {
   public constructor() {
@@ -28,6 +29,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   public create(): void {
+    void this.loadKitsAndStart();
+  }
+
+  private async loadKitsAndStart(): Promise<void> {
+    await loadAvailableKitTextures(this);
     this.scene.start('MenuScene');
   }
 }

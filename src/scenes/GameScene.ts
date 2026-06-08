@@ -10,16 +10,18 @@ import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import {
   GameEngine,
   getFieldPlayerForCard,
+  getMatchStats,
   getStartingGoalkeeper,
   getTeamAdvantage,
   type FieldCard,
   type FieldPositionId,
   type GameEvent,
   type GameState,
+  type GoalScorerStat,
   type Player
 } from '../game';
 import type { GoalkeeperCard } from '../cards';
-import { getGoalkeeperKitAssetKey } from '../data/teamKits';
+import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
@@ -27,6 +29,7 @@ import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
+import { TeamStatsView } from '../ui/TeamStatsView';
 import type { TeamSelectionData } from './TeamSelectScene';
 
 const FIELD_WIDTH = 1120;
@@ -50,6 +53,7 @@ interface AttackAnimationContext {
   defenderId: Player['id'];
   positionId: FieldPositionId;
   attackerCard: Card;
+  attackerKitTextureKey?: string;
   attackerProfile?: CardPlayerProfile;
 }
 
@@ -204,6 +208,7 @@ export class GameScene extends Phaser.Scene {
         advantage: getTeamAdvantage(state)
       })
     );
+    this.addTeamStats(state);
 
     const pendingRestores = getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
 
@@ -291,6 +296,29 @@ export class GameScene extends Phaser.Scene {
       this.playSound('sound-goalpost', 0.72);
       this.showFlyingMessage('Штанга!', 'post');
     }
+  }
+
+  private addTeamStats(state: Readonly<GameState>): void {
+    if (this.dynamicLayer === null) {
+      return;
+    }
+
+    const [playerOneStats, playerTwoStats] = getMatchStats(state);
+
+    this.dynamicLayer.add(
+      new TeamStatsView(this, 120, 232, {
+        align: 'left',
+        shots: playerOneStats.shots,
+        scorers: playerOneStats.scorers.map(formatShortScorer)
+      })
+    );
+    this.dynamicLayer.add(
+      new TeamStatsView(this, 1485, 232, {
+        align: 'right',
+        shots: playerTwoStats.shots,
+        scorers: playerTwoStats.scorers.map(formatShortScorer)
+      })
+    );
   }
 
   private showTemporaryMessage(message: string): void {
@@ -414,6 +442,7 @@ export class GameScene extends Phaser.Scene {
       defenderId: defender.id,
       positionId,
       attackerCard: { ...state.attackCard },
+      attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
       attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
     };
   }
@@ -431,6 +460,7 @@ export class GameScene extends Phaser.Scene {
     const card = new CardView(this, startX, DECK_Y, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
+      kitTextureKey: context.attackerKitTextureKey,
       playerProfile: context.attackerProfile
     });
     card.setScale(0.92);
@@ -563,7 +593,12 @@ export class GameScene extends Phaser.Scene {
       rank: entry.card.rank,
       color: isGoalkeeper || player === undefined ? player?.teamColor ?? 'BLACK' : (entry.card as Card).color,
       playerProfile: isGoalkeeper ? goalkeeperProfile : profile,
-      kitTextureKey: isGoalkeeper && setup !== undefined ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId) : undefined
+      kitTextureKey:
+        setup === undefined
+          ? undefined
+          : isGoalkeeper
+            ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
+            : getTeamKitAssetKey(setup.teamId, setup.fieldKit)
     });
     card.setScale(0.92);
     card.setAlpha(0.92);
@@ -628,6 +663,7 @@ function createPlayerDeck(
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
     attackCardColor: isActive ? state.attackCard?.color : undefined,
+    attackCardKitTextureKey: isActive ? resolveFieldKitTextureKey(state, player) : undefined,
     attackCardPlayerProfile:
       isActive && state.attackCard !== null ? resolveFieldCardProfile(state, player, state.attackCard) : undefined,
     coverTextureKey,
@@ -644,6 +680,12 @@ function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, car
   const setup = state.matchSetups[player.id];
 
   return setup === undefined ? undefined : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card));
+}
+
+function resolveFieldKitTextureKey(state: Readonly<GameState>, player: Player): string | undefined {
+  const setup = state.matchSetups[player.id];
+
+  return setup === undefined ? undefined : getTeamKitAssetKey(setup.teamId, setup.fieldKit);
 }
 
 function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimationEntry[] {
@@ -684,4 +726,8 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
   return events.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === playerId).length;
+}
+
+function formatShortScorer(scorer: GoalScorerStat): string {
+  return `${scorer.playerName} (#${scorer.shirtNumber})`;
 }

@@ -119,11 +119,20 @@ describe('kit card face rendering contracts', () => {
     const fieldViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'FieldView.ts'), 'utf8');
     const deckViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'DeckView.ts'), 'utf8');
     const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
 
     expect(fieldViewSource).toContain('state.matchSetups[player.id]');
     expect(fieldViewSource).toContain("position.positionId === 'goalkeeper'");
-    expect(fieldViewSource).toContain('? undefined');
+    expect(fieldViewSource).toContain('getTeamKitAssetKey(setup.teamId, setup.fieldKit)');
+    expect(fieldViewSource).toContain('getGoalkeeperKitAssetKey(setup.goalkeeperKitId)');
     expect(deckViewSource).toContain('attackCardPlayerProfile');
+    expect(deckViewSource).toContain('attackCardKitTextureKey');
     expect(gameSceneSource).toContain('resolveFieldCardProfile(state, player, state.attackCard)');
+    expect(gameSceneSource).toContain('resolveFieldKitTextureKey(state, player)');
+    expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.teamId, setup.fieldKit)');
+    expect(bootSceneSource).toContain('loadAvailableKitTextures(this)');
+    expect(kitFaceSource).toContain('scene.textures.exists(options.kitTextureKey)');
+    expect(kitFaceSource).toContain('this.add(image)');
   });
 });

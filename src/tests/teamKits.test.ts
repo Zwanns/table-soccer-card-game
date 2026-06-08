@@ -9,8 +9,12 @@ import {
   GOALKEEPER_KIT_IDS,
   getGoalkeeperKitAssetKey,
   getGoalkeeperKitAssetPath,
+  getAllKitAssetDescriptors,
+  getGoalkeeperKitAssetDescriptors,
+  getTeamKitAssetDescriptors,
   getTeamKitAssetKey,
   getTeamKitAssetPath,
+  loadAvailableKitTextures,
   TEAM_KIT_CONFIGS,
   type FieldKitVariant,
   type GoalkeeperKitId,
@@ -57,6 +61,108 @@ describe('team kit configuration', () => {
         awayAssetKey: `kit-team-${team.flagCode}-away`
       });
       expect(TEAM_KIT_CONFIGS).toContainEqual(config);
+    }
+  });
+
+  it('describes every optional kit png that can be loaded', () => {
+    expect(getTeamKitAssetDescriptors('fr')).toEqual([
+      {
+        kind: 'field',
+        textureKey: 'kit-team-fr-home',
+        path: 'kits/teams/fr/home.png'
+      },
+      {
+        kind: 'field',
+        textureKey: 'kit-team-fr-away',
+        path: 'kits/teams/fr/away.png'
+      }
+    ]);
+    expect(getGoalkeeperKitAssetDescriptors()).toEqual([
+      {
+        kind: 'goalkeeper',
+        textureKey: 'kit-goalkeeper-gk-1',
+        path: 'kits/goalkeepers/gk-1.png'
+      },
+      {
+        kind: 'goalkeeper',
+        textureKey: 'kit-goalkeeper-gk-2',
+        path: 'kits/goalkeepers/gk-2.png'
+      },
+      {
+        kind: 'goalkeeper',
+        textureKey: 'kit-goalkeeper-gk-3',
+        path: 'kits/goalkeepers/gk-3.png'
+      },
+      {
+        kind: 'goalkeeper',
+        textureKey: 'kit-goalkeeper-gk-4',
+        path: 'kits/goalkeepers/gk-4.png'
+      }
+    ]);
+    expect(getAllKitAssetDescriptors()).toHaveLength(NATIONAL_TEAMS.length * 2 + 4);
+  });
+
+  it('quietly loads only reachable optional kit textures', async () => {
+    const originalFetch = globalThis.fetch;
+    const originalImage = globalThis.Image;
+    const addedTextureKeys: string[] = [];
+
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (path: string) =>
+        ({
+          ok: path.endsWith('/home.png')
+        }) as Response
+    });
+    Object.defineProperty(globalThis, 'Image', {
+      configurable: true,
+      value: class {
+        public onerror: (() => void) | null = null;
+        public onload: (() => void) | null = null;
+
+        public set src(_path: string) {
+          setTimeout(() => this.onload?.(), 0);
+        }
+      }
+    });
+
+    try {
+      const summary = await loadAvailableKitTextures(
+        {
+          textures: {
+            exists: () => false,
+            addImage: (textureKey) => {
+              addedTextureKeys.push(textureKey);
+            }
+          }
+        },
+        [
+          {
+            kind: 'field',
+            textureKey: 'kit-team-fr-home',
+            path: 'kits/teams/fr/home.png'
+          },
+          {
+            kind: 'field',
+            textureKey: 'kit-team-fr-away',
+            path: 'kits/teams/fr/away.png'
+          }
+        ],
+        { timeoutMs: 50 }
+      );
+
+      expect(addedTextureKeys).toEqual(['kit-team-fr-home']);
+      expect(summary.loadedTextureKeys).toEqual(['kit-team-fr-home']);
+      expect(summary.skippedTextureKeys).toEqual(['kit-team-fr-away']);
+    } finally {
+      Object.defineProperty(globalThis, 'fetch', {
+        configurable: true,
+        value: originalFetch
+      });
+      Object.defineProperty(globalThis, 'Image', {
+        configurable: true,
+        value: originalImage
+      });
     }
   });
 

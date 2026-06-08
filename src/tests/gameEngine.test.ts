@@ -12,6 +12,37 @@ import {
   type PlayerField
 } from '../game';
 import { createDefaultSquad } from '../data/defaultSquads';
+import { saveSquad } from '../services/squadStorage';
+
+class MemoryStorage implements Storage {
+  private values = new Map<string, string>();
+
+  public get length(): number {
+    return this.values.size;
+  }
+
+  public clear(): void {
+    this.values.clear();
+  }
+
+  public getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  public key(index: number): string | null {
+    return [...this.values.keys()][index] ?? null;
+  }
+
+  public removeItem(key: string): void {
+    this.values.delete(key);
+  }
+
+  public setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+}
+
+const originalLocalStorage = globalThis.localStorage;
 
 function card(rank: CardRank, id: string = rank): Card {
   return {
@@ -319,6 +350,60 @@ describe('game engine attacks', () => {
     expect(Object.values(result.players[1].field)).toEqual([null, null, null, null, null, null]);
     expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
     expect(result.players[0].deck.cards.some((deckCard) => deckCard.rank === '6')).toBe(false);
+    expect(result.log.find((event) => event.type === 'GOAL_SCORED')).toMatchObject({
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      scorer: {
+        playerName: 'Игрок A',
+        shirtNumber: 17,
+        rank: 'A',
+        teamId: 'fr'
+      }
+    });
+  });
+
+  it('uses the current owner team setup when a captured card scores', () => {
+    const gameState = state(['Q'], []);
+    const franceSquad = createDefaultSquad('fr');
+    franceSquad.fieldPlayers.Q.name = 'France scorer Q';
+    franceSquad.fieldPlayers.Q.shirtNumber = 77;
+    const spainSquad = createDefaultSquad('es');
+    spainSquad.fieldPlayers.Q.name = 'Spain scorer Q';
+    spainSquad.fieldPlayers.Q.shirtNumber = 88;
+    gameState.matchSetups.PLAYER_1 = createMatchTeamSetup({
+      teamId: 'fr',
+      squad: franceSquad,
+      goalkeeperKitId: 'gk-1'
+    });
+    gameState.matchSetups.PLAYER_2 = createMatchTeamSetup({
+      teamId: 'es',
+      squad: spainSquad,
+      goalkeeperKitId: 'gk-2'
+    });
+    fillField(gameState.players[0].field);
+    gameState.players[0].deck.cards[0] = {
+      ...card('Q', 'CAPTURED_Q'),
+      color: 'RED',
+      suit: 'SPADES'
+    };
+    gameState.players[1].field.goalkeeper = goalkeeperCard('J');
+    const engine = new GameEngine(gameState);
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('goalkeeper');
+
+    expect(result.log.find((event) => event.type === 'GOAL_SCORED')).toMatchObject({
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      scorer: {
+        playerName: 'France scorer Q',
+        shirtNumber: 77,
+        rank: 'Q',
+        teamId: 'fr'
+      }
+    });
   });
 
   it('recycles a beaten goalkeeper to the bottom of the defending goalkeeper deck', () => {
@@ -501,7 +586,17 @@ describe('game engine attacks', () => {
     gameState.players[1].goals = 0;
     gameState.log.push(
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: goalkeeperCard('6') },
-      { type: 'GOAL_SCORED', playerId: 'PLAYER_1' },
+      {
+        type: 'GOAL_SCORED',
+        playerId: 'PLAYER_1',
+        turnNumber: 3,
+        scorer: {
+          playerName: 'Snapshot A',
+          shirtNumber: 17,
+          rank: 'A',
+          teamId: 'fr'
+        }
+      },
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
       { type: 'GOALPOST_HIT', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
@@ -513,6 +608,15 @@ describe('game engine attacks', () => {
     expect(playerOneStats).toEqual({
       playerId: 'PLAYER_1',
       goals: 1,
+      scorers: [
+        {
+          playerName: 'Snapshot A',
+          shirtNumber: 17,
+          rank: 'A',
+          teamId: 'fr',
+          turnNumber: 3
+        }
+      ],
       shots: 1,
       goalpostHits: 0,
       goalkeeperSaves: 1,
@@ -522,12 +626,58 @@ describe('game engine attacks', () => {
     expect(playerTwoStats).toEqual({
       playerId: 'PLAYER_2',
       goals: 0,
+      scorers: [],
       shots: 2,
       goalpostHits: 1,
       goalkeeperSaves: 0,
       shotAccuracy: 0,
       possession: 50
     });
+  });
+
+  it('keeps scorer statistics from the goal snapshot after localStorage changes', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: new MemoryStorage()
+    });
+
+    try {
+      const gameState = state([], []);
+      gameState.players[0].goals = 1;
+      gameState.log.push({
+        type: 'GOAL_SCORED',
+        playerId: 'PLAYER_1',
+        turnNumber: 4,
+        scorer: {
+          playerName: 'Original scorer',
+          shirtNumber: 12,
+          rank: 'A',
+          teamId: 'fr'
+        }
+      });
+
+      const changedSquad = createDefaultSquad('fr');
+      changedSquad.fieldPlayers.A.name = 'Changed scorer';
+      changedSquad.fieldPlayers.A.shirtNumber = 99;
+      saveSquad(changedSquad);
+
+      const [playerOneStats] = getMatchStats(gameState);
+
+      expect(playerOneStats.scorers).toEqual([
+        {
+          playerName: 'Original scorer',
+          shirtNumber: 12,
+          rank: 'A',
+          teamId: 'fr',
+          turnNumber: 4
+        }
+      ]);
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        value: originalLocalStorage
+      });
+    }
   });
 
   it('summarizes whole-match possession from max attack depth per turn', () => {

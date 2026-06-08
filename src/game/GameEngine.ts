@@ -14,10 +14,11 @@ import {
 } from '../cards';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
-import type { GameEvent } from './GameEvent';
+import type { GameEvent, ScorerSnapshot } from './GameEvent';
 import type { GameState } from './GameState';
 import { createMatchTeamSetup, pickGoalkeeperKitId, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
+import { getFieldPlayerForCard } from './squadResolver';
 import {
   createEmptyField,
   RESTORE_ORDER,
@@ -397,7 +398,7 @@ export class GameEngine {
       attackerCard: attackCard,
       defenderCard: goalkeeperCard
     });
-    this.scoreGoal();
+    this.scoreGoal(activePlayer, attackCard);
     recycleGoalkeeperCard(opponent, goalkeeperCard);
     this.appendLog({
       type: 'GOALKEEPER_CARD_RECYCLED',
@@ -444,10 +445,14 @@ export class GameEngine {
     this.switchActivePlayer();
   }
 
-  private scoreGoal(): void {
-    const activePlayer = this.getActivePlayer();
+  private scoreGoal(activePlayer: Player, scoringCard: Card): void {
     activePlayer.goals += 1;
-    this.appendLog({ type: 'GOAL_SCORED', playerId: activePlayer.id });
+    this.appendLog({
+      type: 'GOAL_SCORED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      scorer: createScorerSnapshot(this.state, activePlayer, scoringCard)
+    });
   }
 
   private switchActivePlayer(): void {
@@ -592,6 +597,18 @@ function assignCardsToPlayer(cards: readonly Card[], player: Player): void {
 
 function recycleGoalkeeperCard(player: Player, card: GoalkeeperCard): void {
   player.goalkeeperDeck.returnToBottom(card);
+}
+
+function createScorerSnapshot(state: Readonly<GameState>, player: Player, card: Card): ScorerSnapshot {
+  const setup = state.matchSetups[player.id];
+  const scorer = getFieldPlayerForCard(setup, card);
+
+  return {
+    playerName: scorer.name,
+    shirtNumber: scorer.shirtNumber,
+    rank: card.rank,
+    teamId: setup.teamId
+  };
 }
 
 function isStrictGoalkeeperRank(rank: Card['rank'] | GoalkeeperCard['rank']): boolean {

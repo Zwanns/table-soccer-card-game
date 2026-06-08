@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { getFieldPlayerForCard, getStartingGoalkeeper, type FieldPositionId, type GameState, type Player } from '../game';
 import type { Card, GoalkeeperCard } from '../cards';
-import { getGoalkeeperKitAssetKey } from '../data/teamKits';
+import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
@@ -97,7 +97,12 @@ export class FieldView extends Phaser.GameObjects.Container {
               : isGoalkeeper
                 ? createGoalkeeperCardProfile(setup.teamId, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
                 : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card as Card)),
-          kitTextureKey: isGoalkeeper && setup !== undefined ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId) : undefined,
+          kitTextureKey:
+            setup === undefined
+              ? undefined
+              : isGoalkeeper
+                ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
+                : getTeamKitAssetKey(setup.teamId, setup.fieldKit),
           label: isGoalkeeper ? 'GK' : '',
           onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
         })
