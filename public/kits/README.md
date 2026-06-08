@@ -35,4 +35,4 @@ public/kits/goalkeepers/gk-4.png
 - Leave clear space on the shirt chest for the programmatic player number.
 - Leave clear space in the top-left card area for the programmatic rank.
 
-Fallback rendering for missing kit assets will be implemented in a later stage.
+Missing kit assets are handled by the in-game fallback renderer.

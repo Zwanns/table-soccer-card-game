@@ -62,4 +62,17 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'covers'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'covers', 'none.webp'))).toBe(true);
   });
+
+  it('keeps final match statistics labels readable', () => {
+    const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+
+    expect(resultSceneSource).toContain("'Авторы голов'");
+    expect(resultSceneSource).toContain('ход ${scorer.turnNumber}');
+    expect(resultSceneSource).not.toContain('Победитель');
+    expect(resultSceneSource).not.toContain("'Штанги'");
+    expect(resultSceneSource).not.toContain("'Сэйвы GK'");
+    expect(resultSceneSource).not.toContain("'Реализация'");
+    expect(resultSceneSource).not.toContain("'пока нет'");
+    expect(resultSceneSource).not.toMatch(/[ĐŃ]/);
+  });
 });

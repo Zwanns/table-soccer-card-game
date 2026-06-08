@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getMatchStats, type GameState, type PlayerMatchStats } from '../game';
+import { getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 
@@ -26,10 +26,6 @@ export class ResultScene extends Phaser.Scene {
     const playerTwo = this.state?.players[1];
     const playerOneGoals = playerOne?.goals ?? 0;
     const playerTwoGoals = playerTwo?.goals ?? 0;
-    const winner = this.state?.winnerId === null
-      ? null
-      : this.state?.players.find((player) => player.id === this.state?.winnerId) ?? null;
-    const resultText = this.state?.isDraw === true ? 'Ничья' : `Победитель: ${winner?.name ?? 'не определен'}`;
 
     if (this.state?.phase === 'GAME_OVER') {
       this.sound.play('sound-whistle-finish', { volume: 0.68 });
@@ -57,17 +53,8 @@ export class ResultScene extends Phaser.Scene {
       playerTwoGoals
     );
 
-    this.add
-      .text(centerX, 236, resultText, {
-        color: '#c2d1dc',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
     if (this.state !== null) {
-      this.createMatchStatsPanel(centerX, 420, this.state);
+      this.createMatchStatsPanel(centerX, 398, this.state);
     }
 
     new Button(this, centerX - 130, 650, 'Сыграть еще', () => this.scene.start('TeamSelectScene'));
@@ -78,7 +65,7 @@ export class ResultScene extends Phaser.Scene {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = 840;
-    const height = 340;
+    const height = 320;
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, width, height, 0x0b2118, 0.88);
     background.setStrokeStyle(2, 0x5f9572, 0.95);
@@ -100,22 +87,18 @@ export class ResultScene extends Phaser.Scene {
     const rows: Array<[string, string, string]> = [
       ['Голы', String(playerOneStats.goals), String(playerTwoStats.goals)],
       ['Удары', String(playerOneStats.shots), String(playerTwoStats.shots)],
-      ['Штанги', String(playerOneStats.goalpostHits), String(playerTwoStats.goalpostHits)],
-      ['Сэйвы GK', String(playerOneStats.goalkeeperSaves), String(playerTwoStats.goalkeeperSaves)],
-      ['Реализация', formatPercent(playerOneStats.shotAccuracy), formatPercent(playerTwoStats.shotAccuracy)],
       ['Владение мячом', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
     ];
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
-      const rowY = -70 + index * 30;
+      const rowY = -66 + index * 34;
       panel.add(this.createStatsValue(-285, rowY, playerOneValue));
       panel.add(this.createStatsLabel(rowY, label));
       panel.add(this.createStatsValue(285, rowY, playerTwoValue));
     });
 
-    panel.add(this.createScorersList(-285, 122, formatFinalScorers(playerOneStats)));
-    panel.add(this.createStatsLabel(122, 'ĐĐ˛Ń‚ĐľŃ€Ń‹'));
-    panel.add(this.createScorersList(285, 122, formatFinalScorers(playerTwoStats)));
+    panel.add(this.createStatsLabel(58, 'Авторы голов'));
+    this.addScorerTimeline(panel, playerOneStats, playerTwoStats);
   }
 
   private createScoreLine(
@@ -216,18 +199,57 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
   }
+
+  private addScorerTimeline(
+    panel: Phaser.GameObjects.Container,
+    playerOneStats: PlayerMatchStats,
+    playerTwoStats: PlayerMatchStats
+  ): void {
+    const rows = createScorerTimeline(playerOneStats, playerTwoStats);
+
+    rows.forEach((row, index) => {
+      const y = 88 + index * 24;
+
+      panel.add(this.createScorersList(-285, y, row.playerOneText));
+      panel.add(this.createScorersList(285, y, row.playerTwoText));
+    });
+  }
 }
 
 function formatPercent(value: PlayerMatchStats['shotAccuracy']): string {
   return `${value}%`;
 }
 
-function formatFinalScorers(stats: PlayerMatchStats): string {
-  if (stats.scorers.length === 0) {
-    return 'ĐżĐľĐşĐ° Đ˝ĐµŃ‚';
-  }
+type ScorerTimelineRow = {
+  turnNumber: number;
+  playerOneText: string;
+  playerTwoText: string;
+};
 
-  return stats.scorers
-    .map((scorer) => `${scorer.playerName} (#${scorer.shirtNumber}), Ń…ĐľĐ´ ${scorer.turnNumber}`)
-    .join('\n');
+function createScorerTimeline(
+  playerOneStats: PlayerMatchStats,
+  playerTwoStats: PlayerMatchStats
+): ScorerTimelineRow[] {
+  return [
+    ...playerOneStats.scorers.map((scorer) => createScorerTimelineEntry('PLAYER_1', scorer)),
+    ...playerTwoStats.scorers.map((scorer) => createScorerTimelineEntry('PLAYER_2', scorer))
+  ]
+    .sort((first, second) => first.turnNumber - second.turnNumber)
+    .map((entry) => ({
+      turnNumber: entry.turnNumber,
+      playerOneText: entry.playerId === 'PLAYER_1' ? entry.text : '',
+      playerTwoText: entry.playerId === 'PLAYER_2' ? entry.text : ''
+    }));
+}
+
+function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: GoalScorerStat): {
+  playerId: 'PLAYER_1' | 'PLAYER_2';
+  text: string;
+  turnNumber: number;
+} {
+  return {
+    playerId,
+    text: `${scorer.playerName} (#${scorer.shirtNumber}), ход ${scorer.turnNumber}`,
+    turnNumber: scorer.turnNumber
+  };
 }
