@@ -7,6 +7,7 @@ import {
 } from '../assets/teamCover';
 import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
 import {
   GameEngine,
   getFieldPlayerForCard,
@@ -72,16 +73,18 @@ export class GameScene extends Phaser.Scene {
   private player2FlagCode = 'es';
   private player1CoverTextureKey = getFallbackCoverTextureKey();
   private player2CoverTextureKey = getFallbackCoverTextureKey();
+  private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
 
   public constructor() {
     super('GameScene');
   }
 
-  public init(data: Partial<TeamSelectionData>): void {
+  public init(data: Partial<TeamSelectionData> & { launchContext?: MatchLaunchContext }): void {
     this.player1Name = data.player1Name ?? 'France';
     this.player2Name = data.player2Name ?? 'Spain';
     this.player1FlagCode = data.player1FlagCode ?? 'fr';
     this.player2FlagCode = data.player2FlagCode ?? 'es';
+    this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
     this.player1CoverTextureKey = getFallbackCoverTextureKey();
     this.player2CoverTextureKey = getFallbackCoverTextureKey();
     this.animatedRestoreCount = 0;
@@ -634,7 +637,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openResult(state: Readonly<GameState>): void {
-    this.scene.start('ResultScene', { state });
+    this.scene.start('ResultScene', { state, launchContext: this.launchContext });
   }
 
   private requireEngine(): GameEngine {

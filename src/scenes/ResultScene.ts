@@ -3,13 +3,23 @@ import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import {
+  createTournamentMatchResultFromGameState,
+  QUICK_MATCH_CONTEXT,
+  submitTournamentMatchResultObject,
+  type MatchLaunchContext,
+  type TournamentState
+} from '../tournament';
 
 interface ResultSceneData {
   state?: Readonly<GameState>;
+  launchContext?: MatchLaunchContext;
 }
 
 export class ResultScene extends Phaser.Scene {
   private state: Readonly<GameState> | null = null;
+  private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
+  private message: Phaser.GameObjects.Text | null = null;
 
   public constructor() {
     super('ResultScene');
@@ -17,6 +27,7 @@ export class ResultScene extends Phaser.Scene {
 
   public init(data: ResultSceneData): void {
     this.state = data.state ?? null;
+    this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
   }
 
   public create(): void {
@@ -57,8 +68,71 @@ export class ResultScene extends Phaser.Scene {
       this.createMatchStatsPanel(centerX, 398, this.state);
     }
 
+    this.createActions(centerX);
+  }
+
+  private createActions(centerX: number): void {
+    if (this.launchContext.mode === 'tournament') {
+      new Button(this, centerX - 150, 650, 'Вернуться в турнир', () => this.returnToTournament(), { width: 270 });
+      new Button(this, centerX + 150, 650, 'В меню', () => this.scene.start('MenuScene'), { width: 230 });
+      return;
+    }
+
     new Button(this, centerX - 130, 650, 'Сыграть еще', () => this.scene.start('TeamSelectScene'));
     new Button(this, centerX + 130, 650, 'В меню', () => this.scene.start('MenuScene'));
+  }
+
+  private returnToTournament(): void {
+    const launchContext = this.launchContext;
+
+    if (launchContext.mode !== 'tournament' || this.state === null) {
+      this.scene.start('TournamentHubScene');
+      return;
+    }
+
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+
+    if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
+      this.scene.start('TournamentHubScene');
+      return;
+    }
+
+    const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
+
+    if (match === undefined || match.homeTeamId === undefined || match.awayTeamId === undefined) {
+      this.scene.start('TournamentHubScene');
+      return;
+    }
+
+    if (match.status !== 'completed') {
+      const result = createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId);
+
+      try {
+        const updatedTournament = submitTournamentMatchResultObject(tournament, result);
+        this.registry.set('currentTournament', updatedTournament);
+      } catch (error) {
+        this.showMessage(error instanceof Error ? error.message : 'Не удалось записать результат турнира.');
+        return;
+      }
+    }
+
+    this.scene.start('TournamentHubScene');
+  }
+
+  private showMessage(text: string): void {
+    this.message?.destroy();
+    this.message = this.add
+      .text(SCENE_WIDTH / 2, 604, text, {
+        align: 'center',
+        color: '#f7a6a6',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700',
+        stroke: '#142231',
+        strokeThickness: 4,
+        wordWrap: { width: 760 }
+      })
+      .setOrigin(0.5);
   }
 
   private createMatchStatsPanel(x: number, y: number, state: Readonly<GameState>): void {

@@ -7,8 +7,8 @@ const MENU_LAYOUT = {
   centerY: SCENE_HEIGHT / 2,
   titleY: 138,
   subtitleY: 238,
-  buttonsStartY: 318,
-  buttonsGap: 64,
+  buttonsStartY: 286,
+  buttonsGap: 60,
   footerMargin: 24
 } as const;
 
@@ -142,10 +142,13 @@ export class MenuScene extends Phaser.Scene {
   private createButtons(): void {
     const buttons = [
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Играть', () => this.scene.start('TeamSelectScene')),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Составы', () =>
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Турнир', () =>
+        this.scene.start('TournamentSetupScene')
+      ),
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'Составы', () =>
         this.scene.start('SquadSelectScene')
       ),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'Правила', () =>
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3, 'Правила', () =>
         this.openRulesModal()
       )
     ];
