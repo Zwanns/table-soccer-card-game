@@ -172,7 +172,7 @@ export class ResultScene extends Phaser.Scene {
     });
 
     panel.add(this.createStatsLabel(58, 'Авторы голов'));
-    this.addScorerTimeline(panel, playerOneStats, playerTwoStats);
+    this.addScorerTimeline(panel, x, y, width, playerOneStats, playerTwoStats);
   }
 
   private createScoreLine(
@@ -276,16 +276,61 @@ export class ResultScene extends Phaser.Scene {
 
   private addScorerTimeline(
     panel: Phaser.GameObjects.Container,
+    panelX: number,
+    panelY: number,
+    panelWidth: number,
     playerOneStats: PlayerMatchStats,
     playerTwoStats: PlayerMatchStats
   ): void {
     const rows = createScorerTimeline(playerOneStats, playerTwoStats);
+    const viewportTop = 78;
+    const viewportHeight = 72;
+    const viewportLeft = -panelWidth / 2 + 56;
+    const viewportWidth = panelWidth - 112;
+    const rowHeight = 24;
+    const contentHeight = rows.length * rowHeight;
+    const maxScroll = Math.max(0, contentHeight - viewportHeight);
+    const timelineContent = this.add.container(0, viewportTop);
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(panelX + viewportLeft, panelY + viewportTop, viewportWidth, viewportHeight)
+      .createGeometryMask();
+    const scrollZone = this.add
+      .zone(0, viewportTop + viewportHeight / 2, viewportWidth, viewportHeight)
+      .setInteractive({ useHandCursor: maxScroll > 0 });
+    const scrollbarTrack = this.add.rectangle(panelWidth / 2 - 32, viewportTop + viewportHeight / 2, 4, viewportHeight, 0x5f9572, 0.28);
+    const thumbHeight = maxScroll === 0 ? viewportHeight : Math.max(18, (viewportHeight / contentHeight) * viewportHeight);
+    const scrollbarThumb = this.add.rectangle(panelWidth / 2 - 32, viewportTop + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    let scrollY = 0;
+
+    maskGraphics.setVisible(false);
+    timelineContent.setMask(mask);
+    panel.add([timelineContent, scrollZone]);
 
     rows.forEach((row, index) => {
-      const y = 88 + index * 24;
+      const y = 12 + index * rowHeight;
 
-      panel.add(this.createScorersList(-285, y, row.playerOneText));
-      panel.add(this.createScorersList(285, y, row.playerTwoText));
+      timelineContent.add(this.createScorersList(-285, y, row.playerOneText));
+      timelineContent.add(this.createScorersList(285, y, row.playerTwoText));
+    });
+
+    if (maxScroll === 0) {
+      scrollbarTrack.setVisible(false);
+      scrollbarThumb.setVisible(false);
+      return;
+    }
+
+    panel.add([scrollbarTrack, scrollbarThumb]);
+
+    const setScroll = (value: number): void => {
+      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      timelineContent.y = viewportTop - scrollY;
+      scrollbarThumb.y = viewportTop + thumbHeight / 2 + (scrollY / maxScroll) * (viewportHeight - thumbHeight);
+    };
+
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(scrollY + deltaY * 0.35);
     });
   }
 }

@@ -105,6 +105,23 @@ describe('tournament match result normalization', () => {
     expect(gameState.isDraw).toBe(false);
     expect(result.winnerTeamId).toBeDefined();
   });
+
+  it('uses English tournament hub labels and flag rows in the playoff bracket', () => {
+    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+
+    expect(hubSource).toContain("matches: 'Matches'");
+    expect(hubSource).toContain("tables: 'Group Stage'");
+    expect(hubSource).toContain("bracket: 'Playoff'");
+    expect(hubSource).toContain("'round-of-16': 'Round of 16'");
+    expect(hubSource).toContain("'semi-final': 'Semi-final'");
+    expect(hubSource).toContain("final: 'Final'");
+    expect(hubSource).toContain('addBracketTeamRow');
+    expect(hubSource).toContain('getFlagAssetKey(team.flagCode)');
+    expect(hubSource).toContain('BRACKET_CENTER_Y');
+    expect(hubSource).toContain('getBracketColumnGap');
+    expect(hubSource).toContain('getBracketRoundCenters');
+    expect(hubSource).toContain('drawBracketConnectors');
+  });
 });
 
 function requireNationalTeam(teamId: string) {

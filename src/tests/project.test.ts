@@ -75,4 +75,12 @@ describe('project scaffold', () => {
     expect(resultSceneSource).not.toContain("'пока нет'");
     expect(resultSceneSource).not.toMatch(/[ĐŃ]/);
   });
+
+  it('clips and scrolls long final match scorer lists', () => {
+    const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+
+    expect(resultSceneSource).toContain('createGeometryMask');
+    expect(resultSceneSource).toContain("scrollZone.on('wheel'");
+    expect(resultSceneSource).toContain('timelineContent.setMask');
+  });
 });

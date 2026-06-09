@@ -16,21 +16,28 @@ import { createSimulatedTournamentGameState } from './tournamentMatchSimulation'
 type TournamentHubTab = 'matches' | 'tables' | 'bracket';
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
-  matches: 'Матчи',
-  tables: 'Таблицы',
-  bracket: 'Сетка'
+  matches: 'Matches',
+  tables: 'Group Stage',
+  bracket: 'Playoff'
 };
 
 const STAGE_LABELS: Record<TournamentStage, string> = {
-  group: 'Группа',
-  'round-of-16': '1/8 финала',
-  'quarter-final': '1/4 финала',
-  'semi-final': '1/2 финала',
-  final: 'Финал',
-  complete: 'Завершено'
+  group: 'Group Stage',
+  'round-of-16': 'Round of 16',
+  'quarter-final': 'Quarter-final',
+  'semi-final': 'Semi-final',
+  final: 'Final',
+  complete: 'Complete'
 };
 
 const MATCHES_PER_PAGE = 10;
+const BRACKET_CARD_HEIGHT = 58;
+const BRACKET_CENTER_Y = 395;
+const BRACKET_MAX_ROW_GAP = 106;
+const BRACKET_TOP = 185;
+const BRACKET_BOTTOM = 610;
+const BRACKET_SIDE_MARGIN = 84;
+const BRACKET_MAX_COLUMN_GAP = 180;
 
 export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
@@ -67,7 +74,7 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createBracketTab(tournament);
     }
 
-    new Button(this, 132, 666, 'В меню', () => this.scene.start('MenuScene'), {
+    new Button(this, 132, 666, 'Menu', () => this.scene.start('MenuScene'), {
       fontSize: '18px',
       width: 170
     });
@@ -83,7 +90,7 @@ export class TournamentHubScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(SCENE_WIDTH / 2, 320, 'Турнир не найден', {
+      .text(SCENE_WIDTH / 2, 320, 'Tournament not found', {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
@@ -91,10 +98,10 @@ export class TournamentHubScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    new Button(this, SCENE_WIDTH / 2, 430, 'Создать турнир', () => this.scene.start('TournamentSetupScene'), {
+    new Button(this, SCENE_WIDTH / 2, 430, 'Create tournament', () => this.scene.start('TournamentSetupScene'), {
       width: 260
     });
-    new Button(this, SCENE_WIDTH / 2, 500, 'В меню', () => this.scene.start('MenuScene'), {
+    new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.scene.start('MenuScene'), {
       width: 260
     });
   }
@@ -112,7 +119,7 @@ export class TournamentHubScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(SCENE_WIDTH / 2, 68, `${format.name} | ${completedMatches}/${tournament.matches.length} матчей`, {
+      .text(SCENE_WIDTH / 2, 68, `${format.name} | ${completedMatches}/${tournament.matches.length} matches`, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
@@ -168,7 +175,7 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createMatchRow(tournament, match, 128, 168 + index * 45);
     });
 
-    new Button(this, 600, 666, 'Назад', () => this.changeMatchPage(-1, maxPage), {
+    new Button(this, 600, 666, 'Back', () => this.changeMatchPage(-1, maxPage), {
       disabled: this.matchPage === 0,
       fontSize: '18px',
       width: 170
@@ -181,7 +188,7 @@ export class TournamentHubScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1000, 666, 'Дальше', () => this.changeMatchPage(1, maxPage), {
+    new Button(this, 1000, 666, 'Next', () => this.changeMatchPage(1, maxPage), {
       disabled: this.matchPage === maxPage,
       fontSize: '18px',
       width: 170
@@ -229,14 +236,14 @@ export class TournamentHubScene extends Phaser.Scene {
 
     if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
       row.add(
-        new Button(this, 1168, 19, 'Сим', () => this.simulateTournamentMatch(tournament, match), {
+        new Button(this, 1168, 19, 'Sim', () => this.simulateTournamentMatch(tournament, match), {
           fontSize: '16px',
           height: 30,
           width: 84
         })
       );
       row.add(
-        new Button(this, 1282, 19, 'Играть', () => this.startTournamentMatch(tournament, match), {
+        new Button(this, 1282, 19, 'Play', () => this.startTournamentMatch(tournament, match), {
           fontSize: '16px',
           height: 30,
           width: 120
@@ -264,7 +271,7 @@ export class TournamentHubScene extends Phaser.Scene {
     background.setOrigin(0);
     background.setStrokeStyle(2, 0x5f9572, 0.92);
     const title = this.add
-      .text(16, 18, `Группа ${group.id}`, {
+      .text(16, 18, `Group ${group.id}`, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
@@ -307,7 +314,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createTableHeader(x: number, y: number): Phaser.GameObjects.Text {
     return this.add
-      .text(x, y, 'Команда                         И    О    РГ    Г', {
+      .text(x, y, 'Team                              P   Pts   GD   G', {
         color: '#9fc5ad',
         fontFamily: 'Arial, sans-serif',
         fontSize: '13px',
@@ -330,52 +337,124 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createBracketTab(tournament: TournamentState): void {
     const format = getTournamentFormat(tournament.formatId);
-    const columnGap = 342;
-    const startX = 96;
+    const cardWidth = getBracketCardWidth(tournament.formatId);
+    const rounds = format.knockoutRounds.map((round) => ({
+      stage: round.stage,
+      matches: tournament.matches.filter((match) => match.stage === round.stage)
+    }));
+    const columnGap = getBracketColumnGap(rounds.length, cardWidth);
+    const totalWidth = rounds.length * cardWidth + Math.max(0, rounds.length - 1) * columnGap;
+    const startX = (SCENE_WIDTH - totalWidth) / 2;
+    const roundCenters = getBracketRoundCenters(rounds[0]?.matches.length ?? 0, rounds.length);
+    const connectorGraphics = this.add.graphics();
 
-    format.knockoutRounds.forEach((round, column) => {
-      const roundMatches = tournament.matches.filter((match) => match.stage === round.stage);
-      const x = startX + column * columnGap;
+    connectorGraphics.lineStyle(2, 0x5f9572, 0.72);
+    this.drawBracketConnectors(connectorGraphics, startX, columnGap, cardWidth, roundCenters);
 
-      this.add
-        .text(x, 158, STAGE_LABELS[round.stage], {
-          color: '#f0c95a',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
-          fontStyle: '700'
-        })
-        .setOrigin(0, 0.5);
+    rounds.forEach((round, roundIndex) => {
+      const x = startX + roundIndex * (cardWidth + columnGap);
+      const centers = roundCenters[roundIndex] ?? [];
+      const labelY = Math.min(...centers) - BRACKET_CARD_HEIGHT / 2 - 28;
 
-      roundMatches.forEach((match, index) => {
-        this.createBracketMatch(match, x, 184 + index * 58, index + 1);
+      this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY);
+      round.matches.forEach((match, index) => {
+        this.createBracketMatch(match, x, centers[index] - BRACKET_CARD_HEIGHT / 2, cardWidth);
       });
     });
   }
 
-  private createBracketMatch(match: TournamentMatch, x: number, y: number, matchNumber: number): void {
-    const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 306, 50, 0x0b2118, 0.86);
-    background.setOrigin(0);
-    background.setStrokeStyle(2, match.status === 'locked' ? 0x3f6b50 : 0x5f9572, 0.92);
-    const title = this.add
-      .text(14, 14, `${STAGE_LABELS[match.stage]} ${matchNumber}`, {
+  private drawBracketConnectors(
+    graphics: Phaser.GameObjects.Graphics,
+    startX: number,
+    columnGap: number,
+    cardWidth: number,
+    roundCenters: readonly (readonly number[])[]
+  ): void {
+    for (let roundIndex = 1; roundIndex < roundCenters.length; roundIndex += 1) {
+      const previousCenters = roundCenters[roundIndex - 1] ?? [];
+      const centers = roundCenters[roundIndex] ?? [];
+      const previousX = startX + (roundIndex - 1) * (cardWidth + columnGap) + cardWidth;
+      const currentX = startX + roundIndex * (cardWidth + columnGap);
+      const jointX = previousX + (currentX - previousX) / 2;
+
+      centers.forEach((centerY, index) => {
+        const firstY = previousCenters[index * 2];
+        const secondY = previousCenters[index * 2 + 1];
+
+        if (firstY === undefined || secondY === undefined) {
+          return;
+        }
+
+        graphics.lineBetween(previousX, firstY, jointX, firstY);
+        graphics.lineBetween(previousX, secondY, jointX, secondY);
+        graphics.lineBetween(jointX, firstY, jointX, secondY);
+        graphics.lineBetween(jointX, centerY, currentX, centerY);
+      });
+    }
+  }
+
+  private createBracketColumnLabel(text: string, x: number, y: number): void {
+    this.add
+      .text(x, y, text, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '18px',
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    const fixture = this.add
-      .text(14, 34, `${getTeamName(match.homeTeamId)} ${formatMatchScore(match)} ${getTeamName(match.awayTeamId)}`, {
-        color: match.status === 'locked' ? '#8fb39d' : '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        fontStyle: '700',
-        wordWrap: { width: 278 }
-      })
-      .setOrigin(0, 0.5);
+  }
 
-    panel.add([background, title, fixture]);
+  private createBracketMatch(match: TournamentMatch, x: number, y: number, width: number): void {
+    const panel = this.add.container(x, y);
+    const background = this.add.rectangle(0, 0, width, BRACKET_CARD_HEIGHT, 0x0b2118, 0.86);
+    background.setOrigin(0);
+    background.setStrokeStyle(2, match.status === 'locked' ? 0x3f6b50 : 0x5f9572, 0.92);
+
+    panel.add(background);
+    this.addBracketTeamRow(panel, match.homeTeamId, getMatchTeamScore(match, 'home'), 14, 21, match.status === 'locked', width);
+    this.addBracketTeamRow(panel, match.awayTeamId, getMatchTeamScore(match, 'away'), 14, 39, match.status === 'locked', width);
+  }
+
+  private addBracketTeamRow(
+    panel: Phaser.GameObjects.Container,
+    teamId: TournamentTeamId | undefined,
+    score: string,
+    x: number,
+    y: number,
+    muted: boolean,
+    width: number
+  ): void {
+    const team = teamId === undefined ? undefined : findTeam(teamId);
+    const scoreX = width - 42;
+
+    if (team !== undefined) {
+      const flag = this.add.image(x + 10, y, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(20, 14);
+      panel.add(flag);
+    }
+
+    panel.add(
+      this.add
+        .text(x + 26, y, getTeamName(teamId), {
+          color: muted ? '#8fb39d' : '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700',
+          wordWrap: { width: scoreX - x - 40 }
+        })
+        .setOrigin(0, 0.5)
+    );
+    panel.add(
+      this.add
+        .text(scoreX, y, score, {
+          align: 'right',
+          color: muted ? '#8fb39d' : '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700'
+        })
+        .setOrigin(1, 0.5)
+    );
   }
 
   private addTeamCell(container: Phaser.GameObjects.Container, x: number, y: number, teamId: TournamentTeamId | undefined): void {
@@ -465,7 +544,7 @@ export class TournamentHubScene extends Phaser.Scene {
 }
 
 function formatMatchLabel(match: TournamentMatch): string {
-  return match.groupId === undefined ? STAGE_LABELS[match.stage] : `Группа ${match.groupId}`;
+  return match.groupId === undefined ? STAGE_LABELS[match.stage] : `Group ${match.groupId}`;
 }
 
 function formatMatchScore(match: TournamentMatch): string {
@@ -478,14 +557,14 @@ function formatMatchScore(match: TournamentMatch): string {
 
 function formatMatchStatus(match: TournamentMatch): string {
   if (match.status === 'completed') {
-    return 'Сыгран';
+    return 'Played';
   }
 
   if (match.status === 'available') {
-    return 'Доступен';
+    return 'Available';
   }
 
-  return 'Закрыт';
+  return 'Locked';
 }
 
 function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
@@ -494,4 +573,65 @@ function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
 
 function getTeamName(teamId: TournamentTeamId | undefined): string {
   return teamId === undefined ? 'TBD' : findTeam(teamId)?.name ?? teamId;
+}
+
+function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): string {
+  if (match.result === undefined) {
+    return '-';
+  }
+
+  return String(team === 'home' ? match.result.homeGoals : match.result.awayGoals);
+}
+
+function getBracketCardWidth(formatId: TournamentState['formatId']): number {
+  return formatId === 'cup-xl' ? 200 : 210;
+}
+
+function getBracketColumnGap(columnCount: number, cardWidth: number): number {
+  if (columnCount <= 1) {
+    return 0;
+  }
+
+  const usableGapWidth = SCENE_WIDTH - BRACKET_SIDE_MARGIN * 2 - columnCount * cardWidth;
+
+  return Math.min(BRACKET_MAX_COLUMN_GAP, usableGapWidth / (columnCount - 1));
+}
+
+function getBracketRoundCenters(firstRoundMatchCount: number, roundCount: number): number[][] {
+  if (firstRoundMatchCount <= 0 || roundCount <= 0) {
+    return [];
+  }
+
+  const firstRoundCenters = getFirstRoundCenters(firstRoundMatchCount);
+  const rounds: number[][] = [firstRoundCenters];
+
+  for (let roundIndex = 1; roundIndex < roundCount; roundIndex += 1) {
+    const previousCenters = rounds[roundIndex - 1] ?? [];
+    const centers: number[] = [];
+
+    for (let index = 0; index < previousCenters.length; index += 2) {
+      const firstY = previousCenters[index];
+      const secondY = previousCenters[index + 1];
+
+      if (firstY !== undefined && secondY !== undefined) {
+        centers.push((firstY + secondY) / 2);
+      }
+    }
+
+    rounds.push(centers);
+  }
+
+  return rounds;
+}
+
+function getFirstRoundCenters(matchCount: number): number[] {
+  if (matchCount === 1) {
+    return [BRACKET_CENTER_Y];
+  }
+
+  const availableGap = (BRACKET_BOTTOM - BRACKET_TOP) / Math.max(1, matchCount - 1);
+  const rowGap = Math.min(BRACKET_MAX_ROW_GAP, availableGap);
+  const firstY = BRACKET_CENTER_Y - ((matchCount - 1) * rowGap) / 2;
+
+  return Array.from({ length: matchCount }, (_value, index) => firstY + index * rowGap);
 }
