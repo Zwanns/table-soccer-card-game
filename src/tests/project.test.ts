@@ -10,7 +10,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('0.7c');
+    expect(GAME_VERSION).toBe('1.0');
   });
 
   it('does not render an OUT button in the match scene', () => {
