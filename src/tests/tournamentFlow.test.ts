@@ -3,16 +3,19 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GoalkeeperDeck, type Card, type GoalkeeperCard } from '../cards';
 import { createDefaultSquad } from '../data/defaultSquads';
+import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
   createEmptyField,
   createMatchTeamSetup,
   type GameState,
   type Player
 } from '../game';
+import { createSimulatedTournamentGameState } from '../scenes/tournamentMatchSimulation';
 import {
   createTournamentMatchResultFromGameState,
   createTournamentState,
-  submitTournamentMatchResultObject
+  submitTournamentMatchResultObject,
+  type TournamentMatch
 } from '../tournament';
 
 describe('tournament hub scene integration', () => {
@@ -78,7 +81,41 @@ describe('tournament match result normalization', () => {
     });
     expect(() => submitTournamentMatchResultObject(updatedTournament, result)).toThrow('twice');
   });
+
+  it('creates a simulated playoff result with a winner while penalties are not implemented', () => {
+    const match: TournamentMatch = {
+      id: 'semi-final-1',
+      stage: 'semi-final',
+      roundIndex: 1,
+      orderIndex: 0,
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      status: 'available'
+    };
+    const homeTeam = requireNationalTeam('fr');
+    const awayTeam = requireNationalTeam('es');
+    const gameState = createSimulatedTournamentGameState({
+      match,
+      homeTeam,
+      awayTeam,
+      tournamentSeed: 'simulate-playoff'
+    });
+    const result = createTournamentMatchResultFromGameState(match.id, gameState, 'fr', 'es');
+
+    expect(gameState.isDraw).toBe(false);
+    expect(result.winnerTeamId).toBeDefined();
+  });
 });
+
+function requireNationalTeam(teamId: string) {
+  const team = NATIONAL_TEAMS.find((candidate) => candidate.flagCode === teamId);
+
+  if (team === undefined) {
+    throw new Error(`Expected national team "${teamId}".`);
+  }
+
+  return team;
+}
 
 function createFinishedGameState(): GameState {
   const players: [Player, Player] = [

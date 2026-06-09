@@ -11,6 +11,7 @@ import {
   type TournamentTeamId
 } from '../tournament';
 import { Button } from '../ui/Button';
+import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket';
 
@@ -228,10 +229,17 @@ export class TournamentHubScene extends Phaser.Scene {
 
     if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
       row.add(
-        new Button(this, 1240, 19, 'Играть', () => this.startTournamentMatch(tournament, match), {
+        new Button(this, 1168, 19, 'Сим', () => this.simulateTournamentMatch(tournament, match), {
           fontSize: '16px',
           height: 30,
-          width: 150
+          width: 84
+        })
+      );
+      row.add(
+        new Button(this, 1282, 19, 'Играть', () => this.startTournamentMatch(tournament, match), {
+          fontSize: '16px',
+          height: 30,
+          width: 120
         })
       );
     }
@@ -409,6 +417,33 @@ export class TournamentHubScene extends Phaser.Scene {
       player2Name: awayTeam.name,
       player1FlagCode: homeTeam.flagCode,
       player2FlagCode: awayTeam.flagCode,
+      launchContext: {
+        mode: 'tournament',
+        tournamentId: tournament.id,
+        tournamentMatchId: match.id
+      }
+    });
+  }
+
+  private simulateTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
+    if (match.homeTeamId === undefined || match.awayTeamId === undefined) {
+      return;
+    }
+
+    const homeTeam = findTeam(match.homeTeamId);
+    const awayTeam = findTeam(match.awayTeamId);
+
+    if (homeTeam === undefined || awayTeam === undefined) {
+      return;
+    }
+
+    this.scene.start('ResultScene', {
+      state: createSimulatedTournamentGameState({
+        match,
+        homeTeam,
+        awayTeam,
+        tournamentSeed: tournament.seed
+      }),
       launchContext: {
         mode: 'tournament',
         tournamentId: tournament.id,
