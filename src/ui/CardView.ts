@@ -13,6 +13,7 @@ export interface CardViewOptions {
   highlighted?: boolean;
   playerProfile?: CardPlayerProfile;
   kitTextureKey?: string;
+  tooltipEnabled?: boolean;
   onClick?: () => void;
 }
 
@@ -61,8 +62,10 @@ export class CardView extends Phaser.GameObjects.Container {
       } else {
         hitArea.setInteractive();
       }
-      hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile));
-      hitArea.on('pointerout', () => this.hideTooltip());
+      if (options.tooltipEnabled !== false) {
+        hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile));
+        hitArea.on('pointerout', () => this.hideTooltip());
+      }
 
       if (options.onClick !== undefined) {
         hitArea.on('pointerdown', options.onClick);

@@ -57,6 +57,13 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('submitTournamentMatchResultObject');
     expect(penaltySource).not.toContain('formatKickSummary');
     expect(penaltySource).not.toContain('createLastKickCards');
+    expect(penaltySource).toContain('createShootoutSummary');
+    expect(penaltySource).toContain('createMatchStatsPanel');
+    expect(penaltySource).toContain('Match stats');
+    expect(penaltySource).toContain('MATCH_STATS_VIEWPORT');
+    expect(penaltySource).toContain("scrollZone.on('wheel'");
+    expect(penaltySource).toContain('tooltipEnabled: false');
+    expect(penaltySource).not.toContain('getPenaltyExtraSymbol');
   });
 });
 

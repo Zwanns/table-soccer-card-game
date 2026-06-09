@@ -12,6 +12,7 @@ import {
   submitTournamentMatchResultObject,
   takePenaltyKick,
   type PenaltyShootoutState,
+  type PenaltyKickResult,
   type TournamentMatchResult,
   type TournamentState,
   type TournamentTeamId
@@ -27,13 +28,22 @@ interface TournamentPenaltySceneData {
 }
 
 const PANEL_X = SCENE_WIDTH / 2;
-const PANEL_Y = 398;
+const PANEL_Y = 442;
 const PANEL_WIDTH = 900;
 const PANEL_HEIGHT = 338;
 const GOALKEEPER_CARD_Y = -36;
 const ATTACK_CARD_Y = 104;
 const PENALTY_CARD_SCALE = 0.66;
 const ATTACK_CARD_GAP = 122;
+const SHOOTOUT_MARKER_COUNT = 5;
+const SHOOTOUT_MARKER_GAP = 36;
+const SHOOTOUT_SEPARATOR_GAP = 34;
+const MATCH_STATS_VIEWPORT = {
+  x: -360,
+  y: -132,
+  width: 720,
+  height: 242
+} as const;
 
 type PenaltyAnimationOutcome = 'goal' | 'post' | 'save';
 
@@ -99,9 +109,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     this.createScoreHeader(this.matchResult, this.shootoutState);
-    this.createShootoutPanel(this.shootoutState);
+    this.createShootoutPanel(this.shootoutState, this.matchResult);
 
-    if (this.message !== null) {
+    if (this.message !== null && this.shootoutState.status !== 'complete') {
       this.add
         .text(SCENE_WIDTH / 2, 602, this.message, {
           align: 'center',
@@ -166,9 +176,13 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
+
+    if (shootoutState.status === 'complete') {
+      this.createShootoutSummary(shootoutState);
+    }
   }
 
-  private createShootoutPanel(shootoutState: PenaltyShootoutState): void {
+  private createShootoutPanel(shootoutState: PenaltyShootoutState, matchResult: TournamentMatchResult): void {
     const panel = this.add.container(PANEL_X, PANEL_Y);
     const background = this.add.rectangle(0, 0, PANEL_WIDTH, PANEL_HEIGHT, 0x0b2118, 0.88);
     background.setStrokeStyle(2, 0x5f9572, 0.95);
@@ -177,9 +191,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const shooterTeamId = shootoutState.nextShooter === 'home' ? shootoutState.homeTeamId : shootoutState.awayTeamId;
     const shooterTeam = findTeam(shooterTeamId);
 
+    if (shootoutState.status === 'complete') {
+      this.createMatchStatsPanel(panel, matchResult);
+      return;
+    }
+
     panel.add(
       this.add
-        .text(0, -146, shootoutState.status === 'complete' ? 'Shootout complete' : `${getTeamName(shooterTeamId)} to shoot`, {
+        .text(0, -146, `${getTeamName(shooterTeamId)} to shoot`, {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: '26px',
@@ -188,26 +207,10 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         .setOrigin(0.5)
     );
 
-    if (shooterTeam !== undefined && shootoutState.status === 'active') {
+    if (shooterTeam !== undefined) {
       const flag = this.add.image(-190, -146, getFlagAssetKey(shooterTeam.flagCode));
       flag.setDisplaySize(34, 24);
       panel.add(flag);
-    }
-
-    if (shootoutState.status === 'complete') {
-      const winnerTeamId = shootoutState.winnerTeamId;
-
-      panel.add(
-        this.add
-          .text(0, -88, `${winnerTeamId === undefined ? 'Winner' : getTeamName(winnerTeamId)} wins`, {
-            color: '#f0c95a',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '34px',
-            fontStyle: '700'
-          })
-          .setOrigin(0.5)
-      );
-      return;
     }
 
     const goalkeeperTeamId = getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter);
@@ -375,6 +378,154 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     );
   }
 
+  private createShootoutSummary(shootoutState: PenaltyShootoutState): void {
+    const summary = this.add.container(SCENE_WIDTH / 2, 232);
+    const homeKicks = getPenaltyKicksForTeam(shootoutState, shootoutState.homeTeamId);
+    const awayKicks = getPenaltyKicksForTeam(shootoutState, shootoutState.awayTeamId);
+    const homeMarkerCount = getPenaltyMarkerCount(homeKicks);
+    const awayMarkerCount = getPenaltyMarkerCount(awayKicks);
+    const homeWidth = getPenaltyMarkerRowWidth(homeMarkerCount);
+    const awayWidth = getPenaltyMarkerRowWidth(awayMarkerCount);
+    const totalWidth = homeWidth + SHOOTOUT_SEPARATOR_GAP * 2 + awayWidth;
+    const homeStartX = -totalWidth / 2;
+    const separatorX = homeStartX + homeWidth + SHOOTOUT_SEPARATOR_GAP;
+    const awayStartX = separatorX + SHOOTOUT_SEPARATOR_GAP;
+
+    this.addPenaltyMarkers(summary, homeStartX, homeKicks);
+    summary.add(
+      this.add
+        .text(separatorX, 0, '-', {
+          align: 'center',
+          color: '#dfeaf2',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '24px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5)
+    );
+    this.addPenaltyMarkers(summary, awayStartX, awayKicks);
+  }
+
+  private addPenaltyMarkers(
+    container: Phaser.GameObjects.Container,
+    startX: number,
+    kicks: readonly PenaltyKickResult[]
+  ): void {
+    const markerCount = getPenaltyMarkerCount(kicks);
+
+    for (let index = 0; index < markerCount; index += 1) {
+      const kick = kicks[index];
+      const x = startX + index * SHOOTOUT_MARKER_GAP;
+      const marker = this.add.circle(x, 0, 13, getPenaltyMarkerFill(kick), 1);
+      marker.setStrokeStyle(3, getPenaltyMarkerStroke(kick), 0.9);
+      container.add(marker);
+    }
+  }
+
+  private createMatchStatsPanel(panel: Phaser.GameObjects.Container, matchResult: TournamentMatchResult): void {
+    const content = this.add.container(0, MATCH_STATS_VIEWPORT.y);
+    let contentHeight = 0;
+    content.add(
+      this.add
+        .text(0, contentHeight, 'Match stats', {
+          align: 'center',
+          color: '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '24px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5, 0)
+    );
+    contentHeight += 52;
+    const rows: Array<[string, number, number]> = [
+      ['Goals', matchResult.teamStats.home.goals, matchResult.teamStats.away.goals],
+      ['Shots', matchResult.teamStats.home.shots, matchResult.teamStats.away.shots],
+      ['Posts', matchResult.teamStats.home.goalpostHits, matchResult.teamStats.away.goalpostHits],
+      ['GK saves', matchResult.teamStats.home.goalkeeperSaves, matchResult.teamStats.away.goalkeeperSaves]
+    ];
+
+    rows.forEach(([label, homeValue, awayValue], index) => {
+      const y = contentHeight + index * 38;
+      content.add(this.createStatsValue(-220, y, String(homeValue)));
+      content.add(this.createStatsLabel(0, y, label));
+      content.add(this.createStatsValue(220, y, String(awayValue)));
+    });
+
+    contentHeight += rows.length * 38 + 12;
+    const maxScroll = Math.max(0, contentHeight - MATCH_STATS_VIEWPORT.height);
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(
+        PANEL_X + MATCH_STATS_VIEWPORT.x,
+        PANEL_Y + MATCH_STATS_VIEWPORT.y,
+        MATCH_STATS_VIEWPORT.width,
+        MATCH_STATS_VIEWPORT.height
+      )
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(0, MATCH_STATS_VIEWPORT.y + MATCH_STATS_VIEWPORT.height / 2, MATCH_STATS_VIEWPORT.width, MATCH_STATS_VIEWPORT.height)
+      .setInteractive();
+
+    panel.add([content, scrollZone]);
+
+    if (maxScroll > 0) {
+      const trackX = MATCH_STATS_VIEWPORT.x + MATCH_STATS_VIEWPORT.width + 16;
+      const track = this.add.rectangle(
+        trackX,
+        MATCH_STATS_VIEWPORT.y + MATCH_STATS_VIEWPORT.height / 2,
+        4,
+        MATCH_STATS_VIEWPORT.height,
+        0x5f9572,
+        0.28
+      );
+      const thumbHeight = Math.max(28, (MATCH_STATS_VIEWPORT.height / contentHeight) * MATCH_STATS_VIEWPORT.height);
+      const thumb = this.add.rectangle(trackX, MATCH_STATS_VIEWPORT.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+      let scrollY = 0;
+
+      const setScroll = (value: number): void => {
+        scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+        content.y = MATCH_STATS_VIEWPORT.y - scrollY;
+        thumb.y =
+          MATCH_STATS_VIEWPORT.y +
+          thumbHeight / 2 +
+          (scrollY / maxScroll) * (MATCH_STATS_VIEWPORT.height - thumbHeight);
+      };
+
+      scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+        setScroll(scrollY + deltaY * 0.35);
+      });
+      panel.add([track, thumb]);
+    }
+  }
+
+  private createStatsLabel(x: number, y: number, text: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, text, {
+        align: 'center',
+        color: '#a9c7b3',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+  }
+
+  private createStatsValue(x: number, y: number, text: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, text, {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '24px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+  }
+
   private createAttackCardView(
     x: number,
     y: number,
@@ -390,7 +541,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       highlighted: options.highlighted,
       kitTextureKey: getTeamKitAssetKey(teamId, 'home'),
       onClick: options.onClick,
-      playerProfile: createCardPlayerProfile(teamId, squad.fieldPlayers[rank])
+      playerProfile: createCardPlayerProfile(teamId, squad.fieldPlayers[rank]),
+      tooltipEnabled: false
     });
 
     card.setScale(options.scale ?? 1);
@@ -411,7 +563,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       color: getTeamSideColor(this.shootoutState, teamId),
       kitTextureKey: getGoalkeeperKitAssetKey(getGoalkeeperKitId(teamId, this.shootoutState)),
       label: 'GK',
-      playerProfile: createGoalkeeperCardProfile(teamId, goalkeeper, rank)
+      playerProfile: createGoalkeeperCardProfile(teamId, goalkeeper, rank),
+      tooltipEnabled: false
     });
 
     card.setScale(options.scale ?? 1);
@@ -552,6 +705,53 @@ function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
 
 function getTeamName(teamId: TournamentTeamId): string {
   return findTeam(teamId)?.name ?? teamId;
+}
+
+function getPenaltyKicksForTeam(
+  shootoutState: PenaltyShootoutState,
+  teamId: TournamentTeamId
+): PenaltyKickResult[] {
+  return shootoutState.kicks.filter((kick) => kick.shooterTeamId === teamId);
+}
+
+function getPenaltyMarkerCount(kicks: readonly PenaltyKickResult[]): number {
+  return Math.max(SHOOTOUT_MARKER_COUNT, kicks.length);
+}
+
+function getPenaltyMarkerRowWidth(markerCount: number): number {
+  return Math.max(0, markerCount - 1) * SHOOTOUT_MARKER_GAP;
+}
+
+function getPenaltyMarkerFill(kick: PenaltyKickResult | undefined): number {
+  if (kick === undefined) {
+    return 0x4e5368;
+  }
+
+  if (kick.outcome === 'goal') {
+    return 0x21b34b;
+  }
+
+  if (kick.outcome === 'post') {
+    return 0xf0c95a;
+  }
+
+  return 0xc53655;
+}
+
+function getPenaltyMarkerStroke(kick: PenaltyKickResult | undefined): number {
+  if (kick === undefined) {
+    return 0x777c92;
+  }
+
+  if (kick.outcome === 'goal') {
+    return 0x6ff08d;
+  }
+
+  if (kick.outcome === 'post') {
+    return 0xffdf78;
+  }
+
+  return 0xff6a7e;
 }
 
 function getShooterTeamId(
