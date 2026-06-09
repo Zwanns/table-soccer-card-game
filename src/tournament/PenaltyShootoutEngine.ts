@@ -4,7 +4,6 @@ import type { PenaltyShootoutSide, PenaltyShootoutState } from './PenaltyShootou
 import type { PenaltyKickResult, TournamentPenaltyResult, TournamentTeamId } from './tournamentTypes';
 
 const PENALTY_ATTACK_RANKS: readonly CardRank[] = [...STANDARD_RANKS, 'JOKER'];
-const STRICT_GOALKEEPER_RANKS = new Set<CardRank>(['3', '4', '5', '6', '7', '8', '9', '10']);
 
 export function createPenaltyShootoutState(options: {
   matchId: string;
@@ -15,7 +14,6 @@ export function createPenaltyShootoutState(options: {
   const homeAttackDeck = shuffleValues(PENALTY_ATTACK_RANKS, `${options.seed}:home-attack:0`);
   const awayAttackDeck = shuffleValues(PENALTY_ATTACK_RANKS, `${options.seed}:away-attack:0`);
   const goalkeeperDeck = shuffleGoalkeeperDeck(options.seed, 0);
-  const currentGoalkeeperRank = requireGoalkeeperCard(goalkeeperDeck[0]);
 
   return {
     matchId: options.matchId,
@@ -23,8 +21,10 @@ export function createPenaltyShootoutState(options: {
     awayTeamId: options.awayTeamId,
     seed: options.seed,
     status: 'active',
+    phase: 'selecting-goalkeeper',
     nextShooter: 'home',
-    currentGoalkeeperRank,
+    currentGoalkeeperRank: null,
+    revealedAttackerCardIndex: null,
     homeGoals: 0,
     awayGoals: 0,
     homeKicks: 0,
@@ -33,16 +33,57 @@ export function createPenaltyShootoutState(options: {
     awayDeck: awayAttackDeck.slice(5),
     homeAvailableCards: homeAttackDeck.slice(0, 5),
     awayAvailableCards: awayAttackDeck.slice(0, 5),
-    goalkeeperDeck: goalkeeperDeck.slice(1),
+    goalkeeperDeck,
     kicks: []
   };
 }
 
-export function takePenaltyKick(state: PenaltyShootoutState, selectedCardIndex: number): PenaltyShootoutState {
+export function drawPenaltyGoalkeeperCard(state: PenaltyShootoutState): PenaltyShootoutState {
   if (state.status === 'complete') {
     throw new Error('Penalty shootout is already complete.');
   }
 
+  if (state.phase !== 'selecting-goalkeeper') {
+    throw new Error('Goalkeeper card can only be drawn before the attacker reveals a card.');
+  }
+
+  return drawNextGoalkeeperCard(state);
+}
+
+export function revealPenaltyAttackCard(state: PenaltyShootoutState, selectedCardIndex: number): PenaltyShootoutState {
+  if (state.status === 'complete') {
+    throw new Error('Penalty shootout is already complete.');
+  }
+
+  if (state.phase !== 'selecting-attacker') {
+    throw new Error('Penalty card can only be revealed after the goalkeeper card is drawn.');
+  }
+
+  const preparedState = ensureAvailableCards(state, state.nextShooter);
+  const availableCards = getAvailableCards(preparedState, preparedState.nextShooter);
+
+  if (availableCards[selectedCardIndex] === undefined) {
+    throw new Error('Selected penalty card does not exist.');
+  }
+
+  return {
+    ...preparedState,
+    phase: 'ready-to-shoot',
+    revealedAttackerCardIndex: selectedCardIndex
+  };
+}
+
+export function takePenaltyKick(state: PenaltyShootoutState): PenaltyShootoutState {
+  if (state.status === 'complete') {
+    throw new Error('Penalty shootout is already complete.');
+  }
+
+  if (state.phase !== 'ready-to-shoot' || state.currentGoalkeeperRank === null || state.revealedAttackerCardIndex === null) {
+    throw new Error('Penalty kick can only be taken after both cards are revealed.');
+  }
+
+  const selectedCardIndex = state.revealedAttackerCardIndex;
+  const goalkeeperRank = state.currentGoalkeeperRank;
   const preparedState = ensureAvailableCards(state, state.nextShooter);
   const availableCards = getAvailableCards(preparedState, preparedState.nextShooter);
   const attackerRank = availableCards[selectedCardIndex];
@@ -51,12 +92,12 @@ export function takePenaltyKick(state: PenaltyShootoutState, selectedCardIndex: 
     throw new Error('Selected penalty card does not exist.');
   }
 
-  const outcome = resolvePenaltyKick(attackerRank, preparedState.currentGoalkeeperRank);
+  const outcome = resolvePenaltyKick(attackerRank, goalkeeperRank);
   const shooterTeamId = getShooterTeamId(preparedState, preparedState.nextShooter);
   const kick: PenaltyKickResult = {
     shooterTeamId,
     attackerRank,
-    goalkeeperRank: preparedState.currentGoalkeeperRank,
+    goalkeeperRank,
     outcome
   };
   const nextKicks = [...preparedState.kicks, kick];
@@ -75,7 +116,10 @@ export function takePenaltyKick(state: PenaltyShootoutState, selectedCardIndex: 
       homeKicks,
       awayKicks,
       nextShooter,
-      kicks: nextKicks
+      kicks: nextKicks,
+      revealedAttackerCardIndex: null,
+      currentGoalkeeperRank: null,
+      phase: 'selecting-goalkeeper'
     },
     preparedState.nextShooter,
     selectedCardIndex
@@ -90,7 +134,7 @@ export function takePenaltyKick(state: PenaltyShootoutState, selectedCardIndex: 
     };
   }
 
-  return drawNextGoalkeeperCard(ensureAvailableCards(stateAfterKick, nextShooter));
+  return ensureAvailableCards(stateAfterKick, nextShooter);
 }
 
 export function createTournamentPenaltyResult(state: PenaltyShootoutState): TournamentPenaltyResult {
@@ -114,7 +158,7 @@ export function resolvePenaltyKick(
   attackerRank: CardRank,
   goalkeeperRank: GoalkeeperRank
 ): PenaltyKickResult['outcome'] {
-  if (attackerRank === goalkeeperRank && STRICT_GOALKEEPER_RANKS.has(goalkeeperRank)) {
+  if (attackerRank === goalkeeperRank) {
     return 'post';
   }
 
@@ -174,7 +218,9 @@ function drawNextGoalkeeperCard(state: PenaltyShootoutState): PenaltyShootoutSta
   return {
     ...state,
     currentGoalkeeperRank,
-    goalkeeperDeck: deck.slice(1)
+    goalkeeperDeck: deck.slice(1),
+    phase: 'selecting-attacker',
+    revealedAttackerCardIndex: null
   };
 }
 

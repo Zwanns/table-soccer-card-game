@@ -8,7 +8,8 @@ import { loadSquad } from '../services/squadStorage';
 import {
   createPenaltyShootoutState,
   createTournamentPenaltyResult,
-  getCurrentPenaltyCards,
+  drawPenaltyGoalkeeperCard,
+  revealPenaltyAttackCard,
   submitTournamentMatchResultObject,
   takePenaltyKick,
   type PenaltyShootoutState,
@@ -31,10 +32,12 @@ const PANEL_X = SCENE_WIDTH / 2;
 const PANEL_Y = 442;
 const PANEL_WIDTH = 900;
 const PANEL_HEIGHT = 338;
-const GOALKEEPER_CARD_Y = -36;
-const ATTACK_CARD_Y = 104;
-const PENALTY_CARD_SCALE = 0.66;
-const ATTACK_CARD_GAP = 122;
+const PENALTY_SIDE_HOME_X = -300;
+const PENALTY_SIDE_AWAY_X = 300;
+const PENALTY_GOALKEEPER_Y = -42;
+const PENALTY_ATTACK_CARD_Y = 106;
+const PENALTY_CARD_SCALE = 0.58;
+const PENALTY_ATTACK_CARD_GAP = 62;
 const SHOOTOUT_MARKER_COUNT = 5;
 const SHOOTOUT_MARKER_GAP = 36;
 const SHOOTOUT_SEPARATOR_GAP = 34;
@@ -53,6 +56,7 @@ interface PenaltyAnimationContext {
   shooterSide: PenaltyShootoutState['nextShooter'];
   shooterTeamId: TournamentTeamId;
   startPosition: { x: number; y: number };
+  targetPosition: { x: number; y: number };
 }
 
 export class TournamentPenaltyScene extends Phaser.Scene {
@@ -188,9 +192,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     background.setStrokeStyle(2, 0x5f9572, 0.95);
     panel.add(background);
 
-    const shooterTeamId = shootoutState.nextShooter === 'home' ? shootoutState.homeTeamId : shootoutState.awayTeamId;
-    const shooterTeam = findTeam(shooterTeamId);
-
     if (shootoutState.status === 'complete') {
       this.createMatchStatsPanel(panel, matchResult);
       return;
@@ -198,7 +199,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     panel.add(
       this.add
-        .text(0, -146, `${getTeamName(shooterTeamId)} to shoot`, {
+        .text(0, -146, getPenaltyPhaseTitle(shootoutState), {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: '26px',
@@ -206,32 +207,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     );
-
-    if (shooterTeam !== undefined) {
-      const flag = this.add.image(-190, -146, getFlagAssetKey(shooterTeam.flagCode));
-      flag.setDisplaySize(34, 24);
-      panel.add(flag);
-    }
-
-    const goalkeeperTeamId = getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter);
     panel.add(
       this.add
-        .text(0, -104, 'Goalkeeper', {
-          color: '#f0c95a',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
-          fontStyle: '700'
-        })
-        .setOrigin(0.5)
-    );
-    panel.add(
-      this.createGoalkeeperCardView(0, GOALKEEPER_CARD_Y, shootoutState.currentGoalkeeperRank, goalkeeperTeamId, {
-        scale: PENALTY_CARD_SCALE
-      })
-    );
-    panel.add(
-      this.add
-        .text(0, 38, 'Choose a penalty card', {
+        .text(0, 38, getPenaltyInstruction(shootoutState), {
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
           fontSize: '18px',
@@ -239,24 +217,96 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     );
-    this.createPenaltyCardButtons(panel, shootoutState);
+    this.createPenaltySide(panel, shootoutState, 'home', PENALTY_SIDE_HOME_X);
+    this.createPenaltySide(panel, shootoutState, 'away', PENALTY_SIDE_AWAY_X);
   }
 
-  private createPenaltyCardButtons(panel: Phaser.GameObjects.Container, shootoutState: PenaltyShootoutState): void {
-    const cards = getCurrentPenaltyCards(shootoutState);
-    const startX = -((cards.length - 1) * ATTACK_CARD_GAP) / 2;
-    const shooterTeamId = getShooterTeamId(shootoutState, shootoutState.nextShooter);
-    const shooterColor = getSideCardColor(shootoutState.nextShooter);
+  private createPenaltySide(
+    panel: Phaser.GameObjects.Container,
+    shootoutState: PenaltyShootoutState,
+    goalkeeperSide: PenaltyShootoutState['nextShooter'],
+    sideX: number
+  ): void {
+    const shooterSide = getOppositeSide(goalkeeperSide);
+    const goalkeeperTeamId = getShooterTeamId(shootoutState, goalkeeperSide);
+    const shooterTeamId = getShooterTeamId(shootoutState, shooterSide);
+    const goalkeeperIsActive = getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter) === goalkeeperTeamId;
+    const shooterIsActive = shootoutState.nextShooter === shooterSide;
+    const cards = getPenaltyCardsForSide(shootoutState, shooterSide);
+
+    panel.add(
+      this.add
+        .text(sideX, -112, `${getTeamName(goalkeeperTeamId)} GK`, {
+          align: 'center',
+          color: goalkeeperIsActive ? '#f0c95a' : '#a9c7b3',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '17px',
+          fontStyle: '700',
+          wordWrap: { width: 240 }
+        })
+        .setOrigin(0.5)
+    );
+
+    if (goalkeeperIsActive && shootoutState.phase === 'selecting-goalkeeper') {
+      panel.add(
+        this.createGoalkeeperCardView(sideX, PENALTY_GOALKEEPER_Y, null, goalkeeperTeamId, {
+          faceDown: true,
+          highlighted: true,
+          onClick: () => this.drawGoalkeeperCard(),
+          scale: PENALTY_CARD_SCALE
+        })
+      );
+    } else if (goalkeeperIsActive && shootoutState.currentGoalkeeperRank !== null) {
+      panel.add(
+        this.createGoalkeeperCardView(sideX, PENALTY_GOALKEEPER_Y, shootoutState.currentGoalkeeperRank, goalkeeperTeamId, {
+          highlighted: true,
+          scale: PENALTY_CARD_SCALE
+        })
+      );
+    } else {
+      panel.add(
+        this.createGoalkeeperCardView(sideX, PENALTY_GOALKEEPER_Y, null, goalkeeperTeamId, {
+          faceDown: true,
+          scale: PENALTY_CARD_SCALE
+        })
+      );
+    }
+
+    panel.add(
+      this.add
+        .text(sideX, 42, `${getTeamName(shooterTeamId)} shots`, {
+          align: 'center',
+          color: shooterIsActive ? '#ffffff' : '#8fad9a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '15px',
+          fontStyle: '700',
+          wordWrap: { width: 260 }
+        })
+        .setOrigin(0.5)
+    );
+
+    this.createPenaltyCardButtons(panel, shootoutState, shooterSide, sideX);
+  }
+
+  private createPenaltyCardButtons(
+    panel: Phaser.GameObjects.Container,
+    shootoutState: PenaltyShootoutState,
+    shooterSide: PenaltyShootoutState['nextShooter'],
+    sideX: number
+  ): void {
+    const cards = getPenaltyCardsForSide(shootoutState, shooterSide);
+    const startX = sideX - ((cards.length - 1) * PENALTY_ATTACK_CARD_GAP) / 2;
+    const shooterTeamId = getShooterTeamId(shootoutState, shooterSide);
+    const shooterColor = getSideCardColor(shooterSide);
+    const canReveal = shootoutState.phase === 'selecting-attacker' && shootoutState.nextShooter === shooterSide;
 
     cards.forEach((rank, index) => {
-      const localX = startX + index * ATTACK_CARD_GAP;
-      const card = this.createAttackCardView(localX, ATTACK_CARD_Y, rank, shooterTeamId, shooterColor, {
-        highlighted: true,
-        onClick: () =>
-          this.takeKick(index, {
-            x: PANEL_X + localX,
-            y: PANEL_Y + ATTACK_CARD_Y
-          }),
+      const localX = startX + index * PENALTY_ATTACK_CARD_GAP;
+      const isRevealed = shootoutState.nextShooter === shooterSide && shootoutState.revealedAttackerCardIndex === index;
+      const card = this.createAttackCardView(localX, PENALTY_ATTACK_CARD_Y, rank, shooterTeamId, shooterColor, {
+        faceDown: !isRevealed,
+        highlighted: canReveal || isRevealed,
+        onClick: canReveal ? () => this.revealAttackCard(index) : undefined,
         scale: PENALTY_CARD_SCALE
       });
 
@@ -264,13 +314,56 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private takeKick(cardIndex: number, startPosition?: { x: number; y: number }): void {
+  private drawGoalkeeperCard(): void {
     if (this.shootoutState === null || this.inputLocked) {
       return;
     }
 
+    try {
+      this.shootoutState = drawPenaltyGoalkeeperCard(this.shootoutState);
+      this.message = null;
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'Could not draw the goalkeeper card.';
+    }
+
+    this.render();
+  }
+
+  private revealAttackCard(cardIndex: number): void {
+    if (this.shootoutState === null || this.inputLocked) {
+      return;
+    }
+
+    try {
+      this.shootoutState = revealPenaltyAttackCard(this.shootoutState, cardIndex);
+      this.message = null;
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'Could not reveal the penalty card.';
+      this.render();
+      return;
+    }
+
+    this.inputLocked = true;
+    this.input.enabled = false;
+    this.render();
+    this.time.delayedCall(260, () => this.takeKick());
+  }
+
+  private takeKick(): void {
+    if (this.shootoutState === null) {
+      return;
+    }
+
     const previousState = this.shootoutState;
-    const selectedRank = getCurrentPenaltyCards(previousState)[cardIndex];
+    const cardIndex = previousState.revealedAttackerCardIndex;
+
+    if (cardIndex === null) {
+      this.message = 'Reveal a penalty card before shooting.';
+      this.render();
+      return;
+    }
+
+    const selectedRank = getPenaltyCardsForSide(previousState, previousState.nextShooter)[cardIndex];
 
     if (selectedRank === undefined) {
       this.message = 'Selected penalty card does not exist.';
@@ -281,9 +374,11 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     let nextState: PenaltyShootoutState;
 
     try {
-      nextState = takePenaltyKick(previousState, cardIndex);
+      nextState = takePenaltyKick(previousState);
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'Could not take the penalty kick.';
+      this.inputLocked = false;
+      this.input.enabled = true;
       this.render();
       return;
     }
@@ -292,19 +387,20 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     if (kick === undefined) {
       this.message = 'Could not resolve the penalty kick.';
+      this.inputLocked = false;
+      this.input.enabled = true;
       this.render();
       return;
     }
 
-    this.inputLocked = true;
-    this.input.enabled = false;
     this.animatePenaltyKick(
       {
         attackerRank: selectedRank,
         outcome: kick.outcome,
         shooterSide: previousState.nextShooter,
         shooterTeamId: kick.shooterTeamId,
-        startPosition: startPosition ?? { x: PANEL_X, y: PANEL_Y + ATTACK_CARD_Y }
+        startPosition: getPenaltyAttackCardWorldPosition(previousState, cardIndex),
+        targetPosition: getPenaltyGoalkeeperWorldPosition(previousState)
       },
       () => {
         this.shootoutState = nextState;
@@ -532,16 +628,17 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     rank: CardRank,
     teamId: TournamentTeamId,
     color: CardColor,
-    options: { highlighted?: boolean; onClick?: () => void; scale?: number } = {}
+    options: { faceDown?: boolean; highlighted?: boolean; onClick?: () => void; scale?: number } = {}
   ): CardView {
     const squad = loadSquad(teamId);
     const card = new CardView(this, x, y, {
       rank,
       color,
+      faceDown: options.faceDown,
       highlighted: options.highlighted,
       kitTextureKey: getTeamKitAssetKey(teamId, 'home'),
       onClick: options.onClick,
-      playerProfile: createCardPlayerProfile(teamId, squad.fieldPlayers[rank]),
+      playerProfile: options.faceDown === true ? undefined : createCardPlayerProfile(teamId, squad.fieldPlayers[rank]),
       tooltipEnabled: false
     });
 
@@ -552,18 +649,21 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private createGoalkeeperCardView(
     x: number,
     y: number,
-    rank: GoalkeeperRank,
+    rank: GoalkeeperRank | null,
     teamId: TournamentTeamId,
-    options: { scale?: number } = {}
+    options: { faceDown?: boolean; highlighted?: boolean; onClick?: () => void; scale?: number } = {}
   ): CardView {
     const squad = loadSquad(teamId);
     const goalkeeper = getStartingGoalkeeper(squad.goalkeepers, squad.defaultStartingGoalkeeperId);
     const card = new CardView(this, x, y, {
-      rank,
+      rank: rank ?? 'GK',
       color: getTeamSideColor(this.shootoutState, teamId),
+      faceDown: options.faceDown,
+      highlighted: options.highlighted,
       kitTextureKey: getGoalkeeperKitAssetKey(getGoalkeeperKitId(teamId, this.shootoutState)),
       label: 'GK',
-      playerProfile: createGoalkeeperCardProfile(teamId, goalkeeper, rank),
+      onClick: options.onClick,
+      playerProfile: options.faceDown === true || rank === null ? undefined : createGoalkeeperCardProfile(teamId, goalkeeper, rank),
       tooltipEnabled: false
     });
 
@@ -572,7 +672,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private animatePenaltyKick(context: PenaltyAnimationContext, onComplete: () => void): void {
-    const target = { x: PANEL_X, y: PANEL_Y + GOALKEEPER_CARD_Y };
+    const target = context.targetPosition;
     const card = this.createAttackCardView(
       context.startPosition.x,
       context.startPosition.y,
@@ -699,6 +799,57 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 }
 
+function getPenaltyPhaseTitle(shootoutState: PenaltyShootoutState): string {
+  const shooterTeamId = getShooterTeamId(shootoutState, shootoutState.nextShooter);
+  const goalkeeperTeamId = getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter);
+
+  if (shootoutState.phase === 'selecting-goalkeeper') {
+    return `${getTeamName(goalkeeperTeamId)} picks goalkeeper`;
+  }
+
+  if (shootoutState.phase === 'selecting-attacker') {
+    return `${getTeamName(shooterTeamId)} reveals a shot card`;
+  }
+
+  return `${getTeamName(shooterTeamId)} to shoot`;
+}
+
+function getPenaltyInstruction(shootoutState: PenaltyShootoutState): string {
+  if (shootoutState.phase === 'selecting-goalkeeper') {
+    return 'Click the hidden goalkeeper card';
+  }
+
+  if (shootoutState.phase === 'selecting-attacker') {
+    return 'Choose one hidden penalty card';
+  }
+
+  return 'Shooting...';
+}
+
+function getPenaltyAttackCardWorldPosition(
+  shootoutState: PenaltyShootoutState,
+  cardIndex: number
+): { x: number; y: number } {
+  const cards = getPenaltyCardsForSide(shootoutState, shootoutState.nextShooter);
+  const sideX = getPenaltyTargetSideX(getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter), shootoutState);
+  const startX = sideX - ((cards.length - 1) * PENALTY_ATTACK_CARD_GAP) / 2;
+  const localX = startX + cardIndex * PENALTY_ATTACK_CARD_GAP;
+
+  return {
+    x: PANEL_X + localX,
+    y: PANEL_Y + PENALTY_ATTACK_CARD_Y
+  };
+}
+
+function getPenaltyGoalkeeperWorldPosition(shootoutState: PenaltyShootoutState): { x: number; y: number } {
+  const sideX = getPenaltyTargetSideX(getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter), shootoutState);
+
+  return {
+    x: PANEL_X + sideX,
+    y: PANEL_Y + PENALTY_GOALKEEPER_Y
+  };
+}
+
 function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
   return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
 }
@@ -731,10 +882,6 @@ function getPenaltyMarkerFill(kick: PenaltyKickResult | undefined): number {
     return 0x21b34b;
   }
 
-  if (kick.outcome === 'post') {
-    return 0xf0c95a;
-  }
-
   return 0xc53655;
 }
 
@@ -745,10 +892,6 @@ function getPenaltyMarkerStroke(kick: PenaltyKickResult | undefined): number {
 
   if (kick.outcome === 'goal') {
     return 0x6ff08d;
-  }
-
-  if (kick.outcome === 'post') {
-    return 0xffdf78;
   }
 
   return 0xff6a7e;
@@ -766,6 +909,21 @@ function getGoalkeeperTeamId(
   shooterSide: PenaltyShootoutState['nextShooter']
 ): TournamentTeamId {
   return shooterSide === 'home' ? shootoutState.awayTeamId : shootoutState.homeTeamId;
+}
+
+function getOppositeSide(side: PenaltyShootoutState['nextShooter']): PenaltyShootoutState['nextShooter'] {
+  return side === 'home' ? 'away' : 'home';
+}
+
+function getPenaltyCardsForSide(
+  shootoutState: PenaltyShootoutState,
+  side: PenaltyShootoutState['nextShooter']
+): readonly CardRank[] {
+  return side === 'home' ? shootoutState.homeAvailableCards : shootoutState.awayAvailableCards;
+}
+
+function getPenaltyTargetSideX(goalkeeperTeamId: TournamentTeamId, shootoutState: PenaltyShootoutState): number {
+  return goalkeeperTeamId === shootoutState.homeTeamId ? PENALTY_SIDE_HOME_X : PENALTY_SIDE_AWAY_X;
 }
 
 function getSideCardColor(side: PenaltyShootoutState['nextShooter']): CardColor {

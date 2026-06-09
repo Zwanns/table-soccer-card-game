@@ -4,11 +4,13 @@ import {
   createPenaltyShootoutState,
   createTournamentPenaltyResult,
   createTournamentState,
+  drawPenaltyGoalkeeperCard,
   fillEmptyTournamentSlots,
   fillTournamentTeamsRandom,
   getCurrentPenaltyCards,
   getTournamentGroupStandings,
   getTournamentMatchCount,
+  revealPenaltyAttackCard,
   resolvePenaltyKick,
   shuffleTournamentTeams,
   submitTournamentMatchResult,
@@ -460,11 +462,41 @@ describe('penalty shootout engine', () => {
 
     expect(cards).toHaveLength(5);
     expect(new Set(cards).size).toBe(5);
+    expect(shootout.phase).toBe('selecting-goalkeeper');
+    expect(shootout.currentGoalkeeperRank).toBeNull();
+    expect(shootout.revealedAttackerCardIndex).toBeNull();
   });
 
-  it('uses match card rules and strict goalkeeper equality posts', () => {
+  it('reveals goalkeeper and attacking cards before taking a penalty kick', () => {
+    let shootout = createPenaltyShootoutState({
+      matchId: 'semi-final-1',
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      seed: 'penalty-flow'
+    });
+
+    shootout = drawPenaltyGoalkeeperCard(shootout);
+
+    expect(shootout.phase).toBe('selecting-attacker');
+    expect(shootout.currentGoalkeeperRank).not.toBeNull();
+
+    shootout = revealPenaltyAttackCard(shootout, 0);
+
+    expect(shootout.phase).toBe('ready-to-shoot');
+    expect(shootout.revealedAttackerCardIndex).toBe(0);
+
+    shootout = takePenaltyKick(shootout);
+
+    expect(shootout.kicks).toHaveLength(1);
+    expect(shootout.phase).toBe('selecting-goalkeeper');
+    expect(shootout.currentGoalkeeperRank).toBeNull();
+    expect(shootout.revealedAttackerCardIndex).toBeNull();
+  });
+
+  it('uses match card rules and treats equal goalkeeper ranks as posts', () => {
     expect(resolvePenaltyKick('6', 'A')).toBe('goal');
     expect(resolvePenaltyKick('7', '7')).toBe('post');
+    expect(resolvePenaltyKick('Q', 'Q')).toBe('post');
     expect(resolvePenaltyKick('5', '10')).toBe('save');
   });
 
@@ -477,7 +509,9 @@ describe('penalty shootout engine', () => {
     });
 
     for (let index = 0; index < 40 && shootout.status !== 'complete'; index += 1) {
-      shootout = takePenaltyKick(shootout, 0);
+      shootout = drawPenaltyGoalkeeperCard(shootout);
+      shootout = revealPenaltyAttackCard(shootout, 0);
+      shootout = takePenaltyKick(shootout);
     }
 
     const result = createTournamentPenaltyResult(shootout);

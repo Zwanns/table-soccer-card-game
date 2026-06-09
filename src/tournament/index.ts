@@ -19,11 +19,18 @@ export { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from './MatchLaunchConte
 export {
   createPenaltyShootoutState,
   createTournamentPenaltyResult,
+  drawPenaltyGoalkeeperCard,
   getCurrentPenaltyCards,
+  revealPenaltyAttackCard,
   resolvePenaltyKick,
   takePenaltyKick
 } from './PenaltyShootoutEngine';
-export type { PenaltyShootoutSide, PenaltyShootoutState, PenaltyShootoutStatus } from './PenaltyShootoutState';
+export type {
+  PenaltyShootoutPhase,
+  PenaltyShootoutSide,
+  PenaltyShootoutState,
+  PenaltyShootoutStatus
+} from './PenaltyShootoutState';
 export { getTournamentGroupStandings, sortGroupStandings } from './TournamentStandings';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {
