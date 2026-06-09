@@ -16,6 +16,14 @@ export {
 export { createTournamentMatchResultFromGameState } from './createTournamentMatchResultFromGameState';
 export { areAllGroupMatchesCompleted, getFirstKnockoutStage, refreshTournamentProgress } from './TournamentBracket';
 export { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from './MatchLaunchContext';
+export {
+  createPenaltyShootoutState,
+  createTournamentPenaltyResult,
+  getCurrentPenaltyCards,
+  resolvePenaltyKick,
+  takePenaltyKick
+} from './PenaltyShootoutEngine';
+export type { PenaltyShootoutSide, PenaltyShootoutState, PenaltyShootoutStatus } from './PenaltyShootoutState';
 export { getTournamentGroupStandings, sortGroupStandings } from './TournamentStandings';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {

@@ -8,6 +8,7 @@ import {
   QUICK_MATCH_CONTEXT,
   submitTournamentMatchResultObject,
   type MatchLaunchContext,
+  type TournamentMatchResult,
   type TournamentState
 } from '../tournament';
 
@@ -107,6 +108,11 @@ export class ResultScene extends Phaser.Scene {
     if (match.status !== 'completed') {
       const result = createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId);
 
+      if (match.stage !== 'group' && result.winnerTeamId === undefined) {
+        this.startPenaltyShootout(launchContext.tournamentId, result);
+        return;
+      }
+
       try {
         const updatedTournament = submitTournamentMatchResultObject(tournament, result);
         this.registry.set('currentTournament', updatedTournament);
@@ -117,6 +123,13 @@ export class ResultScene extends Phaser.Scene {
     }
 
     this.scene.start('TournamentHubScene');
+  }
+
+  private startPenaltyShootout(tournamentId: string, matchResult: TournamentMatchResult): void {
+    this.scene.start('TournamentPenaltyScene', {
+      tournamentId,
+      matchResult
+    });
   }
 
   private showMessage(text: string): void {

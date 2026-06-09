@@ -580,7 +580,15 @@ function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): strin
     return '-';
   }
 
-  return String(team === 'home' ? match.result.homeGoals : match.result.awayGoals);
+  const mainGoals = team === 'home' ? match.result.homeGoals : match.result.awayGoals;
+
+  if (match.result.penaltyShootout === undefined) {
+    return String(mainGoals);
+  }
+
+  const penaltyGoals = team === 'home' ? match.result.penaltyShootout.homeGoals : match.result.penaltyShootout.awayGoals;
+
+  return `${mainGoals} (${penaltyGoals})`;
 }
 
 function getBracketCardWidth(formatId: TournamentState['formatId']): number {

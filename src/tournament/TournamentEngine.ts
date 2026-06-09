@@ -214,6 +214,14 @@ export function createTournamentMatchResult(
 
 function validateMatchResultForStage(stage: string, result: TournamentMatchResult): void {
   if (stage !== 'group' && result.winnerTeamId === undefined) {
-    throw new Error('Ничья в плей-офф требует серию пенальти. Серия пенальти будет добавлена на Этапе 5.');
+    throw new Error('A playoff draw requires a penalty shootout.');
+  }
+
+  if (stage === 'group' && result.penaltyShootout !== undefined) {
+    throw new Error('Group stage matches cannot have a penalty shootout.');
+  }
+
+  if (result.penaltyShootout !== undefined && result.homeGoals !== result.awayGoals) {
+    throw new Error('Penalty shootouts are only allowed after a drawn playoff match.');
   }
 }

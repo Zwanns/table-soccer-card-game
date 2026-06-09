@@ -24,6 +24,7 @@ describe('tournament hub scene integration', () => {
 
     expect(mainSource).toContain('TournamentSetupScene');
     expect(mainSource).toContain('TournamentHubScene');
+    expect(mainSource).toContain('TournamentPenaltyScene');
   });
 
   it('starts the tournament hub after setup creates a tournament', () => {
@@ -43,6 +44,15 @@ describe('tournament hub scene integration', () => {
     expect(gameSource).toContain('launchContext');
     expect(resultSource).toContain('Вернуться в турнир');
     expect(resultSource).toContain('submitTournamentMatchResultObject');
+  });
+
+  it('routes drawn playoff matches through the tournament penalty scene', () => {
+    const resultSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+    const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+
+    expect(resultSource).toContain("this.scene.start('TournamentPenaltyScene'");
+    expect(penaltySource).toContain('createPenaltyShootoutState');
+    expect(penaltySource).toContain('submitTournamentMatchResultObject');
   });
 });
 

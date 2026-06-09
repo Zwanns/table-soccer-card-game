@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
+  createPenaltyShootoutState,
+  createTournamentPenaltyResult,
   createTournamentState,
   fillEmptyTournamentSlots,
   fillTournamentTeamsRandom,
+  getCurrentPenaltyCards,
   getTournamentGroupStandings,
   getTournamentMatchCount,
+  resolvePenaltyKick,
   shuffleTournamentTeams,
   submitTournamentMatchResult,
+  submitTournamentMatchResultObject,
+  takePenaltyKick,
   type TournamentFormatId,
   type TournamentMatch,
   type TournamentState,
@@ -366,7 +372,7 @@ describe('knockout bracket', () => {
     expect(tournament.matches.find((match) => match.id === 'final-1')?.result?.winnerTeamId).not.toBe(final.homeTeamId);
   });
 
-  it('rejects a playoff draw until penalty shootouts are implemented', () => {
+  it('requires a penalty shootout for a playoff draw submitted directly', () => {
     const tournament = completeGroupStage(
       createTournamentState({
         formatId: 'cup-m',
@@ -380,7 +386,105 @@ describe('knockout bracket', () => {
         homeGoals: 1,
         awayGoals: 1
       })
-    ).toThrow('пенальти');
+    ).toThrow('penalty');
+  });
+
+  it('advances the penalty winner after a drawn playoff match', () => {
+    let tournament = completeGroupStage(
+      createTournamentState({
+        formatId: 'cup-m',
+        teamIds: teamIds(8),
+        seed: 'cup-m-penalty-winner'
+      })
+    );
+    const semiFinal = requireMatch(tournament, 'semi-final-1');
+    const homeTeamId = requireTeam(semiFinal.homeTeamId);
+    const awayTeamId = requireTeam(semiFinal.awayTeamId);
+
+    tournament = submitTournamentMatchResultObject(tournament, {
+      matchId: semiFinal.id,
+      homeTeamId,
+      awayTeamId,
+      homeGoals: 1,
+      awayGoals: 1,
+      winnerTeamId: awayTeamId,
+      penaltyShootout: {
+        homeGoals: 3,
+        awayGoals: 4,
+        winnerTeamId: awayTeamId,
+        kicks: []
+      },
+      teamStats: {
+        home: {
+          teamId: homeTeamId,
+          goals: 1,
+          shots: 3,
+          goalpostHits: 0,
+          goalkeeperSaves: 0
+        },
+        away: {
+          teamId: awayTeamId,
+          goals: 1,
+          shots: 4,
+          goalpostHits: 0,
+          goalkeeperSaves: 0
+        }
+      },
+      playerStats: []
+    });
+
+    expect(tournament.matches.find((match) => match.id === 'semi-final-1')?.result).toMatchObject({
+      homeGoals: 1,
+      awayGoals: 1,
+      winnerTeamId: awayTeamId,
+      penaltyShootout: {
+        homeGoals: 3,
+        awayGoals: 4
+      }
+    });
+    expect(tournament.matches.find((match) => match.id === 'final-1')).toMatchObject({
+      homeTeamId: awayTeamId
+    });
+  });
+});
+
+describe('penalty shootout engine', () => {
+  it('creates five unique hidden attacking cards for the first shooter', () => {
+    const shootout = createPenaltyShootoutState({
+      matchId: 'semi-final-1',
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      seed: 'penalty-cards'
+    });
+    const cards = getCurrentPenaltyCards(shootout);
+
+    expect(cards).toHaveLength(5);
+    expect(new Set(cards).size).toBe(5);
+  });
+
+  it('uses match card rules and strict goalkeeper equality posts', () => {
+    expect(resolvePenaltyKick('6', 'A')).toBe('goal');
+    expect(resolvePenaltyKick('7', '7')).toBe('post');
+    expect(resolvePenaltyKick('5', '10')).toBe('save');
+  });
+
+  it('completes a deterministic shootout and exposes a tournament penalty result', () => {
+    let shootout = createPenaltyShootoutState({
+      matchId: 'final-1',
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      seed: 'penalty-complete'
+    });
+
+    for (let index = 0; index < 40 && shootout.status !== 'complete'; index += 1) {
+      shootout = takePenaltyKick(shootout, 0);
+    }
+
+    const result = createTournamentPenaltyResult(shootout);
+
+    expect(shootout.status).toBe('complete');
+    expect(result.winnerTeamId).toBeDefined();
+    expect(result.kicks.length).toBeGreaterThanOrEqual(6);
   });
 });
 

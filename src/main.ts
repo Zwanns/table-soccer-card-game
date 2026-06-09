@@ -8,6 +8,7 @@ import { SquadEditorScene } from './scenes/SquadEditorScene';
 import { SquadSelectScene } from './scenes/SquadSelectScene';
 import { TeamSelectScene } from './scenes/TeamSelectScene';
 import { TournamentHubScene } from './scenes/TournamentHubScene';
+import { TournamentPenaltyScene } from './scenes/TournamentPenaltyScene';
 import { TournamentSetupScene } from './scenes/TournamentSetupScene';
 import './styles/main.css';
 
@@ -25,6 +26,7 @@ const config: Phaser.Types.Core.GameConfig = {
     SquadEditorScene,
     TournamentSetupScene,
     TournamentHubScene,
+    TournamentPenaltyScene,
     GameScene,
     ResultScene
   ],
