@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { GAME_TITLE, GAME_VERSION } from '../config';
+import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
 describe('project scaffold', () => {
@@ -11,6 +11,11 @@ describe('project scaffold', () => {
 
   it('uses the required game version', () => {
     expect(GAME_VERSION).toBe('1.0');
+  });
+
+  it('uses the configured game author', () => {
+    expect(GAME_AUTHOR).toBe('Oleh Myronchuk');
+    expect(GAME_AUTHOR_URL).toBe('https://www.linkedin.com/in/myronczuk-oleg/');
   });
 
   it('does not render an OUT button in the match scene', () => {
@@ -34,6 +39,31 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createFooter');
     expect(menuSceneSource).toContain('MENU_LAYOUT');
     expect(bootSceneSource).toContain('MENU_ASSETS.background');
+  });
+
+  it('groups main menu actions into game modes, squads and about', () => {
+    const menuSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
+
+    expect(menuSceneSource).toContain('Режимы игры');
+    expect(menuSceneSource).toContain('Турниры');
+    expect(menuSceneSource).toContain('Быстрый матч');
+    expect(menuSceneSource).toContain('Серия пенальти');
+    expect(menuSceneSource).toContain('Составы');
+    expect(menuSceneSource).toContain('О проекте');
+    expect(menuSceneSource).toContain('GAME_AUTHOR_URL');
+    expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
+    expect(menuSceneSource).toContain('ABOUT_CONTENT');
+    expect(menuSceneSource).toContain("return 'EN'");
+    expect(menuSceneSource).toContain("return 'PL'");
+    expect(menuSceneSource).toContain("return 'UA'");
+    expect(menuSceneSource).toContain('createAboutBackButton');
+    expect(menuSceneSource).toContain('createAboutViewport');
+    expect(menuSceneSource).toContain('createGeometryMask');
+    expect(menuSceneSource).toContain("scrollZone.on('wheel'");
+    expect(menuSceneSource).toContain('createStandalonePenaltyMatchResult');
+    expect(menuSceneSource).toContain('Tournament progress is currently saved only locally');
+    expect(menuSceneSource).toContain('Postęp turnieju jest obecnie zapisywany tylko lokalnie');
+    expect(menuSceneSource).toContain('Прогрес турніру поки зберігається лише локально');
   });
 
   it('provides 64 unique national teams for match setup', () => {

@@ -51,8 +51,12 @@ describe('tournament hub scene integration', () => {
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
 
     expect(resultSource).toContain("this.scene.start('TournamentPenaltyScene'");
+    expect(resultSource).toContain('Серия пенальти');
+    expect(resultSource).toContain('needsPenaltyShootout');
     expect(penaltySource).toContain('createPenaltyShootoutState');
     expect(penaltySource).toContain('submitTournamentMatchResultObject');
+    expect(penaltySource).not.toContain('formatKickSummary');
+    expect(penaltySource).not.toContain('createLastKickCards');
   });
 });
 

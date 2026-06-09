@@ -74,13 +74,44 @@ export class ResultScene extends Phaser.Scene {
 
   private createActions(centerX: number): void {
     if (this.launchContext.mode === 'tournament') {
-      new Button(this, centerX - 150, 650, 'Вернуться в турнир', () => this.returnToTournament(), { width: 270 });
+      const primaryLabel = this.needsPenaltyShootout() ? 'Серия пенальти' : 'Вернуться в турнир';
+      new Button(this, centerX - 150, 650, primaryLabel, () => this.returnToTournament(), { width: 270 });
       new Button(this, centerX + 150, 650, 'В меню', () => this.scene.start('MenuScene'), { width: 230 });
       return;
     }
 
     new Button(this, centerX - 130, 650, 'Сыграть еще', () => this.scene.start('TeamSelectScene'));
     new Button(this, centerX + 130, 650, 'В меню', () => this.scene.start('MenuScene'));
+  }
+
+  private needsPenaltyShootout(): boolean {
+    const launchContext = this.launchContext;
+
+    if (launchContext.mode !== 'tournament' || this.state === null) {
+      return false;
+    }
+
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+
+    if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
+      return false;
+    }
+
+    const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
+
+    if (
+      match === undefined ||
+      match.status === 'completed' ||
+      match.stage === 'group' ||
+      match.homeTeamId === undefined ||
+      match.awayTeamId === undefined
+    ) {
+      return false;
+    }
+
+    const result = createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId);
+
+    return result.winnerTeamId === undefined;
   }
 
   private returnToTournament(): void {

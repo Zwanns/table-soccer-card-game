@@ -1,4 +1,4 @@
-import type { CardRank } from '../cards';
+import type { CardRank, GoalkeeperRank } from '../cards';
 
 export type TournamentFormatId = 'cup-m' | 'cup-l' | 'cup-xl';
 
@@ -46,7 +46,7 @@ export type TournamentMatchPlayerStats = {
 export type PenaltyKickResult = {
   shooterTeamId: TournamentTeamId;
   attackerRank: CardRank;
-  goalkeeperRank: CardRank;
+  goalkeeperRank: GoalkeeperRank;
   outcome: 'goal' | 'save' | 'post';
 };
 
