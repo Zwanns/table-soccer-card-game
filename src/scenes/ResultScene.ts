@@ -149,6 +149,10 @@ export class ResultScene extends Phaser.Scene {
         const updatedTournament = submitTournamentMatchResultObject(tournament, result);
         this.registry.set('currentTournament', updatedTournament);
         saveTournament(updatedTournament);
+        if (updatedTournament.stage === 'complete') {
+          this.scene.start('TournamentCompleteScene');
+          return;
+        }
       } catch (error) {
         this.showMessage(error instanceof Error ? error.message : 'Не удалось записать результат турнира.');
         return;

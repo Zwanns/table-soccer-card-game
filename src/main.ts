@@ -7,6 +7,7 @@ import { ResultScene } from './scenes/ResultScene';
 import { SquadEditorScene } from './scenes/SquadEditorScene';
 import { SquadSelectScene } from './scenes/SquadSelectScene';
 import { TeamSelectScene } from './scenes/TeamSelectScene';
+import { TournamentCompleteScene } from './scenes/TournamentCompleteScene';
 import { TournamentHubScene } from './scenes/TournamentHubScene';
 import { TournamentPenaltyScene } from './scenes/TournamentPenaltyScene';
 import { TournamentSetupScene } from './scenes/TournamentSetupScene';
@@ -27,6 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
     TournamentSetupScene,
     TournamentHubScene,
     TournamentPenaltyScene,
+    TournamentCompleteScene,
     GameScene,
     ResultScene
   ],

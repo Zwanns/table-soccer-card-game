@@ -135,7 +135,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         SCENE_WIDTH / 2,
         660,
         this.standalone ? 'В меню' : 'Back to tournament',
-        () => this.scene.start(this.standalone ? 'MenuScene' : 'TournamentHubScene'),
+        () => this.scene.start(this.getCompletedShootoutReturnScene()),
         { width: 300 }
       );
     }
@@ -447,6 +447,16 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'Could not save the penalty shootout.';
     }
+  }
+
+  private getCompletedShootoutReturnScene(): string {
+    if (this.standalone) {
+      return 'MenuScene';
+    }
+
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+
+    return tournament?.stage === 'complete' ? 'TournamentCompleteScene' : 'TournamentHubScene';
   }
 
   private addPenaltyTeamHeader(

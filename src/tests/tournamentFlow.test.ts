@@ -25,6 +25,7 @@ describe('tournament hub scene integration', () => {
     expect(mainSource).toContain('TournamentSetupScene');
     expect(mainSource).toContain('TournamentHubScene');
     expect(mainSource).toContain('TournamentPenaltyScene');
+    expect(mainSource).toContain('TournamentCompleteScene');
   });
 
   it('starts the tournament hub after setup creates a tournament', () => {
@@ -44,6 +45,7 @@ describe('tournament hub scene integration', () => {
     expect(gameSource).toContain('launchContext');
     expect(resultSource).toContain('Вернуться в турнир');
     expect(resultSource).toContain('submitTournamentMatchResultObject');
+    expect(resultSource).toContain("this.scene.start('TournamentCompleteScene')");
   });
 
   it('routes drawn playoff matches through the tournament penalty scene', () => {
@@ -64,6 +66,23 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain("scrollZone.on('wheel'");
     expect(penaltySource).toContain('tooltipEnabled: false');
     expect(penaltySource).not.toContain('getPenaltyExtraSymbol');
+  });
+
+  it('provides a tournament completion scene with champion summary and stats navigation', () => {
+    const completeSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentCompleteScene.ts'), 'utf8');
+    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+
+    expect(completeSource).toContain("super('TournamentCompleteScene')");
+    expect(completeSource).toContain('Champion:');
+    expect(completeSource).toContain('Champion path');
+    expect(completeSource).toContain('Tournament leaders');
+    expect(completeSource).toContain('Top scorer');
+    expect(completeSource).toContain('Top assist');
+    expect(completeSource).toContain('Top goalkeeper');
+    expect(completeSource).toContain('View stats');
+    expect(completeSource).toContain("initialTab: 'stats'");
+    expect(completeSource).toContain('New tournament');
+    expect(hubSource).toContain('initialTab?: TournamentHubTab');
   });
 });
 

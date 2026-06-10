@@ -23,6 +23,10 @@ import { createSimulatedTournamentGameState } from './tournamentMatchSimulation'
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
 
+interface TournamentHubSceneData {
+  initialTab?: TournamentHubTab;
+}
+
 type StatsRankingEntry = {
   teamId: TournamentTeamId;
   label: string;
@@ -101,6 +105,10 @@ export class TournamentHubScene extends Phaser.Scene {
 
   public constructor() {
     super('TournamentHubScene');
+  }
+
+  public init(data: TournamentHubSceneData = {}): void {
+    this.activeTab = data.initialTab ?? this.activeTab;
   }
 
   public create(): void {
