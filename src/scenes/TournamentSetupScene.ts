@@ -82,7 +82,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(centerX, 68, 'Турнир', {
+      .text(centerX, 68, 'Tournament', {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
@@ -105,7 +105,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       const background = this.add.rectangle(0, 0, 210, 48, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.94);
       background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.95);
       const label = this.add
-        .text(0, -5, FORMAT_LABELS[formatId], {
+        .text(0, 0, FORMAT_LABELS[formatId], {
           align: 'center',
           color: selected ? '#1f2a2e' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
@@ -114,17 +114,8 @@ export class TournamentSetupScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       const format = getTournamentFormat(formatId);
-      const detail = this.add
-        .text(0, 16, `${format.teamCount} команд`, {
-          align: 'center',
-          color: selected ? '#33423a' : '#b9d5c3',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
-          fontStyle: '700'
-        })
-        .setOrigin(0.5);
-
-      button.add([background, label, detail]);
+      // Do not show team count in the format button (removed per UI request)
+      button.add([background, label]);
       button.setSize(210, 48);
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
@@ -145,7 +136,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     const matchesCount = getTournamentMatchCount(this.draft.formatId);
 
     this.add
-      .text(352, 124, `Участники ${selectedCount}/${totalCount}`, {
+      .text(352, 124, `Participants ${selectedCount}/${totalCount}`, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
@@ -153,7 +144,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(1244, 124, `${matchesCount} матчей`, {
+      .text(1244, 124, `${matchesCount} matches`, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
@@ -182,7 +173,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     background.setOrigin(0);
     background.setStrokeStyle(2, 0x5f9572, 0.92);
     const title = this.add
-      .text(14, 16, `Группа ${groupId}`, {
+      .text(14, 16, `Group ${groupId}`, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
@@ -209,7 +200,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.92);
 
     const name = this.add
-      .text(12, SLOT_HEIGHT / 2, team?.name ?? 'Пусто', {
+      .text(12, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
         color: selected ? '#1f2a2e' : team === undefined ? '#8fb39d' : '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
@@ -266,7 +257,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       );
     });
 
-    new Button(this, 1038, 606, 'Назад', () => this.changePage(-1), {
+    new Button(this, 1038, 606, 'Previous', () => this.changePage(-1), {
       disabled: this.page === 0,
       fontSize: '18px',
       height: 42,
@@ -280,7 +271,7 @@ export class TournamentSetupScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1426, 606, 'Дальше', () => this.changePage(1), {
+    new Button(this, 1426, 606, 'Next', () => this.changePage(1), {
       disabled: this.page === maxPage,
       fontSize: '18px',
       height: 42,
@@ -294,28 +285,22 @@ export class TournamentSetupScene extends Phaser.Scene {
     const option = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT, isSelected ? 0xf0c95a : 0x143f2c, 0.94);
     background.setStrokeStyle(2, isSelected ? 0x2d382f : 0x5f9572, 0.94);
-    const flag = this.add.image(-TEAM_BUTTON_WIDTH / 2 + 24, 6, getFlagAssetKey(team.flagCode));
+    // Position flag and name to avoid overlap; center vertically
+    const flag = this.add.image(-TEAM_BUTTON_WIDTH / 2 + 18, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(30, 22);
-    const rank = this.add
-      .text(-TEAM_BUTTON_WIDTH / 2 + 11, -12, String(team.rank), {
-        color: isSelected ? '#33423a' : '#9fc5ad',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '11px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
+    // Remove ordinal rank numbers from the tournament setup team list
     const name = this.add
-      .text(18, 6, team.name, {
-        align: 'center',
+      .text(-TEAM_BUTTON_WIDTH / 2 + 48, 0, team.name, {
+        align: 'left',
         color: isSelected ? '#1f2a2e' : '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         fontStyle: '700',
-        wordWrap: { width: 96 }
+        wordWrap: { width: TEAM_BUTTON_WIDTH - 64 }
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0.5);
 
-    option.add([background, flag, rank, name]);
+    option.add([background, flag, name]);
     option.setSize(TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
@@ -334,28 +319,28 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createBottomButtons(): void {
     const complete = isTournamentSetupComplete(this.draft);
 
-    new Button(this, 130, 666, 'В меню', () => this.scene.start('MenuScene'), {
+    new Button(this, 130, 666, 'Menu', () => this.scene.start('MenuScene'), {
       fontSize: '18px',
       width: 170
     });
-    new Button(this, 342, 666, 'Очистить', () => this.clear(), {
+    new Button(this, 342, 666, 'Clear', () => this.clear(), {
       fontSize: '18px',
       width: 170
     });
-    new Button(this, 574, 666, 'Заполнить случайно', () => this.fillRandom(), {
+    new Button(this, 574, 666, 'Fill randomly', () => this.fillRandom(), {
       fontSize: '17px',
       width: 220
     });
-    new Button(this, 832, 666, 'Заполнить места', () => this.fillEmpty(), {
+    new Button(this, 832, 666, 'Fill empty slots', () => this.fillEmpty(), {
       fontSize: '17px',
       width: 220
     });
-    new Button(this, 1090, 666, 'Перемешать группы', () => this.shuffleGroups(), {
+    new Button(this, 1090, 666, 'Shuffle groups', () => this.shuffleGroups(), {
       disabled: !complete,
       fontSize: '17px',
       width: 230
     });
-    new Button(this, 1360, 666, 'Начать турнир', () => this.startTournament(), {
+    new Button(this, 1360, 666, 'Start tournament', () => this.startTournament(), {
       disabled: !complete,
       fontSize: '18px',
       width: 230
@@ -375,7 +360,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       this.activeSlotIndex = Math.min(this.activeSlotIndex + 1, this.draft.slots.length - 1);
       this.render();
     } catch (error) {
-      this.showMessage(error instanceof Error ? error.message : 'Не удалось выбрать сборную.', '#f7a6a6');
+      this.showMessage(error instanceof Error ? error.message : 'Could not select team.', '#f7a6a6');
     }
   }
 
@@ -414,7 +399,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       this.activeSlotIndex = 0;
       this.render();
     } catch (error) {
-      this.showMessage(error instanceof Error ? error.message : 'Не удалось перемешать группы.', '#f7a6a6');
+      this.showMessage(error instanceof Error ? error.message : 'Could not shuffle groups.', '#f7a6a6');
     }
   }
 
@@ -425,7 +410,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       saveTournament(tournament);
       this.scene.start('TournamentHubScene');
     } catch (error) {
-      this.showMessage(error instanceof Error ? error.message : 'Не удалось начать турнир.', '#f7a6a6');
+      this.showMessage(error instanceof Error ? error.message : 'Could not start tournament.', '#f7a6a6');
     }
   }
 

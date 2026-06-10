@@ -62,7 +62,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
   private createShotsLabel(scene: Phaser.Scene, x: number, shots: number): Phaser.GameObjects.Container {
     const container = scene.add.container(x, 0);
     const title = scene.add
-      .text(0, -13, 'Удары:', {
+      .text(0, -13, 'Shots:', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',

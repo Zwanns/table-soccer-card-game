@@ -60,7 +60,7 @@ describe('default national team squads', () => {
       for (const rank of FIELD_SQUAD_RANKS) {
         expect(squad.fieldPlayers[rank]).toEqual({
           rank,
-          name: `Игрок ${rank}`,
+          name: `Player ${rank}`,
           shirtNumber: expect.any(Number)
         });
       }
@@ -97,8 +97,8 @@ describe('default national team squads', () => {
 
 describe('squad validation', () => {
   it('accepts player names from 1 to 24 trimmed characters', () => {
-    expect(validatePlayerName('Игрок 9')).toBe(true);
-    expect(validatePlayerName('  Игрок 9  ')).toBe(true);
+    expect(validatePlayerName('Player 9')).toBe(true);
+    expect(validatePlayerName('  Player 9  ')).toBe(true);
     expect(validatePlayerName('')).toBe(false);
     expect(validatePlayerName('   ')).toBe(false);
     expect(validatePlayerName('a'.repeat(25))).toBe(false);

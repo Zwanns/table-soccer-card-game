@@ -134,7 +134,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         this,
         SCENE_WIDTH / 2,
         660,
-        this.standalone ? 'В меню' : 'Back to tournament',
+        this.standalone ? 'Menu' : 'Back to tournament',
         () => this.scene.start(this.getCompletedShootoutReturnScene()),
         { width: 300 }
       );
@@ -182,9 +182,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    if (shootoutState.status === 'complete') {
-      this.createShootoutSummary(shootoutState);
-    }
+    this.createShootoutMarkers(shootoutState);
   }
 
   private createShootoutPanel(shootoutState: PenaltyShootoutState, matchResult: TournamentMatchResult): void {
@@ -486,12 +484,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     );
   }
 
-  private createShootoutSummary(shootoutState: PenaltyShootoutState): void {
-    const summary = this.add.container(SCENE_WIDTH / 2, 232);
+  private createShootoutMarkers(shootoutState: PenaltyShootoutState): void {
+    const markers = this.add.container(SCENE_WIDTH / 2, 232);
     const homeKicks = getPenaltyKicksForTeam(shootoutState, shootoutState.homeTeamId);
     const awayKicks = getPenaltyKicksForTeam(shootoutState, shootoutState.awayTeamId);
-    const homeMarkerCount = getPenaltyMarkerCount(homeKicks);
-    const awayMarkerCount = getPenaltyMarkerCount(awayKicks);
+    
+    // Always show 5 markers for each team
+    const homeMarkerCount = SHOOTOUT_MARKER_COUNT;
+    const awayMarkerCount = SHOOTOUT_MARKER_COUNT;
     const homeWidth = getPenaltyMarkerRowWidth(homeMarkerCount);
     const awayWidth = getPenaltyMarkerRowWidth(awayMarkerCount);
     const totalWidth = homeWidth + SHOOTOUT_SEPARATOR_GAP * 2 + awayWidth;
@@ -499,8 +499,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const separatorX = homeStartX + homeWidth + SHOOTOUT_SEPARATOR_GAP;
     const awayStartX = separatorX + SHOOTOUT_SEPARATOR_GAP;
 
-    this.addPenaltyMarkers(summary, homeStartX, homeKicks);
-    summary.add(
+    this.addPenaltyMarkerRow(markers, homeStartX, homeKicks);
+    markers.add(
       this.add
         .text(separatorX, 0, '-', {
           align: 'center',
@@ -511,18 +511,17 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     );
-    this.addPenaltyMarkers(summary, awayStartX, awayKicks);
+    this.addPenaltyMarkerRow(markers, awayStartX, awayKicks);
   }
 
-  private addPenaltyMarkers(
+  private addPenaltyMarkerRow(
     container: Phaser.GameObjects.Container,
     startX: number,
     kicks: readonly PenaltyKickResult[]
   ): void {
-    const markerCount = getPenaltyMarkerCount(kicks);
-
-    for (let index = 0; index < markerCount; index += 1) {
-      const kick = kicks[index];
+    // Always show 5 markers: lit ones for completed kicks, dark gray for empty slots
+    for (let index = 0; index < SHOOTOUT_MARKER_COUNT; index += 1) {
+      const kick = index < kicks.length ? kicks[index] : undefined;
       const x = startX + index * SHOOTOUT_MARKER_GAP;
       const marker = this.add.circle(x, 0, 13, getPenaltyMarkerFill(kick), 1);
       marker.setStrokeStyle(3, getPenaltyMarkerStroke(kick), 0.9);
@@ -773,7 +772,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     if (outcome === 'post') {
       this.sound.play('sound-goalpost', { volume: 0.72 });
-      this.showFlyingMessage('Штанга!', 'post');
+      this.showFlyingMessage('Post!', 'post');
       return;
     }
 

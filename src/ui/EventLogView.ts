@@ -11,7 +11,7 @@ export class EventLogView extends Phaser.GameObjects.Container {
     background.setStrokeStyle(2, 0x69a77b, 0.75);
 
     const title = scene.add
-      .text(-width / 2 + 16, -height / 2 + 18, 'События', {
+      .text(-width / 2 + 16, -height / 2 + 18, 'Events', {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
@@ -44,27 +44,27 @@ function formatEvent(event: GameEvent, players: readonly Player[]): string {
 
   switch (event.type) {
     case 'FIRST_PLAYER_SELECTED':
-      return `Первый ход: ${playerName ?? event.playerId}`;
+      return `First turn: ${playerName ?? event.playerId}`;
     case 'ATTACK_CARD_DRAWN':
-      return `${playerName ?? event.playerId}: атака ${event.card.rank}`;
+      return `${playerName ?? event.playerId}: attack ${event.card.rank}`;
     case 'CARD_DEFEATED':
-      return `${playerName ?? event.playerId}: ${event.attackerCard.rank} побила ${event.defenderCard.rank}`;
+      return `${playerName ?? event.playerId}: ${event.attackerCard.rank} beat ${event.defenderCard.rank}`;
     case 'SHOT_ON_GOAL':
-      return `Удар по воротам: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
+      return `Shot on goal: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
     case 'GOALPOST_HIT':
-      return `Штанга: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
+      return `Post: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
     case 'GOALKEEPER_SAVE':
-      return `Сэйв: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
+      return `Save: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
     case 'ATTACK_MISSED':
       return event.playerId === undefined
-        ? `Промах: ${event.card.rank}`
-        : `${playerName ?? event.playerId}: потеря ${event.card.rank}`;
+        ? `Miss: ${event.card.rank}`
+        : `${playerName ?? event.playerId}: lost ${event.card.rank}`;
     case 'GOAL_SCORED':
-      return `Гол: ${playerName ?? event.playerId}`;
+      return `Goal: ${playerName ?? event.playerId}`;
     case 'TURN_ENDED':
-      return `Ход завершен`;
+      return `Turn ended`;
     case 'GAME_OVER':
-      return 'Игра окончена';
+      return 'Game over';
     default:
       return '';
   }

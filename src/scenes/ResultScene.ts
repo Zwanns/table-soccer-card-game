@@ -75,14 +75,14 @@ export class ResultScene extends Phaser.Scene {
 
   private createActions(centerX: number): void {
     if (this.launchContext.mode === 'tournament') {
-      const primaryLabel = this.needsPenaltyShootout() ? 'Серия пенальти' : 'Вернуться в турнир';
+      const primaryLabel = this.needsPenaltyShootout() ? 'Penalty shootout' : 'Back to tournament';
       new Button(this, centerX - 150, 650, primaryLabel, () => this.returnToTournament(), { width: 270 });
-      new Button(this, centerX + 150, 650, 'В меню', () => this.scene.start('MenuScene'), { width: 230 });
+      new Button(this, centerX + 150, 650, 'Menu', () => this.scene.start('MenuScene'), { width: 230 });
       return;
     }
 
-    new Button(this, centerX - 130, 650, 'Сыграть еще', () => this.scene.start('TeamSelectScene'));
-    new Button(this, centerX + 130, 650, 'В меню', () => this.scene.start('MenuScene'));
+    new Button(this, centerX - 130, 650, 'Play again', () => this.scene.start('TeamSelectScene'));
+    new Button(this, centerX + 130, 650, 'Menu', () => this.scene.start('MenuScene'));
   }
 
   private needsPenaltyShootout(): boolean {
@@ -154,7 +154,7 @@ export class ResultScene extends Phaser.Scene {
           return;
         }
       } catch (error) {
-        this.showMessage(error instanceof Error ? error.message : 'Не удалось записать результат турнира.');
+        this.showMessage(error instanceof Error ? error.message : 'Could not save tournament result.');
         return;
       }
     }
@@ -195,7 +195,7 @@ export class ResultScene extends Phaser.Scene {
     background.setStrokeStyle(2, 0x5f9572, 0.95);
 
     const title = this.add
-      .text(0, -height / 2 + 28, 'Статистика матча', {
+      .text(0, -height / 2 + 28, 'Match statistics', {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
@@ -209,9 +209,9 @@ export class ResultScene extends Phaser.Scene {
     panel.add([background, title, playerOneHeader, playerTwoHeader]);
 
     const rows: Array<[string, string, string]> = [
-      ['Голы', String(playerOneStats.goals), String(playerTwoStats.goals)],
-      ['Удары', String(playerOneStats.shots), String(playerTwoStats.shots)],
-      ['Владение мячом', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
+      ['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)],
+      ['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)],
+      ['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
     ];
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
@@ -221,7 +221,7 @@ export class ResultScene extends Phaser.Scene {
       panel.add(this.createStatsValue(285, rowY, playerTwoValue));
     });
 
-    panel.add(this.createStatsLabel(58, 'Авторы голов'));
+    panel.add(this.createStatsLabel(58, 'Goalscorers'));
     this.addScorerTimeline(panel, x, y, width, playerOneStats, playerTwoStats);
   }
 
@@ -311,17 +311,17 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private createScorersList(x: number, y: number, text: string): Phaser.GameObjects.Text {
+  private createScorersList(x: number, y: number, text: string, side: 'left' | 'right'): Phaser.GameObjects.Text {
     return this.add
       .text(x, y, text, {
-        align: 'center',
+        align: side,
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700',
-        wordWrap: { width: 250 }
+        wordWrap: { width: 280 }
       })
-      .setOrigin(0.5);
+      .setOrigin(side === 'left' ? 0 : 1, 0.5);
   }
 
   private addScorerTimeline(
@@ -361,8 +361,8 @@ export class ResultScene extends Phaser.Scene {
     rows.forEach((row, index) => {
       const y = 12 + index * rowHeight;
 
-      timelineContent.add(this.createScorersList(-285, y, row.playerOneText));
-      timelineContent.add(this.createScorersList(285, y, row.playerTwoText));
+      timelineContent.add(this.createScorersList(-285, y, row.playerOneText, 'left'));
+      timelineContent.add(this.createScorersList(285, y, row.playerTwoText, 'right'));
     });
 
     if (maxScroll === 0) {
@@ -418,7 +418,7 @@ function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: Go
 } {
   return {
     playerId,
-    text: `${scorer.playerName} (#${scorer.shirtNumber}), ход ${scorer.turnNumber}`,
+    text: `${scorer.playerName} (#${scorer.shirtNumber}), turn ${scorer.turnNumber}`,
     turnNumber: scorer.turnNumber
   };
 }

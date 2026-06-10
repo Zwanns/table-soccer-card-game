@@ -20,7 +20,7 @@ describe('squad editor scene integration', () => {
   it('adds a main menu button for squads', () => {
     const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
 
-    expect(menuSource).toContain('Составы');
+    expect(menuSource).toContain('Squads');
     expect(menuSource).toContain("this.scene.start('SquadSelectScene')");
   });
 

@@ -43,7 +43,7 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).toContain("mode: 'tournament'");
     expect(hubSource).toContain('tournamentMatchId');
     expect(gameSource).toContain('launchContext');
-    expect(resultSource).toContain('Вернуться в турнир');
+    expect(resultSource).toContain('Back to tournament');
     expect(resultSource).toContain('submitTournamentMatchResultObject');
     expect(resultSource).toContain("this.scene.start('TournamentCompleteScene')");
   });
@@ -53,13 +53,13 @@ describe('tournament hub scene integration', () => {
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
 
     expect(resultSource).toContain("this.scene.start('TournamentPenaltyScene'");
-    expect(resultSource).toContain('Серия пенальти');
+    expect(resultSource).toContain('Penalty shootout');
     expect(resultSource).toContain('needsPenaltyShootout');
     expect(penaltySource).toContain('createPenaltyShootoutState');
     expect(penaltySource).toContain('submitTournamentMatchResultObject');
     expect(penaltySource).not.toContain('formatKickSummary');
     expect(penaltySource).not.toContain('createLastKickCards');
-    expect(penaltySource).toContain('createShootoutSummary');
+    expect(penaltySource).not.toContain('createShootoutSummary');
     expect(penaltySource).toContain('createMatchStatsPanel');
     expect(penaltySource).toContain('Match stats');
     expect(penaltySource).toContain('MATCH_STATS_VIEWPORT');
@@ -244,7 +244,7 @@ function createFinishedGameState(): GameState {
         playerId: 'PLAYER_1',
         turnNumber: 2,
         scorer: {
-          playerName: 'Игрок A',
+          playerName: 'Player A',
           shirtNumber: 17,
           rank: 'A',
           teamId: 'fr'

@@ -19,10 +19,11 @@ const SUMMARY_PANEL = {
   height: 398
 } as const;
 
+// Reduced width for champion path (half of previous) to avoid overlap with leader cards
 const CHAMPION_PATH_VIEWPORT = {
   x: -494,
   y: -30,
-  width: 988,
+  width: 494,
   height: 148
 } as const;
 
@@ -252,9 +253,10 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    const home = this.addTeamLabel(128, 0, match.homeTeamId, 160);
+    // Compact layout for narrower champion path viewport
+    const home = this.addTeamLabel(120, 0, match.homeTeamId, 120);
     const score = this.add
-      .text(324, 0, formatMatchScore(match), {
+      .text(240, 0, formatMatchScore(match), {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
@@ -262,7 +264,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const away = this.addTeamLabel(380, 0, match.awayTeamId, 160);
+    const away = this.addTeamLabel(360, 0, match.awayTeamId, 120);
 
     row.add([label, home, score, away]);
     return row;
@@ -288,8 +290,9 @@ export class TournamentCompleteScene extends Phaser.Scene {
       }
     ];
 
+    // Position leader cards further right to avoid overlapping the (now narrower) champion path
     leaders.forEach((leader, index) => {
-      panel.add(this.createLeaderCard(160 + index * 250, -112, leader));
+      panel.add(this.createLeaderCard(420 + index * 240, -112, leader));
     });
   }
 

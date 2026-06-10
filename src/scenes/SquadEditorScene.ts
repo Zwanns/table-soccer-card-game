@@ -57,9 +57,9 @@ export class SquadEditorScene extends Phaser.Scene {
     this.createHeader(team);
     this.createForm();
 
-    new Button(this, 500, 666, 'Сохранить', () => this.saveCurrentSquad(), { width: 210 });
-    new Button(this, 800, 666, 'Сбросить состав', () => this.openResetConfirm(), { width: 250 });
-    new Button(this, 1110, 666, 'Назад', () => this.goBack(), { width: 210 });
+    new Button(this, 500, 666, 'Save', () => this.saveCurrentSquad(), { width: 210 });
+    new Button(this, 800, 666, 'Reset squad', () => this.openResetConfirm(), { width: 250 });
+    new Button(this, 1110, 666, 'Back', () => this.goBack(), { width: 210 });
   }
 
   private createHeader(team: NationalTeam): void {
@@ -75,7 +75,7 @@ export class SquadEditorScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     const subtitle = this.add
-      .text(-174, 22, 'Состав сборной', {
+      .text(-174, 22, 'Team squad', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
@@ -112,7 +112,7 @@ export class SquadEditorScene extends Phaser.Scene {
 
     saveSquad(draftSquad);
     this.squad = loadSquad(this.teamId);
-    this.showMessage('Состав сохранен', '#d9eadf');
+    this.showMessage('Squad saved', '#d9eadf');
   }
 
   private openResetConfirm(): void {
@@ -129,7 +129,7 @@ export class SquadEditorScene extends Phaser.Scene {
     const background = this.add.rectangle(0, 0, 560, 220, 0x0b2118, 0.98);
     background.setStrokeStyle(2, 0xf0c95a, 0.95);
     const title = this.add
-      .text(0, -54, 'Сбросить состав?', {
+      .text(0, -54, 'Reset squad?', {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
@@ -137,7 +137,7 @@ export class SquadEditorScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const text = this.add
-      .text(0, -12, 'Пользовательские изменения будут удалены.', {
+      .text(0, -12, 'All custom changes will be discarded.', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -145,13 +145,13 @@ export class SquadEditorScene extends Phaser.Scene {
         wordWrap: { width: 460 }
       })
       .setOrigin(0.5);
-    const resetButton = new Button(this, -120, 64, 'Сбросить', () => {
+    const resetButton = new Button(this, -120, 64, 'Reset', () => {
       this.squad = resetSquad(this.teamId);
       this.closeResetConfirm();
       this.render();
-      this.showMessage('Состав сброшен', '#d9eadf');
+      this.showMessage('Squad reset', '#d9eadf');
     });
-    const cancelButton = new Button(this, 120, 64, 'Отмена', () => this.closeResetConfirm());
+    const cancelButton = new Button(this, 120, 64, 'Cancel', () => this.closeResetConfirm());
 
     panel.add([background, title, text, resetButton, cancelButton]);
     modal.add([overlay, panel]);
@@ -229,7 +229,7 @@ function createSquadEditorHtml(squad: NationalTeamSquad): string {
         background: rgba(11, 33, 24, 0.96);
         border: 2px solid rgba(95, 149, 114, 0.95);
         font-family: Arial, sans-serif;
-        overflow: hidden;
+        overflow: auto;
       }
       .squad-editor-grid {
         display: grid;
@@ -294,13 +294,13 @@ function createSquadEditorHtml(squad: NationalTeamSquad): string {
     </style>
     <div class="squad-editor-grid">
       <section class="squad-editor-panel">
-        <div class="squad-editor-title">Полевые игроки</div>
-        <div class="squad-editor-header"><span>Номинал</span><span>Имя</span><span>Номер</span></div>
+        <div class="squad-editor-title">Field players</div>
+        <div class="squad-editor-header"><span>Rank</span><span>Name</span><span>Number</span></div>
         ${fieldRows}
       </section>
       <section class="squad-editor-panel gk">
-        <div class="squad-editor-title">Голкиперы</div>
-        <div class="squad-editor-header"><span>Роль</span><span>Имя</span><span>Номер</span><span>Основной</span></div>
+        <div class="squad-editor-title">Goalkeepers</div>
+        <div class="squad-editor-header"><span>Role</span><span>Name</span><span>Number</span><span>Starting</span></div>
         ${goalkeeperRows}
       </section>
     </div>`;
@@ -333,10 +333,10 @@ function collectEditorValues(form: HTMLFormElement, teamId: string, squad: Natio
 
 function getValidationMessage(validation: SquadValidationResult): string {
   if (validation.ok) {
-    return 'Состав корректен';
+    return 'Squad valid';
   }
 
-  return validation.issues[0]?.message ?? 'Проверьте данные состава.';
+  return validation.issues[0]?.message ?? 'Check the squad data.';
 }
 
 function getInputValue(form: HTMLFormElement, selector: string): string {

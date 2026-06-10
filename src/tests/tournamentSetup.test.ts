@@ -26,7 +26,7 @@ describe('tournament setup scene integration', () => {
   it('adds a main menu tournament button', () => {
     const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
 
-    expect(menuSource).toContain('Турнир');
+    expect(menuSource).toContain('Tournament');
     expect(menuSource).toContain("this.scene.start('TournamentSetupScene')");
   });
 });
@@ -55,7 +55,7 @@ describe('tournament setup draft helpers', () => {
   it('does not allow selecting one team twice', () => {
     const draft = selectTournamentSetupTeam(createTournamentSetupDraft('cup-m'), 0, 'pl');
 
-    expect(() => selectTournamentSetupTeam(draft, 1, 'pl')).toThrow('уже выбрана');
+    expect(() => selectTournamentSetupTeam(draft, 1, 'pl')).toThrow('already selected');
   });
 
   it('fills all teams randomly with unique ids', () => {
@@ -106,7 +106,7 @@ describe('tournament setup draft helpers', () => {
   it('does not create a tournament until all slots are filled', () => {
     const draft = createTournamentSetupDraft('cup-m');
 
-    expect(() => createTournamentFromSetupDraft(draft, 'setup-start')).toThrow('заполнены');
+    expect(() => createTournamentFromSetupDraft(draft, 'setup-start')).toThrow('filled');
   });
 
   it('creates a tournament from a complete draft', () => {

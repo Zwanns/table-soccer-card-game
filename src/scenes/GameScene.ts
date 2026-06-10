@@ -127,7 +127,7 @@ export class GameScene extends Phaser.Scene {
       this.startTurn();
 
       if (missedAttack) {
-        this.showFlyingMessage('Мяч потерян...', 'out');
+        this.showFlyingMessage('Turnover...', 'out');
       }
 
       return;
@@ -146,14 +146,14 @@ export class GameScene extends Phaser.Scene {
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
-      new Button(this, 120, 34, 'В меню', () => this.openExitConfirmModal(), {
+      new Button(this, 120, 34, 'Menu', () => this.openExitConfirmModal(), {
         fontSize: '20px',
         height: 46,
         width: 180
       })
     );
     this.dynamicLayer.add(
-      new Button(this, 120, 90, 'Результат', () => this.openResult(state), {
+      new Button(this, 120, 90, 'Result', () => this.openResult(state), {
         fontSize: '20px',
         height: 46,
         width: 180
@@ -249,7 +249,7 @@ export class GameScene extends Phaser.Scene {
     try {
       state = engine.selectTarget(positionId);
     } catch (error) {
-      this.showTemporaryMessage(error instanceof Error ? error.message : 'Недопустимая цель.');
+      this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid target.');
       return;
     }
 
@@ -284,7 +284,7 @@ export class GameScene extends Phaser.Scene {
         this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
       } else if (missedAttack) {
         this.render(state, { interactive: false });
-        this.showFlyingMessage('Мяч потерян...', 'out', () => this.startTurn());
+        this.showFlyingMessage('Turnover...', 'out', () => this.startTurn());
       } else {
         this.startTurn();
       }
@@ -297,7 +297,7 @@ export class GameScene extends Phaser.Scene {
 
     if (goalpostHit) {
       this.playSound('sound-goalpost', 0.72);
-      this.showFlyingMessage('Штанга!', 'post');
+      this.showFlyingMessage('Post!', 'post');
     }
   }
 
@@ -365,7 +365,7 @@ export class GameScene extends Phaser.Scene {
     background.setStrokeStyle(2, 0xf0c95a, 0.95);
 
     const title = this.add
-      .text(0, -82, 'Выйти в меню?', {
+      .text(0, -82, 'Exit to menu?', {
         align: 'center',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -375,7 +375,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const text = this.add
-      .text(0, -22, 'Текущая партия не сохранится. Вы точно хотите покинуть матч?', {
+      .text(0, -22, 'Current match progress will not be saved. Do you want to leave?', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -384,8 +384,8 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const leaveButton = new Button(this, -125, 76, 'В меню', () => this.scene.start('MenuScene'));
-    const stayButton = new Button(this, 125, 76, 'Остаться', () => this.closeExitConfirmModal());
+    const leaveButton = new Button(this, -125, 76, 'Menu', () => this.scene.start('MenuScene'));
+    const stayButton = new Button(this, 125, 76, 'Stay', () => this.closeExitConfirmModal());
 
     panel.add([background, title, text, leaveButton, stayButton]);
     modal.add([overlay, panel]);

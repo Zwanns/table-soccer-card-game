@@ -44,12 +44,12 @@ describe('project scaffold', () => {
   it('groups main menu actions into game modes, squads and about', () => {
     const menuSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
 
-    expect(menuSceneSource).toContain('Режимы игры');
-    expect(menuSceneSource).toContain('Турниры');
-    expect(menuSceneSource).toContain('Быстрый матч');
-    expect(menuSceneSource).toContain('Серия пенальти');
-    expect(menuSceneSource).toContain('Составы');
-    expect(menuSceneSource).toContain('О проекте');
+    expect(menuSceneSource).toContain('Game modes');
+    expect(menuSceneSource).toContain('Tournaments');
+    expect(menuSceneSource).toContain('Quick match');
+    expect(menuSceneSource).toContain('Penalty shootout');
+    expect(menuSceneSource).toContain('Squads');
+    expect(menuSceneSource).toContain('About');
     expect(menuSceneSource).toContain('GAME_AUTHOR_URL');
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
     expect(menuSceneSource).toContain('ABOUT_CONTENT');
@@ -63,7 +63,6 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createStandalonePenaltyMatchResult');
     expect(menuSceneSource).toContain('Tournament progress is currently saved only locally');
     expect(menuSceneSource).toContain('Postęp turnieju jest obecnie zapisywany tylko lokalnie');
-    expect(menuSceneSource).toContain('Прогрес турніру поки зберігається лише локально');
   });
 
   it('provides 64 unique national teams for match setup', () => {
@@ -96,13 +95,13 @@ describe('project scaffold', () => {
   it('keeps final match statistics labels readable', () => {
     const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
 
-    expect(resultSceneSource).toContain("'Авторы голов'");
-    expect(resultSceneSource).toContain('ход ${scorer.turnNumber}');
-    expect(resultSceneSource).not.toContain('Победитель');
-    expect(resultSceneSource).not.toContain("'Штанги'");
-    expect(resultSceneSource).not.toContain("'Сэйвы GK'");
-    expect(resultSceneSource).not.toContain("'Реализация'");
-    expect(resultSceneSource).not.toContain("'пока нет'");
+    expect(resultSceneSource).toContain("'Goalscorers'");
+    expect(resultSceneSource).toContain('turn ${scorer.turnNumber}');
+    expect(resultSceneSource).not.toContain('Winner');
+    expect(resultSceneSource).not.toContain("'Post'");
+    expect(resultSceneSource).not.toContain("'GK saves'");
+    expect(resultSceneSource).not.toContain("'Conversion'");
+    expect(resultSceneSource).not.toContain("'None yet'");
     expect(resultSceneSource).not.toMatch(/[ĐŃ]/);
   });
 

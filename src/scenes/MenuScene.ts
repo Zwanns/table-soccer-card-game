@@ -73,17 +73,17 @@ const ABOUT_CONTENT: Record<
     ]
   },
   uk: {
-    title: 'Про проєкт',
-    authorLabel: 'Автор',
+    title: 'About',
+    authorLabel: 'Author',
     intro:
-      'Гра перебуває в розробці. Зараз доступні швидкі матчі, турніри, серії пенальті та локальне редагування складів.',
+      'The game is in development. Quick matches, tournaments, penalty shootouts, and local squad editing are currently available.',
     rules: [
-      'Атака проходить лініями: півзахист -> захист -> воротар. Обирати можна лише карту поточної лінії.',
-      'Карта атаки зазвичай б’є рівну або нижчу карту. Спеціальні удари: 2-Joker, 6-A, 7-K, 8-Q, 9-J.',
-      'Якщо вибрану карту не можна побити, атака завершується втратою м’яча. Підказок немає: силу карт оцінює гравець.',
-      'Побиті карти переходять у вашу колоду й змінюють колір команди. Так можна нарощувати тиск.',
-      'Удар проти GK може дати гол, штангу або сейв. Для GK від 3 до 10 потрібен строго вищий номінал.',
-      'Прогрес турніру поки зберігається лише локально на цьому пристрої.'
+      'Attacks move through lines: midfield -> defense -> goalkeeper. You can select only a card from the current line.',
+      'An attacking card usually beats an equal or lower card. Special hits: 2-Joker, 6-A, 7-K, 8-Q, 9-J.',
+      'If the selected card cannot be beaten, the attack ends with a turnover. There are no hints: players judge card strength themselves.',
+      'Beaten cards move into your deck and change to your team color. This lets you build pressure.',
+      'A shot against GK can result in a goal, post, or save. For GK cards from 3 to 10, the attacking rank must be strictly higher.',
+      'Tournament progress is currently saved only locally on this device.'
     ]
   }
 };
@@ -200,7 +200,7 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const description = this.add
-      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.subtitleY, 'Карточная дуэль для футбольных фанатов', {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.subtitleY, 'A card duel for soccer fans', {
         align: 'center',
         color: '#d7eadc',
         fontFamily: 'Arial, sans-serif',
@@ -222,11 +222,11 @@ export class MenuScene extends Phaser.Scene {
 
   private createMainButtons(): void {
     const buttons = [
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Режимы игры', () => this.openGameModes()),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Составы', () =>
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes()),
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Squads', () =>
         this.scene.start('SquadSelectScene')
       ),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'О проекте', () =>
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'About', () =>
         this.openAboutModal()
       )
     ];
@@ -237,7 +237,7 @@ export class MenuScene extends Phaser.Scene {
   private createGameModeButtons(): void {
     const hasTournamentSave = hasActiveTournamentSave();
     const title = this.add
-      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Режимы игры', {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Game modes', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -254,7 +254,7 @@ export class MenuScene extends Phaser.Scene {
           this,
           MENU_LAYOUT.centerX,
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-          'Продолжить турнир',
+          'Continue tournament',
           () => this.continueTournament(),
           { width: 280 }
         )
@@ -267,7 +267,7 @@ export class MenuScene extends Phaser.Scene {
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        hasTournamentSave ? 'Новый турнир' : 'Турниры',
+        hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
         { width: 280 }
       )
@@ -279,7 +279,7 @@ export class MenuScene extends Phaser.Scene {
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Быстрый матч',
+        'Quick match',
         () => this.scene.start('TeamSelectScene'),
         { width: 280 }
       )
@@ -291,7 +291,7 @@ export class MenuScene extends Phaser.Scene {
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Серия пенальти',
+        'Penalty shootout',
         () => this.startStandalonePenaltyShootout(),
         { width: 280 }
       )
@@ -304,7 +304,7 @@ export class MenuScene extends Phaser.Scene {
           this,
           MENU_LAYOUT.centerX,
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-          'Удалить сохранение',
+          'Delete save',
           () => this.deleteTournamentSave(),
           { fontSize: '20px', width: 280 }
         )
@@ -317,7 +317,7 @@ export class MenuScene extends Phaser.Scene {
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Назад',
+        'Back',
         () => this.scene.start('MenuScene'),
         { width: 280 }
       )
@@ -691,9 +691,9 @@ function getAboutLanguageCode(language: AboutLanguage): string {
 }
 
 function confirmTournamentSaveOverwrite(): boolean {
-  return typeof window === 'undefined' || window.confirm('Начать новый турнир и перезаписать сохраненный прогресс?');
+  return typeof window === 'undefined' || window.confirm('Start a new tournament and overwrite saved progress?');
 }
 
 function confirmTournamentSaveDelete(): boolean {
-  return typeof window === 'undefined' || window.confirm('Удалить сохраненный турнир?');
+  return typeof window === 'undefined' || window.confirm('Delete saved tournament?');
 }

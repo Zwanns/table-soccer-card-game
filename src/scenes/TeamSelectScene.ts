@@ -48,7 +48,7 @@ export class TeamSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 72, 'Выбор сборных', {
+      .text(centerX, 72, 'Team selection', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
@@ -70,8 +70,8 @@ export class TeamSelectScene extends Phaser.Scene {
 
     this.createCountryGrid();
 
-    new Button(this, 258, 666, 'В меню', () => this.scene.start('MenuScene'));
-    new Button(this, 620, 666, 'Назад', () => this.changePage(-1), { disabled: this.page === 0 });
+    new Button(this, 258, 666, 'Menu', () => this.scene.start('MenuScene'));
+    new Button(this, 620, 666, 'Previous', () => this.changePage(-1), { disabled: this.page === 0 });
     this.add
       .text(centerX, 666, `${this.page + 1} / ${maxPage + 1}`, {
         color: '#d9eadf',
@@ -80,8 +80,8 @@ export class TeamSelectScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 980, 666, 'Дальше', () => this.changePage(1), { disabled: this.page === maxPage });
-    new Button(this, 1342, 666, 'Старт', () => this.startMatch(), {
+    new Button(this, 980, 666, 'Next', () => this.changePage(1), { disabled: this.page === maxPage });
+    new Button(this, 1342, 666, 'Start', () => this.startMatch(), {
       disabled: this.selectedTeamOne === this.selectedTeamTwo
     });
   }
@@ -91,8 +91,8 @@ export class TeamSelectScene extends Phaser.Scene {
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, 440, 82, 0x0b2118, 0.82);
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
-    const flag = this.add.image(-164, 10, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(64, 46);
+      const flag = this.add.image(-164, 0, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(64, 46);
 
     const titleText = this.add
       .text(-116, -20, title, {
@@ -103,16 +103,16 @@ export class TeamSelectScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    const teamText = this.add
-      .text(-116, 14, team.name, {
-        align: 'left',
-        color: slot === 1 ? '#f1d4d6' : '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '26px',
-        fontStyle: '700',
-        wordWrap: { width: 300 }
-      })
-      .setOrigin(0, 0.5);
+      const teamText = this.add
+        .text(-116 + 62, 0, team.name, {
+          align: 'left',
+          color: slot === 1 ? '#f1d4d6' : '#d9eadf',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '26px',
+          fontStyle: '700',
+          wordWrap: { width: 300 }
+        })
+        .setOrigin(0, 0.5);
 
     panel.add([background, flag, titleText, teamText]);
     panel.setSize(440, 82);
@@ -154,29 +154,22 @@ export class TeamSelectScene extends Phaser.Scene {
     const background = this.add.rectangle(0, 0, width, height, isSelected ? 0xf0c95a : 0x143f2c, isSelected ? 0.96 : 0.9);
     const strokeColor = isTeamOne ? 0xc43845 : isTeamTwo ? 0xd9eadf : 0x5f9572;
     background.setStrokeStyle(isSelected ? 3 : 2, strokeColor, 0.95);
-    const flag = this.add.image(-width / 2 + 29, 11, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(38, 28);
+      const flag = this.add.image(-width / 2 + 18, 0, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(38, 28);
 
-    const rankText = this.add
-      .text(-width / 2 + 13, -14, String(team.rank), {
-        color: isSelected ? '#1f2a2e' : '#9fc5ad',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
-    const teamText = this.add
-      .text(24, 8, team.name, {
-        align: 'center',
-        color: isSelected ? '#1f2a2e' : '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
-        fontStyle: '700',
-        wordWrap: { width: width - 62 }
-      })
-      .setOrigin(0.5);
+    // Remove ordinal rank numbers from the country option list (UI change)
+      const teamText = this.add
+        .text(-width / 2 + 48, 0, team.name, {
+          align: 'left',
+          color: isSelected ? '#1f2a2e' : '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '17px',
+          fontStyle: '700',
+          wordWrap: { width: width - 64 }
+        })
+        .setOrigin(0, 0.5);
 
-    option.add([background, flag, rankText, teamText]);
+    option.add([background, flag, teamText]);
     option.setSize(width, height);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
@@ -194,12 +187,12 @@ export class TeamSelectScene extends Phaser.Scene {
 
   private selectTeam(teamName: string): void {
     if (this.activeSlot === 1 && teamName === this.selectedTeamTwo) {
-      this.showMessage('Эта сборная уже выбрана для Team 2');
+      this.showMessage('This team is already selected for Team 2');
       return;
     }
 
     if (this.activeSlot === 2 && teamName === this.selectedTeamOne) {
-      this.showMessage('Эта сборная уже выбрана для Team 1');
+      this.showMessage('This team is already selected for Team 1');
       return;
     }
 

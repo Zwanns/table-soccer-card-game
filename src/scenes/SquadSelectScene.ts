@@ -38,7 +38,7 @@ export class SquadSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(centerX, 74, 'Составы сборных', {
+      .text(centerX, 74, 'Team squads', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
@@ -48,8 +48,8 @@ export class SquadSelectScene extends Phaser.Scene {
 
     this.createTeamGrid();
 
-    new Button(this, 258, 666, 'Назад', () => this.scene.start('MenuScene'));
-    new Button(this, 620, 666, 'Назад', () => this.changePage(-1), { disabled: this.page === 0 });
+    new Button(this, 258, 666, 'Menu', () => this.scene.start('MenuScene'));
+    new Button(this, 620, 666, 'Previous', () => this.changePage(-1), { disabled: this.page === 0 });
     this.add
       .text(centerX, 666, `${this.page + 1} / ${maxPage + 1}`, {
         color: '#d9eadf',
@@ -58,7 +58,7 @@ export class SquadSelectScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 980, 666, 'Дальше', () => this.changePage(1), { disabled: this.page === maxPage });
+    new Button(this, 980, 666, 'Next', () => this.changePage(1), { disabled: this.page === maxPage });
   }
 
   private createTeamGrid(): void {
@@ -84,25 +84,17 @@ export class SquadSelectScene extends Phaser.Scene {
 
     const flag = this.add.image(-CARD_WIDTH / 2 + 32, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(42, 30);
-    const rankText = this.add
-      .text(-CARD_WIDTH / 2 + 62, -13, String(team.rank), {
-        color: '#9fc5ad',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
     const nameText = this.add
-      .text(-CARD_WIDTH / 2 + 62, 11, team.name, {
+      .text(-CARD_WIDTH / 2 + 72, 0, team.name, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700',
-        wordWrap: { width: 160 }
+        wordWrap: { width: 220 }
       })
       .setOrigin(0, 0.5);
     const editText = this.add
-      .text(CARD_WIDTH / 2 - 18, 0, 'Редактировать', {
+      .text(CARD_WIDTH / 2 - 18, 0, 'Edit', {
         align: 'right',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
@@ -110,8 +102,7 @@ export class SquadSelectScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(1, 0.5);
-
-    option.add([background, flag, rankText, nameText, editText]);
+    option.add([background, flag, nameText, editText]);
     option.setSize(CARD_WIDTH, CARD_HEIGHT);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => background.setFillStyle(0x1d5b3f, 0.95));

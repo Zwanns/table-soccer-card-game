@@ -48,7 +48,7 @@ export function selectTournamentSetupTeam(
   assertSlotIndex(draft, slotIndex);
 
   if (draft.slots.some((slotTeamId, index) => slotTeamId === teamId && index !== slotIndex)) {
-    throw new Error('Эта сборная уже выбрана.');
+    throw new Error('This team is already selected.');
   }
 
   return {
@@ -89,7 +89,7 @@ export function fillEmptyTournamentSetupSlots(draft: TournamentSetupDraft, seed:
 
 export function shuffleTournamentSetupGroups(draft: TournamentSetupDraft, seed: string): TournamentSetupDraft {
   if (!isTournamentSetupComplete(draft)) {
-    throw new Error('Нужно заполнить все места перед перемешиванием групп.');
+    throw new Error('All slots must be filled before shuffling groups.');
   }
 
   return {
@@ -110,7 +110,7 @@ export function getSelectedTournamentTeamIds(draft: TournamentSetupDraft): Tourn
 
 export function createTournamentFromSetupDraft(draft: TournamentSetupDraft, seed: string): TournamentState {
   if (!isTournamentSetupComplete(draft)) {
-    throw new Error('Нельзя начать турнир, пока не заполнены все места.');
+    throw new Error('Cannot start tournament until all slots are filled.');
   }
 
   return createTournamentState({

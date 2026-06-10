@@ -15,13 +15,13 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const textOriginX = options.align === 'left' ? 0 : 1;
     const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
     const textAlign = options.align;
-    const scorersText = options.scorers.length === 0 ? 'пока нет' : options.scorers.join(', ');
+    const scorersText = options.scorers.length === 0 ? 'None yet' : options.scorers.join(', ');
 
     const background = scene.add.rectangle(0, 0, width, height, 0x143f2d, 0.82);
     background.setStrokeStyle(2, 0x69a77b, 0.75);
 
     const title = scene.add
-      .text(textX, -42, 'Статистика', {
+      .text(textX, -42, 'Stats', {
         align: textAlign,
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -31,7 +31,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       .setOrigin(textOriginX, 0.5);
 
     const shots = scene.add
-      .text(textX, -10, `Удары: ${options.shots}`, {
+      .text(textX, -10, `Shots: ${options.shots}`, {
         align: textAlign,
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -40,7 +40,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       .setOrigin(textOriginX, 0.5);
 
     const scorers = scene.add
-      .text(textX, 26, `Голы: ${scorersText}`, {
+      .text(textX, 26, `Goals: ${scorersText}`, {
         align: textAlign,
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',

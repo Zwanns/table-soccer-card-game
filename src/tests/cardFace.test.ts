@@ -55,7 +55,7 @@ describe('card face profile resolver', () => {
     expect(getFieldCardPlayerProfile('pl', '9')).toEqual({
       teamId: 'pl',
       rank: '9',
-      playerName: 'Игрок 9',
+      playerName: 'Player 9',
       shirtNumber: 9
     });
   });
@@ -75,7 +75,7 @@ describe('card face profile resolver', () => {
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Игрок A\n№ 17');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Player A\n№ 17');
   });
 });
 

@@ -28,12 +28,12 @@ export function createDefaultSquad(teamId: string): NationalTeamSquad {
     goalkeepers: [
       {
         id: `${teamId}-gk-1`,
-        name: 'Вратарь 1',
+        name: 'Goalkeeper 1',
         shirtNumber: 1
       },
       {
         id: `${teamId}-gk-2`,
-        name: 'Вратарь 2',
+        name: 'Goalkeeper 2',
         shirtNumber: 12
       }
     ],
@@ -51,7 +51,7 @@ function createDefaultFieldPlayers(): Record<CardRank, FieldSquadMember> {
       rank,
       {
         rank,
-        name: `Игрок ${rank}`,
+        name: `Player ${rank}`,
         shirtNumber: DEFAULT_FIELD_SHIRT_NUMBERS[rank]
       }
     ])

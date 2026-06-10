@@ -139,12 +139,12 @@ describe('squad localStorage', () => {
     const firstLoad = loadSquad('pl');
     firstLoad.fieldPlayers['9'].name = 'Mutated load';
 
-    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Игрок 9');
+    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Player 9');
 
     const allSquads = loadAllSquads();
     allSquads[0].fieldPlayers['9'].name = 'Mutated all squads';
 
-    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Игрок 9');
+    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Player 9');
   });
 
   it('does not allow default squads to be mutated through loaded values', () => {
@@ -153,7 +153,7 @@ describe('squad localStorage', () => {
 
     const defaultPolandSquad = DEFAULT_SQUADS.find((squad) => squad.teamId === 'pl');
 
-    expect(defaultPolandSquad?.fieldPlayers['9'].name).toBe('Игрок 9');
+    expect(defaultPolandSquad?.fieldPlayers['9'].name).toBe('Player 9');
   });
 
   it('loads defaults when localStorage is unavailable', () => {
