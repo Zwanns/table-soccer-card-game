@@ -17,7 +17,6 @@ export interface PlayerMatchStats {
   goals: number;
   scorers: GoalScorerStat[];
   shots: number;
-  goalpostHits: number;
   goalkeeperSaves: number;
   shotAccuracy: number;
   possession: number;
@@ -44,7 +43,6 @@ function createPlayerMatchStats(
   possession: number
 ): PlayerMatchStats {
   const shots = state.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === player.id).length;
-  const goalpostHits = state.log.filter((event) => event.type === 'GOALPOST_HIT' && event.playerId === player.id).length;
   const goalkeeperSaves = state.log.filter((event) => event.type === 'GOALKEEPER_SAVE' && event.playerId === opponent.id).length;
   const scorers = state.log.flatMap((event) =>
     event.type === 'GOAL_SCORED' && event.playerId === player.id
@@ -62,7 +60,6 @@ function createPlayerMatchStats(
     goals: player.goals,
     scorers,
     shots,
-    goalpostHits,
     goalkeeperSaves,
     shotAccuracy: shots === 0 ? 0 : Math.round((player.goals / shots) * 100),
     possession

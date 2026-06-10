@@ -58,6 +58,12 @@ const BRACKET_TOP = 185;
 const BRACKET_BOTTOM = 610;
 const BRACKET_SIDE_MARGIN = 84;
 const BRACKET_MAX_COLUMN_GAP = 180;
+const GROUP_TABLE_COLUMNS = {
+  played: 164,
+  points: 202,
+  goalDifference: 240,
+  goals: 286
+} as const;
 const STATS_TABLE_WIDTH = 780;
 const STATS_TABLE_HEIGHT = 462;
 const STATS_TABLE_ROW_GAP = 30;
@@ -70,6 +76,8 @@ const STATS_RANKING_VIEWPORT_HEIGHT = 462;
 const STATS_RANKING_COLUMN_GAP = 32;
 const STATS_RANKING_ROW_GAP = 136;
 const STATS_RANKING_CARD_Y = 28;
+const STATS_RANKING_MAX_COLUMNS = 3;
+const STATS_RANKING_RIGHT_MARGIN = 30;
 const STATS_TOOLTIP_DEPTH = 10000;
 const STATS_TOOLTIP_PADDING_X = 12;
 const STATS_TOOLTIP_PADDING_Y = 8;
@@ -82,8 +90,7 @@ const STATS_TABLE_COLUMNS = {
   goalsAgainst: 510,
   goalDifference: 556,
   shots: 606,
-  goalkeeperSaves: 656,
-  goalpostHits: 708
+  goalkeeperSaves: 656
 } as const;
 
 export class TournamentHubScene extends Phaser.Scene {
@@ -336,7 +343,7 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     panel.add([background, title]);
-    panel.add(this.createTableHeader(16, 44));
+    this.createGroupTableHeader(panel, 44);
 
     const standings = getTournamentGroupStandings(group, tournament.matches, tournament.drawOrder);
 
@@ -361,22 +368,46 @@ export class TournamentHubScene extends Phaser.Scene {
           })
           .setOrigin(0, 0.5)
       );
-      panel.add(this.createTableValue(164, rowY, standing.played));
-      panel.add(this.createTableValue(202, rowY, standing.points));
-      panel.add(this.createTableValue(240, rowY, standing.goalDifference));
-      panel.add(this.createTableValue(286, rowY, `${standing.goalsFor}:${standing.goalsAgainst}`));
+      panel.add(this.createTableValue(GROUP_TABLE_COLUMNS.played, rowY, standing.played));
+      panel.add(this.createTableValue(GROUP_TABLE_COLUMNS.points, rowY, standing.points));
+      panel.add(this.createTableValue(GROUP_TABLE_COLUMNS.goalDifference, rowY, standing.goalDifference));
+      panel.add(this.createTableValue(GROUP_TABLE_COLUMNS.goals, rowY, `${standing.goalsFor}:${standing.goalsAgainst}`));
     });
   }
 
-  private createTableHeader(x: number, y: number): Phaser.GameObjects.Text {
-    return this.add
-      .text(x, y, 'Team                              P   Pts   GD   G', {
-        color: '#9fc5ad',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
+  private createGroupTableHeader(panel: Phaser.GameObjects.Container, y: number): void {
+    panel.add(
+      this.add
+        .text(16, y, 'Team', {
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+
+    const headers: Array<[keyof typeof GROUP_TABLE_COLUMNS, string]> = [
+      ['played', 'P'],
+      ['points', 'Pts'],
+      ['goalDifference', 'GD'],
+      ['goals', 'G']
+    ];
+
+    headers.forEach(([column, label]) => {
+      const header = this.add
+        .text(GROUP_TABLE_COLUMNS[column], y, label, {
+          align: 'center',
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+
+      this.addStatsHeaderTooltip(header, getGroupTableHeaderTooltip(column));
+      panel.add(header);
+    });
   }
 
   private createTableValue(x: number, y: number, value: number | string): Phaser.GameObjects.Text {
@@ -400,11 +431,9 @@ export class TournamentHubScene extends Phaser.Scene {
     const rankingCards: StatsRankingCardDefinition[] = [
       { title: 'Goals', entries: createTeamRankingEntries(stats, 'goalsFor') },
       { title: 'Shots', entries: createTeamRankingEntries(stats, 'shots') },
-      { title: 'Posts', entries: createTeamRankingEntries(stats, 'goalpostHits') },
-      { title: 'GK saves', entries: createTeamRankingEntries(stats, 'goalkeeperSaves') },
       { title: 'Top scorers', entries: createPlayerRankingEntries(playerStats, 'goals') },
       { title: 'Top assists', entries: createPlayerRankingEntries(playerStats, 'assists') },
-      { title: 'Top goalkeepers', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
+      { title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
     ];
 
     this.createStatsRankingList(rankingCards, STATS_RANKING_X, 166);
@@ -451,7 +480,6 @@ export class TournamentHubScene extends Phaser.Scene {
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalDifference, rowY, teamStats.goalDifference));
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.shots, rowY, teamStats.shots));
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalkeeperSaves, rowY, teamStats.goalkeeperSaves));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalpostHits, rowY, teamStats.goalpostHits));
     });
 
     const maskGraphics = this.make.graphics();
@@ -514,8 +542,7 @@ export class TournamentHubScene extends Phaser.Scene {
       ['goalsAgainst', 'GA'],
       ['goalDifference', 'GD'],
       ['shots', 'Sh'],
-      ['goalkeeperSaves', 'Sv'],
-      ['goalpostHits', 'Post']
+      ['goalkeeperSaves', 'Sv']
     ];
 
     headers.forEach(([column, label]) => {
@@ -576,15 +603,22 @@ export class TournamentHubScene extends Phaser.Scene {
     y: number
   ): void {
     const content = this.add.container(x, y);
-    const rowCount = Math.ceil(rankingCards.length / 2);
+    const availableWidth = SCENE_WIDTH - x - STATS_RANKING_RIGHT_MARGIN;
+    const columnCount = Phaser.Math.Clamp(
+      Math.floor((availableWidth + STATS_RANKING_COLUMN_GAP) / (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP)),
+      1,
+      STATS_RANKING_MAX_COLUMNS
+    );
+    const rowCount = Math.ceil(rankingCards.length / columnCount);
     const contentHeight =
       rowCount * STATS_RANKING_ROW_GAP - (STATS_RANKING_ROW_GAP - STATS_RANKING_CARD_Y - STATS_RANKING_CARD_HEIGHT);
-    const contentWidth = STATS_RANKING_WIDTH * 2 + STATS_RANKING_COLUMN_GAP;
+    const contentWidth =
+      STATS_RANKING_WIDTH * columnCount + STATS_RANKING_COLUMN_GAP * Math.max(0, columnCount - 1);
     const maxScroll = Math.max(0, contentHeight - STATS_RANKING_VIEWPORT_HEIGHT);
 
     rankingCards.forEach((ranking, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
+      const column = index % columnCount;
+      const row = Math.floor(index / columnCount);
       const cardX = column * (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP);
       const cardY = row * STATS_RANKING_ROW_GAP;
       content.add(this.createStatsRankingCard(ranking.title, ranking.entries, cardX, cardY));
@@ -1005,8 +1039,18 @@ function getStatsTableHeaderTooltip(column: keyof typeof STATS_TABLE_COLUMNS): s
     goalsAgainst: 'Goals against',
     goalDifference: 'Goal difference',
     shots: 'Shots',
-    goalkeeperSaves: 'Goalkeeper saves',
-    goalpostHits: 'Goalpost hits'
+    goalkeeperSaves: 'Goalkeeper saves'
+  };
+
+  return tooltips[column];
+}
+
+function getGroupTableHeaderTooltip(column: keyof typeof GROUP_TABLE_COLUMNS): string {
+  const tooltips: Record<keyof typeof GROUP_TABLE_COLUMNS, string> = {
+    played: 'Played',
+    points: 'Points',
+    goalDifference: 'Goal difference',
+    goals: 'Goals for:against'
   };
 
   return tooltips[column];

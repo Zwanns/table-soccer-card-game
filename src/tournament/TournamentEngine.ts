@@ -197,14 +197,12 @@ export function createTournamentMatchResult(
         teamId: homeTeamId,
         goals: input.homeGoals,
         shots: input.homeShots ?? input.homeGoals,
-        goalpostHits: 0,
         goalkeeperSaves: 0
       },
       away: {
         teamId: awayTeamId,
         goals: input.awayGoals,
         shots: input.awayShots ?? input.awayGoals,
-        goalpostHits: 0,
         goalkeeperSaves: 0
       }
     },

@@ -42,6 +42,16 @@ export {
   type TournamentTeamStatsRankingKey
 } from './TournamentStats';
 export { createTournamentMatchPlayerStatsFromGameState } from './TournamentPlayerStats';
+export {
+  deleteStoredTournament,
+  hasActiveTournamentSave,
+  loadActiveTournament,
+  loadStoredTournament,
+  saveTournament,
+  TOURNAMENT_STORAGE_KEY,
+  TOURNAMENT_STORAGE_SCHEMA_VERSION,
+  type StoredTournament
+} from './TournamentStorage';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {
   PenaltyKickResult,

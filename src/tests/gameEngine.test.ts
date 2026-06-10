@@ -618,7 +618,6 @@ describe('game engine attacks', () => {
         }
       ],
       shots: 1,
-      goalpostHits: 0,
       goalkeeperSaves: 1,
       shotAccuracy: 100,
       possession: 50
@@ -628,7 +627,6 @@ describe('game engine attacks', () => {
       goals: 0,
       scorers: [],
       shots: 2,
-      goalpostHits: 1,
       goalkeeperSaves: 0,
       shotAccuracy: 0,
       possession: 50

@@ -428,14 +428,12 @@ describe('knockout bracket', () => {
           teamId: homeTeamId,
           goals: 1,
           shots: 3,
-          goalpostHits: 0,
           goalkeeperSaves: 0
         },
         away: {
           teamId: awayTeamId,
           goals: 1,
           shots: 4,
-          goalpostHits: 0,
           goalkeeperSaves: 0
         }
       },
@@ -475,8 +473,6 @@ describe('tournament team stats', () => {
         awayGoals: 1,
         homeShots: 7,
         awayShots: 5,
-        homeGoalpostHits: 1,
-        awayGoalpostHits: 3,
         homeGoalkeeperSaves: 2,
         awayGoalkeeperSaves: 4
       })
@@ -495,7 +491,6 @@ describe('tournament team stats', () => {
       goalsAgainst: 1,
       goalDifference: 1,
       shots: 7,
-      goalpostHits: 1,
       goalkeeperSaves: 2,
       penaltyShootoutWins: 0,
       penaltyGoals: 0
@@ -508,7 +503,6 @@ describe('tournament team stats', () => {
       goalsAgainst: 2,
       goalDifference: -1,
       shots: 5,
-      goalpostHits: 3,
       goalkeeperSaves: 4
     });
     expect(getTournamentTeamStatsRanking(stats, 'goalkeeperSaves', 1)[0]?.teamId).toBe(awayTeamId);
@@ -711,8 +705,6 @@ function createDetailedMatchResult(
     awayGoals: number;
     homeShots?: number;
     awayShots?: number;
-    homeGoalpostHits?: number;
-    awayGoalpostHits?: number;
     homeGoalkeeperSaves?: number;
     awayGoalkeeperSaves?: number;
     winnerTeamId?: TournamentTeamId;
@@ -739,14 +731,12 @@ function createDetailedMatchResult(
         teamId: homeTeamId,
         goals: options.homeGoals,
         shots: options.homeShots ?? options.homeGoals,
-        goalpostHits: options.homeGoalpostHits ?? 0,
         goalkeeperSaves: options.homeGoalkeeperSaves ?? 0
       },
       away: {
         teamId: awayTeamId,
         goals: options.awayGoals,
         shots: options.awayShots ?? options.awayGoals,
-        goalpostHits: options.awayGoalpostHits ?? 0,
         goalkeeperSaves: options.awayGoalkeeperSaves ?? 0
       }
     },

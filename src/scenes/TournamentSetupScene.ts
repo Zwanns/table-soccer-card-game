@@ -16,7 +16,13 @@ import {
   shuffleTournamentSetupGroups,
   type TournamentSetupDraft
 } from './tournamentSetupDraft';
-import { getTournamentFormat, getTournamentMatchCount, type TournamentFormatId, type TournamentTeamId } from '../tournament';
+import {
+  getTournamentFormat,
+  getTournamentMatchCount,
+  saveTournament,
+  type TournamentFormatId,
+  type TournamentTeamId
+} from '../tournament';
 
 const TEAMS_PER_PAGE = 32;
 const TEAM_GRID_COLUMNS = 4;
@@ -416,6 +422,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     try {
       const tournament = createTournamentFromSetupDraft(this.draft, this.nextSeed('start'));
       this.registry.set('currentTournament', tournament);
+      saveTournament(tournament);
       this.scene.start('TournamentHubScene');
     } catch (error) {
       this.showMessage(error instanceof Error ? error.message : 'Не удалось начать турнир.', '#f7a6a6');

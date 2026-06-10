@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import type { TournamentMatchResult } from '../tournament';
+import {
+  deleteStoredTournament,
+  hasActiveTournamentSave,
+  loadActiveTournament,
+  type TournamentMatchResult
+} from '../tournament';
 import { Button } from '../ui/Button';
 
 const MENU_LAYOUT = {
@@ -230,6 +235,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createGameModeButtons(): void {
+    const hasTournamentSave = hasActiveTournamentSave();
     const title = this.add
       .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Режимы игры', {
         align: 'center',
@@ -239,23 +245,117 @@ export class MenuScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const buttons = [
-      title,
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Турниры', () =>
-        this.scene.start('TournamentSetupScene')
-      ),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Быстрый матч', () =>
-        this.scene.start('TeamSelectScene')
-      ),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'Серия пенальти', () =>
-        this.startStandalonePenaltyShootout()
-      ),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3, 'Назад', () =>
-        this.scene.start('MenuScene')
+    const buttons: MenuAnimatedObject[] = [title];
+    let buttonIndex = 0;
+
+    if (hasTournamentSave) {
+      buttons.push(
+        new Button(
+          this,
+          MENU_LAYOUT.centerX,
+          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+          'Продолжить турнир',
+          () => this.continueTournament(),
+          { width: 280 }
+        )
+      );
+      buttonIndex += 1;
+    }
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        hasTournamentSave ? 'Новый турнир' : 'Турниры',
+        () => this.startNewTournamentSetup(),
+        { width: 280 }
       )
-    ];
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Быстрый матч',
+        () => this.scene.start('TeamSelectScene'),
+        { width: 280 }
+      )
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Серия пенальти',
+        () => this.startStandalonePenaltyShootout(),
+        { width: 280 }
+      )
+    );
+    buttonIndex += 1;
+
+    if (hasTournamentSave) {
+      buttons.push(
+        new Button(
+          this,
+          MENU_LAYOUT.centerX,
+          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+          'Удалить сохранение',
+          () => this.deleteTournamentSave(),
+          { fontSize: '20px', width: 280 }
+        )
+      );
+      buttonIndex += 1;
+    }
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Назад',
+        () => this.scene.start('MenuScene'),
+        { width: 280 }
+      )
+    );
 
     this.introTargets.push(...buttons);
+  }
+
+  private continueTournament(): void {
+    const tournament = loadActiveTournament();
+
+    if (tournament === null) {
+      this.openGameModes();
+      return;
+    }
+
+    this.registry.set('currentTournament', tournament);
+    this.scene.start('TournamentHubScene');
+  }
+
+  private startNewTournamentSetup(): void {
+    if (hasActiveTournamentSave() && !confirmTournamentSaveOverwrite()) {
+      return;
+    }
+
+    deleteStoredTournament();
+    this.registry.remove('currentTournament');
+    this.scene.start('TournamentSetupScene');
+  }
+
+  private deleteTournamentSave(): void {
+    if (!confirmTournamentSaveDelete()) {
+      return;
+    }
+
+    deleteStoredTournament();
+    this.registry.remove('currentTournament');
+    this.openGameModes();
   }
 
   private openGameModes(): void {
@@ -566,14 +666,12 @@ function createStandalonePenaltyMatchResult(): TournamentMatchResult {
         teamId: 'fr',
         goals: 0,
         shots: 0,
-        goalpostHits: 0,
         goalkeeperSaves: 0
       },
       away: {
         teamId: 'es',
         goals: 0,
         shots: 0,
-        goalpostHits: 0,
         goalkeeperSaves: 0
       }
     },
@@ -590,4 +688,12 @@ function getAboutLanguageCode(language: AboutLanguage): string {
     case 'uk':
       return 'UA';
   }
+}
+
+function confirmTournamentSaveOverwrite(): boolean {
+  return typeof window === 'undefined' || window.confirm('Начать новый турнир и перезаписать сохраненный прогресс?');
+}
+
+function confirmTournamentSaveDelete(): boolean {
+  return typeof window === 'undefined' || window.confirm('Удалить сохраненный турнир?');
 }

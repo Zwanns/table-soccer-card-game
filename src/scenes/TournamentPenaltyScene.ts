@@ -10,6 +10,7 @@ import {
   createTournamentPenaltyResult,
   drawPenaltyGoalkeeperCard,
   revealPenaltyAttackCard,
+  saveTournament,
   submitTournamentMatchResultObject,
   takePenaltyKick,
   type PenaltyShootoutState,
@@ -441,6 +442,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       });
 
       this.registry.set('currentTournament', updatedTournament);
+      saveTournament(updatedTournament);
       this.message = `${getTeamName(penaltyShootout.winnerTeamId)} wins on penalties.`;
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'Could not save the penalty shootout.';
@@ -536,7 +538,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const rows: Array<[string, number, number]> = [
       ['Goals', matchResult.teamStats.home.goals, matchResult.teamStats.away.goals],
       ['Shots', matchResult.teamStats.home.shots, matchResult.teamStats.away.shots],
-      ['Posts', matchResult.teamStats.home.goalpostHits, matchResult.teamStats.away.goalpostHits],
       ['GK saves', matchResult.teamStats.home.goalkeeperSaves, matchResult.teamStats.away.goalkeeperSaves]
     ];
 

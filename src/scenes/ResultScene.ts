@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import {
   createTournamentMatchResultFromGameState,
   QUICK_MATCH_CONTEXT,
+  saveTournament,
   submitTournamentMatchResultObject,
   type MatchLaunchContext,
   type TournamentMatchResult,
@@ -147,6 +148,7 @@ export class ResultScene extends Phaser.Scene {
       try {
         const updatedTournament = submitTournamentMatchResultObject(tournament, result);
         this.registry.set('currentTournament', updatedTournament);
+        saveTournament(updatedTournament);
       } catch (error) {
         this.showMessage(error instanceof Error ? error.message : 'Не удалось записать результат турнира.');
         return;

@@ -24,7 +24,6 @@ export type TournamentMatchTeamStat = {
   teamId: TournamentTeamId;
   goals: number;
   shots: number;
-  goalpostHits: number;
   goalkeeperSaves: number;
 };
 
@@ -106,7 +105,6 @@ export type TournamentTeamStats = {
   goalsAgainst: number;
   goalDifference: number;
   shots: number;
-  goalpostHits: number;
   goalkeeperSaves: number;
   penaltyShootoutWins: number;
   penaltyShootoutLosses: number;

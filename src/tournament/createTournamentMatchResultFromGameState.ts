@@ -25,14 +25,12 @@ export function createTournamentMatchResultFromGameState(
         teamId: homeTeamId,
         goals: homePlayer.goals,
         shots: homeStats.shots,
-        goalpostHits: homeStats.goalpostHits,
         goalkeeperSaves: homeStats.goalkeeperSaves
       },
       away: {
         teamId: awayTeamId,
         goals: awayPlayer.goals,
         shots: awayStats.shots,
-        goalpostHits: awayStats.goalpostHits,
         goalkeeperSaves: awayStats.goalkeeperSaves
       }
     },

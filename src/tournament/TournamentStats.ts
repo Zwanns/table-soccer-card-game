@@ -12,7 +12,6 @@ export type TournamentTeamStatsRankingKey =
   | 'goalsFor'
   | 'shots'
   | 'goalkeeperSaves'
-  | 'goalpostHits'
   | 'wins';
 
 export type TournamentPlayerStatsRankingKey = 'goals' | 'assists' | 'goalkeeperSaves';
@@ -77,7 +76,6 @@ export function createEmptyTournamentTeamStats(teamId: TournamentTeamId): Tourna
     goalsAgainst: 0,
     goalDifference: 0,
     shots: 0,
-    goalpostHits: 0,
     goalkeeperSaves: 0,
     penaltyShootoutWins: 0,
     penaltyShootoutLosses: 0,
@@ -134,7 +132,6 @@ function applyOrdinaryMatchStats(
   stats.goalsAgainst += goalsAgainst;
   stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
   stats.shots += matchStats.shots;
-  stats.goalpostHits += matchStats.goalpostHits;
   stats.goalkeeperSaves += matchStats.goalkeeperSaves;
 
   if (goalsFor > goalsAgainst) {
