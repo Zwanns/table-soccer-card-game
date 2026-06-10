@@ -32,6 +32,12 @@ export type {
   PenaltyShootoutStatus
 } from './PenaltyShootoutState';
 export { getTournamentGroupStandings, sortGroupStandings } from './TournamentStandings';
+export {
+  createEmptyTournamentTeamStats,
+  getTournamentTeamStats,
+  getTournamentTeamStatsRanking,
+  type TournamentTeamStatsRankingKey
+} from './TournamentStats';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {
   PenaltyKickResult,

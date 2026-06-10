@@ -4,21 +4,26 @@ import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nati
 import {
   getTournamentFormat,
   getTournamentGroupStandings,
+  getTournamentTeamStats,
+  getTournamentTeamStatsRanking,
   type TournamentGroup,
   type TournamentMatch,
   type TournamentStage,
   type TournamentState,
-  type TournamentTeamId
+  type TournamentTeamId,
+  type TournamentTeamStats,
+  type TournamentTeamStatsRankingKey
 } from '../tournament';
 import { Button } from '../ui/Button';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
-type TournamentHubTab = 'matches' | 'tables' | 'bracket';
+type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
   matches: 'Matches',
   tables: 'Group Stage',
-  bracket: 'Playoff'
+  bracket: 'Playoff',
+  stats: 'Stats'
 };
 
 const STAGE_LABELS: Record<TournamentStage, string> = {
@@ -38,10 +43,37 @@ const BRACKET_TOP = 185;
 const BRACKET_BOTTOM = 610;
 const BRACKET_SIDE_MARGIN = 84;
 const BRACKET_MAX_COLUMN_GAP = 180;
+const STATS_TABLE_WIDTH = 780;
+const STATS_TABLE_HEIGHT = 462;
+const STATS_TABLE_ROW_GAP = 30;
+const STATS_TABLE_VIEWPORT_Y = 46;
+const STATS_TABLE_VIEWPORT_HEIGHT = 400;
+const STATS_RANKING_X = 906;
+const STATS_RANKING_WIDTH = 196;
+const STATS_RANKING_CARD_HEIGHT = 72;
+const STATS_RANKING_VIEWPORT_HEIGHT = 462;
+const STATS_RANKING_COLUMN_GAP = 32;
+const STATS_RANKING_ROW_GAP = 136;
+const STATS_RANKING_CARD_Y = 28;
+const STATS_TABLE_COLUMNS = {
+  played: 292,
+  wins: 334,
+  draws: 376,
+  losses: 418,
+  goalsFor: 464,
+  goalsAgainst: 510,
+  goalDifference: 556,
+  shots: 606,
+  goalkeeperSaves: 656,
+  goalpostHits: 708,
+  penalties: 764
+} as const;
 
 export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
   private matchPage = 0;
+  private statsRankingScrollY = 0;
+  private statsTeamScrollY = 0;
 
   public constructor() {
     super('TournamentHubScene');
@@ -70,8 +102,10 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createMatchesTab(tournament);
     } else if (this.activeTab === 'tables') {
       this.createTablesTab(tournament);
-    } else {
+    } else if (this.activeTab === 'bracket') {
       this.createBracketTab(tournament);
+    } else {
+      this.createStatsTab(tournament);
     }
 
     new Button(this, 132, 666, 'Menu', () => this.scene.start('MenuScene'), {
@@ -129,11 +163,16 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private createTabs(): void {
-    (Object.keys(TAB_LABELS) as TournamentHubTab[]).forEach((tab, index) => {
+    const tabs = Object.keys(TAB_LABELS) as TournamentHubTab[];
+    const tabWidth = 190;
+    const tabGap = 212;
+    const startX = SCENE_WIDTH / 2 - ((tabs.length - 1) * tabGap) / 2;
+
+    tabs.forEach((tab, index) => {
       const selected = this.activeTab === tab;
-      const x = SCENE_WIDTH / 2 - 250 + index * 250;
+      const x = startX + index * tabGap;
       const button = this.add.container(x, 116);
-      const background = this.add.rectangle(0, 0, 210, 46, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.94);
+      const background = this.add.rectangle(0, 0, tabWidth, 46, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.94);
       background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.95);
       const label = this.add
         .text(0, 0, TAB_LABELS[tab], {
@@ -145,7 +184,7 @@ export class TournamentHubScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       button.add([background, label]);
-      button.setSize(210, 46);
+      button.setSize(tabWidth, 46);
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
@@ -333,6 +372,302 @@ export class TournamentHubScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
+  }
+
+  private createStatsTab(tournament: TournamentState): void {
+    const stats = getTournamentTeamStats(tournament);
+
+    this.createTeamStatsTable(stats.slice(0, 12), 74, 166);
+
+    const rankingCards: Array<{ title: string; key: TournamentTeamStatsRankingKey }> = [
+      { title: 'Goals', key: 'goalsFor' },
+      { title: 'Shots', key: 'shots' },
+      { title: 'Posts', key: 'goalpostHits' },
+      { title: 'GK saves', key: 'goalkeeperSaves' }
+    ];
+
+    this.createStatsRankingList(rankingCards, stats, STATS_RANKING_X, 166);
+  }
+
+  private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number): void {
+    const panel = this.add.container(x, y);
+    const background = this.add.rectangle(0, 0, STATS_TABLE_WIDTH, STATS_TABLE_HEIGHT, 0x0b2118, 0.86);
+    background.setOrigin(0);
+    background.setStrokeStyle(2, 0x5f9572, 0.92);
+
+    panel.add(background);
+    this.createStatsTableHeader(panel, 24);
+
+    const rows = this.add.container(0, STATS_TABLE_VIEWPORT_Y);
+
+    stats.forEach((teamStats, index) => {
+      const rowY = index * STATS_TABLE_ROW_GAP + 12;
+      const team = findTeam(teamStats.teamId);
+
+      if (team !== undefined) {
+        const flag = this.add.image(28, rowY, getFlagAssetKey(team.flagCode));
+        flag.setDisplaySize(24, 18);
+        rows.add(flag);
+      }
+
+      rows.add(
+        this.add
+          .text(48, rowY, team?.name ?? teamStats.teamId, {
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            fontStyle: '700',
+            wordWrap: { width: 198 }
+          })
+          .setOrigin(0, 0.5)
+      );
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.played, rowY, teamStats.played));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.wins, rowY, teamStats.wins));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.draws, rowY, teamStats.draws));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.losses, rowY, teamStats.losses));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalsFor, rowY, teamStats.goalsFor));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalsAgainst, rowY, teamStats.goalsAgainst));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalDifference, rowY, teamStats.goalDifference));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.shots, rowY, teamStats.shots));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalkeeperSaves, rowY, teamStats.goalkeeperSaves));
+      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalpostHits, rowY, teamStats.goalpostHits));
+      rows.add(
+        this.createStatsTableValue(
+          STATS_TABLE_COLUMNS.penalties,
+          rowY,
+          `${teamStats.penaltyShootoutWins}-${teamStats.penaltyShootoutLosses}/${teamStats.penaltyGoals}`,
+          '12px'
+        ).setOrigin(1, 0.5)
+      );
+    });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(x, y + STATS_TABLE_VIEWPORT_Y, STATS_TABLE_WIDTH, STATS_TABLE_VIEWPORT_HEIGHT)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    rows.setMask(mask);
+    panel.add(rows);
+
+    const contentHeight = stats.length * STATS_TABLE_ROW_GAP + 24;
+    const maxScroll = Math.max(0, contentHeight - STATS_TABLE_VIEWPORT_HEIGHT);
+    const scrollZone = this.add
+      .zone(
+        STATS_TABLE_WIDTH / 2,
+        STATS_TABLE_VIEWPORT_Y + STATS_TABLE_VIEWPORT_HEIGHT / 2,
+        STATS_TABLE_WIDTH,
+        STATS_TABLE_VIEWPORT_HEIGHT
+      )
+      .setInteractive();
+    panel.add(scrollZone);
+
+    this.statsTeamScrollY = Phaser.Math.Clamp(this.statsTeamScrollY, 0, maxScroll);
+    const setScroll = (value: number): void => {
+      this.statsTeamScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      rows.y = STATS_TABLE_VIEWPORT_Y - this.statsTeamScrollY;
+    };
+
+    setScroll(this.statsTeamScrollY);
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.statsTeamScrollY + deltaY * 0.35);
+    });
+
+    if (maxScroll > 0) {
+      this.createScrollbar(panel, STATS_TABLE_WIDTH + 12, STATS_TABLE_VIEWPORT_Y, STATS_TABLE_VIEWPORT_HEIGHT, maxScroll, () =>
+        this.statsTeamScrollY
+      );
+    }
+  }
+
+  private createStatsTableHeader(panel: Phaser.GameObjects.Container, y: number): void {
+    panel.add(
+      this.add
+        .text(16, y, 'Team', {
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+
+    const headers: Array<[keyof typeof STATS_TABLE_COLUMNS, string]> = [
+      ['played', 'P'],
+      ['wins', 'W'],
+      ['draws', 'D'],
+      ['losses', 'L'],
+      ['goalsFor', 'GF'],
+      ['goalsAgainst', 'GA'],
+      ['goalDifference', 'GD'],
+      ['shots', 'Sh'],
+      ['goalkeeperSaves', 'Sv'],
+      ['goalpostHits', 'Post'],
+      ['penalties', 'Pen']
+    ];
+
+    headers.forEach(([column, label]) => {
+      panel.add(
+        this.add
+          .text(STATS_TABLE_COLUMNS[column], y, label, {
+            align: 'center',
+            color: '#9fc5ad',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '13px',
+            fontStyle: '700'
+          })
+          .setOrigin(column === 'penalties' ? 1 : 0.5, 0.5)
+      );
+    });
+  }
+
+  private createStatsRankingList(
+    rankingCards: readonly { title: string; key: TournamentTeamStatsRankingKey }[],
+    stats: readonly TournamentTeamStats[],
+    x: number,
+    y: number
+  ): void {
+    const content = this.add.container(x, y);
+    const rowCount = Math.ceil(rankingCards.length / 2);
+    const contentHeight =
+      rowCount * STATS_RANKING_ROW_GAP - (STATS_RANKING_ROW_GAP - STATS_RANKING_CARD_Y - STATS_RANKING_CARD_HEIGHT);
+    const contentWidth = STATS_RANKING_WIDTH * 2 + STATS_RANKING_COLUMN_GAP;
+    const maxScroll = Math.max(0, contentHeight - STATS_RANKING_VIEWPORT_HEIGHT);
+
+    rankingCards.forEach((ranking, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const cardX = column * (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP);
+      const cardY = row * STATS_RANKING_ROW_GAP;
+      content.add(this.createStatsRankingCard(ranking.title, stats, ranking.key, cardX, cardY));
+    });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(x, y, contentWidth, STATS_RANKING_VIEWPORT_HEIGHT)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(x + contentWidth / 2, y + STATS_RANKING_VIEWPORT_HEIGHT / 2, contentWidth, STATS_RANKING_VIEWPORT_HEIGHT)
+      .setInteractive();
+
+    this.statsRankingScrollY = Phaser.Math.Clamp(this.statsRankingScrollY, 0, maxScroll);
+    const setScroll = (value: number): void => {
+      this.statsRankingScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      content.y = y - this.statsRankingScrollY;
+    };
+
+    setScroll(this.statsRankingScrollY);
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.statsRankingScrollY + deltaY * 0.35);
+    });
+
+    if (maxScroll > 0) {
+      this.createScrollbar(
+        this.add.container(x, y),
+        contentWidth + 12,
+        0,
+        STATS_RANKING_VIEWPORT_HEIGHT,
+        maxScroll,
+        () => this.statsRankingScrollY
+      );
+    }
+  }
+
+  private createStatsRankingCard(
+    title: string,
+    stats: readonly TournamentTeamStats[],
+    key: TournamentTeamStatsRankingKey,
+    x: number,
+    y: number
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    container.add(
+      this.add
+        .text(0, 0, title, {
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '18px',
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0)
+    );
+
+    const panel = this.add.container(0, STATS_RANKING_CARD_Y);
+    const background = this.add.rectangle(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 0x0b2118, 0.86);
+    background.setOrigin(0);
+    background.setStrokeStyle(2, 0x5f9572, 0.92);
+
+    panel.add(background);
+
+    getTournamentTeamStatsRanking(stats, key, 3).forEach((teamStats, index) => {
+      const team = findTeam(teamStats.teamId);
+      const rowY = 16 + index * 20;
+
+      if (team !== undefined) {
+        const flag = this.add.image(28, rowY, getFlagAssetKey(team.flagCode));
+        flag.setDisplaySize(22, 16);
+        panel.add(flag);
+      }
+
+      panel.add(
+        this.add
+          .text(46, rowY, `${index + 1}. ${team?.name ?? teamStats.teamId}`, {
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '13px',
+            fontStyle: '700',
+            wordWrap: { width: 102 }
+          })
+          .setOrigin(0, 0.5)
+      );
+      panel.add(this.createStatsTableValue(STATS_RANKING_WIDTH - 10, rowY, formatStatsRankingValue(teamStats, key)));
+    });
+
+    container.add(panel);
+    return container;
+  }
+
+  private createStatsTableValue(
+    x: number,
+    y: number,
+    value: number | string,
+    fontSize = '14px'
+  ): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, String(value), {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+  }
+
+  private createScrollbar(
+    container: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    height: number,
+    maxScroll: number,
+    getScrollY: () => number
+  ): void {
+    const track = this.add.rectangle(x, y + height / 2, 4, height, 0x5f9572, 0.28);
+    const thumbHeight = Math.max(28, (height / (height + maxScroll)) * height);
+    const thumb = this.add.rectangle(x, y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    const updateThumb = (): void => {
+      thumb.y = y + thumbHeight / 2 + (getScrollY() / maxScroll) * (height - thumbHeight);
+    };
+
+    this.events.on(Phaser.Scenes.Events.UPDATE, updateThumb);
+    container.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.events.off(Phaser.Scenes.Events.UPDATE, updateThumb);
+    });
+    container.add([track, thumb]);
   }
 
   private createBracketTab(tournament: TournamentState): void {
@@ -589,6 +924,10 @@ function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): strin
   const penaltyGoals = team === 'home' ? match.result.penaltyShootout.homeGoals : match.result.penaltyShootout.awayGoals;
 
   return `${mainGoals} (${penaltyGoals})`;
+}
+
+function formatStatsRankingValue(stats: TournamentTeamStats, key: TournamentTeamStatsRankingKey): number {
+  return stats[key];
 }
 
 function getBracketCardWidth(formatId: TournamentState['formatId']): number {
