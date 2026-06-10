@@ -65,8 +65,11 @@
 - `src/tournament/index.ts`
 - `src/tournament/tournamentTypes.ts`
 - `src/scenes/TournamentHubScene.ts`
+- `src/scenes/BootScene.ts`
+- `src/data/teamKits.ts`
 - `src/tests/tournamentEngine.test.ts`
 - `src/tests/tournamentFlow.test.ts`
+- `src/tests/teamKits.test.ts`
 - `WORK_REPORT.md`
 
 ## Тесты
@@ -101,6 +104,13 @@ npm.cmd run build
 - TypeScript compilation прошла успешно.
 - Vite production build прошел успешно.
 - Предупреждение Vite о большом JS chunk остается ожидаемым из-за Phaser.
+
+## Хотфикс запуска
+
+Исправлена причина белого экрана при открытии приложения в браузере:
+
+- из обязательной предзагрузки меню убраны отсутствующие опциональные ассеты `menu-ball.png` и `menu-flags.png`;
+- загрузчик опциональных форм команд теперь считает файл доступным только если сервер возвращает `image/*`, а не HTML-fallback Vite.
 
 ## Что проверить вручную
 

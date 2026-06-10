@@ -180,7 +180,7 @@ async function isReachableImage(path: string): Promise<boolean> {
       method: 'HEAD'
     });
 
-    return response.ok;
+    return response.ok && (response.headers.get('content-type') ?? '').startsWith('image/');
   } catch {
     return false;
   }

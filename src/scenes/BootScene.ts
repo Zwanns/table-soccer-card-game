@@ -12,8 +12,6 @@ export class BootScene extends Phaser.Scene {
   public preload(): void {
     this.load.image(MENU_ASSETS.background, MENU_ASSET_PATHS.background);
     this.load.image(MENU_ASSETS.logo, MENU_ASSET_PATHS.logo);
-    this.load.image(MENU_ASSETS.ball, MENU_ASSET_PATHS.ball);
-    this.load.image(MENU_ASSETS.flags, MENU_ASSET_PATHS.flags);
     this.load.image('turn-ball', 'cards/ball.webp');
     this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath());
 

@@ -111,7 +111,13 @@ describe('team kit configuration', () => {
       configurable: true,
       value: async (path: string) =>
         ({
-          ok: path.endsWith('/home.png')
+          ok: path.endsWith('/home.png'),
+          headers: {
+            get: (name: string) =>
+              name.toLowerCase() === 'content-type' && path.endsWith('/home.png')
+                ? 'image/png'
+                : 'text/html'
+          }
         }) as Response
     });
     Object.defineProperty(globalThis, 'Image', {
