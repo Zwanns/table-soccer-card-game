@@ -4,6 +4,8 @@ import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nati
 import {
   getTournamentFormat,
   getTournamentGroupStandings,
+  getTournamentPlayerStats,
+  getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
   getTournamentTeamStatsRanking,
   type TournamentGroup,
@@ -11,6 +13,8 @@ import {
   type TournamentStage,
   type TournamentState,
   type TournamentTeamId,
+  type TournamentPlayerStats,
+  type TournamentPlayerStatsRankingKey,
   type TournamentTeamStats,
   type TournamentTeamStatsRankingKey
 } from '../tournament';
@@ -18,6 +22,17 @@ import { Button } from '../ui/Button';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
+
+type StatsRankingEntry = {
+  teamId: TournamentTeamId;
+  label: string;
+  value: number;
+};
+
+type StatsRankingCardDefinition = {
+  title: string;
+  entries: StatsRankingEntry[];
+};
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
   matches: 'Matches',
@@ -55,6 +70,9 @@ const STATS_RANKING_VIEWPORT_HEIGHT = 462;
 const STATS_RANKING_COLUMN_GAP = 32;
 const STATS_RANKING_ROW_GAP = 136;
 const STATS_RANKING_CARD_Y = 28;
+const STATS_TOOLTIP_DEPTH = 10000;
+const STATS_TOOLTIP_PADDING_X = 12;
+const STATS_TOOLTIP_PADDING_Y = 8;
 const STATS_TABLE_COLUMNS = {
   played: 292,
   wins: 334,
@@ -65,8 +83,7 @@ const STATS_TABLE_COLUMNS = {
   goalDifference: 556,
   shots: 606,
   goalkeeperSaves: 656,
-  goalpostHits: 708,
-  penalties: 764
+  goalpostHits: 708
 } as const;
 
 export class TournamentHubScene extends Phaser.Scene {
@@ -376,17 +393,21 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createStatsTab(tournament: TournamentState): void {
     const stats = getTournamentTeamStats(tournament);
+    const playerStats = getTournamentPlayerStats(tournament);
 
     this.createTeamStatsTable(stats.slice(0, 12), 74, 166);
 
-    const rankingCards: Array<{ title: string; key: TournamentTeamStatsRankingKey }> = [
-      { title: 'Goals', key: 'goalsFor' },
-      { title: 'Shots', key: 'shots' },
-      { title: 'Posts', key: 'goalpostHits' },
-      { title: 'GK saves', key: 'goalkeeperSaves' }
+    const rankingCards: StatsRankingCardDefinition[] = [
+      { title: 'Goals', entries: createTeamRankingEntries(stats, 'goalsFor') },
+      { title: 'Shots', entries: createTeamRankingEntries(stats, 'shots') },
+      { title: 'Posts', entries: createTeamRankingEntries(stats, 'goalpostHits') },
+      { title: 'GK saves', entries: createTeamRankingEntries(stats, 'goalkeeperSaves') },
+      { title: 'Top scorers', entries: createPlayerRankingEntries(playerStats, 'goals') },
+      { title: 'Top assists', entries: createPlayerRankingEntries(playerStats, 'assists') },
+      { title: 'Top goalkeepers', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
     ];
 
-    this.createStatsRankingList(rankingCards, stats, STATS_RANKING_X, 166);
+    this.createStatsRankingList(rankingCards, STATS_RANKING_X, 166);
   }
 
   private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number): void {
@@ -431,14 +452,6 @@ export class TournamentHubScene extends Phaser.Scene {
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.shots, rowY, teamStats.shots));
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalkeeperSaves, rowY, teamStats.goalkeeperSaves));
       rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalpostHits, rowY, teamStats.goalpostHits));
-      rows.add(
-        this.createStatsTableValue(
-          STATS_TABLE_COLUMNS.penalties,
-          rowY,
-          `${teamStats.penaltyShootoutWins}-${teamStats.penaltyShootoutLosses}/${teamStats.penaltyGoals}`,
-          '12px'
-        ).setOrigin(1, 0.5)
-      );
     });
 
     const maskGraphics = this.make.graphics();
@@ -502,28 +515,63 @@ export class TournamentHubScene extends Phaser.Scene {
       ['goalDifference', 'GD'],
       ['shots', 'Sh'],
       ['goalkeeperSaves', 'Sv'],
-      ['goalpostHits', 'Post'],
-      ['penalties', 'Pen']
+      ['goalpostHits', 'Post']
     ];
 
     headers.forEach(([column, label]) => {
-      panel.add(
-        this.add
-          .text(STATS_TABLE_COLUMNS[column], y, label, {
-            align: 'center',
-            color: '#9fc5ad',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '13px',
-            fontStyle: '700'
-          })
-          .setOrigin(column === 'penalties' ? 1 : 0.5, 0.5)
-      );
+      const header = this.add
+        .text(STATS_TABLE_COLUMNS[column], y, label, {
+          align: 'center',
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '13px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+
+      this.addStatsHeaderTooltip(header, getStatsTableHeaderTooltip(column));
+      panel.add(header);
     });
   }
 
+  private addStatsHeaderTooltip(header: Phaser.GameObjects.Text, tooltipText: string): void {
+    header.setInteractive({ useHandCursor: true });
+    header.on('pointerover', () => this.showStatsTooltip(header, tooltipText));
+    header.on('pointerout', () => this.hideStatsTooltip());
+  }
+
+  private showStatsTooltip(header: Phaser.GameObjects.Text, text: string): void {
+    this.hideStatsTooltip();
+
+    const bounds = header.getBounds();
+    const label = this.add
+      .text(STATS_TOOLTIP_PADDING_X, STATS_TOOLTIP_PADDING_Y, text, {
+        color: '#1f2a2e',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+        fontStyle: '700'
+      })
+      .setOrigin(0);
+    const width = label.width + STATS_TOOLTIP_PADDING_X * 2;
+    const height = label.height + STATS_TOOLTIP_PADDING_Y * 2;
+    const x = Phaser.Math.Clamp(bounds.centerX - width / 2, 16, SCENE_WIDTH - width - 16);
+    const y = Math.max(16, bounds.top - height - 10);
+    const tooltip = this.add.container(x, y);
+    const background = this.add.rectangle(0, 0, width, height, 0xf0c95a, 1);
+
+    background.setOrigin(0);
+    background.setStrokeStyle(2, 0x2d382f, 0.95);
+    tooltip.add([background, label]);
+    tooltip.setDepth(STATS_TOOLTIP_DEPTH);
+    tooltip.setName('stats-header-tooltip');
+  }
+
+  private hideStatsTooltip(): void {
+    this.children.getByName('stats-header-tooltip')?.destroy();
+  }
+
   private createStatsRankingList(
-    rankingCards: readonly { title: string; key: TournamentTeamStatsRankingKey }[],
-    stats: readonly TournamentTeamStats[],
+    rankingCards: readonly StatsRankingCardDefinition[],
     x: number,
     y: number
   ): void {
@@ -539,7 +587,7 @@ export class TournamentHubScene extends Phaser.Scene {
       const row = Math.floor(index / 2);
       const cardX = column * (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP);
       const cardY = row * STATS_RANKING_ROW_GAP;
-      content.add(this.createStatsRankingCard(ranking.title, stats, ranking.key, cardX, cardY));
+      content.add(this.createStatsRankingCard(ranking.title, ranking.entries, cardX, cardY));
     });
 
     const maskGraphics = this.make.graphics();
@@ -579,8 +627,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createStatsRankingCard(
     title: string,
-    stats: readonly TournamentTeamStats[],
-    key: TournamentTeamStatsRankingKey,
+    entries: readonly StatsRankingEntry[],
     x: number,
     y: number
   ): Phaser.GameObjects.Container {
@@ -603,8 +650,8 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(background);
 
-    getTournamentTeamStatsRanking(stats, key, 3).forEach((teamStats, index) => {
-      const team = findTeam(teamStats.teamId);
+    entries.slice(0, 3).forEach((entry, index) => {
+      const team = findTeam(entry.teamId);
       const rowY = 16 + index * 20;
 
       if (team !== undefined) {
@@ -615,7 +662,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
       panel.add(
         this.add
-          .text(46, rowY, `${index + 1}. ${team?.name ?? teamStats.teamId}`, {
+          .text(46, rowY, `${index + 1}. ${entry.label}`, {
             color: '#ffffff',
             fontFamily: 'Arial, sans-serif',
             fontSize: '13px',
@@ -624,7 +671,7 @@ export class TournamentHubScene extends Phaser.Scene {
           })
           .setOrigin(0, 0.5)
       );
-      panel.add(this.createStatsTableValue(STATS_RANKING_WIDTH - 10, rowY, formatStatsRankingValue(teamStats, key)));
+      panel.add(this.createStatsTableValue(STATS_RANKING_WIDTH - 10, rowY, entry.value));
     });
 
     container.add(panel);
@@ -926,8 +973,43 @@ function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): strin
   return `${mainGoals} (${penaltyGoals})`;
 }
 
-function formatStatsRankingValue(stats: TournamentTeamStats, key: TournamentTeamStatsRankingKey): number {
-  return stats[key];
+function createTeamRankingEntries(
+  stats: readonly TournamentTeamStats[],
+  key: TournamentTeamStatsRankingKey
+): StatsRankingEntry[] {
+  return getTournamentTeamStatsRanking(stats, key, 3).map((teamStats) => ({
+    teamId: teamStats.teamId,
+    label: findTeam(teamStats.teamId)?.name ?? teamStats.teamId,
+    value: teamStats[key]
+  }));
+}
+
+function createPlayerRankingEntries(
+  stats: readonly TournamentPlayerStats[],
+  key: TournamentPlayerStatsRankingKey
+): StatsRankingEntry[] {
+  return getTournamentPlayerStatsRanking(stats, key, 3).map((playerStats) => ({
+    teamId: playerStats.teamId,
+    label: `${playerStats.playerName} #${playerStats.shirtNumber}`,
+    value: playerStats[key]
+  }));
+}
+
+function getStatsTableHeaderTooltip(column: keyof typeof STATS_TABLE_COLUMNS): string {
+  const tooltips: Record<keyof typeof STATS_TABLE_COLUMNS, string> = {
+    played: 'Played',
+    wins: 'Wins',
+    draws: 'Draws',
+    losses: 'Losses',
+    goalsFor: 'Goals for',
+    goalsAgainst: 'Goals against',
+    goalDifference: 'Goal difference',
+    shots: 'Shots',
+    goalkeeperSaves: 'Goalkeeper saves',
+    goalpostHits: 'Goalpost hits'
+  };
+
+  return tooltips[column];
 }
 
 function getBracketCardWidth(formatId: TournamentState['formatId']): number {

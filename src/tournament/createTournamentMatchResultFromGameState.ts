@@ -1,4 +1,5 @@
 import { getMatchStats, type GameState } from '../game';
+import { createTournamentMatchPlayerStatsFromGameState } from './TournamentPlayerStats';
 import type { TournamentMatchResult, TournamentTeamId } from './tournamentTypes';
 
 export function createTournamentMatchResultFromGameState(
@@ -35,6 +36,6 @@ export function createTournamentMatchResultFromGameState(
         goalkeeperSaves: awayStats.goalkeeperSaves
       }
     },
-    playerStats: []
+    playerStats: createTournamentMatchPlayerStatsFromGameState(gameState, homeTeamId, awayTeamId)
   };
 }

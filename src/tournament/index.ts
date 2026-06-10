@@ -34,10 +34,14 @@ export type {
 export { getTournamentGroupStandings, sortGroupStandings } from './TournamentStandings';
 export {
   createEmptyTournamentTeamStats,
+  getTournamentPlayerStats,
+  getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
   getTournamentTeamStatsRanking,
+  type TournamentPlayerStatsRankingKey,
   type TournamentTeamStatsRankingKey
 } from './TournamentStats';
+export { createTournamentMatchPlayerStatsFromGameState } from './TournamentPlayerStats';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {
   PenaltyKickResult,

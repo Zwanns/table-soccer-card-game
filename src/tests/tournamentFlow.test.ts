@@ -82,6 +82,33 @@ describe('tournament match result normalization', () => {
     });
     expect(result.teamStats.home.shots).toBe(2);
     expect(result.teamStats.away.shots).toBe(1);
+    expect(result.playerStats).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          teamId: 'fr',
+          playerId: 'field:A',
+          goals: 1
+        }),
+        expect.objectContaining({
+          teamId: 'fr',
+          playerId: 'field:Q',
+          assists: 1
+        }),
+        expect.objectContaining({
+          teamId: 'fr',
+          playerId: 'goalkeeper:fr-gk-1',
+          goalkeeperSaves: 1
+        })
+      ])
+    );
+  });
+
+  it('does not carry assist candidates through posts or saves', () => {
+    const afterPost = createTournamentMatchResultFromGameState('group-A-1', createPostBeforeGoalGameState(), 'fr', 'es');
+    const afterSave = createTournamentMatchResultFromGameState('group-A-1', createSaveBeforeGoalGameState(), 'fr', 'es');
+
+    expect(afterPost.playerStats.find((stats) => stats.playerId === 'field:Q')?.assists ?? 0).toBe(0);
+    expect(afterSave.playerStats.find((stats) => stats.playerId === 'field:Q')?.assists ?? 0).toBe(0);
   });
 
   it('submits a normalized group result once and updates standings inputs', () => {
@@ -184,6 +211,14 @@ function createFinishedGameState(): GameState {
     isDraw: false,
     turnNumber: 6,
     log: [
+      {
+        type: 'CARD_DEFEATED',
+        playerId: 'PLAYER_1',
+        turnNumber: 2,
+        positionId: 'defender-1',
+        attackerCard: card('Q'),
+        defenderCard: card('2')
+      },
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: goalkeeperCard('6') },
       {
         type: 'GOAL_SCORED',
@@ -202,6 +237,71 @@ function createFinishedGameState(): GameState {
       { type: 'GOALPOST_HIT', playerId: 'PLAYER_1', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
       { type: 'GAME_OVER', winnerId: 'PLAYER_1' }
     ]
+  };
+}
+
+function createPostBeforeGoalGameState(): GameState {
+  return createGameStateWithLog([
+    {
+      type: 'CARD_DEFEATED',
+      playerId: 'PLAYER_1',
+      turnNumber: 2,
+      positionId: 'defender-1',
+      attackerCard: card('Q'),
+      defenderCard: card('2')
+    },
+    { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
+    { type: 'GOALPOST_HIT', playerId: 'PLAYER_1', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
+    { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: goalkeeperCard('6') },
+    {
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      turnNumber: 2,
+      scorer: {
+        playerName: 'ĐĐłŃ€ĐľĐş A',
+        shirtNumber: 17,
+        rank: 'A',
+        teamId: 'fr'
+      }
+    },
+    { type: 'GAME_OVER', winnerId: 'PLAYER_1' }
+  ]);
+}
+
+function createSaveBeforeGoalGameState(): GameState {
+  return createGameStateWithLog([
+    {
+      type: 'CARD_DEFEATED',
+      playerId: 'PLAYER_1',
+      turnNumber: 2,
+      positionId: 'defender-1',
+      attackerCard: card('Q'),
+      defenderCard: card('2')
+    },
+    { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
+    { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_1', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
+    { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_1', attackerCard: card('A'), goalkeeperCard: goalkeeperCard('6') },
+    {
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      turnNumber: 2,
+      scorer: {
+        playerName: 'ĐĐłŃ€ĐľĐş A',
+        shirtNumber: 17,
+        rank: 'A',
+        teamId: 'fr'
+      }
+    },
+    { type: 'GAME_OVER', winnerId: 'PLAYER_1' }
+  ]);
+}
+
+function createGameStateWithLog(log: GameState['log']): GameState {
+  const state = createFinishedGameState();
+
+  return {
+    ...state,
+    log
   };
 }
 

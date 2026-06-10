@@ -6,7 +6,12 @@ export type { GamePhase } from './GamePhase';
 export type { GameState } from './GameState';
 export type { MatchTeamSetup, MatchTeamSetups } from './MatchTeamSetup';
 export { cloneNationalTeamSquad, createMatchTeamSetup, pickGoalkeeperKitId } from './MatchTeamSetup';
-export { getFieldPlayerForCard, getStartingGoalkeeper } from './squadResolver';
+export {
+  getFieldPlayerForCard,
+  getStartingGoalkeeper,
+  resolveActiveGoalkeeper,
+  resolveSquadPlayerByCardRank
+} from './squadResolver';
 export type { GoalScorerStat, PlayerMatchStats } from './matchStats';
 export { getMatchStats } from './matchStats';
 export type { TeamAdvantage } from './advantage';

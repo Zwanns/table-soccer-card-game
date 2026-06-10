@@ -36,6 +36,8 @@ export type TournamentMatchTeamStats = {
 export type TournamentMatchPlayerStats = {
   teamId: TournamentTeamId;
   playerId: string;
+  playerName: string;
+  shirtNumber: number;
   goals: number;
   assists: number;
   goalkeeperSaves: number;
@@ -115,6 +117,8 @@ export type TournamentTeamStats = {
 export type TournamentPlayerStats = {
   teamId: TournamentTeamId;
   playerId: string;
+  playerName: string;
+  shirtNumber: number;
   goals: number;
   assists: number;
   goalkeeperSaves: number;

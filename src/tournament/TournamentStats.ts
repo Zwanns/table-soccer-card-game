@@ -1,6 +1,8 @@
 import type {
   TournamentMatch,
+  TournamentMatchPlayerStats,
   TournamentMatchTeamStat,
+  TournamentPlayerStats,
   TournamentState,
   TournamentTeamId,
   TournamentTeamStats
@@ -12,6 +14,8 @@ export type TournamentTeamStatsRankingKey =
   | 'goalkeeperSaves'
   | 'goalpostHits'
   | 'wins';
+
+export type TournamentPlayerStatsRankingKey = 'goals' | 'assists' | 'goalkeeperSaves';
 
 export function getTournamentTeamStats(
   tournament: Pick<TournamentState, 'teamIds' | 'matches'>
@@ -36,6 +40,30 @@ export function getTournamentTeamStatsRanking(
   limit = 5
 ): TournamentTeamStats[] {
   return [...stats].sort((first, second) => compareStatsByKey(first, second, key)).slice(0, limit);
+}
+
+export function getTournamentPlayerStats(tournament: Pick<TournamentState, 'matches'>): TournamentPlayerStats[] {
+  const stats = new Map<string, TournamentPlayerStats>();
+
+  for (const match of tournament.matches) {
+    if (match.status !== 'completed' || match.result === undefined) {
+      continue;
+    }
+
+    for (const playerStats of match.result.playerStats) {
+      applyPlayerMatchStats(stats, playerStats);
+    }
+  }
+
+  return [...stats.values()].sort(compareTournamentPlayerStats);
+}
+
+export function getTournamentPlayerStatsRanking(
+  stats: readonly TournamentPlayerStats[],
+  key: TournamentPlayerStatsRankingKey,
+  limit = 5
+): TournamentPlayerStats[] {
+  return [...stats].sort((first, second) => comparePlayerStatsByKey(first, second, key)).slice(0, limit);
 }
 
 export function createEmptyTournamentTeamStats(teamId: TournamentTeamId): TournamentTeamStats {
@@ -133,6 +161,50 @@ function getOrCreateStats(
   return createdStats;
 }
 
+function applyPlayerMatchStats(
+  stats: Map<string, TournamentPlayerStats>,
+  matchStats: TournamentMatchPlayerStats
+): void {
+  const playerStats = getOrCreatePlayerStats(stats, matchStats);
+
+  playerStats.goals += matchStats.goals;
+  playerStats.assists += matchStats.assists;
+  playerStats.goalkeeperSaves += matchStats.goalkeeperSaves;
+  playerStats.penaltyGoals += matchStats.penaltyGoals;
+  playerStats.penaltyGoalkeeperSaves += matchStats.penaltyGoalkeeperSaves;
+}
+
+function getOrCreatePlayerStats(
+  stats: Map<string, TournamentPlayerStats>,
+  matchStats: TournamentMatchPlayerStats
+): TournamentPlayerStats {
+  const key = createPlayerStatsKey(matchStats.teamId, matchStats.playerId);
+  const existingStats = stats.get(key);
+
+  if (existingStats !== undefined) {
+    return existingStats;
+  }
+
+  const createdStats: TournamentPlayerStats = {
+    teamId: matchStats.teamId,
+    playerId: matchStats.playerId,
+    playerName: matchStats.playerName,
+    shirtNumber: matchStats.shirtNumber,
+    goals: 0,
+    assists: 0,
+    goalkeeperSaves: 0,
+    penaltyGoals: 0,
+    penaltyGoalkeeperSaves: 0
+  };
+
+  stats.set(key, createdStats);
+  return createdStats;
+}
+
+function createPlayerStatsKey(teamId: TournamentTeamId, playerId: string): string {
+  return `${teamId}:${playerId}`;
+}
+
 function compareStatsByKey(
   first: TournamentTeamStats,
   second: TournamentTeamStats,
@@ -148,5 +220,23 @@ function compareTournamentTeamStats(first: TournamentTeamStats, second: Tourname
     second.goalsFor - first.goalsFor ||
     second.shots - first.shots ||
     first.teamId.localeCompare(second.teamId)
+  );
+}
+
+function comparePlayerStatsByKey(
+  first: TournamentPlayerStats,
+  second: TournamentPlayerStats,
+  key: TournamentPlayerStatsRankingKey
+): number {
+  return second[key] - first[key] || compareTournamentPlayerStats(first, second);
+}
+
+function compareTournamentPlayerStats(first: TournamentPlayerStats, second: TournamentPlayerStats): number {
+  return (
+    second.goals - first.goals ||
+    second.assists - first.assists ||
+    second.goalkeeperSaves - first.goalkeeperSaves ||
+    first.teamId.localeCompare(second.teamId) ||
+    first.playerId.localeCompare(second.playerId)
   );
 }

@@ -8,6 +8,8 @@ import {
   fillEmptyTournamentSlots,
   fillTournamentTeamsRandom,
   getCurrentPenaltyCards,
+  getTournamentPlayerStats,
+  getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
   getTournamentTeamStatsRanking,
   getTournamentGroupStandings,
@@ -20,6 +22,7 @@ import {
   takePenaltyKick,
   type TournamentFormatId,
   type TournamentMatch,
+  type TournamentMatchPlayerStats,
   type TournamentMatchResult,
   type TournamentState,
   type TournamentTeamId,
@@ -573,6 +576,56 @@ describe('tournament team stats', () => {
     expect(awayStats.goalsAgainst).toBe(beforeAwayStats.goalsAgainst + 1);
     expect(awayStats.goalDifference).toBe(beforeAwayStats.goalDifference);
   });
+
+  it('aggregates player rankings across completed tournament matches', () => {
+    let tournament = createTournamentState({
+      formatId: 'cup-m',
+      teamIds: teamIds(8),
+      seed: 'player-stats-ranking'
+    });
+    const firstMatch = requireMatch(tournament, 'group-A-1');
+    const secondMatch = requireMatch(tournament, 'group-A-2');
+    const firstHomeTeamId = requireTeam(firstMatch.homeTeamId);
+    const secondAwayTeamId = requireTeam(secondMatch.awayTeamId);
+
+    tournament = submitTournamentMatchResultObject(
+      tournament,
+      createDetailedMatchResult(firstMatch, {
+        homeGoals: 2,
+        awayGoals: 0,
+        playerStats: [
+          createMatchPlayerStats(firstHomeTeamId, 'field:A', 'Ace Forward', 17, { goals: 2 }),
+          createMatchPlayerStats(firstHomeTeamId, 'field:Q', 'Queen Passer', 14, { assists: 1 })
+        ]
+      })
+    );
+    tournament = submitTournamentMatchResultObject(
+      tournament,
+      createDetailedMatchResult(secondMatch, {
+        homeGoals: 0,
+        awayGoals: 1,
+        playerStats: [
+          createMatchPlayerStats(secondAwayTeamId, 'field:K', 'King Striker', 15, { goals: 1 }),
+          createMatchPlayerStats(secondAwayTeamId, 'goalkeeper:gk', 'Safe Hands', 1, { goalkeeperSaves: 3 })
+        ]
+      })
+    );
+
+    const stats = getTournamentPlayerStats(tournament);
+
+    expect(getTournamentPlayerStatsRanking(stats, 'goals', 1)[0]).toMatchObject({
+      playerName: 'Ace Forward',
+      goals: 2
+    });
+    expect(getTournamentPlayerStatsRanking(stats, 'assists', 1)[0]).toMatchObject({
+      playerName: 'Queen Passer',
+      assists: 1
+    });
+    expect(getTournamentPlayerStatsRanking(stats, 'goalkeeperSaves', 1)[0]).toMatchObject({
+      playerName: 'Safe Hands',
+      goalkeeperSaves: 3
+    });
+  });
 });
 
 describe('penalty shootout engine', () => {
@@ -664,6 +717,7 @@ function createDetailedMatchResult(
     awayGoalkeeperSaves?: number;
     winnerTeamId?: TournamentTeamId;
     penaltyShootout?: TournamentMatchResult['penaltyShootout'];
+    playerStats?: TournamentMatchPlayerStats[];
   }
 ): TournamentMatchResult {
   const homeTeamId = requireTeam(match.homeTeamId);
@@ -696,7 +750,27 @@ function createDetailedMatchResult(
         goalkeeperSaves: options.awayGoalkeeperSaves ?? 0
       }
     },
-    playerStats: []
+    playerStats: options.playerStats ?? []
+  };
+}
+
+function createMatchPlayerStats(
+  teamId: TournamentTeamId,
+  playerId: string,
+  playerName: string,
+  shirtNumber: number,
+  stats: Partial<Pick<TournamentMatchPlayerStats, 'goals' | 'assists' | 'goalkeeperSaves'>> = {}
+): TournamentMatchPlayerStats {
+  return {
+    teamId,
+    playerId,
+    playerName,
+    shirtNumber,
+    goals: stats.goals ?? 0,
+    assists: stats.assists ?? 0,
+    goalkeeperSaves: stats.goalkeeperSaves ?? 0,
+    penaltyGoals: 0,
+    penaltyGoalkeeperSaves: 0
   };
 }
 
