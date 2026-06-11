@@ -2009,7 +2009,1035 @@ GK на сборную:
 Не переходить к внедрению отдельной GK-колоды автоматически.
 
 
-# 12. Этап 10 — отдельная GK-колода
+# Следующие этапы после Этапа 9
+
+---
+
+# 10. Обновленные продуктовые решения по ассетам экипировок
+
+## 10.1 Формат изображений
+
+Все изображения экипировок должны использовать формат:
+
+```text
+WEBP
+```
+
+Размер каждого изображения:
+
+```text
+130 × 150 px
+```
+
+Не использовать для runtime:
+
+```text
+PNG;
+SVG;
+384 × 420 px;
+home.png;
+away.png.
+```
+
+Экспериментальный wiki-importer может продолжать хранить собственные промежуточные PNG внутри служебных каталогов, но эти файлы не используются игрой.
+
+## 10.2 Общая папка
+
+Все игровые изображения экипировок лежат в одной папке:
+
+```text
+public/kits/images/
+```
+
+## 10.3 Основная форма сборной
+
+Для каждой сборной существует только один основной комплект.
+
+Имя файла совпадает с `flagCode` сборной:
+
+```text
+public/kits/images/pl.webp
+public/kits/images/ua.webp
+public/kits/images/br.webp
+public/kits/images/gb-eng.webp
+public/kits/images/gb-sct.webp
+public/kits/images/gb-wls.webp
+```
+
+Не создавать вложенные каталоги для отдельных команд.
+
+## 10.4 Файл-затычка
+
+Если для сборной отсутствует ручное изображение экипировки, игра должна использовать:
+
+```text
+public/kits/images/none.webp
+```
+
+Файл `none.webp` является обязательным runtime-ассетом.
+
+Нормальный fallback теперь:
+
+```text
+нет файла сборной
+->
+использовать none.webp
+```
+
+Не использовать цветную fallback-форму через Phaser Graphics как основной механизм.
+
+Допускается оставить минимальный emergency fallback через Graphics только на случай критической ошибки загрузки самого `none.webp`, чтобы сцена не падала. Но в штатной работе он не должен использоваться.
+
+## 10.5 Экипировки GK
+
+Для голкиперов используются два универсальных изображения:
+
+```text
+public/kits/images/gk1.webp
+public/kits/images/gk2.webp
+```
+
+Использовать именно такие имена:
+
+```text
+gk1.webp
+gk2.webp
+```
+
+Не использовать:
+
+```text
+gk-1.webp
+gk-2.webp
+gk-3.webp
+gk-4.webp
+```
+
+Размер:
+
+```text
+130 × 150 px
+```
+
+Формат:
+
+```text
+WEBP
+```
+
+## 10.6 Состав изображения
+
+Каждый игровой WEBP должен содержать:
+
+```text
+футболку;
+шорты.
+```
+
+Не должен содержать:
+
+```text
+гетры;
+номер игрока;
+номинал карты;
+имя игрока;
+фон карты;
+человеческую фигуру;
+подписи;
+текст.
+```
+
+## 10.7 Программные слои карты
+
+Лицевая сторона открытой карты рендерится так:
+
+```text
+1. белый фон карты;
+2. WEBP экипировки сборной или none.webp;
+3. номер игрока на груди футболки;
+4. номинал карты в левом верхнем углу;
+5. существующие интерактивные эффекты.
+```
+
+Для GK:
+
+```text
+1. белый фон карты;
+2. gk1.webp или gk2.webp;
+3. номер голкипера на груди;
+4. текущий номинал GK-карты в левом верхнем углу;
+5. существующие интерактивные эффекты.
+```
+
+---
+
+# Этап 10 — миграция data contract экипировок на WEBP
+
+## Цель
+
+Обновить конфигурацию экипировок под новый формат файлов без изменения рендера и игровой механики.
+
+## Изменить
+
+```text
+src/data/teamKits.ts
+src/tests/teamKits.test.ts
+```
+
+## Не изменять
+
+```text
+BootScene.ts
+bootKitAssets.ts
+CardView.ts
+KitCardFaceView.ts
+GameEngine.ts
+Player.ts
+PlayerField.ts
+GK-колоду
+составы
+wiki-importer
+```
+
+## Обновить размер ассетов
+
+Заменить:
+
+```ts
+export const KIT_IMAGE_SIZE = {
+  width: 384,
+  height: 420,
+} as const;
+```
+
+на:
+
+```ts
+export const KIT_IMAGE_SIZE = {
+  width: 130,
+  height: 150,
+} as const;
+```
+
+## Обновить пути сборных
+
+Для каждой из `64` записей:
+
+```ts
+path: `kits/images/${flagCode}.webp`
+```
+
+Пример:
+
+```ts
+{
+  flagCode: 'pl',
+  assetKey: 'kit-pl',
+  path: 'kits/images/pl.webp',
+  primaryColor: '#FFFFFF',
+  secondaryColor: '#DC143C',
+  shirtNumberColor: '#DC143C',
+  shirtNumberStrokeColor: '#FFFFFF',
+}
+```
+
+## Обновить идентификаторы GK
+
+Заменить тип:
+
+```ts
+export type GoalkeeperKitId =
+  | 'gk-1'
+  | 'gk-2';
+```
+
+на:
+
+```ts
+export type GoalkeeperKitId =
+  | 'gk1'
+  | 'gk2';
+```
+
+## Обновить GK-конфигурацию
+
+Использовать:
+
+```ts
+export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
+  {
+    id: 'gk1',
+    assetKey: 'kit-gk1',
+    path: 'kits/images/gk1.webp',
+
+    primaryColor: '#111111',
+    secondaryColor: '#3A3A3A',
+
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: '#111111',
+  },
+  {
+    id: 'gk2',
+    assetKey: 'kit-gk2',
+    path: 'kits/images/gk2.webp',
+
+    primaryColor: '#FFB81C',
+    secondaryColor: '#111111',
+
+    shirtNumberColor: '#111111',
+    shirtNumberStrokeColor: '#FFFFFF',
+  },
+] as const;
+```
+
+## Добавить конфигурацию none.webp
+
+Добавить:
+
+```ts
+export const NONE_KIT_ASSET = {
+  assetKey: 'kit-none',
+  path: 'kits/images/none.webp',
+} as const;
+```
+
+## Registry
+
+Сохранить registry доступных форм:
+
+```ts
+export const AVAILABLE_MANUAL_KIT_FLAG_CODES =
+  new Set<string>([
+    // Добавлять flagCode после размещения WEBP.
+  ]);
+
+export const AVAILABLE_GOALKEEPER_KIT_IDS =
+  new Set<GoalkeeperKitId>([
+    // Добавить после размещения файлов:
+    // 'gk1',
+    // 'gk2',
+  ]);
+```
+
+## Валидация конфига
+
+Обновить проверки:
+
+```text
+все пути сборных заканчиваются на .webp;
+все пути начинаются с kits/images/;
+размер = 130 × 150;
+есть NONE_KIT_ASSET;
+NONE_KIT_ASSET.path = kits/images/none.webp;
+есть только gk1 и gk2;
+gk-1, gk-2, gk-3, gk-4 отсутствуют;
+пути GK:
+  kits/images/gk1.webp
+  kits/images/gk2.webp.
+```
+
+## Тесты
+
+Проверить:
+
+```text
+64 TEAM_KIT_STYLES;
+каждый path заканчивается .webp;
+KIT_IMAGE_SIZE = 130 × 150;
+NONE_KIT_ASSET;
+gk1;
+gk2;
+нет gk-1;
+нет gk-2;
+нет gk-3;
+нет gk-4;
+registry допускает пустое состояние.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 11 — обновление README, ATTRIBUTION и validator под WEBP
+
+## Цель
+
+Обновить контракт ручного добавления ассетов.
+
+## Изменить
+
+```text
+public/kits/README.md
+public/kits/ATTRIBUTION.json
+scripts/validate-kits.ts
+src/tests/validateKits.test.ts
+```
+
+## README
+
+Зафиксировать:
+
+```text
+формат WEBP;
+размер 130 × 150;
+единая папка public/kits/images/;
+один файл на сборную;
+имя файла = <flagCode>.webp;
+обязательный fallback = none.webp;
+GK-файлы = gk1.webp и gk2.webp;
+файл содержит футболку и шорты;
+гетры отсутствуют;
+номер игрока отсутствует;
+номинал карты отсутствует;
+номер и номинал добавляются программно.
+```
+
+## ATTRIBUTION
+
+Использовать ключи:
+
+```text
+images/pl.webp
+images/ua.webp
+images/br.webp
+images/none.webp
+images/gk1.webp
+images/gk2.webp
+```
+
+Пример:
+
+```json
+{
+  "images/pl.webp": {
+    "sourcePage": "",
+    "sourceFilePage": "",
+    "source": "Wikipedia / Wikimedia Commons",
+    "author": "",
+    "license": "",
+    "licenseUrl": "",
+    "modified": true,
+    "modificationNotes": "Manually cropped, simplified and converted to WEBP for Total Soccer: Mundial"
+  }
+}
+```
+
+## Validator
+
+Проверять:
+
+```text
+none.webp существует всегда;
+none.webp имеет формат WEBP;
+none.webp имеет размер 130 × 150;
+none.webp читается;
+
+для registry сборных:
+  <flagCode>.webp существует;
+  формат WEBP;
+  размер 130 × 150;
+  файл читается;
+  attribution entry существует;
+
+для registry GK:
+  gk1.webp / gk2.webp существует;
+  формат WEBP;
+  размер 130 × 150;
+  файл читается;
+  attribution entry существует.
+```
+
+Если ручная форма сборной отсутствует и flagCode не зарегистрирован:
+
+```text
+это не ошибка;
+будет использован none.webp.
+```
+
+Если `none.webp` отсутствует:
+
+```text
+ERROR;
+exit code = 1.
+```
+
+## Тесты
+
+Проверить:
+
+```text
+валидный none.webp;
+отсутствующий none.webp -> error;
+неверный размер none.webp -> error;
+валидный team WEBP;
+неверный формат team asset -> error;
+валидный gk1.webp;
+валидный gk2.webp;
+отсутствующая незарегистрированная команда не является ошибкой;
+README содержит новый контракт.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm run validate:kits
+npm test
+npm run build
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 12 — загрузка WEBP и none.webp в BootScene
+
+## Цель
+
+Обновить runtime-загрузку ассетов.
+
+## Изменить
+
+```text
+src/scenes/bootKitAssets.ts
+src/scenes/BootScene.ts
+src/tests/bootScene.test.ts
+```
+
+## Правила загрузки
+
+Всегда загружать:
+
+```text
+kits/images/none.webp
+```
+
+под ключом:
+
+```text
+kit-none
+```
+
+Для сборных загружать только зарегистрированные WEBP:
+
+```text
+AVAILABLE_MANUAL_KIT_FLAG_CODES
+```
+
+Для GK загружать только зарегистрированные:
+
+```text
+AVAILABLE_GOALKEEPER_KIT_IDS
+```
+
+## Не загружать
+
+```text
+PNG;
+public/kits/imported/;
+wiki-importer;
+sharp;
+fs;
+внешние URL;
+Wikipedia API;
+Commons API.
+```
+
+## Пустой registry
+
+При пустом registry:
+
+```text
+none.webp загружается;
+игра запускается;
+формы сборных используют none.webp;
+GK временно используют none.webp, если gk1/gk2 не зарегистрированы.
+```
+
+## Тесты
+
+Проверить:
+
+```text
+none.webp всегда ставится в очередь;
+зарегистрированные team WEBP ставятся в очередь;
+незарегистрированные team WEBP не загружаются;
+зарегистрированные gk1/gk2 загружаются;
+старые .png пути не используются;
+imported/ не используется.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 13 — resolver: использовать none.webp вместо обычного fallback
+
+## Цель
+
+Перевести штатный fallback с Phaser Graphics на `none.webp`.
+
+## Изменить
+
+```text
+src/game/kitAssetResolver.ts
+src/tests/kitAssetResolver.test.ts
+```
+
+## Новый результат resolver
+
+Использовать:
+
+```ts
+export type ResolvedKitAsset =
+  | {
+      type: 'image';
+      assetKey: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
+      source: 'team' | 'goalkeeper' | 'none';
+    }
+  | {
+      type: 'emergency-fallback';
+      primaryColor: string;
+      secondaryColor: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
+    };
+```
+
+## Team resolver
+
+Если форма сборной зарегистрирована:
+
+```text
+вернуть image;
+assetKey команды;
+source = team.
+```
+
+Если форма отсутствует:
+
+```text
+вернуть image;
+assetKey = kit-none;
+source = none;
+цвет номера и обводки взять из TEAM_KIT_STYLES конкретной сборной.
+```
+
+Это важно: даже при использовании `none.webp` цвет номера остается командным.
+
+Если `flagCode` неизвестен:
+
+```text
+вернуть image;
+assetKey = kit-none;
+source = none;
+shirtNumberColor = #111111;
+shirtNumberStrokeColor = #FFFFFF.
+```
+
+## GK resolver
+
+Если GK-ассет зарегистрирован:
+
+```text
+вернуть image;
+assetKey = kit-gk1 или kit-gk2;
+source = goalkeeper.
+```
+
+Если отсутствует:
+
+```text
+вернуть image;
+assetKey = kit-none;
+source = none.
+```
+
+## Emergency fallback
+
+`emergency-fallback` используется только если текстура:
+
+```text
+kit-none
+```
+
+фактически не загружена или недоступна во время runtime.
+
+Это аварийная защита.
+
+## Тесты
+
+Проверить:
+
+```text
+зарегистрированная команда -> team image;
+незарегистрированная команда -> kit-none;
+unknown flagCode -> kit-none;
+зарегистрированный gk1 -> kit-gk1;
+незарегистрированный gk1 -> kit-none;
+незарегистрированный gk2 -> kit-none;
+старый type = fallback больше не используется как штатный путь.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 14 — обновление рендера карт под WEBP и none.webp
+
+## Цель
+
+Использовать `WEBP`-текстуры в лицевой стороне карты.
+
+## Изменить
+
+```text
+src/ui/kitCardFaceModel.ts
+src/ui/KitCardFaceView.ts
+src/ui/CardView.ts
+src/tests/cardFace.test.ts
+```
+
+## Рендер
+
+Для обычного случая:
+
+```text
+1. белый фон;
+2. image asset:
+   - kit-<flagCode>;
+   - или kit-none;
+3. номер на груди;
+4. rank слева сверху.
+```
+
+Для аварийного случая:
+
+```text
+если kit-none отсутствует в textures:
+  использовать минимальный emergency fallback через Graphics.
+```
+
+## Размер
+
+Учитывать источник:
+
+```text
+130 × 150 px
+```
+
+Подобрать scale так, чтобы экипировка:
+
+```text
+не выходила за карту;
+не перекрывала rank;
+оставляла номер читаемым;
+занимала основную часть белого фона.
+```
+
+## Anchor
+
+Сохранить одну общую координату номера:
+
+```ts
+SHIRT_NUMBER_ANCHOR = {
+  x: 0.5,
+  y: 0.31,
+};
+```
+
+Если из-за нового размера потребуется небольшая корректировка:
+
+```text
+изменить только глобальную константу;
+не добавлять индивидуальные координаты сборных.
+```
+
+## Tooltip
+
+Сохранить:
+
+```text
+имя;
+номер;
+номинал карты.
+```
+
+## Тесты
+
+Проверить:
+
+```text
+kit-none используется для команды без ассета;
+WEBP команды используется при регистрации;
+номер выводится поверх none.webp;
+номер выводится поверх team WEBP;
+rank слева сверху;
+нет гетр;
+нет нижнего rank;
+emergency fallback существует;
+tooltip работает.
+```
+
+## Ручная проверка
+
+Проверить:
+
+```text
+команда без WEBP показывает none.webp;
+команда с WEBP показывает свой комплект;
+номер виден поверх обеих версий;
+клики работают;
+анимации не ломаются.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 15 — реальные статические составы 64 сборных
+
+## Цель
+
+Заменить placeholder-составы на фиксированные современные составы.
+
+## Важно
+
+Dataset должен быть передан готовым.
+
+Codex не должен:
+
+```text
+самостоятельно искать игроков в интернете;
+придумывать составы;
+автоматически обновлять составы;
+назначать rank по собственному усмотрению;
+обращаться к внешним API.
+```
+
+## Формат состава
+
+Для каждой сборной:
+
+```text
+14 полевых игроков;
+1 GK.
+```
+
+Полевые ранги:
+
+```text
+2
+3
+4
+5
+6
+7
+8
+9
+10
+J
+Q
+K
+A
+JOKER
+```
+
+Голкипер:
+
+```text
+отдельно;
+id = gk;
+без rank.
+```
+
+## Изменить
+
+```text
+src/data/defaultSquads.ts
+src/tests/squads.test.ts
+```
+
+При необходимости:
+
+```text
+src/ui/cardPlayerProfile.ts
+src/tests/cardFace.test.ts
+```
+
+## Валидация
+
+Проверить:
+
+```text
+64 состава;
+14 полевых игроков;
+1 GK;
+15 уникальных номеров;
+имена непустые;
+номера 0..99;
+каждый обязательный rank заполнен;
+голкипер не имеет rank.
+```
+
+## Примечание по JOKER
+
+Для реальных составов:
+
+```text
+JOKER не обязан иметь номер 18.
+```
+
+Номер `18` был только placeholder-значением.
+
+Для реального футболиста использовать его фактический номер в подготовленном dataset.
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+Проверить несколько сборных вручную:
+
+```text
+Польша;
+Украина;
+Бразилия;
+Англия;
+Япония;
+Нигерия.
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 16 — упрощенный MatchTeamSetup для статических составов
+
+## Цель
+
+Зафиксировать статический snapshot состава на матч без localStorage.
+
+## Изменить
+
+```text
+src/game/MatchTeamSetup.ts
+src/game/squadResolver.ts
+src/game/GameEngine.ts
+src/tests/matchTeamSetup.test.ts
+src/tests/gameEngine.test.ts
+```
+
+## MatchTeamSetup
+
+Использовать:
+
+```ts
+export type MatchTeamSetup = {
+  flagCode: string;
+
+  squad: NationalTeamSquad;
+
+  goalkeeperKitId: GoalkeeperKitId;
+
+  /**
+   * Временно оставить только при необходимости совместимости.
+   */
+  teamId?: string;
+};
+```
+
+## При старте матча
+
+```text
+получить статический состав по flagCode;
+сделать deep copy;
+случайно выбрать gk1 или gk2 через seeded random;
+сохранить setup на весь матч.
+```
+
+## Требования
+
+```text
+не читать localStorage;
+не менять состав во время матча;
+одинаковый seed -> одинаковый GK-kit;
+у двух команд независимые snapshot;
+захваченная полевая карта использует игрока новой команды того же rank.
+```
+
+## Не внедрять
+
+```text
+отдельную GK-колоду;
+логику recycle GK;
+изменение правил удара.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+```
+
+После отчета остановиться.
+
+---
+
+# Этап 17 — изолированная реализация GK-колоды
+
+## Цель
+
+Создать отдельную GK-колоду без подключения к полю.
 
 ## Создать
 
@@ -2020,9 +3048,9 @@ src/cards/createGoalkeeperDeck.ts
 src/tests/goalkeeperDeck.test.ts
 ```
 
-## GK-колода
+## Номиналы
 
-Содержит:
+GK-колода содержит:
 
 ```text
 3
@@ -2046,6 +3074,35 @@ A
 JOKER
 ```
 
+Всего:
+
+```text
+12 карт.
+```
+
+## Типы
+
+```ts
+export type GoalkeeperRank =
+  | '3'
+  | '4'
+  | '5'
+  | '6'
+  | '7'
+  | '8'
+  | '9'
+  | '10'
+  | 'J'
+  | 'Q'
+  | 'K'
+  | 'A';
+
+export type GoalkeeperCard = {
+  kind: 'goalkeeper';
+  rank: GoalkeeperRank;
+};
+```
+
 ## API
 
 ```ts
@@ -2055,11 +3112,40 @@ peekTop(): GoalkeeperCard | undefined;
 getSize(): number;
 ```
 
-Использовать seeded random.
+## Правила
+
+```text
+отдельная колода на команду;
+seeded random;
+циклическая работа;
+защита от пустого состояния.
+```
+
+## Тесты
+
+Проверить:
+
+```text
+12 карт;
+есть все ожидаемые ranks;
+нет 2;
+нет JOKER;
+drawTop;
+returnToBottom;
+циклический порядок;
+одинаковый seed;
+ошибка пустой колоды.
+```
+
+После отчета остановиться.
 
 ---
 
-# 13. Этап 11 — подключение GK-колоды к полю
+# Этап 18 — подключение GK-колоды к полю
+
+## Цель
+
+Изменить источник карты для позиции goalkeeper.
 
 ## Изменить
 
@@ -2069,47 +3155,119 @@ src/game/PlayerField.ts
 src/game/GameState.ts
 src/game/fieldRules.ts
 src/game/GameEngine.ts
+src/game/GameEvent.ts
+src/ui/FieldView.ts
+src/tests/gameEngine.test.ts
 ```
 
-## Правила
+## Player
+
+Добавить:
+
+```ts
+goalkeeperDeck: GoalkeeperDeck;
+```
+
+## PlayerField
+
+Позиция:
 
 ```text
-goalkeeper -> GK deck;
+goalkeeper
+```
+
+должна содержать:
+
+```ts
+GoalkeeperCard | null
+```
+
+Полевые позиции продолжают содержать обычные карты.
+
+## Восстановление поля
+
+Сохранить порядок:
+
+```text
+1. goalkeeper;
+2. defenders;
+3. midfielders.
+```
+
+Источники:
+
+```text
+goalkeeper -> goalkeeperDeck;
 defenders -> main deck;
 midfielders -> main deck.
 ```
 
-Порядок восстановления:
-
-```text
-GK;
-защита;
-полузащита.
-```
+## Запреты
 
 Не допускать:
 
 ```text
-полевую карту в GK;
-GK-карту в поле;
+обычную карту в GK;
+GK-карту в защиту;
+GK-карту в полузащиту;
 GK-карту в атаку;
 GK-карту в attackBank;
 GK-карту в main deck.
 ```
 
+## События
+
+Расширить событие восстановления или добавить отдельное:
+
+```text
+GOALKEEPER_CARD_RESTORED
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+После отчета остановиться.
+
 ---
 
-# 14. Этап 12 — жизненный цикл GK
+# Этап 19 — жизненный цикл GK после гола, сэйва и штанги
+
+## Цель
+
+Корректно обрабатывать GK-карту после исхода удара.
+
+## Изменить
+
+```text
+src/game/GameEngine.ts
+src/game/GameEvent.ts
+src/ui/FieldView.ts
+src/ui/CardView.ts
+src/tests/gameEngine.test.ts
+```
 
 ## После гола
 
 ```text
-снять GK-карту;
-вернуть вниз GK-колоды;
-не захватывать;
-не перекрашивать;
+снять GK-карту с позиции goalkeeper;
+вернуть ее вниз GK-колоды защищавшейся команды;
 не добавлять в attackBank;
+не передавать атакующему;
+не перекрашивать;
 не добавлять в main deck.
+```
+
+Добавить событие:
+
+```text
+GOALKEEPER_CARD_RECYCLED
 ```
 
 ## После сэйва
@@ -2117,7 +3275,8 @@ GK-карту в main deck.
 ```text
 GK остается на поле;
 rank не меняется;
-форма не меняется.
+gk1.webp / gk2.webp не меняется;
+голкипер состава не меняется.
 ```
 
 ## После штанги
@@ -2125,20 +3284,48 @@ rank не меняется;
 ```text
 GK остается на поле;
 rank не меняется;
-форма не меняется.
+gk1.webp / gk2.webp не меняется;
+голкипер состава не меняется.
 ```
 
-## Tooltip GK
+## Рендер GK-карты
 
 ```text
-<Имя GK>
-№<номер>
-GK: <rank>
+белый фон;
+gk1.webp или gk2.webp;
+номер голкипера на груди;
+rank GK слева сверху;
+tooltip:
+  имя GK;
+  номер;
+  GK: <rank>.
 ```
+
+Если GK WEBP отсутствует:
+
+```text
+использовать none.webp.
+```
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+После отчета остановиться.
 
 ---
 
-# 15. Этап 13 — автор гола и статистика
+# Этап 20 — авторы голов и статистика
+
+## Цель
+
+Показывать реальных авторов голов.
 
 ## Изменить
 
@@ -2147,9 +3334,12 @@ src/game/GameEvent.ts
 src/game/matchStats.ts
 src/ui/TeamStatsView.ts
 src/scenes/ResultScene.ts
+src/tests/gameEngine.test.ts
 ```
 
-## Scorer snapshot
+## Snapshot автора
+
+Добавить:
 
 ```ts
 export type ScorerSnapshot = {
@@ -2160,25 +3350,58 @@ export type ScorerSnapshot = {
 };
 ```
 
-При голе сохранить snapshot автора.
+## При голе
 
-Не вычислять имя автора позже из localStorage.
+```text
+взять текущую атакующую карту;
+определить владельца;
+по snapshot команды и rank получить игрока;
+сохранить scorer snapshot в GOAL_SCORED.
+```
 
 ## Экран матча
 
+Показывать:
+
 ```text
-Голы: Kowalski (#9), Nowak (#10)
+Голы: Lewandowski (#9), Zieliński (#10)
+```
+
+Если голов нет:
+
+```text
+Голы: пока нет
 ```
 
 ## ResultScene
 
-Показывать авторов голов (без номер хода).
+Показывать авторов голов.
+
+При наличии места:
+
+```text
+Lewandowski (#9), ход 18
+```
+
+Не добавлять виртуальные футбольные минуты.
+
+## Проверка
+
+Выполнить:
+
+```bash
+npm test
+npm run build
+npm run dev
+```
+
+После отчета остановиться.
 
 ---
 
-# 16. Этап 14 — финальная регрессия
+# Этап 21 — финальная регрессия
 
-Выполнить:
+## Выполнить
 
 ```bash
 npm run validate:kits
@@ -2187,42 +3410,126 @@ npm run build
 npm run dev
 ```
 
-Проверить:
+## Проверить ассеты
 
 ```text
-меню;
-редактор составов;
-localStorage;
-fallback;
-ручной PNG;
+none.webp загружается;
+команда без WEBP использует none.webp;
+команда с WEBP использует свой файл;
+gk1.webp загружается;
+gk2.webp загружается;
+старые PNG не используются runtime;
+public/kits/imported/ не используется runtime.
+```
+
+## Проверить карты
+
+```text
+белый фон;
+экипировка;
 номер на груди;
-rank;
+rank слева сверху;
 tooltip;
+нет гетр;
+нет мастей;
+нет нижнего rank.
+```
+
+## Проверить составы
+
+```text
+64 команды;
+14 полевых игроков;
+1 GK;
+раздел "Составы" read-only;
+нет localStorage;
+нет редактирования.
+```
+
+## Проверить матч
+
+```text
 атаки;
-захваченные карты;
+захват карт;
+восстановление поля;
 GK deck;
 гол;
 сэйв;
-штангу;
-статистику;
-ResultScene;
-отсутствие runtime-запросов к Wikipedia;
-отсутствие runtime-зависимости от sharp;
-отсутствие загрузки imported/.
+штанга;
+recycle GK;
+статистика;
+финальный экран;
+турнирный режим.
+```
+
+## Проверить зависимости
+
+```text
+runtime не импортирует sharp;
+runtime не читает fs;
+runtime не обращается к Wikipedia;
+runtime не обращается к Commons;
+wiki-importer остается dev-утилитой.
 ```
 
 ---
 
-# 17. Порядок выполнения Codex
+# 22. Что намеренно не входит в текущие этапы
 
-Выполнять строго по одному этапу.
-
-Текущий следующий этап:
+Не реализовывать:
 
 ```text
-Этап 1 — data contract экипировок
+away kit;
+third kit;
+retro kit;
+выбор формы перед матчем;
+гетры;
+редактирование составов;
+localStorage составов;
+замены игроков;
+замены GK;
+травмы;
+рейтинги игроков;
+разную силу сборных;
+автоматическое обновление составов;
+hotlinking;
+сетевые запросы из браузера;
+ленивую загрузку форм;
+отдельный визуальный stack GK-колоды.
 ```
 
-После его завершения остановиться.
+---
 
-Не переходить к Этапу 2 автоматически.
+# 23. Порядок выполнения
+
+Выполнять строго по одному этапу:
+
+```text
+Этап 10 -> data contract WEBP;
+Этап 11 -> README, ATTRIBUTION, validator;
+Этап 12 -> BootScene;
+Этап 13 -> resolver none.webp;
+Этап 14 -> Card renderer;
+Этап 15 -> реальные составы;
+Этап 16 -> MatchTeamSetup;
+Этап 17 -> изолированная GK-колода;
+Этап 18 -> подключение GK к полю;
+Этап 19 -> жизненный цикл GK;
+Этап 20 -> статистика;
+Этап 21 -> финальная регрессия.
+```
+
+После каждого этапа:
+
+```bash
+npm test
+npm run build
+```
+
+Для runtime-этапов дополнительно:
+
+```bash
+npm run dev
+```
+
+После каждого отчета остановиться.
