@@ -95,14 +95,14 @@ export class FieldView extends Phaser.GameObjects.Container {
             setup === undefined
               ? undefined
               : isGoalkeeper
-                ? createGoalkeeperCardProfile(setup.teamId, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
-                : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card as Card)),
+                ? createGoalkeeperCardProfile(setup.flagCode, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
+                : createCardPlayerProfile(setup.flagCode, getFieldPlayerForCard(setup, card as Card)),
           kitTextureKey:
             setup === undefined
               ? undefined
               : isGoalkeeper
                 ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
-                : getTeamKitAssetKey(setup.teamId, setup.fieldKit),
+                : getTeamKitAssetKey(setup.flagCode),
           label: isGoalkeeper ? 'GK' : '',
           onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
         })

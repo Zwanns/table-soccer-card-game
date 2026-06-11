@@ -1,32 +1,24 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createDefaultSquad } from '../data/defaultSquads';
-import {
-  createDraftSquadFromValues,
-  validateSquadEditorValues,
-  type SquadEditorValues
-} from '../scenes/squadEditorDraft';
+import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
+import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
-describe('squad editor scene integration', () => {
-  it('registers squad scenes and enables Phaser DOM support', () => {
-    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+describe('read-only squad scenes', () => {
+  it('registers squad scenes and keeps the menu button for squads', () => {
+    const mainSource = readSource('src/main.ts');
+    const menuSource = readSource('src/scenes/MenuScene.ts');
 
     expect(mainSource).toContain('SquadSelectScene');
     expect(mainSource).toContain('SquadEditorScene');
-    expect(mainSource).toContain('createContainer: true');
-  });
-
-  it('adds a main menu button for squads', () => {
-    const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
-
     expect(menuSource).toContain('Составы');
     expect(menuSource).toContain("this.scene.start('SquadSelectScene')");
   });
 
   it('shows all national teams in the squad selector', () => {
-    const selectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadSelectScene.ts'), 'utf8');
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
+    expect(NATIONAL_TEAMS).toHaveLength(64);
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');
@@ -35,107 +27,44 @@ describe('squad editor scene integration', () => {
     expect(selectSource).not.toContain('TEAMS_PER_PAGE');
   });
 
-  it('keeps editor DOM cleanup explicit and does not use prompt', () => {
-    const editorSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadEditorScene.ts'), 'utf8');
+  it('renders the squad screen as a read-only Phaser view', () => {
+    const editorSource = readSource('src/scenes/SquadEditorScene.ts');
 
-    expect(editorSource).toContain('cleanupDom');
-    expect(editorSource).toContain('removeEventListener');
-    expect(editorSource).not.toContain('prompt(');
-  });
-
-  it('renders the required editor controls and validation flow', () => {
-    const editorSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadEditorScene.ts'), 'utf8');
-
-    expect(editorSource).toContain('Сохранить');
-    expect(editorSource).toContain('Сбросить состав');
-    expect(editorSource).toContain('Назад');
+    expect(editorSource).toContain('Read-only squad viewer');
+    expect(editorSource).toContain('Состав сборной');
     expect(editorSource).toContain('Полевые игроки');
-    expect(editorSource).toContain('Вратари');
-    expect(editorSource).toContain('Основной');
-    expect(editorSource).toContain('validateSquad(draftSquad)');
-    expect(editorSource).toContain('saveSquad(draftSquad)');
-    expect(editorSource).toContain('resetSquad(this.teamId)');
+    expect(editorSource).toContain('Вратарь');
+    expect(editorSource).toContain('GK');
+    expect(editorSource).toContain('Назад');
+    expect(editorSource).toContain('FIELD_SQUAD_RANKS.forEach');
+    expect(editorSource).toContain('this.squad.goalkeeper');
+  });
+
+  it('does not include editing controls or DOM form plumbing', () => {
+    const editorSource = readSource('src/scenes/SquadEditorScene.ts');
+
+    expect(editorSource).not.toContain('document.createElement');
+    expect(editorSource).not.toContain('add.dom');
+    expect(editorSource).not.toContain('HTMLFormElement');
+    expect(editorSource).not.toContain('input');
+    expect(editorSource).not.toContain('radio');
+    expect(editorSource).not.toContain('Сохранить');
+    expect(editorSource).not.toContain('Сбросить состав');
+    expect(editorSource).not.toContain('saveSquad');
+    expect(editorSource).not.toContain('resetSquad');
+    expect(editorSource).not.toContain('validateSquad');
+  });
+
+  it('removed the draft helper that only served editing', () => {
+    expect(existsSync(join(process.cwd(), 'src', 'scenes', 'squadEditorDraft.ts'))).toBe(false);
+  });
+
+  it('keeps the read-only table aligned with the 14 field ranks', () => {
+    expect(FIELD_SQUAD_RANKS).toHaveLength(14);
+    expect(FIELD_SQUAD_RANKS).toContain('JOKER');
   });
 });
 
-describe('squad editor draft helpers', () => {
-  it('trims names and builds a draft squad from editor values', () => {
-    const values = createValues();
-    const draft = createDraftSquadFromValues(values);
-
-    expect(draft.teamId).toBe('pl');
-    expect(draft.flagCode).toBe('pl');
-    expect(draft.fieldPlayers['9']).toEqual({
-      rank: '9',
-      name: 'Lewandowski',
-      shirtNumber: 19
-    });
-    expect(draft.goalkeepers[1]).toEqual({
-      id: 'pl-gk-2',
-      name: 'Second keeper',
-      shirtNumber: 12
-    });
-    expect(draft.defaultStartingGoalkeeperId).toBe('pl-gk-2');
-  });
-
-  it('validates draft editor values through squad validation', () => {
-    const validValues = createValues();
-    const invalidValues = createValues();
-    invalidValues.fieldPlayers = invalidValues.fieldPlayers.map((player) =>
-      player.rank === '9' ? { ...player, name: '   ' } : player
-    );
-
-    expect(validateSquadEditorValues(validValues)).toEqual({ ok: true, issues: [] });
-    expect(validateSquadEditorValues(invalidValues)).toMatchObject({
-      ok: false,
-      issues: expect.arrayContaining([expect.objectContaining({ code: 'INVALID_PLAYER_NAME' })])
-    });
-  });
-
-  it('marks empty and fractional shirt numbers invalid', () => {
-    const emptyNumberValues = createValues();
-    emptyNumberValues.fieldPlayers = emptyNumberValues.fieldPlayers.map((player) =>
-      player.rank === '9' ? { ...player, shirtNumber: '' } : player
-    );
-    const fractionalNumberValues = createValues();
-    fractionalNumberValues.fieldPlayers = fractionalNumberValues.fieldPlayers.map((player) =>
-      player.rank === '9' ? { ...player, shirtNumber: '9.5' } : player
-    );
-
-    expect(validateSquadEditorValues(emptyNumberValues)).toMatchObject({
-      ok: false,
-      issues: expect.arrayContaining([expect.objectContaining({ code: 'INVALID_SHIRT_NUMBER' })])
-    });
-    expect(validateSquadEditorValues(fractionalNumberValues)).toMatchObject({
-      ok: false,
-      issues: expect.arrayContaining([expect.objectContaining({ code: 'INVALID_SHIRT_NUMBER' })])
-    });
-  });
-});
-
-function createValues(): SquadEditorValues {
-  const squad = createDefaultSquad('pl');
-
-  return {
-    teamId: squad.teamId,
-    fieldPlayers: Object.values(squad.fieldPlayers).map((player) => ({
-      rank: player.rank,
-      name: player.rank === '9' ? '  Lewandowski  ' : player.name,
-      shirtNumber: player.rank === '9' ? '19' : String(player.shirtNumber)
-    })),
-    goalkeepers: [
-      {
-        id: squad.goalkeepers[0].id,
-        name: squad.goalkeepers[0].name,
-        shirtNumber: String(squad.goalkeepers[0].shirtNumber),
-        isStarting: false
-      },
-      {
-        id: squad.goalkeepers[1].id,
-        name: '  Second keeper  ',
-        shirtNumber: String(squad.goalkeepers[1].shirtNumber),
-        isStarting: true
-      }
-    ]
-  };
+function readSource(path: string): string {
+  return readFileSync(join(process.cwd(), path), 'utf8');
 }

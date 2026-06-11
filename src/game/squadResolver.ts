@@ -15,8 +15,5 @@ export function resolveSquadPlayerByCardRank(setup: MatchTeamSetup, rank: CardRa
 }
 
 export function resolveActiveGoalkeeper(setup: MatchTeamSetup): GoalkeeperSquadMember {
-  return (
-    setup.squad.goalkeepers.find((goalkeeper) => goalkeeper.id === setup.startingGoalkeeperId) ??
-    setup.squad.goalkeepers[0]
-  );
+  return setup.squad.goalkeeper;
 }

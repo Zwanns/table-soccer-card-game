@@ -12,37 +12,6 @@ import {
   type PlayerField
 } from '../game';
 import { createDefaultSquad } from '../data/defaultSquads';
-import { saveSquad } from '../services/squadStorage';
-
-class MemoryStorage implements Storage {
-  private values = new Map<string, string>();
-
-  public get length(): number {
-    return this.values.size;
-  }
-
-  public clear(): void {
-    this.values.clear();
-  }
-
-  public getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  public key(index: number): string | null {
-    return [...this.values.keys()][index] ?? null;
-  }
-
-  public removeItem(key: string): void {
-    this.values.delete(key);
-  }
-
-  public setItem(key: string, value: string): void {
-    this.values.set(key, value);
-  }
-}
-
-const originalLocalStorage = globalThis.localStorage;
 
 function card(rank: CardRank, id: string = rank): Card {
   return {
@@ -633,49 +602,32 @@ describe('game engine attacks', () => {
     });
   });
 
-  it('keeps scorer statistics from the goal snapshot after localStorage changes', () => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: new MemoryStorage()
+  it('keeps scorer statistics from the goal snapshot', () => {
+    const gameState = state([], []);
+    gameState.players[0].goals = 1;
+    gameState.log.push({
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      turnNumber: 4,
+      scorer: {
+        playerName: 'Original scorer',
+        shirtNumber: 12,
+        rank: 'A',
+        teamId: 'fr'
+      }
     });
 
-    try {
-      const gameState = state([], []);
-      gameState.players[0].goals = 1;
-      gameState.log.push({
-        type: 'GOAL_SCORED',
-        playerId: 'PLAYER_1',
-        turnNumber: 4,
-        scorer: {
-          playerName: 'Original scorer',
-          shirtNumber: 12,
-          rank: 'A',
-          teamId: 'fr'
-        }
-      });
+    const [playerOneStats] = getMatchStats(gameState);
 
-      const changedSquad = createDefaultSquad('fr');
-      changedSquad.fieldPlayers.A.name = 'Changed scorer';
-      changedSquad.fieldPlayers.A.shirtNumber = 99;
-      saveSquad(changedSquad);
-
-      const [playerOneStats] = getMatchStats(gameState);
-
-      expect(playerOneStats.scorers).toEqual([
-        {
-          playerName: 'Original scorer',
-          shirtNumber: 12,
-          rank: 'A',
-          teamId: 'fr',
-          turnNumber: 4
-        }
-      ]);
-    } finally {
-      Object.defineProperty(globalThis, 'localStorage', {
-        configurable: true,
-        value: originalLocalStorage
-      });
-    }
+    expect(playerOneStats.scorers).toEqual([
+      {
+        playerName: 'Original scorer',
+        shirtNumber: 12,
+        rank: 'A',
+        teamId: 'fr',
+        turnNumber: 4
+      }
+    ]);
   });
 
   it('summarizes whole-match possession from max attack depth per turn', () => {

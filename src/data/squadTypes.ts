@@ -14,14 +14,8 @@ export type GoalkeeperSquadMember = {
 
 export type NationalTeamSquad = {
   flagCode: string;
-  /**
-   * Compatibility alias for code that still calls this value teamId.
-   * The Stage 3 squad contract uses flagCode as the source of truth.
-   */
-  teamId: string;
   fieldPlayers: Record<CardRank, FieldSquadMember>;
-  goalkeepers: [GoalkeeperSquadMember, GoalkeeperSquadMember];
-  defaultStartingGoalkeeperId: string;
+  goalkeeper: GoalkeeperSquadMember;
 };
 
 export type SquadValidationErrorCode =
@@ -34,7 +28,8 @@ export type SquadValidationErrorCode =
   | 'INVALID_GOALKEEPER_COUNT'
   | 'INVALID_GOALKEEPER_ID'
   | 'GOALKEEPER_HAS_RANK'
-  | 'INVALID_STARTING_GOALKEEPER'
+  | 'LEGACY_GOALKEEPERS_PRESENT'
+  | 'LEGACY_STARTING_GOALKEEPER_PRESENT'
   | 'DUPLICATE_SHIRT_NUMBER';
 
 export type SquadValidationIssue = {

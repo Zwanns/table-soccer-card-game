@@ -590,7 +590,7 @@ export class GameScene extends Phaser.Scene {
     const setup = player === undefined ? undefined : state.matchSetups[player.id];
     const goalkeeperProfile =
       isGoalkeeper && setup !== undefined
-        ? createGoalkeeperCardProfile(setup.teamId, getStartingGoalkeeper(setup), (entry.card as GoalkeeperCard).rank)
+        ? createGoalkeeperCardProfile(setup.flagCode, getStartingGoalkeeper(setup), (entry.card as GoalkeeperCard).rank)
         : undefined;
     const card = new CardView(this, startX, DECK_Y, {
       rank: entry.card.rank,
@@ -601,7 +601,7 @@ export class GameScene extends Phaser.Scene {
           ? undefined
           : isGoalkeeper
             ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
-            : getTeamKitAssetKey(setup.teamId, setup.fieldKit)
+            : getTeamKitAssetKey(setup.flagCode)
     });
     card.setScale(0.92);
     card.setAlpha(0.92);
@@ -682,13 +682,13 @@ function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): num
 function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, card: Card): CardPlayerProfile | undefined {
   const setup = state.matchSetups[player.id];
 
-  return setup === undefined ? undefined : createCardPlayerProfile(setup.teamId, getFieldPlayerForCard(setup, card));
+  return setup === undefined ? undefined : createCardPlayerProfile(setup.flagCode, getFieldPlayerForCard(setup, card));
 }
 
 function resolveFieldKitTextureKey(state: Readonly<GameState>, player: Player): string | undefined {
   const setup = state.matchSetups[player.id];
 
-  return setup === undefined ? undefined : getTeamKitAssetKey(setup.teamId, setup.fieldKit);
+  return setup === undefined ? undefined : getTeamKitAssetKey(setup.flagCode);
 }
 
 function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimationEntry[] {

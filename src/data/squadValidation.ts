@@ -22,6 +22,7 @@ export function validateShirtNumber(value: number): boolean {
 export function validateSquad(squad: NationalTeamSquad): SquadValidationResult {
   const issues: SquadValidationIssue[] = [];
   const shirtNumbers = new Map<number, string>();
+  const rawSquad = squad as unknown as UnknownRecord;
 
   if (!validatePlayerName(squad.flagCode)) {
     addIssue(issues, 'INVALID_FLAG_CODE', 'flagCode', 'Flag code must be a non-empty string.');
@@ -52,33 +53,33 @@ export function validateSquad(squad: NationalTeamSquad): SquadValidationResult {
     validateSquadMember(issues, shirtNumbers, path, player.name, player.shirtNumber);
   }
 
-  const goalkeepers = squad.goalkeepers;
-
-  if (goalkeepers.length !== 2) {
-    addIssue(issues, 'INVALID_GOALKEEPER_COUNT', 'goalkeepers', 'Squad must contain exactly two goalkeepers.');
+  if (Object.prototype.hasOwnProperty.call(rawSquad, 'goalkeepers')) {
+    addIssue(issues, 'LEGACY_GOALKEEPERS_PRESENT', 'goalkeepers', 'Squad must contain one goalkeeper field.');
   }
 
-  goalkeepers.forEach((goalkeeper, index) => {
-    const path = `goalkeepers.${index}`;
+  if (Object.prototype.hasOwnProperty.call(rawSquad, 'defaultStartingGoalkeeperId')) {
+    addIssue(
+      issues,
+      'LEGACY_STARTING_GOALKEEPER_PRESENT',
+      'defaultStartingGoalkeeperId',
+      'Squad must not contain a default starting goalkeeper id.'
+    );
+  }
 
-    if (!validatePlayerName(goalkeeper.id)) {
-      addIssue(issues, 'INVALID_GOALKEEPER_ID', `${path}.id`, 'Goalkeeper id must be a non-empty string.');
+  const goalkeeper = squad.goalkeeper;
+
+  if (goalkeeper === undefined) {
+    addIssue(issues, 'INVALID_GOALKEEPER_COUNT', 'goalkeeper', 'Squad must contain exactly one goalkeeper.');
+  } else {
+    if (goalkeeper.id !== 'gk') {
+      addIssue(issues, 'INVALID_GOALKEEPER_ID', 'goalkeeper.id', 'Goalkeeper id must be "gk".');
     }
 
     if (hasRank(goalkeeper)) {
-      addIssue(issues, 'GOALKEEPER_HAS_RANK', `${path}.rank`, 'Goalkeeper must not store a personal rank.');
+      addIssue(issues, 'GOALKEEPER_HAS_RANK', 'goalkeeper.rank', 'Goalkeeper must not store a personal rank.');
     }
 
-    validateSquadMember(issues, shirtNumbers, path, goalkeeper.name, goalkeeper.shirtNumber);
-  });
-
-  if (!goalkeepers.some((goalkeeper) => goalkeeper.id === squad.defaultStartingGoalkeeperId)) {
-    addIssue(
-      issues,
-      'INVALID_STARTING_GOALKEEPER',
-      'defaultStartingGoalkeeperId',
-      'Default starting goalkeeper id must exist in goalkeepers.'
-    );
+    validateSquadMember(issues, shirtNumbers, 'goalkeeper', goalkeeper.name, goalkeeper.shirtNumber);
   }
 
   return issues.length === 0 ? { ok: true, issues: [] } : { ok: false, issues };

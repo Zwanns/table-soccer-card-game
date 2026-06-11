@@ -607,7 +607,7 @@ function createScorerSnapshot(state: Readonly<GameState>, player: Player, card: 
     playerName: scorer.name,
     shirtNumber: scorer.shirtNumber,
     rank: card.rank,
-    teamId: setup.teamId
+    teamId: setup.flagCode
   };
 }
 

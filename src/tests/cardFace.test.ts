@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDefaultSquad } from '../data/defaultSquads';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   AVAILABLE_MANUAL_KIT_FLAG_CODES,
   SHIRT_NUMBER_ANCHOR
 } from '../data/teamKits';
-import { saveSquad } from '../services/squadStorage';
 import { getCardTooltipText, getFieldCardPlayerProfile } from '../ui/cardPlayerProfile';
 import { getFallbackKitColors } from '../ui/kitFallback';
 import {
@@ -14,49 +12,8 @@ import {
   prepareKitCardFace
 } from '../ui/kitCardFaceModel';
 
-class MemoryStorage implements Storage {
-  private values = new Map<string, string>();
-
-  public get length(): number {
-    return this.values.size;
-  }
-
-  public clear(): void {
-    this.values.clear();
-  }
-
-  public getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  public key(index: number): string | null {
-    return [...this.values.keys()][index] ?? null;
-  }
-
-  public removeItem(key: string): void {
-    this.values.delete(key);
-  }
-
-  public setItem(key: string, value: string): void {
-    this.values.set(key, value);
-  }
-}
-
-const originalLocalStorage = globalThis.localStorage;
-
 describe('card face profile resolver', () => {
-  beforeEach(() => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: new MemoryStorage()
-    });
-  });
-
   afterEach(() => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: originalLocalStorage
-    });
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
   });
 
@@ -69,17 +26,12 @@ describe('card face profile resolver', () => {
     });
   });
 
-  it('resolves a field card profile from a saved squad', () => {
-    const squad = createDefaultSquad('pl');
-    squad.fieldPlayers.Q.name = 'Custom Q';
-    squad.fieldPlayers.Q.shirtNumber = 21;
-    saveSquad(squad);
-
-    expect(getFieldCardPlayerProfile('pl', 'Q')).toEqual({
+  it('resolves JOKER with the static placeholder shirt number', () => {
+    expect(getFieldCardPlayerProfile('pl', 'JOKER')).toEqual({
       teamId: 'pl',
-      rank: 'Q',
-      playerName: 'Custom Q',
-      shirtNumber: 21
+      rank: 'JOKER',
+      playerName: 'Игрок JOKER',
+      shirtNumber: 18
     });
   });
 
@@ -202,13 +154,13 @@ describe('kit card face rendering contracts', () => {
 
     expect(fieldViewSource).toContain('state.matchSetups[player.id]');
     expect(fieldViewSource).toContain("position.positionId === 'goalkeeper'");
-    expect(fieldViewSource).toContain('getTeamKitAssetKey(setup.teamId, setup.fieldKit)');
+    expect(fieldViewSource).toContain('getTeamKitAssetKey(setup.flagCode)');
     expect(fieldViewSource).toContain('getGoalkeeperKitAssetKey(setup.goalkeeperKitId)');
     expect(deckViewSource).toContain('attackCardPlayerProfile');
     expect(deckViewSource).toContain('attackCardKitTextureKey');
     expect(gameSceneSource).toContain('resolveFieldCardProfile(state, player, state.attackCard)');
     expect(gameSceneSource).toContain('resolveFieldKitTextureKey(state, player)');
-    expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.teamId, setup.fieldKit)');
+    expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.flagCode)');
     expect(bootSceneSource).toContain('getRegisteredKitAssetsToLoad()');
     expect(kitFaceSource).toContain('scene.textures.exists(options.kitTextureKey)');
     expect(kitFaceSource).toContain('this.add(image)');

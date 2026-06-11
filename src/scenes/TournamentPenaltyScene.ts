@@ -3,7 +3,6 @@ import type { CardColor, CardRank, GoalkeeperRank } from '../cards';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getGoalkeeperKitAssetKey, getTeamKitAssetKey, type GoalkeeperKitId } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
-import type { GoalkeeperSquadMember } from '../data/squadTypes';
 import { loadSquad } from '../services/squadStorage';
 import {
   createPenaltyShootoutState,
@@ -664,7 +663,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     options: { faceDown?: boolean; highlighted?: boolean; onClick?: () => void; scale?: number } = {}
   ): CardView {
     const squad = loadSquad(teamId);
-    const goalkeeper = getStartingGoalkeeper(squad.goalkeepers, squad.defaultStartingGoalkeeperId);
+    const goalkeeper = squad.goalkeeper;
     const card = new CardView(this, x, y, {
       rank: rank ?? 'GK',
       color: getTeamSideColor(this.shootoutState, teamId),
@@ -956,9 +955,3 @@ function getGoalkeeperKitId(teamId: TournamentTeamId, shootoutState: PenaltyShoo
   return teamId === shootoutState.homeTeamId ? 'gk-1' : 'gk-2';
 }
 
-function getStartingGoalkeeper(
-  goalkeepers: readonly [GoalkeeperSquadMember, GoalkeeperSquadMember],
-  startingGoalkeeperId: string
-): GoalkeeperSquadMember {
-  return goalkeepers.find((goalkeeper) => goalkeeper.id === startingGoalkeeperId) ?? goalkeepers[0];
-}

@@ -1,67 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { Card } from '../cards';
 import { createDefaultSquad } from '../data/defaultSquads';
-import { saveSquad } from '../services/squadStorage';
-import {
-  createMatchTeamSetup,
-  GameEngine,
-  getFieldPlayerForCard,
-  getStartingGoalkeeper
-} from '../game';
-
-class MemoryStorage implements Storage {
-  private values = new Map<string, string>();
-
-  public get length(): number {
-    return this.values.size;
-  }
-
-  public clear(): void {
-    this.values.clear();
-  }
-
-  public getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  public key(index: number): string | null {
-    return [...this.values.keys()][index] ?? null;
-  }
-
-  public removeItem(key: string): void {
-    this.values.delete(key);
-  }
-
-  public setItem(key: string, value: string): void {
-    this.values.set(key, value);
-  }
-}
-
-const originalLocalStorage = globalThis.localStorage;
+import { createMatchTeamSetup, GameEngine, getFieldPlayerForCard, getStartingGoalkeeper } from '../game';
 
 describe('match team setup snapshot', () => {
-  beforeEach(() => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: new MemoryStorage()
-    });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: originalLocalStorage
-    });
-  });
-
-  it('creates a setup snapshot once at match start from saved squads', () => {
-    const savedSquad = createDefaultSquad('fr');
-    savedSquad.fieldPlayers.Q.name = 'Snapshot Q';
-    savedSquad.fieldPlayers.Q.shirtNumber = 77;
-    saveSquad(savedSquad);
-
+  it('creates a minimal static setup snapshot at match start', () => {
     const engine = new GameEngine();
     const state = engine.startNewGame({
       seed: 'snapshot',
@@ -72,28 +17,17 @@ describe('match team setup snapshot', () => {
     });
     const setup = state.matchSetups.PLAYER_1;
 
+    expect(setup.flagCode).toBe('fr');
     expect(setup.teamId).toBe('fr');
+    expect(setup).not.toHaveProperty('fieldKit');
+    expect(setup).not.toHaveProperty('startingGoalkeeperId');
     expect(getFieldPlayerForCard(setup, card('Q'))).toMatchObject({
-      name: 'Snapshot Q',
-      shirtNumber: 77
-    });
-
-    const changedSquad = createDefaultSquad('fr');
-    changedSquad.fieldPlayers.Q.name = 'Changed after start';
-    changedSquad.fieldPlayers.Q.shirtNumber = 88;
-    saveSquad(changedSquad);
-
-    expect(getFieldPlayerForCard(engine.getState().matchSetups.PLAYER_1, card('Q'))).toMatchObject({
-      name: 'Snapshot Q',
-      shirtNumber: 77
+      name: 'Игрок Q',
+      shirtNumber: 14
     });
   });
 
-  it('uses home field kit and the saved default starting goalkeeper', () => {
-    const squad = createDefaultSquad('fr');
-    squad.defaultStartingGoalkeeperId = squad.goalkeepers[1].id;
-    saveSquad(squad);
-
+  it('uses one goalkeeper from the static squad', () => {
     const state = new GameEngine().startNewGame({
       seed: 'setup',
       player1FlagCode: 'fr',
@@ -101,9 +35,13 @@ describe('match team setup snapshot', () => {
     });
     const setup = state.matchSetups.PLAYER_1;
 
-    expect(setup.fieldKit).toBe('home');
-    expect(setup.startingGoalkeeperId).toBe(squad.goalkeepers[1].id);
-    expect(getStartingGoalkeeper(setup)).toEqual(squad.goalkeepers[1]);
+    expect(getStartingGoalkeeper(setup)).toEqual({
+      id: 'gk',
+      name: 'Вратарь',
+      shirtNumber: 1
+    });
+    expect(setup.squad).not.toHaveProperty('goalkeepers');
+    expect(setup.squad).not.toHaveProperty('defaultStartingGoalkeeperId');
   });
 
   it('selects stable goalkeeper kits for the same seed', () => {
@@ -114,7 +52,7 @@ describe('match team setup snapshot', () => {
     expect(first.PLAYER_2.goalkeeperKitId).toBe(second.PLAYER_2.goalkeeperKitId);
   });
 
-  it('resolves a captured card through the new team setup', () => {
+  it('resolves a captured card through the team setup snapshot', () => {
     const franceSquad = createDefaultSquad('fr');
     franceSquad.fieldPlayers.Q.name = 'France Q';
     const spainSquad = createDefaultSquad('es');
@@ -143,6 +81,8 @@ describe('match team setup snapshot', () => {
     expect(gameSceneSource).toContain('state.matchSetups[player.id]');
     expect(fieldViewSource).not.toContain('getFieldCardPlayerProfile');
     expect(gameSceneSource).not.toContain('getFieldCardPlayerProfile');
+    expect(fieldViewSource).toContain('setup.flagCode');
+    expect(gameSceneSource).toContain('setup.flagCode');
   });
 });
 

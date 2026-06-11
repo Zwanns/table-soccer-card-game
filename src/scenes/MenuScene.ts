@@ -48,7 +48,7 @@ const ABOUT_CONTENT: Record<
     title: 'About',
     authorLabel: 'Author',
     intro:
-      'The game is in development. Quick matches, tournaments, penalty shootouts, and local squad editing are currently available.',
+      'The game is in development. Quick matches, tournaments, penalty shootouts, and squad viewing are currently available.',
     rules: [
       'Attacks move through lines: midfield -> defense -> goalkeeper. You can select only a card from the current line.',
       'An attacking card usually beats an equal or lower card. Special hits: 2-Joker, 6-A, 7-K, 8-Q, 9-J.',
@@ -62,7 +62,7 @@ const ABOUT_CONTENT: Record<
     title: 'O projekcie',
     authorLabel: 'Autor',
     intro:
-      'Gra jest w trakcie tworzenia. Dostępne są szybkie mecze, turnieje, serie rzutów karnych oraz lokalna edycja składów.',
+      'Gra jest w trakcie tworzenia. Dostępne są szybkie mecze, turnieje, serie rzutów karnych oraz podgląd składów.',
     rules: [
       'Atak przechodzi przez linie: pomoc -> obrona -> bramkarz. Można wybrać tylko kartę z aktualnej linii.',
       'Karta ataku zwykle bije kartę równą lub niższą. Specjalne zagrania: 2-Joker, 6-A, 7-K, 8-Q, 9-J.',
@@ -76,7 +76,7 @@ const ABOUT_CONTENT: Record<
     title: 'About',
     authorLabel: 'Author',
     intro:
-      'The game is in development. Quick matches, tournaments, penalty shootouts, and local squad editing are currently available.',
+      'The game is in development. Quick matches, tournaments, penalty shootouts, and squad viewing are currently available.',
     rules: [
       'Attacks move through lines: midfield -> defense -> goalkeeper. You can select only a card from the current line.',
       'An attacking card usually beats an equal or lower card. Special hits: 2-Joker, 6-A, 7-K, 8-Q, 9-J.',

@@ -115,7 +115,7 @@ describe('tournament match result normalization', () => {
         }),
         expect.objectContaining({
           teamId: 'fr',
-          playerId: 'goalkeeper:fr-gk-1',
+          playerId: 'goalkeeper:gk',
           goalkeeperSaves: 1
         })
       ])

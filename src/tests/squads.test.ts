@@ -1,29 +1,18 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { CardRank } from '../cards';
+import { createDefaultSquad, DEFAULT_SQUADS, FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
-import {
-  createDefaultSquad,
-  DEFAULT_SQUADS,
-  FIELD_SQUAD_RANKS
-} from '../data/defaultSquads';
-import type {
-  FieldSquadMember,
-  GoalkeeperSquadMember,
-  NationalTeamSquad
-} from '../data/squadTypes';
-import {
-  validatePlayerName,
-  validateShirtNumber,
-  validateSquad
-} from '../data/squadValidation';
+import type { FieldSquadMember, GoalkeeperSquadMember, NationalTeamSquad } from '../data/squadTypes';
+import { validatePlayerName, validateShirtNumber, validateSquad } from '../data/squadValidation';
 
-describe('default national team squads', () => {
-  it('uses the existing card rank type for field squad members', () => {
+describe('static national team squads', () => {
+  it('uses the card rank type only for field squad members', () => {
     expectTypeOf<FieldSquadMember['rank']>().toEqualTypeOf<CardRank>();
     expectTypeOf<GoalkeeperSquadMember>().not.toHaveProperty('rank');
   });
 
-  it('creates one default squad for every national team', () => {
+  it('creates one static squad for every national team', () => {
+    expect(DEFAULT_SQUADS).toHaveLength(64);
     expect(DEFAULT_SQUADS).toHaveLength(NATIONAL_TEAMS.length);
 
     for (const team of NATIONAL_TEAMS) {
@@ -31,11 +20,17 @@ describe('default national team squads', () => {
     }
   });
 
-  it('creates exactly 14 field players and two goalkeepers for every squad', () => {
+  it('creates 14 field players and one goalkeeper for every squad', () => {
     for (const squad of DEFAULT_SQUADS) {
       expect(Object.keys(squad.fieldPlayers)).toHaveLength(14);
-      expect(squad.goalkeepers).toHaveLength(2);
-      expect(squad.teamId).toBe(squad.flagCode);
+      expect(squad.goalkeeper).toEqual({
+        id: 'gk',
+        name: 'Вратарь',
+        shirtNumber: 1
+      });
+      expect(squad).not.toHaveProperty('teamId');
+      expect(squad).not.toHaveProperty('goalkeepers');
+      expect(squad).not.toHaveProperty('defaultStartingGoalkeeperId');
     }
   });
 
@@ -68,41 +63,18 @@ describe('default national team squads', () => {
     }
   });
 
-  it('does not store ranks on goalkeepers', () => {
+  it('uses placeholder JOKER number 18 and no placeholder number 99', () => {
     for (const squad of DEFAULT_SQUADS) {
-      expect(squad.goalkeepers).toEqual([
-        {
-          id: `${squad.flagCode}-gk-1`,
-          name: 'Вратарь 1',
-          shirtNumber: 1
-        },
-        {
-          id: `${squad.flagCode}-gk-2`,
-          name: 'Вратарь 2',
-          shirtNumber: 12
-        }
-      ]);
-
-      for (const goalkeeper of squad.goalkeepers) {
-        expect(goalkeeper).not.toHaveProperty('rank');
-      }
-    }
-  });
-
-  it('points defaultStartingGoalkeeperId at an existing goalkeeper', () => {
-    for (const squad of DEFAULT_SQUADS) {
-      expect(squad.goalkeepers.map((goalkeeper) => goalkeeper.id)).toContain(squad.defaultStartingGoalkeeperId);
+      expect(squad.fieldPlayers.JOKER.shirtNumber).toBe(18);
+      expect(getSquadNumbers(squad)).not.toContain(99);
     }
   });
 
   it('uses valid and unique shirt numbers in every default squad', () => {
     for (const squad of DEFAULT_SQUADS) {
-      const result = validateSquad(squad);
-      const fieldNumbers = FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].shirtNumber);
-      const goalkeeperNumbers = squad.goalkeepers.map((goalkeeper) => goalkeeper.shirtNumber);
-      const allNumbers = [...fieldNumbers, ...goalkeeperNumbers];
+      const allNumbers = getSquadNumbers(squad);
 
-      expect(result).toEqual({ ok: true, issues: [] });
+      expect(validateSquad(squad)).toEqual({ ok: true, issues: [] });
       expect(allNumbers.every(validateShirtNumber)).toBe(true);
       expect(new Set(allNumbers).size).toBe(allNumbers.length);
     }
@@ -141,37 +113,30 @@ describe('squad validation', () => {
     });
   });
 
-  it('rejects shirt numbers lower than 0', () => {
-    const squad = cloneSquad(createDefaultSquad('pl'));
-    squad.fieldPlayers['9'].shirtNumber = -1;
+  it('rejects invalid shirt numbers', () => {
+    const tooLow = cloneSquad(createDefaultSquad('pl'));
+    tooLow.fieldPlayers['9'].shirtNumber = -1;
+    expectIssueCode(tooLow, 'INVALID_SHIRT_NUMBER');
 
-    expectIssueCode(squad, 'INVALID_SHIRT_NUMBER');
+    const tooHigh = cloneSquad(createDefaultSquad('pl'));
+    tooHigh.fieldPlayers['9'].shirtNumber = 100;
+    expectIssueCode(tooHigh, 'INVALID_SHIRT_NUMBER');
+
+    const fractional = cloneSquad(createDefaultSquad('pl'));
+    fractional.fieldPlayers['9'].shirtNumber = 9.5;
+    expectIssueCode(fractional, 'INVALID_SHIRT_NUMBER');
   });
 
-  it('rejects shirt numbers greater than 99', () => {
+  it('rejects duplicate shirt numbers across all 15 players', () => {
     const squad = cloneSquad(createDefaultSquad('pl'));
-    squad.fieldPlayers['9'].shirtNumber = 100;
-
-    expectIssueCode(squad, 'INVALID_SHIRT_NUMBER');
-  });
-
-  it('rejects fractional shirt numbers', () => {
-    const squad = cloneSquad(createDefaultSquad('pl'));
-    squad.fieldPlayers['9'].shirtNumber = 9.5;
-
-    expectIssueCode(squad, 'INVALID_SHIRT_NUMBER');
-  });
-
-  it('rejects duplicate shirt numbers across field players and goalkeepers', () => {
-    const squad = cloneSquad(createDefaultSquad('pl'));
-    squad.goalkeepers[0].shirtNumber = squad.fieldPlayers['9'].shirtNumber;
+    squad.goalkeeper.shirtNumber = squad.fieldPlayers['9'].shirtNumber;
 
     expectIssueCode(squad, 'DUPLICATE_SHIRT_NUMBER');
   });
 
   it('rejects missing field players and mismatched ranks', () => {
     const missingFieldPlayerSquad = cloneSquad(createDefaultSquad('pl'));
-    delete (missingFieldPlayerSquad.fieldPlayers as Partial<Record<CardRank, FieldSquadMember>>)['JOKER'];
+    delete (missingFieldPlayerSquad.fieldPlayers as Partial<Record<CardRank, FieldSquadMember>>).JOKER;
 
     expectIssueCode(missingFieldPlayerSquad, 'MISSING_FIELD_PLAYER');
     expectIssueCode(missingFieldPlayerSquad, 'INVALID_FIELD_PLAYER_COUNT');
@@ -182,33 +147,48 @@ describe('squad validation', () => {
     expectIssueCode(mismatchedRankSquad, 'INVALID_FIELD_PLAYER_RANK');
   });
 
-  it('rejects goalkeeper rank fields and missing starting goalkeeper ids', () => {
+  it('rejects goalkeeper rank fields and legacy goalkeeper fields', () => {
     const squad = cloneSquad(createDefaultSquad('pl'));
-    (squad.goalkeepers[0] as GoalkeeperSquadMember & { rank: CardRank }).rank = 'A';
-    squad.defaultStartingGoalkeeperId = 'missing-gk';
+    (squad.goalkeeper as GoalkeeperSquadMember & { rank: CardRank }).rank = 'A';
+    const legacySquad = {
+      ...squad,
+      goalkeepers: [squad.goalkeeper, { id: 'old-gk-2', name: 'Old', shirtNumber: 12 }],
+      defaultStartingGoalkeeperId: 'old-gk-2'
+    } as unknown as NationalTeamSquad;
 
-    const result = validateSquad(squad);
+    const result = validateSquad(legacySquad);
 
     expect(result).toMatchObject({
       ok: false,
       issues: expect.arrayContaining([
         expect.objectContaining({ code: 'GOALKEEPER_HAS_RANK' }),
-        expect.objectContaining({ code: 'INVALID_STARTING_GOALKEEPER' })
+        expect.objectContaining({ code: 'LEGACY_GOALKEEPERS_PRESENT' }),
+        expect.objectContaining({ code: 'LEGACY_STARTING_GOALKEEPER_PRESENT' })
       ])
     });
+  });
+
+  it('allows real squads to use a unique non-placeholder JOKER number', () => {
+    const squad = cloneSquad(createDefaultSquad('pl'));
+    squad.fieldPlayers.JOKER.name = 'Real Joker';
+    squad.fieldPlayers.JOKER.shirtNumber = 19;
+
+    expect(validateSquad(squad)).toEqual({ ok: true, issues: [] });
   });
 });
 
 function cloneSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
     flagCode: squad.flagCode,
-    teamId: squad.teamId,
     fieldPlayers: Object.fromEntries(
       Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])
     ) as Record<CardRank, FieldSquadMember>,
-    goalkeepers: [{ ...squad.goalkeepers[0] }, { ...squad.goalkeepers[1] }],
-    defaultStartingGoalkeeperId: squad.defaultStartingGoalkeeperId
+    goalkeeper: { ...squad.goalkeeper }
   };
+}
+
+function getSquadNumbers(squad: NationalTeamSquad): number[] {
+  return [...FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].shirtNumber), squad.goalkeeper.shirtNumber];
 }
 
 function expectIssueCode(squad: NationalTeamSquad, code: string): void {
