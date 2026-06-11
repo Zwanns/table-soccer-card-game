@@ -14,17 +14,31 @@ import { Button } from '../ui/Button';
 
 const SUMMARY_PANEL = {
   x: SCENE_WIDTH / 2,
-  y: 380,
+  y: 400,
   width: 1120,
-  height: 398
+  height: 372
 } as const;
 
-// Reduced width for champion path (half of previous) to avoid overlap with leader cards
 const CHAMPION_PATH_VIEWPORT = {
   x: -494,
-  y: -30,
-  width: 494,
+  y: -20,
+  width: 610,
   height: 148
+} as const;
+
+const CHAMPION_PATH_SCROLLBAR = {
+  x: CHAMPION_PATH_VIEWPORT.x + CHAMPION_PATH_VIEWPORT.width + 16,
+  y: CHAMPION_PATH_VIEWPORT.y,
+  width: 6,
+  minThumbHeight: 32
+} as const;
+
+const LEADER_CARD_LAYOUT = {
+  x: 350,
+  startY: -84,
+  gapY: 94,
+  width: 390,
+  height: 82
 } as const;
 
 type LeaderCardDefinition = {
@@ -153,7 +167,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
     panel.add(this.createSectionTitle(-488, -72, 'Champion path'));
     this.createChampionPath(panel, tournament, championTeamId);
 
-    panel.add(this.createSectionTitle(160, -168, 'Tournament leaders'));
+    panel.add(this.createSectionTitle(150, -150, 'Tournament leaders'));
     this.createLeaderCards(panel, tournament);
   }
 
@@ -208,7 +222,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
       );
     }
 
-    const contentHeight = championMatches.length * 28 + 28;
+    const contentHeight = Math.max(28, championMatches.length * 28);
     const maxScroll = Math.max(0, contentHeight - CHAMPION_PATH_VIEWPORT.height);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
@@ -223,11 +237,12 @@ export class TournamentCompleteScene extends Phaser.Scene {
     maskGraphics.setVisible(false);
     content.setMask(mask);
 
+    const scrollZoneWidth = CHAMPION_PATH_VIEWPORT.width + 34;
     const scrollZone = this.add
       .zone(
-        CHAMPION_PATH_VIEWPORT.x + CHAMPION_PATH_VIEWPORT.width / 2,
+        CHAMPION_PATH_VIEWPORT.x + scrollZoneWidth / 2,
         CHAMPION_PATH_VIEWPORT.y + CHAMPION_PATH_VIEWPORT.height / 2,
-        CHAMPION_PATH_VIEWPORT.width,
+        scrollZoneWidth,
         CHAMPION_PATH_VIEWPORT.height
       )
       .setInteractive();
@@ -235,10 +250,42 @@ export class TournamentCompleteScene extends Phaser.Scene {
     panel.add([content, scrollZone]);
 
     if (maxScroll > 0) {
+      const track = this.add
+        .rectangle(
+          CHAMPION_PATH_SCROLLBAR.x,
+          CHAMPION_PATH_SCROLLBAR.y,
+          CHAMPION_PATH_SCROLLBAR.width,
+          CHAMPION_PATH_VIEWPORT.height,
+          0x5f9572,
+          0.28
+        )
+        .setOrigin(0.5, 0);
+      const thumbHeight = Math.max(
+        CHAMPION_PATH_SCROLLBAR.minThumbHeight,
+        CHAMPION_PATH_VIEWPORT.height * (CHAMPION_PATH_VIEWPORT.height / contentHeight)
+      );
+      const maxThumbOffset = CHAMPION_PATH_VIEWPORT.height - thumbHeight;
+      const thumb = this.add
+        .rectangle(
+          CHAMPION_PATH_SCROLLBAR.x,
+          CHAMPION_PATH_SCROLLBAR.y,
+          CHAMPION_PATH_SCROLLBAR.width,
+          thumbHeight,
+          0xf0c95a,
+          0.95
+        )
+        .setOrigin(0.5, 0);
       let scrollY = 0;
+      const updateScroll = (): void => {
+        content.y = CHAMPION_PATH_VIEWPORT.y - scrollY;
+        thumb.y = CHAMPION_PATH_SCROLLBAR.y + (scrollY / maxScroll) * maxThumbOffset;
+      };
+
+      panel.add([track, thumb]);
+
       scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
         scrollY = Phaser.Math.Clamp(scrollY + deltaY * 0.35, 0, maxScroll);
-        content.y = CHAMPION_PATH_VIEWPORT.y - scrollY;
+        updateScroll();
       });
     }
   }
@@ -253,10 +300,9 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    // Compact layout for narrower champion path viewport
-    const home = this.addTeamLabel(120, 0, match.homeTeamId, 120);
+    const home = this.addTeamLabel(126, 0, match.homeTeamId, 150);
     const score = this.add
-      .text(240, 0, formatMatchScore(match), {
+      .text(294, 0, formatMatchScore(match), {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
@@ -264,7 +310,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const away = this.addTeamLabel(360, 0, match.awayTeamId, 120);
+    const away = this.addTeamLabel(420, 0, match.awayTeamId, 150);
 
     row.add([label, home, score, away]);
     return row;
@@ -290,40 +336,46 @@ export class TournamentCompleteScene extends Phaser.Scene {
       }
     ];
 
-    // Position leader cards further right to avoid overlapping the (now narrower) champion path
     leaders.forEach((leader, index) => {
-      panel.add(this.createLeaderCard(420 + index * 240, -112, leader));
+      panel.add(
+        this.createLeaderCard(LEADER_CARD_LAYOUT.x, LEADER_CARD_LAYOUT.startY + index * LEADER_CARD_LAYOUT.gapY, leader)
+      );
     });
   }
 
   private createLeaderCard(x: number, y: number, leader: LeaderCardDefinition): Phaser.GameObjects.Container {
     const card = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 220, 150, 0x123b2a, 0.9);
+    const background = this.add.rectangle(
+      0,
+      0,
+      LEADER_CARD_LAYOUT.width,
+      LEADER_CARD_LAYOUT.height,
+      0x123b2a,
+      0.9
+    );
     background.setStrokeStyle(2, 0x5f9572, 0.94);
     card.add(background);
     card.add(
       this.add
-        .text(0, -50, leader.title, {
-          align: 'center',
+        .text(-168, -22, leader.title, {
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+          fontSize: '17px',
           fontStyle: '700'
         })
-        .setOrigin(0.5)
+        .setOrigin(0, 0.5)
     );
 
     if (leader.player === undefined) {
       card.add(
         this.add
-          .text(0, 14, 'No data', {
-            align: 'center',
+          .text(-168, 18, 'No data', {
             color: '#8fb39d',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',
             fontStyle: '700'
           })
-          .setOrigin(0.5)
+          .setOrigin(0, 0.5)
       );
       return card;
     }
@@ -331,7 +383,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const team = findTeam(leader.player.teamId);
 
     if (team !== undefined) {
-      const flag = this.add.image(-74, -14, getFlagAssetKey(team.flagCode));
+      const flag = this.add.image(-168, 18, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(34, 24);
       card.add(flag);
     }
@@ -339,24 +391,25 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const value = getLeaderValue(leader);
     card.add(
       this.add
-        .text(-46, -14, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
+        .text(-142, 18, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: '15px',
           fontStyle: '700',
-          wordWrap: { width: 124 }
+          wordWrap: { width: 208 }
         })
         .setOrigin(0, 0.5)
     );
     card.add(
       this.add
-        .text(0, 42, `${value} ${leader.statLabel}`, {
+        .text(168, 18, `${value} ${leader.statLabel}`, {
+          align: 'right',
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
           fontSize: '18px',
           fontStyle: '700'
         })
-        .setOrigin(0.5)
+        .setOrigin(1, 0.5)
     );
 
     return card;

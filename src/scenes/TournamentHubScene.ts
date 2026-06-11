@@ -54,7 +54,21 @@ const STAGE_LABELS: Record<TournamentStage, string> = {
   complete: 'Complete'
 };
 
-const MATCHES_PER_PAGE = 10;
+const MATCHES_PER_PAGE = 20;
+const MATCH_GRID = {
+  x: 128,
+  y: 168,
+  columns: 2,
+  columnGap: 40,
+  rowGap: 45,
+  cardWidth: 652,
+  cardHeight: 38
+} as const;
+const MATCH_CARD_SCORE_X = 306;
+const MATCH_CARD_HOME_TEAM_X = 122;
+const MATCH_CARD_HOME_TEAM_WIDTH = 136;
+const MATCH_CARD_AWAY_TEAM_X = 356;
+const MATCH_CARD_AWAY_TEAM_WIDTH = 132;
 const BRACKET_CARD_HEIGHT = 58;
 const BRACKET_CENTER_Y = 395;
 const BRACKET_MAX_ROW_GAP = 106;
@@ -237,13 +251,19 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createMatchesTab(tournament: TournamentState): void {
     const maxPage = Math.max(0, Math.ceil(tournament.matches.length / MATCHES_PER_PAGE) - 1);
+    this.matchPage = Phaser.Math.Clamp(this.matchPage, 0, maxPage);
     const pageMatches = tournament.matches.slice(
       this.matchPage * MATCHES_PER_PAGE,
       this.matchPage * MATCHES_PER_PAGE + MATCHES_PER_PAGE
     );
 
     pageMatches.forEach((match, index) => {
-      this.createMatchRow(tournament, match, 128, 168 + index * 45);
+      const column = index % MATCH_GRID.columns;
+      const row = Math.floor(index / MATCH_GRID.columns);
+      const x = MATCH_GRID.x + column * (MATCH_GRID.cardWidth + MATCH_GRID.columnGap);
+      const y = MATCH_GRID.y + row * MATCH_GRID.rowGap;
+
+      this.createMatchRow(tournament, match, x, y);
     });
 
     new Button(this, 600, 666, 'Back', () => this.changeMatchPage(-1, maxPage), {
@@ -268,23 +288,23 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createMatchRow(tournament: TournamentState, match: TournamentMatch, x: number, y: number): void {
     const row = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 1344, 38, 0x0b2118, 0.86);
+    const background = this.add.rectangle(0, 0, MATCH_GRID.cardWidth, MATCH_GRID.cardHeight, 0x0b2118, 0.86);
     background.setOrigin(0);
     background.setStrokeStyle(1, match.status === 'completed' ? 0x9dd2a7 : 0x5f9572, 0.86);
     const label = this.add
       .text(18, 19, formatMatchLabel(match), {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '14px',
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
 
     row.add([background, label]);
-    this.addTeamCell(row, 210, 19, match.homeTeamId);
+    this.addTeamCell(row, MATCH_CARD_HOME_TEAM_X, 19, match.homeTeamId, MATCH_CARD_HOME_TEAM_WIDTH, 26, 19, '15px');
     row.add(
       this.add
-        .text(560, 19, formatMatchScore(match), {
+        .text(MATCH_CARD_SCORE_X, 19, formatMatchScore(match), {
           align: 'center',
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
@@ -293,31 +313,35 @@ export class TournamentHubScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     );
-    this.addTeamCell(row, 640, 19, match.awayTeamId);
+    this.addTeamCell(row, MATCH_CARD_AWAY_TEAM_X, 19, match.awayTeamId, MATCH_CARD_AWAY_TEAM_WIDTH, 26, 19, '15px');
 
-    const statusText = this.add
-      .text(1030, 19, formatMatchStatus(match), {
-        color: match.status === 'available' ? '#d9eadf' : match.status === 'completed' ? '#9dd2a7' : '#8fb39d',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
-    row.add(statusText);
+    if (match.status !== 'available') {
+      row.add(
+        this.add
+          .text(626, 19, formatMatchStatus(match), {
+            align: 'right',
+            color: match.status === 'completed' ? '#9dd2a7' : '#8fb39d',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '15px',
+            fontStyle: '700'
+          })
+          .setOrigin(1, 0.5)
+      );
+    }
 
     if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
       row.add(
-        new Button(this, 1168, 19, 'Sim', () => this.simulateTournamentMatch(tournament, match), {
-          fontSize: '16px',
+        new Button(this, 548, 19, 'Sim', () => this.simulateTournamentMatch(tournament, match), {
+          fontSize: '14px',
           height: 30,
-          width: 84
+          width: 58
         })
       );
       row.add(
-        new Button(this, 1282, 19, 'Play', () => this.startTournamentMatch(tournament, match), {
-          fontSize: '16px',
+        new Button(this, 614, 19, 'Play', () => this.startTournamentMatch(tournament, match), {
+          fontSize: '14px',
           height: 30,
-          width: 120
+          width: 70
         })
       );
     }
@@ -881,12 +905,21 @@ export class TournamentHubScene extends Phaser.Scene {
     );
   }
 
-  private addTeamCell(container: Phaser.GameObjects.Container, x: number, y: number, teamId: TournamentTeamId | undefined): void {
+  private addTeamCell(
+    container: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    teamId: TournamentTeamId | undefined,
+    width = 230,
+    flagWidth = 30,
+    flagHeight = 22,
+    fontSize = '16px'
+  ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
 
     if (team !== undefined) {
       const flag = this.add.image(x, y, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(30, 22);
+      flag.setDisplaySize(flagWidth, flagHeight);
       container.add(flag);
     }
 
@@ -895,9 +928,9 @@ export class TournamentHubScene extends Phaser.Scene {
         .text(x + 28, y, team?.name ?? 'TBD', {
           color: team === undefined ? '#8fb39d' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
+          fontSize,
           fontStyle: '700',
-          wordWrap: { width: 230 }
+          wordWrap: { width }
         })
         .setOrigin(0, 0.5)
     );
