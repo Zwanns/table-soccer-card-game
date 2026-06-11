@@ -27,7 +27,7 @@ describe('default national team squads', () => {
     expect(DEFAULT_SQUADS).toHaveLength(NATIONAL_TEAMS.length);
 
     for (const team of NATIONAL_TEAMS) {
-      expect(DEFAULT_SQUADS.some((squad) => squad.teamId === team.flagCode)).toBe(true);
+      expect(DEFAULT_SQUADS.some((squad) => squad.flagCode === team.flagCode)).toBe(true);
     }
   });
 
@@ -35,6 +35,7 @@ describe('default national team squads', () => {
     for (const squad of DEFAULT_SQUADS) {
       expect(Object.keys(squad.fieldPlayers)).toHaveLength(14);
       expect(squad.goalkeepers).toHaveLength(2);
+      expect(squad.teamId).toBe(squad.flagCode);
     }
   });
 
@@ -60,7 +61,7 @@ describe('default national team squads', () => {
       for (const rank of FIELD_SQUAD_RANKS) {
         expect(squad.fieldPlayers[rank]).toEqual({
           rank,
-          name: `Player ${rank}`,
+          name: `Игрок ${rank}`,
           shirtNumber: expect.any(Number)
         });
       }
@@ -69,6 +70,19 @@ describe('default national team squads', () => {
 
   it('does not store ranks on goalkeepers', () => {
     for (const squad of DEFAULT_SQUADS) {
+      expect(squad.goalkeepers).toEqual([
+        {
+          id: `${squad.flagCode}-gk-1`,
+          name: 'Вратарь 1',
+          shirtNumber: 1
+        },
+        {
+          id: `${squad.flagCode}-gk-2`,
+          name: 'Вратарь 2',
+          shirtNumber: 12
+        }
+      ]);
+
       for (const goalkeeper of squad.goalkeepers) {
         expect(goalkeeper).not.toHaveProperty('rank');
       }
@@ -97,8 +111,8 @@ describe('default national team squads', () => {
 
 describe('squad validation', () => {
   it('accepts player names from 1 to 24 trimmed characters', () => {
-    expect(validatePlayerName('Player 9')).toBe(true);
-    expect(validatePlayerName('  Player 9  ')).toBe(true);
+    expect(validatePlayerName('Игрок 9')).toBe(true);
+    expect(validatePlayerName('  Игрок 9  ')).toBe(true);
     expect(validatePlayerName('')).toBe(false);
     expect(validatePlayerName('   ')).toBe(false);
     expect(validatePlayerName('a'.repeat(25))).toBe(false);
@@ -160,6 +174,7 @@ describe('squad validation', () => {
     delete (missingFieldPlayerSquad.fieldPlayers as Partial<Record<CardRank, FieldSquadMember>>)['JOKER'];
 
     expectIssueCode(missingFieldPlayerSquad, 'MISSING_FIELD_PLAYER');
+    expectIssueCode(missingFieldPlayerSquad, 'INVALID_FIELD_PLAYER_COUNT');
 
     const mismatchedRankSquad = cloneSquad(createDefaultSquad('pl'));
     mismatchedRankSquad.fieldPlayers.Q.rank = 'K';
@@ -186,6 +201,7 @@ describe('squad validation', () => {
 
 function cloneSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
+    flagCode: squad.flagCode,
     teamId: squad.teamId,
     fieldPlayers: Object.fromEntries(
       Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])

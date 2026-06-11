@@ -57,6 +57,10 @@ describe('squad localStorage', () => {
     expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
   });
 
+  it('uses the fixed squad storage key', () => {
+    expect(SQUAD_STORAGE_KEY).toBe('total-soccer-mundial:squads:v1');
+  });
+
   it('saves and reloads a custom squad', () => {
     const squad = createDefaultSquad('pl');
     squad.fieldPlayers['9'].name = 'Lewandowski';
@@ -68,6 +72,13 @@ describe('squad localStorage', () => {
       name: 'Lewandowski',
       shirtNumber: 19
     });
+
+    const storedState = JSON.parse(localStorage.getItem(SQUAD_STORAGE_KEY) ?? '{}') as {
+      squads?: Record<string, unknown>;
+    };
+
+    expect(storedState.squads).toHaveProperty('pl');
+    expect(storedState.squads).not.toHaveProperty('undefined');
   });
 
   it('keeps saved data isolated from later mutations of the source object', () => {
@@ -87,6 +98,12 @@ describe('squad localStorage', () => {
 
     expect(resetSquad('pl')).toEqual(createDefaultSquad('pl'));
     expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
+
+    const storedState = JSON.parse(localStorage.getItem(SQUAD_STORAGE_KEY) ?? '{}') as {
+      squads?: Record<string, unknown>;
+    };
+
+    expect(storedState.squads).not.toHaveProperty('pl');
   });
 
   it('falls back to defaults when stored JSON is corrupted', () => {
@@ -111,6 +128,47 @@ describe('squad localStorage', () => {
     );
 
     expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
+  });
+
+  it('falls back to defaults when a stored squad is structurally valid but fails validation', () => {
+    const invalidSquad = createDefaultSquad('pl');
+    invalidSquad.fieldPlayers['9'].shirtNumber = invalidSquad.goalkeepers[0].shirtNumber;
+
+    localStorage.setItem(
+      SQUAD_STORAGE_KEY,
+      JSON.stringify({
+        squads: {
+          pl: invalidSquad
+        }
+      })
+    );
+
+    expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
+  });
+
+  it('keeps the temporary teamId compatibility alias when loading legacy saved squads', () => {
+    const legacySquad = createDefaultSquad('pl');
+    legacySquad.fieldPlayers['9'].name = 'Legacy striker';
+    const { flagCode: _flagCode, ...legacyShape } = legacySquad;
+
+    localStorage.setItem(
+      SQUAD_STORAGE_KEY,
+      JSON.stringify({
+        squads: {
+          pl: legacyShape
+        }
+      })
+    );
+
+    expect(loadSquad('pl')).toMatchObject({
+      flagCode: 'pl',
+      teamId: 'pl',
+      fieldPlayers: {
+        '9': expect.objectContaining({
+          name: 'Legacy striker'
+        })
+      }
+    });
   });
 
   it('does not save an invalid squad', () => {
@@ -139,21 +197,21 @@ describe('squad localStorage', () => {
     const firstLoad = loadSquad('pl');
     firstLoad.fieldPlayers['9'].name = 'Mutated load';
 
-    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Player 9');
+    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Игрок 9');
 
     const allSquads = loadAllSquads();
     allSquads[0].fieldPlayers['9'].name = 'Mutated all squads';
 
-    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Player 9');
+    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Игрок 9');
   });
 
   it('does not allow default squads to be mutated through loaded values', () => {
     const loadedSquad = loadSquad('pl');
     loadedSquad.fieldPlayers['9'].name = 'Changed default?';
 
-    const defaultPolandSquad = DEFAULT_SQUADS.find((squad) => squad.teamId === 'pl');
+    const defaultPolandSquad = DEFAULT_SQUADS.find((squad) => squad.flagCode === 'pl');
 
-    expect(defaultPolandSquad?.fieldPlayers['9'].name).toBe('Player 9');
+    expect(defaultPolandSquad?.fieldPlayers['9'].name).toBe('Игрок 9');
   });
 
   it('loads defaults when localStorage is unavailable', () => {

@@ -2,9 +2,17 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDefaultSquad } from '../data/defaultSquads';
+import {
+  AVAILABLE_MANUAL_KIT_FLAG_CODES,
+  SHIRT_NUMBER_ANCHOR
+} from '../data/teamKits';
 import { saveSquad } from '../services/squadStorage';
 import { getCardTooltipText, getFieldCardPlayerProfile } from '../ui/cardPlayerProfile';
 import { getFallbackKitColors } from '../ui/kitFallback';
+import {
+  getShirtNumberLayout,
+  prepareKitCardFace
+} from '../ui/kitCardFaceModel';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -49,13 +57,14 @@ describe('card face profile resolver', () => {
       configurable: true,
       value: originalLocalStorage
     });
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
   });
 
   it('resolves a field card profile from the default squad by team id and rank', () => {
     expect(getFieldCardPlayerProfile('pl', '9')).toEqual({
       teamId: 'pl',
       rank: '9',
-      playerName: 'Player 9',
+      playerName: 'Игрок 9',
       shirtNumber: 9
     });
   });
@@ -75,11 +84,15 @@ describe('card face profile resolver', () => {
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Player A\n№ 17');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Игрок A\n№17\nНоминал: A');
   });
 });
 
 describe('kit card face rendering contracts', () => {
+  afterEach(() => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
+  });
+
   it('defines readable fallback colors for both current team colors', () => {
     expect(getFallbackKitColors('RED')).toMatchObject({
       shirt: expect.any(Number),
@@ -120,7 +133,64 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + 8');
     expect(kitFaceSource).toContain('fillRoundedRect');
     expect(kitFaceSource).toContain('fillTriangle');
+    expect(kitFaceSource).toContain('createFallbackKitGraphics');
+    expect(kitFaceSource).not.toContain('fillRoundedRect(-22');
+    expect(kitFaceSource).not.toContain('fillRoundedRect(8, 56');
+    expect(kitFaceSource).not.toContain('socks');
     expect(kitFaceSource).not.toContain('suit');
+  });
+
+  it('prepares image and fallback kit assets from the resolver', () => {
+    const profile = getFieldCardPlayerProfile('pl', '9');
+
+    expect(prepareKitCardFace({ rank: '9', playerProfile: profile })).toMatchObject({
+      rank: '9',
+      shirtNumber: 9,
+      kitAsset: {
+        type: 'fallback',
+        primaryColor: '#FFFFFF',
+        secondaryColor: '#DC143C',
+        shirtNumberColor: '#DC143C',
+        shirtNumberStrokeColor: '#FFFFFF'
+      }
+    });
+
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('pl');
+
+    expect(prepareKitCardFace({ rank: '9', playerProfile: profile })).toMatchObject({
+      rank: '9',
+      shirtNumber: 9,
+      kitAsset: {
+        type: 'image',
+        assetKey: 'kit-pl',
+        shirtNumberColor: '#DC143C',
+        shirtNumberStrokeColor: '#FFFFFF'
+      }
+    });
+  });
+
+  it('positions the shirt number with the shared anchor and omits missing numbers', () => {
+    const layout = getShirtNumberLayout();
+
+    expect(SHIRT_NUMBER_ANCHOR).toEqual({ x: 0.5, y: 0.31 });
+    expect(layout.x).toBe(0);
+    expect(layout.y).toBeCloseTo(-28.215);
+    expect(prepareKitCardFace({ rank: '9' })).toEqual({
+      rank: '9',
+      shirtNumber: undefined,
+      kitAsset: null
+    });
+  });
+
+  it('keeps rank singular, suitless, and player names out of the permanent card face', () => {
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+
+    expect(kitFaceSource.match(/addRank/g)?.length).toBe(2);
+    expect(kitFaceSource).not.toContain('CARD_HEIGHT / 2 -');
+    expect(kitFaceSource).not.toContain('playerName');
+    expect(cardViewSource).not.toContain('playerName');
+    expect(cardViewSource).not.toContain('options.suit');
   });
 
   it('passes player profiles to field cards and active attack cards without changing game rules', () => {
@@ -139,7 +209,7 @@ describe('kit card face rendering contracts', () => {
     expect(gameSceneSource).toContain('resolveFieldCardProfile(state, player, state.attackCard)');
     expect(gameSceneSource).toContain('resolveFieldKitTextureKey(state, player)');
     expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.teamId, setup.fieldKit)');
-    expect(bootSceneSource).toContain('loadAvailableKitTextures(this)');
+    expect(bootSceneSource).toContain('getRegisteredKitAssetsToLoad()');
     expect(kitFaceSource).toContain('scene.textures.exists(options.kitTextureKey)');
     expect(kitFaceSource).toContain('this.add(image)');
   });

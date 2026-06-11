@@ -1,38 +1,74 @@
 # Kit Assets
 
-This folder is reserved for match card kit artwork.
-
-## Field player kits
-
-Use one folder per team id:
+Manual kit PNG files for Total Soccer: Mundial live in:
 
 ```text
-public/kits/teams/<teamId>/home.png
-public/kits/teams/<teamId>/away.png
+public/kits/images/
 ```
 
-`teamId` currently matches the national team `flagCode` from `src/data/nationalTeams.ts`.
-
-## Goalkeeper kits
-
-Universal goalkeeper kits live here:
+Field player kits use the `flagCode` from `src/data/nationalTeams.ts`:
 
 ```text
-public/kits/goalkeepers/gk-1.png
-public/kits/goalkeepers/gk-2.png
-public/kits/goalkeepers/gk-3.png
-public/kits/goalkeepers/gk-4.png
+public/kits/images/pl.png
+public/kits/images/ua.png
+public/kits/images/br.png
+public/kits/images/gb-eng.png
+public/kits/images/gb-sct.png
+public/kits/images/gb-wls.png
 ```
 
-## Image requirements
+Universal goalkeeper kits use:
 
-- PNG with a transparent background.
-- The image should contain only a shirt, shorts, and socks.
-- Do not include a human figure.
-- Do not include a face.
+```text
+public/kits/images/gk-1.png
+public/kits/images/gk-2.png
+```
+
+## Image Requirements
+
+- PNG size: 384 x 420 px.
+- Transparent background is preferred.
+- A solid white background is temporarily accepted.
+- Include only the shirt and shorts.
+- Do not include socks.
 - Do not include a player number.
-- Do not include a card rank.
-- Leave clear space on the shirt chest for the programmatic player number.
-- Leave clear space in the top-left card area for the programmatic rank.
+- Do not include the card rank.
+- Do not include text or labels.
+- Do not include a human figure or face.
+- File name must be `<flagCode>.png`.
+- Goalkeeper file names must be `gk-1.png` and `gk-2.png`.
 
-Missing kit assets are handled by the in-game fallback renderer.
+The player number is added programmatically. Its position is controlled by `SHIRT_NUMBER_ANCHOR` from `src/data/teamKits.ts`.
+
+## Attribution
+
+Every PNG listed in the manual registries must have an entry in:
+
+```text
+public/kits/ATTRIBUTION.json
+```
+
+Example:
+
+```json
+{
+  "images/pl.png": {
+    "sourcePage": "",
+    "sourceFilePage": "",
+    "source": "Wikipedia / Wikimedia Commons",
+    "author": "",
+    "license": "",
+    "licenseUrl": "",
+    "modified": true,
+    "modificationNotes": "Manually cropped and adapted for use in Total Soccer: Mundial"
+  }
+}
+```
+
+## Importer Boundary
+
+`scripts/wiki-kits/` is an experimental dev utility.
+
+`public/kits/imported/` is not used by the game runtime.
+
+Manual PNG files must be copied into `public/kits/images/`.

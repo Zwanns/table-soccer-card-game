@@ -23,8 +23,17 @@ export function validateSquad(squad: NationalTeamSquad): SquadValidationResult {
   const issues: SquadValidationIssue[] = [];
   const shirtNumbers = new Map<number, string>();
 
-  if (!validatePlayerName(squad.teamId)) {
-    addIssue(issues, 'INVALID_TEAM_ID', 'teamId', 'Team id must be a non-empty string.');
+  if (!validatePlayerName(squad.flagCode)) {
+    addIssue(issues, 'INVALID_FLAG_CODE', 'flagCode', 'Flag code must be a non-empty string.');
+  }
+
+  if (Object.keys(squad.fieldPlayers).length !== FIELD_SQUAD_RANKS.length) {
+    addIssue(
+      issues,
+      'INVALID_FIELD_PLAYER_COUNT',
+      'fieldPlayers',
+      `Squad must contain exactly ${FIELD_SQUAD_RANKS.length} field players.`
+    );
   }
 
   for (const rank of FIELD_SQUAD_RANKS) {

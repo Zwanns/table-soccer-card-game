@@ -49,5 +49,13 @@ export function createGoalkeeperCardProfile(
 }
 
 export function getCardTooltipText(profile: CardPlayerProfile): string {
-  return `${profile.playerName}\n№ ${profile.shirtNumber}`;
+  if (isGoalkeeperCardPlayerProfile(profile)) {
+    return `${profile.playerName}\n№${profile.shirtNumber}\nGK: ${profile.goalkeeperRank}`;
+  }
+
+  return `${profile.playerName}\n№${profile.shirtNumber}\nНоминал: ${profile.rank}`;
+}
+
+function isGoalkeeperCardPlayerProfile(profile: CardPlayerProfile): profile is GoalkeeperCardPlayerProfile {
+  return 'role' in profile && profile.role === 'goalkeeper';
 }

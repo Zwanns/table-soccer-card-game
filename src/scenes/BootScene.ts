@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { getFallbackCoverPath, getFallbackCoverTextureKey } from '../assets/teamCover';
 import { MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
-import { loadAvailableKitTextures } from '../data/teamKits';
+import { getRegisteredKitAssetsToLoad } from './bootKitAssets';
 
 export class BootScene extends Phaser.Scene {
   public constructor() {
@@ -25,14 +25,13 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('sound-penalty-goal', 'Sounds/penalty-goal.mp3');
     this.load.audio('sound-goalkeeper-save', 'Sounds/bolely-net.mp3');
     this.load.audio('sound-goalpost', 'Sounds/shtanga.mp3');
+
+    for (const asset of getRegisteredKitAssetsToLoad()) {
+      this.load.image(asset.assetKey, asset.path);
+    }
   }
 
   public create(): void {
-    void this.loadKitsAndStart();
-  }
-
-  private async loadKitsAndStart(): Promise<void> {
-    await loadAvailableKitTextures(this);
     this.scene.start('MenuScene');
   }
 }

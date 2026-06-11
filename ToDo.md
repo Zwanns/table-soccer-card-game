@@ -1,405 +1,347 @@
 # Total Soccer: Mundial
 
-# Тестовый импортер экипировок сборных из Wikipedia и Wikimedia Commons
+# Поэтапное внедрение экипировок сборных, составов и отдельной GK-колоды
 
-## 0. Общая задача
+## 0. Общие правила выполнения
 
-Нужно написать отдельный тестовый CLI-импортер на TypeScript.
-
-Импортер должен:
-
-- [ ] получать wikitext страниц трех национальных сборных из русскоязычной Википедии;
-- [ ] извлекать параметры домашней и выездной экипировки из шаблона карточки сборной;
-- [ ] находить необходимые графические слои на Wikimedia Commons;
-- [ ] скачивать их локально;
-- [ ] собирать прозрачные PNG-изображения экипировки;
-- [ ] сохранять только футболку и шорты;
-- [ ] не добавлять гетры;
-- [ ] формировать manifest и отчет импорта;
-- [ ] сохранять сведения об источниках и лицензиях;
-- [ ] не подключать импортированные изображения к игровому UI автоматически.
-
-Это отдельная вспомогательная утилита для разработки.
-
-Не менять игровую механику и сцены Phaser в рамках этой задачи.
-
----
-
-# 1. Тестовые сборные
-
-Импортер должен поддерживать три команды:
+Проект:
 
 ```text
-poland
-ukraine
-brazil
+Total Soccer: Mundial
 ```
 
-Использовать страницы:
-
-```text
-Сборная Польши по футболу
-Сборная Украины по футболу
-Сборная Бразилии по футболу
-```
-
-Источник данных:
-
-```text
-https://ru.wikipedia.org/w/api.php
-```
-
-Источник графических слоев:
-
-```text
-https://commons.wikimedia.org/w/api.php
-```
-
-Создать конфигурацию:
-
-```ts
-export type WikiKitTeamConfig = {
-  teamId: string;
-  wikipediaTitle: string;
-};
-
-export const TEST_WIKI_KIT_TEAMS: WikiKitTeamConfig[] = [
-  {
-    teamId: 'poland',
-    wikipediaTitle: 'Сборная Польши по футболу',
-  },
-  {
-    teamId: 'ukraine',
-    wikipediaTitle: 'Сборная Украины по футболу',
-  },
-  {
-    teamId: 'brazil',
-    wikipediaTitle: 'Сборная Бразилии по футболу',
-  },
-];
-```
-
----
-
-# 2. Зафиксированный формат результата
-
-Для каждой сборной создать два файла:
-
-```text
-home.png
-away.png
-```
-
-Итоговая структура:
-
-```text
-public/
-  kits/
-    imported/
-      poland/
-        home.png
-        away.png
-      ukraine/
-        home.png
-        away.png
-      brazil/
-        home.png
-        away.png
-      manifest.json
-      ATTRIBUTION.json
-```
-
-Дополнительно создать диагностический отчет:
-
-```text
-reports/
-  wiki-kits-import-report.json
-```
-
-И визуальную контактную таблицу:
-
-```text
-reports/
-  wiki-kits-preview.png
-```
-
-Контактная таблица должна показывать 6 изображений:
-
-```text
-Poland home
-Poland away
-Ukraine home
-Ukraine away
-Brazil home
-Brazil away
-```
-
----
-
-# 3. Состав итогового изображения
-
-Каждый PNG должен содержать:
-
-```text
-футболку;
-левый рукав;
-правый рукав;
-шорты.
-```
-
-Не добавлять:
-
-```text
-гетры;
-человеческую фигуру;
-лицо;
-руки;
-ноги;
-голову;
-номер игрока;
-номинал карты;
-белый фон карты;
-флаг;
-герб;
-подпись;
-текст.
-```
-
-Фон PNG должен быть прозрачным.
-
-Номер игрока и номинал карты будут добавляться позднее программно внутри Phaser.
-
----
-
-# 4. Размер результата
-
-Использовать портретный прозрачный canvas:
-
-```ts
-export const KIT_OUTPUT = {
-  width: 384,
-  height: 420,
-} as const;
-```
-
-Композиция:
-
-```text
-верхние приблизительно 65%:
-  футболка с рукавами;
-
-нижние приблизительно 35%:
-  шорты.
-```
-
-Гетры не резервировать и не выводить.
-
-Все координаты вынести в отдельную конфигурацию:
-
-```text
-scripts/wiki-kits/renderGeometry.ts
-```
-
-Не разбрасывать числовые значения по коду рендера.
-
----
-
-# 5. Технологии
-
-Использовать:
+Стек:
 
 ```text
 TypeScript
-Node.js 20+
-native fetch
-sharp
-tsx
+Phaser 3
+Vite
 Vitest
 ```
 
-Добавить dev-зависимости при необходимости:
+Работу выполнять строго по этапам.
+
+После каждого этапа обязательно запускать:
 
 ```bash
-npm install --save-dev tsx
-npm install sharp
+npm test
+npm run build
 ```
 
-Если `tsx` или `sharp` уже установлены, не устанавливать повторно.
+Для этапов с UI дополнительно:
 
-Для наложения графических слоев использовать:
+```bash
+npm run dev
+```
+
+После каждого этапа остановиться и вывести отчет.
+
+Не переходить к следующему этапу автоматически.
+
+Формат отчета:
+
+```text
+Этап N завершен.
+
+Созданные файлы:
+- ...
+
+Измененные файлы:
+- ...
+
+Что реализовано:
+- ...
+
+Добавленные тесты:
+- ...
+
+Результат npm test:
+- ...
+
+Результат npm run build:
+- ...
+
+Что проверить вручную:
+- ...
+
+Что остается на следующий этап:
+- ...
+```
+
+Не выполнять массовый рефакторинг без необходимости.
+
+---
+
+# 1. Зафиксированные продуктовые решения
+
+## 1.1 Одна основная форма на сборную
+
+У каждой сборной используется только один комплект полевой формы:
+
+```text
+main kit
+```
+
+Не использовать на текущем этапе:
+
+```text
+home
+away
+third
+retro
+```
+
+Для каждой сборной вручную подготавливается один PNG.
+
+## 1.2 Общая папка ассетов
+
+Все изображения экипировок хранятся в одной папке:
+
+```text
+public/kits/images/
+```
+
+Полевые формы именуются по `flagCode` из:
+
+```text
+src/data/nationalTeams.ts
+```
+
+Примеры:
+
+```text
+public/kits/images/pl.png
+public/kits/images/ua.png
+public/kits/images/br.png
+public/kits/images/gb-eng.png
+public/kits/images/gb-sct.png
+public/kits/images/gb-wls.png
+```
+
+Универсальные GK-комплекты:
+
+```text
+public/kits/images/gk-1.png
+public/kits/images/gk-2.png
+```
+
+## 1.3 Состав PNG формы
+
+Каждый PNG содержит:
+
+```text
+футболку;
+шорты.
+```
+
+Не содержит:
+
+```text
+гетры;
+номер игрока;
+номинал карты;
+имя игрока;
+фон карты;
+человеческую фигуру;
+лицо;
+текст;
+подписи.
+```
+
+Рекомендуемый размер:
+
+```text
+384 × 420 px
+```
+
+Предпочтительный фон:
+
+```text
+прозрачный.
+```
+
+Допустимый временный вариант:
+
+```text
+однотонный белый.
+```
+
+Не удалять белый фон через chroma key в runtime.
+
+## 1.4 Лицевая сторона карты
+
+Открытая карта рендерится слоями:
+
+```text
+1. белый фон карты;
+2. PNG экипировки или fallback;
+3. номер игрока на груди;
+4. номинал карты в левом верхнем углу;
+5. существующие интерактивные состояния.
+```
+
+Не рендерить:
+
+```text
+нижний перевернутый номинал;
+масти;
+имя игрока непосредственно на карте;
+декоративный фон;
+гетры.
+```
+
+## 1.5 Единая координата номера
+
+Для всех форм используется одна координата номера:
 
 ```ts
-sharp(...).composite(...)
+export const SHIRT_NUMBER_ANCHOR = {
+  x: 0.5,
+  y: 0.31,
+} as const;
 ```
 
-Не добавлять Playwright, Puppeteer или браузерную автоматизацию.
+Интерпретация:
 
-Не использовать Python.
+```text
+x = 0.5 -> центр футболки;
+y = 0.31 -> приблизительно уровень груди.
+```
+
+Не создавать индивидуальные координаты для разных сборных.
+
+## 1.6 Цвет номера
+
+Для каждой сборной задаются:
+
+```text
+shirtNumberColor;
+shirtNumberStrokeColor.
+```
+
+Цвет номера должен хорошо читаться на основной форме.
+
+Цвет обводки используется для читаемости на маленьких карточках.
+
+## 1.7 Два универсальных GK-комплекта
+
+Для голкиперов используются только:
+
+```text
+gk-1
+gk-2
+```
+
+В начале матча каждой команде случайно назначается один из двух комплектов через существующий seeded random.
+
+Выбранный GK-комплект:
+
+```text
+не меняется при перерендере;
+не меняется после гола;
+не меняется после сэйва;
+не меняется после штанги;
+сохраняется до конца матча.
+```
+
+## 1.8 Экспериментальный импортёр
+
+Существующий импортёр Wikipedia / Commons сохранить:
+
+```text
+scripts/wiki-kits/
+public/kits/imported/
+reports/
+```
+
+Но runtime игры не должен:
+
+```text
+использовать public/kits/imported/;
+запускать импортёр;
+обращаться к Wikipedia API;
+обращаться к Wikimedia Commons API;
+зависеть от sharp.
+```
+
+`sharp` разрешен только для dev-утилит.
 
 ---
 
-# 6. Новые команды package.json
+# 2. Этап 0 — аудит текущего проекта
 
-Добавить:
-
-```json
-{
-  "scripts": {
-    "import:kits:test": "tsx scripts/wiki-kits/index.ts",
-    "import:kits:team": "tsx scripts/wiki-kits/index.ts --team",
-    "import:kits:clear-cache": "tsx scripts/wiki-kits/index.ts --clear-cache",
-    "test:kits-importer": "vitest run src/tests/wikiKitsImporter.test.ts"
-  }
-}
-```
-
-Поддержать команды:
-
-```bash
-npm run import:kits:test
-npm run import:kits:test -- --team=poland
-npm run import:kits:test -- --force
-npm run import:kits:test -- --clear-cache
-npm run import:kits:test -- --debug
-```
-
-Поведение:
+## Статус
 
 ```text
-без аргументов:
-  импортировать все три тестовые сборные;
+ВЫПОЛНЕНО
+```
 
---team=poland:
-  импортировать только одну сборную;
+## Зафиксированные выводы аудита
 
---force:
-  перезаписать существующие PNG;
+Проект использует:
 
---clear-cache:
-  удалить локальный кэш скачанных файлов;
+```text
+TypeScript;
+Vite;
+Phaser;
+Vitest;
+strict: true;
+noEmit: true.
+```
 
---debug:
-  сохранить промежуточные слои и расширенный лог.
+Существуют:
+
+```text
+GameEngine.ts;
+MatchTeamSetup;
+модульная архитектура;
+wiki-kits импортёр;
+sharp в зависимостях.
+```
+
+На момент аудита отсутствует:
+
+```text
+src/data/teamKits.ts
+```
+
+`sharp` не должен попадать в браузерный runtime.
+
+Не требуется заранее подготавливать все 64 PNG.
+
+Система должна работать по принципу:
+
+```text
+PNG существует -> показать PNG;
+PNG отсутствует -> показать fallback.
 ```
 
 ---
 
-# 7. Структура новых файлов
-
-Создать:
-
-```text
-scripts/
-  wiki-kits/
-    index.ts
-    config.ts
-    types.ts
-    cli.ts
-    wikipediaClient.ts
-    commonsClient.ts
-    wikitextParser.ts
-    kitParamsExtractor.ts
-    commonsFileResolver.ts
-    downloadCache.ts
-    renderGeometry.ts
-    kitRenderer.ts
-    manifestWriter.ts
-    attributionWriter.ts
-    previewWriter.ts
-    reportWriter.ts
-    logger.ts
-
-src/
-  tests/
-    wikiKitsImporter.test.ts
-    fixtures/
-      wiki-kits/
-        poland.wikitext.txt
-        ukraine.wikitext.txt
-        brazil.wikitext.txt
-```
-
-Создать при первом запуске:
-
-```text
-.cache/
-  wiki-kits/
-    commons/
-    intermediate/
-```
-
-Не коммитить бинарные кэш-файлы.
-
-Добавить в `.gitignore`:
-
-```text
-.cache/wiki-kits/
-```
-
----
-
-# 8. Этап 0. Аудит проекта
+# 3. Этап 1 — data contract экипировок
 
 ## Цель
 
-Перед реализацией проверить текущее состояние репозитория.
-
-## Проверить
-
-```text
-package.json
-tsconfig.json
-vite.config.*
-vitest.config.*
-.gitignore
-public/kits/
-src/data/
-src/tests/
-```
-
-Определить:
-
-1. используется ли ESM;
-2. установлен ли `tsx`;
-3. установлен ли `sharp`;
-4. как запускается Vitest;
-5. существует ли папка `public/kits`;
-6. нет ли уже импортера или похожих утилит;
-7. нет ли конфликтующих имен файлов.
-
-## На этом этапе
-
-Не писать код.
-
-## Итог
-
-Вывести отчет:
-
-```text
-что найдено;
-какие зависимости уже существуют;
-какие зависимости нужно добавить;
-какие файлы планируется создать;
-есть ли архитектурные риски.
-```
-
-После отчета остановиться.
-
----
-
-# 9. Этап 1. Конфигурация и типы данных
-
-## Цель
-
-Создать типы и конфигурацию без сетевых запросов.
+Создать централизованный конфиг форм и цветов без изменения UI и игровой механики.
 
 ## Создать
 
 ```text
-scripts/wiki-kits/types.ts
-scripts/wiki-kits/config.ts
-scripts/wiki-kits/renderGeometry.ts
-scripts/wiki-kits/logger.ts
+src/data/teamKits.ts
+src/tests/teamKits.test.ts
+```
+
+## Не менять на этом этапе
+
+```text
+BootScene.ts
+CardView.ts
+GameScene.ts
+GameEngine.ts
+Player.ts
+PlayerField.ts
+MatchTeamSetup
+scripts/wiki-kits/
 ```
 
 ## Типы
@@ -407,1328 +349,1880 @@ scripts/wiki-kits/logger.ts
 Добавить:
 
 ```ts
-export type KitVariant = 'home' | 'away';
-
-export type TeamId = 'poland' | 'ukraine' | 'brazil';
-
-export type WikipediaKitParams = {
-  patternLeftArm?: string;
-  patternBody?: string;
-  patternRightArm?: string;
-  patternShorts?: string;
-
-  leftArmColor: string;
-  bodyColor: string;
-  rightArmColor: string;
-  shortsColor: string;
-
-  ignoredSocksColor?: string;
-  ignoredSocksPattern?: string;
+export type ShirtNumberAnchor = {
+  x: number;
+  y: number;
 };
 
-export type TeamKitImportData = {
-  teamId: TeamId;
-  wikipediaTitle: string;
-  home: WikipediaKitParams;
-  away: WikipediaKitParams;
+export type TeamKitStyle = {
+  flagCode: string;
+
+  assetKey: string;
+  path: string;
+
+  primaryColor: string;
+  secondaryColor: string;
+
+  shirtNumberColor: string;
+  shirtNumberStrokeColor: string;
 };
 
-export type CommonsAssetKind =
-  | 'base-body'
-  | 'base-left-arm'
-  | 'base-right-arm'
-  | 'base-shorts'
-  | 'pattern-body'
-  | 'pattern-left-arm'
-  | 'pattern-right-arm'
-  | 'pattern-shorts';
+export type GoalkeeperKitId =
+  | 'gk-1'
+  | 'gk-2';
 
-export type CommonsAssetMetadata = {
-  kind: CommonsAssetKind;
-  requestedTitle: string;
-  resolvedTitle: string;
-  sourceUrl: string;
-  descriptionUrl: string;
-  author?: string;
-  licenseShortName?: string;
-  licenseUrl?: string;
-  attributionRequired?: boolean;
-};
+export type GoalkeeperKitStyle = {
+  id: GoalkeeperKitId;
 
-export type RenderedKitManifestEntry = {
-  teamId: TeamId;
-  variant: KitVariant;
-  outputPath: string;
-  wikipediaTitle: string;
-  wikipediaRevisionId?: number;
-  importedAt: string;
-  ignoredSocks: true;
-  colors: {
-    leftArm: string;
-    body: string;
-    rightArm: string;
-    shorts: string;
-  };
-  patterns: {
-    leftArm?: string;
-    body?: string;
-    rightArm?: string;
-    shorts?: string;
-  };
-  assets: CommonsAssetMetadata[];
-  warnings: string[];
+  assetKey: string;
+  path: string;
+
+  primaryColor: string;
+  secondaryColor: string;
+
+  shirtNumberColor: string;
+  shirtNumberStrokeColor: string;
 };
 ```
 
-## Валидация цветов
+## Общие константы
 
-Добавить helper:
+Добавить:
 
 ```ts
-normalizeHexColor(value: string): string;
-```
-
-Правила:
-
-```text
-принимать 6-значный RRGGBB;
-удалять ведущий #;
-переводить в uppercase;
-отклонять невалидные значения;
-не использовать молчаливый fallback без warning.
-```
-
-## Тесты
-
-Добавить unit-тесты для:
-
-```text
-нормализации цвета;
-валидного teamId;
-валидного variant;
-конфигурации трех команд;
-геометрии canvas.
-```
-
-После этапа выполнить:
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
-
----
-
-# 10. Этап 2. Клиент Wikipedia API
-
-## Цель
-
-Получать wikitext страницы национальной сборной.
-
-## Создать
-
-```text
-scripts/wiki-kits/wikipediaClient.ts
-```
-
-## Endpoint
-
-Использовать:
-
-```text
-https://ru.wikipedia.org/w/api.php
-```
-
-Запрос:
-
-```text
-action=query
-prop=revisions
-titles=<PAGE_TITLE>
-rvprop=ids|timestamp|content
-rvslots=main
-format=json
-formatversion=2
-```
-
-Пример URL формировать через `URL` и `URLSearchParams`, не конкатенировать строку вручную.
-
-## User-Agent
-
-Каждый запрос должен отправлять информативный заголовок:
-
-```text
-User-Agent: TotalSoccerMundialKitImporter/0.1 (local development importer)
-```
-
-Если у владельца проекта есть публичный email или URL репозитория, вынести контакт в конфигурацию и добавить его в User-Agent.
-
-Не выдумывать email.
-
-## API
-
-Реализовать:
-
-```ts
-export type WikipediaPageWikitext = {
-  title: string;
-  revisionId: number;
-  revisionTimestamp: string;
-  content: string;
+export const SHIRT_NUMBER_ANCHOR: ShirtNumberAnchor = {
+  x: 0.5,
+  y: 0.31,
 };
 
-export async function fetchWikipediaPageWikitext(
-  title: string,
-): Promise<WikipediaPageWikitext>;
+export const KIT_IMAGE_SIZE = {
+  width: 384,
+  height: 420,
+} as const;
+
+export const DEFAULT_KIT_IMAGE_SCALE = 1;
+
+export const DEFAULT_SHIRT_NUMBER_STYLE = {
+  fontFamily: 'Arial Black',
+  fontSize: 17,
+  strokeThickness: 2,
+} as const;
 ```
 
-## Обработка ошибок
+## Таблица TEAM_KIT_STYLES
+
+Добавить:
+
+```ts
+export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = [
+  ['al', '#D71920', '#111111', '#FFFFFF', '#111111'],
+  ['dz', '#FFFFFF', '#00843D', '#00843D', '#FFFFFF'],
+  ['ar', '#75AADB', '#FFFFFF', '#111111', '#FFFFFF'],
+  ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111'],
+  ['au', '#FFCD00', '#00843D', '#006747', '#FFFFFF'],
+  ['at', '#ED2939', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['by', '#D22730', '#007C4C', '#FFFFFF', '#111111'],
+  ['be', '#E30613', '#FFCD00', '#FFCD00', '#111111'],
+  ['br', '#FFDF00', '#009C3B', '#002776', '#FFFFFF'],
+  ['cm', '#007A5E', '#FCD116', '#FCD116', '#111111'],
+  ['ca', '#D80621', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['cl', '#D52B1E', '#0039A6', '#FFFFFF', '#111111'],
+  ['co', '#FCD116', '#003893', '#003893', '#FFFFFF'],
+  ['cr', '#CE1126', '#002B7F', '#FFFFFF', '#111111'],
+  ['hr', '#FFFFFF', '#FF0000', '#0033A0', '#FFFFFF'],
+  ['cz', '#D7141A', '#11457E', '#FFFFFF', '#111111'],
+  ['dk', '#C60C30', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ec', '#FFD100', '#034EA2', '#034EA2', '#FFFFFF'],
+  ['eg', '#CE1126', '#000000', '#FFFFFF', '#111111'],
+  ['gb-eng', '#FFFFFF', '#1C2C5B', '#1C2C5B', '#FFFFFF'],
+  ['fr', '#002654', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ge', '#FFFFFF', '#E30A17', '#E30A17', '#FFFFFF'],
+  ['de', '#FFFFFF', '#111111', '#111111', '#FFFFFF'],
+  ['gr', '#0D5EAF', '#FFFFFF', '#FFFFFF', '#0D3B73'],
+  ['hu', '#CE2939', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ir', '#FFFFFF', '#239F40', '#239F40', '#FFFFFF'],
+  ['iq', '#017B3D', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ie', '#169B62', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['it', '#0066CC', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ci', '#F77F00', '#009E60', '#006B3F', '#FFFFFF'],
+  ['jp', '#003478', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['kz', '#00AFCA', '#FEC50C', '#003B5C', '#FFFFFF'],
+  ['ml', '#FCD116', '#14B53A', '#007A33', '#FFFFFF'],
+  ['mx', '#006847', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ma', '#C1272D', '#006233', '#FFFFFF', '#111111'],
+  ['nl', '#F36C21', '#111111', '#111111', '#FFFFFF'],
+  ['ng', '#008753', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['no', '#BA0C2F', '#00205B', '#FFFFFF', '#111111'],
+  ['pa', '#DA121A', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['py', '#D52B1E', '#FFFFFF', '#0038A8', '#FFFFFF'],
+  ['pe', '#FFFFFF', '#D91023', '#D91023', '#FFFFFF'],
+  ['pl', '#FFFFFF', '#DC143C', '#DC143C', '#FFFFFF'],
+  ['pt', '#E42518', '#046A38', '#F7D117', '#111111'],
+  ['qa', '#8A1538', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ro', '#FCD116', '#002B7F', '#002B7F', '#FFFFFF'],
+  ['sa', '#006C35', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['gb-sct', '#003876', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['sn', '#FFFFFF', '#00853F', '#00853F', '#FFFFFF'],
+  ['rs', '#C6363C', '#0C4076', '#FFFFFF', '#111111'],
+  ['sk', '#0052B4', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['si', '#FFFFFF', '#005DA4', '#005DA4', '#FFFFFF'],
+  ['za', '#FFB81C', '#007749', '#007749', '#FFFFFF'],
+  ['kr', '#E6002D', '#111111', '#111111', '#FFFFFF'],
+  ['es', '#AA151B', '#F1BF00', '#F1BF00', '#111111'],
+  ['se', '#FFCD00', '#006AA7', '#006AA7', '#FFFFFF'],
+  ['ch', '#D52B1E', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['tn', '#FFFFFF', '#E70013', '#E70013', '#FFFFFF'],
+  ['tr', '#E30A17', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['ua', '#FFD700', '#0057B8', '#0057B8', '#FFFFFF'],
+  ['uy', '#5BC0EB', '#111111', '#111111', '#FFFFFF'],
+  ['us', '#FFFFFF', '#002868', '#002868', '#FFFFFF'],
+  ['uz', '#FFFFFF', '#0099B5', '#006B8F', '#FFFFFF'],
+  ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
+  ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', '#111111'],
+].map(
+  ([
+    flagCode,
+    primaryColor,
+    secondaryColor,
+    shirtNumberColor,
+    shirtNumberStrokeColor,
+  ]) => ({
+    flagCode,
+    assetKey: `kit-${flagCode}`,
+    path: `kits/images/${flagCode}.png`,
+    primaryColor,
+    secondaryColor,
+    shirtNumberColor,
+    shirtNumberStrokeColor,
+  }),
+);
+```
+
+Если TypeScript теряет точные типы из-за `.map()`, использовать:
+
+```ts
+satisfies readonly TeamKitStyle[]
+```
+
+или записать массив объектов явно.
+
+Главное: сохранить строгую типизацию.
+
+## GK-комплекты
+
+Добавить:
+
+```ts
+export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
+  {
+    id: 'gk-1',
+    assetKey: 'kit-gk-1',
+    path: 'kits/images/gk-1.png',
+
+    primaryColor: '#111111',
+    secondaryColor: '#3A3A3A',
+
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: '#111111',
+  },
+  {
+    id: 'gk-2',
+    assetKey: 'kit-gk-2',
+    path: 'kits/images/gk-2.png',
+
+    primaryColor: '#FFB81C',
+    secondaryColor: '#111111',
+
+    shirtNumberColor: '#111111',
+    shirtNumberStrokeColor: '#FFFFFF',
+  },
+] as const;
+```
+
+## Registry ручных PNG
+
+Добавить:
+
+```ts
+export const AVAILABLE_MANUAL_KIT_FLAG_CODES =
+  new Set<string>([
+    // Добавлять flagCode только после ручного размещения PNG.
+  ]);
+
+export const AVAILABLE_GOALKEEPER_KIT_IDS =
+  new Set<GoalkeeperKitId>([
+    // Добавлять id только после ручного размещения PNG.
+  ]);
+```
+
+Пустой registry является валидным состоянием.
+
+## Helper-функции
+
+Добавить:
+
+```ts
+export function getTeamKitStyle(
+  flagCode: string,
+): TeamKitStyle | undefined;
+
+export function getGoalkeeperKitStyle(
+  id: GoalkeeperKitId,
+): GoalkeeperKitStyle | undefined;
+
+export function hasManualTeamKit(
+  flagCode: string,
+): boolean;
+
+export function hasManualGoalkeeperKit(
+  id: GoalkeeperKitId,
+): boolean;
+
+export function validateTeamKitStylesAgainstNationalTeams(): void;
+```
+
+## Валидация
 
 Проверять:
 
 ```text
-HTTP status;
-наличие query.pages;
-missing page;
-наличие revisions;
-наличие slots.main.content;
-пустой content.
+TEAM_KIT_STYLES содержит ровно 64 записи;
+NATIONAL_TEAMS содержит ровно 64 записи;
+для каждого flagCode из NATIONAL_TEAMS есть стиль;
+лишних flagCode нет;
+дубликатов flagCode нет;
+дубликатов assetKey нет;
+дубликатов path нет;
+цвета соответствуют #RRGGBB;
+path начинается с kits/images/;
+path заканчивается .png;
+assetKey начинается с kit-;
+SHIRT_NUMBER_ANCHOR.x находится в диапазоне 0..1;
+SHIRT_NUMBER_ANCHOR.y находится в диапазоне 0..1;
+есть ровно gk-1 и gk-2;
+gk-3 и gk-4 отсутствуют.
 ```
-
-При ошибке выводить понятное сообщение:
-
-```text
-Failed to load Wikipedia wikitext for "Сборная Польши по футболу"
-```
-
-## Ограничения запросов
-
-Выполнять запросы последовательно.
-
-Не отправлять десятки параллельных запросов.
-
-Добавить небольшую паузу между сетевыми запросами:
-
-```ts
-REQUEST_DELAY_MS = 150;
-```
-
-## Fixtures
-
-Один раз сохранить актуальные wikitext трех страниц в:
-
-```text
-src/tests/fixtures/wiki-kits/
-```
-
-Unit-тесты не должны зависеть от интернета.
 
 ## Тесты
-
-Использовать mock `fetch`.
 
 Проверить:
 
 ```text
-правильные query params;
-User-Agent;
-успешное чтение content;
-missing page;
-отсутствие revisions;
-HTTP 500;
-невалидный JSON.
+ровно 64 стиля сборных;
+соответствие NATIONAL_TEAMS;
+валидность цветов;
+валидность путей;
+валидность anchor;
+pl;
+ua;
+br;
+gb-eng;
+gb-sct;
+gb-wls;
+ровно 2 GK-комплекта;
+пустой registry валиден;
+sharp не импортируется в runtime.
 ```
-
-После этапа выполнить:
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
 
 ---
 
-# 11. Этап 3. Парсер wikitext
+# 4. Этап 2 — папка ассетов, README, Attribution и validator
 
 ## Цель
 
-Надежно извлекать параметры формы из верхнего шаблона карточки сборной.
+Подготовить контракт ручного добавления PNG.
 
 ## Создать
 
 ```text
-scripts/wiki-kits/wikitextParser.ts
-scripts/wiki-kits/kitParamsExtractor.ts
+public/kits/images/
+public/kits/README.md
+public/kits/ATTRIBUTION.json
+scripts/validate-kits.ts
+src/tests/validateKits.test.ts
 ```
 
-## Важное ограничение
+## README
 
-Не использовать один большой regex для всего шаблона.
-
-Wikitext содержит:
+Описать:
 
 ```text
-вложенные шаблоны;
-переносы строк;
-ссылки;
-вложенные фигурные скобки;
-параметры в одной строке;
-параметры в нескольких строках.
+размер PNG = 384 × 420;
+прозрачный фон предпочтителен;
+белый фон допустим;
+только футболка и шорты;
+без гетр;
+без номера;
+без номинала;
+без текста;
+имя файла = <flagCode>.png;
+GK-файлы = gk-1.png и gk-2.png;
+номер добавляется программно;
+номер размещается по SHIRT_NUMBER_ANCHOR;
 ```
 
-Нужен небольшой depth-aware parser.
-
-## Алгоритм
-
-1. Найти первый шаблон верхнего уровня:
+Добавить пояснение:
 
 ```text
-{{Сборная страны по футболу
-...
-}}
-```
-
-2. Сканировать символы последовательно.
-3. Учитывать глубину:
-
-```text
-{{ -> depth + 1
-}} -> depth - 1
-```
-
-4. Разделять параметры по символу:
-
-```text
-|
-```
-
-только если текущая глубина равна глубине главного шаблона.
-
-5. Разделять ключ и значение по первому:
-
-```text
-=
-```
-
-только на уровне параметра.
-
-6. Выполнять:
-
-```text
-trim key;
-trim value;
-сохранять неизвестные параметры;
-не падать на пустых значениях.
-```
-
-## Извлечение home
-
-Использовать поля:
-
-```text
-pattern_la1
-pattern_b1
-pattern_ra1
-pattern_sh1
-
-leftarm1
-body1
-rightarm1
-shorts1
-```
-
-## Извлечение away
-
-Использовать поля:
-
-```text
-pattern_la2
-pattern_b2
-pattern_ra2
-pattern_sh2
-
-leftarm2
-body2
-rightarm2
-shorts2
-```
-
-## Гетры
-
-Считать, но игнорировать:
-
-```text
-pattern_so1
-socks1
-
-pattern_so2
-socks2
-```
-
-Записывать в диагностические данные:
-
-```ts
-ignoredSocksColor
-ignoredSocksPattern
-```
-
-Не использовать их при рендере.
-
-## Нормализация паттернов
-
-Добавить:
-
-```ts
-normalizePatternToken(value?: string): string | undefined;
-```
-
-Правила:
-
-```text
-trim;
-пустая строка -> undefined;
-удалить ведущий _;
-сохранить исходное значение отдельно для отчета при необходимости.
-```
-
-Пример:
-
-```text
-_pol24h -> pol24h
-```
-
-## API
-
-Добавить:
-
-```ts
-export function extractTeamKitImportData(
-  teamId: TeamId,
-  wikipediaTitle: string,
-  wikitext: string,
-): TeamKitImportData;
-```
-
-## Ошибки
-
-Если отсутствуют обязательные цвета:
-
-```text
-leftarm
-body
-rightarm
-shorts
-```
-
-не продолжать молча.
-
-Выводить ошибку с указанием:
-
-```text
-teamId;
-variant;
-missing fields.
-```
-
-## Тесты
-
-Использовать fixtures Польши, Украины и Бразилии.
-
-Проверить:
-
-```text
-извлекаются home и away;
-обрабатываются параметры в отдельных строках;
-обрабатываются параметры в одной строке;
-_pol24h нормализуется в pol24h;
-пустой pattern_so не ломает парсер;
-socks считываются, но отмечаются как ignored;
-отсутствующий body вызывает понятную ошибку;
-вложенные шаблоны не ломают разбор.
-```
-
-После этапа выполнить:
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
-
----
-
-# 12. Этап 4. Клиент Wikimedia Commons
-
-## Цель
-
-Получать URL исходных файлов и лицензионные метаданные.
-
-## Создать
-
-```text
-scripts/wiki-kits/commonsClient.ts
-scripts/wiki-kits/commonsFileResolver.ts
-scripts/wiki-kits/downloadCache.ts
-```
-
-## Endpoint
-
-Использовать:
-
-```text
-https://commons.wikimedia.org/w/api.php
-```
-
-Запрос:
-
-```text
-action=query
-prop=imageinfo
-titles=File:<FILE_TITLE>
-iiprop=url|extmetadata
-format=json
-formatversion=2
-```
-
-## API
-
-Добавить:
-
-```ts
-export async function resolveCommonsFile(
-  fileTitle: string,
-): Promise<CommonsAssetMetadata | null>;
-
-export async function downloadCommonsAsset(
-  metadata: CommonsAssetMetadata,
-): Promise<string>;
-```
-
-`downloadCommonsAsset` должен возвращать локальный путь к кэш-файлу.
-
-## Базовые файлы
-
-Найти и скачать:
-
-```text
-File:Kit body.svg
-File:Kit left arm.svg
-File:Kit right arm.svg
-File:Kit shorts.svg
-```
-
-Если SVG неудобен для обработки, разрешается получить PNG-preview достаточного размера через `thumburl`.
-
-## Файлы паттернов
-
-Для токена:
-
-```text
-pol24h
-```
-
-искать кандидаты:
-
-```text
-File:Kit body pol24h.png
-File:Kit left arm pol24h.png
-File:Kit right arm pol24h.png
-File:Kit shorts pol24h.png
-```
-
-Для каждого типа слоя реализовать candidate resolver.
-
-Проверять варианты расширения:
-
-```text
-.png
-.svg
-```
-
-Для шаблонов MediaWiki underscores и пробелы могут нормализоваться. Формировать заголовок аккуратно через API.
-
-## Отсутствующий паттерн
-
-Если паттерн не найден:
-
-```text
-не падать;
-использовать однотонный базовый цвет;
-добавить warning;
-указать отсутствующий файл в отчете.
-```
-
-## Кэш
-
-Сохранять скачанные файлы:
-
-```text
-.cache/wiki-kits/commons/
-```
-
-Имя кэш-файла должно быть стабильным и безопасным.
-
-Не скачивать файл повторно, если он уже существует и не передан:
-
-```text
---force
-```
-
-## Лицензии
-
-Из `extmetadata` сохранять, если доступны:
-
-```text
-Artist;
-LicenseShortName;
-LicenseUrl;
-AttributionRequired;
-Credit;
-UsageTerms.
-```
-
-Сохранять:
-
-```text
-sourceUrl;
-descriptionUrl;
-resolvedTitle.
-```
-
-Не считать наличие файла на Commons автоматическим разрешением игнорировать лицензионные условия.
-
-## Тесты
-
-Через mocked fetch проверить:
-
-```text
-успешный imageinfo;
-missing file;
-отсутствующий imageinfo;
-thumburl;
-url;
-extmetadata;
-кэширование;
---force;
-warning при отсутствующем паттерне.
-```
-
-После этапа выполнить:
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
-
----
-
-# 13. Этап 5. Рендерер экипировки
-
-## Цель
-
-Собирать прозрачный PNG из базовых цветов и скачанных паттернов.
-
-## Создать
-
-```text
-scripts/wiki-kits/kitRenderer.ts
-```
-
-## Подход
-
-Использовать `sharp`.
-
-Собирать изображение слоями:
-
-```text
-transparent canvas
--> base left arm with leftArmColor
--> pattern left arm
--> base body with bodyColor
--> pattern body
--> base right arm with rightArmColor
--> pattern right arm
--> base shorts with shortsColor
--> pattern shorts
--> output PNG
-```
-
-Не добавлять гетры.
-
-## Геометрия
-
-Все позиции и размеры вынести в:
-
-```text
-scripts/wiki-kits/renderGeometry.ts
-```
-
-Пример структуры:
-
-```ts
-export const KIT_RENDER_GEOMETRY = {
-  canvas: {
-    width: 384,
-    height: 420,
-  },
-
-  leftArm: {
-    x: 36,
-    y: 26,
-    width: 92,
-    height: 170,
-  },
-
-  body: {
-    x: 108,
-    y: 20,
-    width: 168,
-    height: 210,
-  },
-
-  rightArm: {
-    x: 256,
-    y: 26,
-    width: 92,
-    height: 170,
-  },
-
-  shorts: {
-    x: 112,
-    y: 228,
-    width: 160,
-    height: 160,
-  },
-} as const;
-```
-
-Это ориентировочные значения.
-
-Codex должен визуально проверить результат и при необходимости аккуратно скорректировать координаты.
-
-## Маски
-
-Базовые SVG или PNG использовать как alpha-mask.
-
-Цвет применять программно.
-
-Паттерны накладывать поверх соответствующих деталей.
-
-## Масштабирование
-
-Для сохранения ретро-стиля Википедии использовать конфиг:
-
-```ts
-export const KIT_RESIZE_KERNEL = 'nearest';
-```
-
-Допускается заменить на более сглаженный kernel после визуальной проверки, но решение зафиксировать в отчете.
-
-## API
-
-Добавить:
-
-```ts
-export async function renderKitPng(
-  input: {
-    teamId: TeamId;
-    variant: KitVariant;
-    params: WikipediaKitParams;
-    assets: ResolvedKitAssets;
-  },
-  outputPath: string,
-): Promise<void>;
-```
-
-## Debug
-
-Если передан:
-
-```text
---debug
-```
-
-сохранять промежуточные слои:
-
-```text
-.cache/wiki-kits/intermediate/<teamId>/<variant>/
-```
-
-Например:
-
-```text
-01-left-arm-base.png
-02-left-arm-pattern.png
-03-body-base.png
-04-body-pattern.png
-05-right-arm-base.png
-06-right-arm-pattern.png
-07-shorts-base.png
-08-shorts-pattern.png
-09-composite.png
-```
-
-## Тесты
-
-Создать fixture-ассеты минимального размера.
-
-Проверить:
-
-```text
-создается PNG;
-фон прозрачный;
-размер 384 × 420;
-гетры отсутствуют;
-цвет корпуса применяется;
-цвет шорт применяется;
-паттерн накладывается;
-при отсутствии паттерна используется цвет;
-рендер детерминирован.
-```
-
-После этапа выполнить:
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
-
----
-
-# 14. Этап 6. Полный pipeline импорта
-
-## Цель
-
-Связать API, парсер, скачивание, рендер и отчеты.
-
-## Создать
-
-```text
-scripts/wiki-kits/index.ts
-scripts/wiki-kits/cli.ts
-scripts/wiki-kits/manifestWriter.ts
-scripts/wiki-kits/attributionWriter.ts
-scripts/wiki-kits/reportWriter.ts
-```
-
-## Pipeline для одной сборной
-
-```text
-1. Получить wikitext страницы.
-2. Извлечь home и away параметры.
-3. Нормализовать цвета и токены паттернов.
-4. Разрешить URL базовых Commons-слоев.
-5. Разрешить URL паттернов.
-6. Скачать отсутствующие слои в кэш.
-7. Собрать home.png.
-8. Собрать away.png.
-9. Добавить manifest entries.
-10. Добавить attribution entries.
-11. Добавить warnings в report.
-```
-
-## Последовательность
-
-Обрабатывать:
-
-```text
-poland
-ukraine
-brazil
-```
-
-последовательно.
-
-Не запускать массовое параллельное скачивание.
-
-## Перезапись
-
-Если PNG уже существует:
-
-```text
-без --force:
-  не перезаписывать;
-  вывести SKIPPED;
-
-с --force:
-  перезаписать.
-```
-
-## Логи
-
-Использовать понятные сообщения:
-
-```text
-[wiki-kits] Fetching Wikipedia page: Poland
-[wiki-kits] Extracted home and away kit params
-[wiki-kits] Resolving Commons assets
-[wiki-kits] Pattern not found: Kit shorts ...
-[wiki-kits] Using solid-color fallback
-[wiki-kits] Rendered: public/kits/imported/poland/home.png
-```
-
-## Обработка ошибок
-
-Ошибка одной команды не должна полностью скрывать отчет.
-
-В конце вывести:
-
-```text
-SUCCESS
-PARTIAL
-FAILED
-SKIPPED
-```
-
-для каждой сборной и каждого комплекта.
-
-Если обязательный этап не выполнен:
-
-```text
-не создавать поврежденный PNG;
-добавить ошибку в report;
-продолжить обработку следующей команды.
-```
-
----
-
-# 15. Этап 7. Manifest и лицензионный отчет
-
-## Цель
-
-Сохранить происхождение импортированных изображений.
-
-## manifest.json
-
-Создать:
-
-```text
-public/kits/imported/manifest.json
-```
-
-Пример структуры:
-
-```json
-{
-  "generatedAt": "2026-06-09T12:00:00.000Z",
-  "source": "ru.wikipedia.org + commons.wikimedia.org",
-  "ignoredSocks": true,
-  "teams": {
-    "poland": {
-      "home": {
-        "path": "poland/home.png",
-        "wikipediaTitle": "Сборная Польши по футболу",
-        "revisionId": 123456,
-        "warnings": []
-      },
-      "away": {
-        "path": "poland/away.png",
-        "wikipediaTitle": "Сборная Польши по футболу",
-        "revisionId": 123456,
-        "warnings": []
-      }
-    }
-  }
-}
+scripts/wiki-kits/ является экспериментальной dev-утилитой.
+public/kits/imported/ не используется runtime игры.
+Ручные PNG нужно копировать в public/kits/images/.
 ```
 
 ## ATTRIBUTION.json
 
 Создать:
 
-```text
-public/kits/imported/ATTRIBUTION.json
+```json
+{}
 ```
 
-Для каждого использованного Commons-файла сохранить:
+Пример записи:
 
-```text
-resolvedTitle;
-descriptionUrl;
-sourceUrl;
-author;
-licenseShortName;
-licenseUrl;
-attributionRequired;
-usedBy.
+```json
+{
+  "images/pl.png": {
+    "sourcePage": "",
+    "sourceFilePage": "",
+    "source": "Wikipedia / Wikimedia Commons",
+    "author": "",
+    "license": "",
+    "licenseUrl": "",
+    "modified": true,
+    "modificationNotes": "Manually cropped and adapted for use in Total Soccer: Mundial"
+  }
+}
 ```
 
-`usedBy` должен содержать список:
+## Validator
+
+Добавить npm-команду:
+
+```json
+{
+  "scripts": {
+    "validate:kits": "tsx scripts/validate-kits.ts"
+  }
+}
+```
+
+Проверять только registry:
 
 ```text
-poland/home
-poland/away
-ukraine/home
+AVAILABLE_MANUAL_KIT_FLAG_CODES;
+AVAILABLE_GOALKEEPER_KIT_IDS.
+```
+
+Проверять:
+
+```text
+файл существует;
+формат PNG;
+размер 384 × 420;
+изображение читается;
+assetKey уникален;
+path уникален;
+есть attribution entry.
+```
+
+Если PNG непрозрачный:
+
+```text
+WARNING:
+Opaque PNG accepted because card face background is white.
+```
+
+Это не ошибка.
+
+Если лицензия не заполнена:
+
+```text
+WARNING
+```
+
+При ошибках:
+
+```text
+exit code = 1
+```
+
+При warnings без ошибок:
+
+```text
+exit code = 0
+```
+
+---
+
+# 5. Этап 3 — типы составов и дефолтные составы
+
+## Цель
+
+Добавить данные игроков сборных без UI и без изменения матча.
+
+## Создать
+
+```text
+src/data/squadTypes.ts
+src/data/defaultSquads.ts
+src/data/squadValidation.ts
+src/tests/squads.test.ts
+```
+
+## Полевые игроки
+
+Игрок привязан к номиналу карты внутри сборной.
+
+Ранги:
+
+```text
+2
+3
+4
+5
+6
+7
+8
+9
+10
+J
+Q
+K
+A
+JOKER
+```
+
+Добавить:
+
+```ts
+export type FieldSquadMember = {
+  rank: CardRank;
+  name: string;
+  shirtNumber: number;
+};
+
+export type GoalkeeperSquadMember = {
+  id: string;
+  name: string;
+  shirtNumber: number;
+};
+
+export type NationalTeamSquad = {
+  flagCode: string;
+
+  fieldPlayers: Record<CardRank, FieldSquadMember>;
+
+  goalkeepers: [
+    GoalkeeperSquadMember,
+    GoalkeeperSquadMember,
+  ];
+
+  defaultStartingGoalkeeperId: string;
+};
+```
+
+## Дефолты
+
+Для каждой из 64 сборных создать placeholder-состав.
+
+Пример номеров:
+
+```text
+GK 1       -> 1
+GK 2       -> 12
+
+2          -> 2
+3          -> 3
+4          -> 4
+5          -> 5
+6          -> 6
+7          -> 7
+8          -> 8
+9          -> 9
+10         -> 10
+J          -> 11
+Q          -> 14
+K          -> 15
+A          -> 17
+JOKER      -> 99
+```
+
+Имена:
+
+```text
+Игрок 2
+Игрок 3
 ...
+Игрок JOKER
+Вратарь 1
+Вратарь 2
 ```
 
-## report
+## Валидация
 
-Создать:
+Проверять:
 
 ```text
-reports/wiki-kits-import-report.json
+имя обязательно;
+trim;
+от 1 до 24 символов;
+номер целый;
+номер 0..99;
+номера уникальны внутри сборной;
+есть 14 полевых игроков;
+есть 2 GK;
+defaultStartingGoalkeeperId существует.
 ```
+
+---
+
+# 6. Этап 4 — localStorage составов
+
+## Создать
+
+```text
+src/services/squadStorage.ts
+src/tests/squadStorage.test.ts
+```
+
+## API
+
+```ts
+loadSquad(flagCode: string): NationalTeamSquad;
+saveSquad(squad: NationalTeamSquad): void;
+resetSquad(flagCode: string): NationalTeamSquad;
+loadAllSquads(): NationalTeamSquad[];
+```
+
+## Правила
+
+```text
+если данных нет -> дефолт;
+если JSON поврежден -> дефолт;
+если структура невалидна -> дефолт;
+reset -> удалить пользовательскую версию;
+возвращать deep copy;
+не мутировать дефолты.
+```
+
+Ключ:
+
+```text
+total-soccer-mundial:squads:v1
+```
+
+---
+
+# 7. Этап 5 — UI редактора составов
+
+## Создать
+
+```text
+src/scenes/SquadSelectScene.ts
+src/scenes/SquadEditorScene.ts
+```
+
+## Изменить
+
+```text
+src/scenes/MenuScene.ts
+src/main.ts
+```
+
+## MenuScene
+
+Добавить кнопку:
+
+```text
+Составы
+```
+
+## SquadSelectScene
+
+Показать 64 сборные:
+
+```text
+флаг;
+название;
+кнопка открытия.
+```
+
+## SquadEditorScene
+
+Показать:
+
+```text
+таблицу полевых игроков;
+таблицу двух GK;
+radio выбора основного GK;
+Сохранить;
+Сбросить;
+Назад.
+```
+
+Использовать DOM inputs.
+
+Если нужно:
+
+```ts
+dom: {
+  createContainer: true,
+}
+```
+
+---
+
+# 8. Этап 6 — resolver экипировок
+
+## Создать
+
+```text
+src/game/kitAssetResolver.ts
+src/tests/kitAssetResolver.test.ts
+```
+
+## Тип результата
+
+```ts
+export type ResolvedKitAsset =
+  | {
+      type: 'image';
+      assetKey: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
+    }
+  | {
+      type: 'fallback';
+      primaryColor: string;
+      secondaryColor: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
+    };
+```
+
+## API
+
+```ts
+resolveTeamKitAsset(flagCode: string): ResolvedKitAsset;
+
+resolveGoalkeeperKitAsset(
+  goalkeeperKitId: GoalkeeperKitId,
+): ResolvedKitAsset;
+```
+
+## Правила
+
+```text
+PNG зарегистрирован -> image;
+PNG отсутствует -> fallback;
+неизвестный flagCode -> безопасный fallback;
+runtime не читает файловую систему;
+runtime не делает сетевые запросы.
+```
+
+---
+
+# 9. Этап 7 — загрузка ассетов в BootScene
+
+## Изменить
+
+```text
+src/scenes/BootScene.ts
+```
+
+Загружать только:
+
+```text
+AVAILABLE_MANUAL_KIT_FLAG_CODES;
+AVAILABLE_GOALKEEPER_KIT_IDS.
+```
+
+Не загружать:
+
+```text
+public/kits/imported/
+```
+
+Не импортировать:
+
+```text
+sharp;
+wiki-kits.
+```
+
+---
+
+# 10. Этап 8 — рендер лицевой стороны карт
+
+## Создать при необходимости
+
+```text
+src/ui/KitCardFaceView.ts
+```
+
+## Изменить
+
+```text
+src/ui/CardView.ts
+```
+
+## Рендер
+
+```text
+1. белый фон;
+2. PNG или fallback;
+3. shirtNumber на груди;
+4. rank слева сверху;
+5. существующие интерактивные эффекты.
+```
+
+## Требования
+
+```text
+имя не выводится на карте;
+нижний rank отсутствует;
+гетры отсутствуют;
+номер использует SHIRT_NUMBER_ANCHOR;
+цвет номера берется из resolver;
+обводка номера берется из resolver;
+tooltip показывает имя игрока.
+```
+
+Tooltip полевой карты:
+
+```text
+<Имя>
+№<номер>
+Номинал: <rank>
+```
+
+---
+
+# 11. Этап 9 — переход от редактируемых составов к статическим составам сборных
+
+## Цель этапа
+
+Упростить систему составов.
+
+Ранее в игре была реализована возможность редактировать имена и номера игроков через UI и сохранять данные в `localStorage`.
+
+От этой функции нужно отказаться.
+
+Теперь у каждой сборной есть заранее подготовленный статический современный состав:
+
+```text
+14 полевых игроков
++
+1 голкипер
+=
+15 игроков
+```
+
+Раздел:
+
+```text
+Составы
+```
+
+сохраняется в главном меню, но становится только информационным.
+
+Пользователь может:
+
+```text
+выбрать сборную;
+посмотреть ее состав;
+вернуться назад.
+```
+
+Пользователь больше не может:
+
+```text
+редактировать имена;
+редактировать номера;
+выбирать основного GK;
+сохранять изменения;
+сбрасывать состав;
+использовать localStorage для составов.
+```
+
+---
+
+# 1. Зафиксированные продуктовые правила
+
+## 1.1 Полевые игроки
+
+У каждой сборной есть ровно `14` полевых игроков.
+
+Каждый полевой игрок привязан к номиналу карты:
+
+```text
+2
+3
+4
+5
+6
+7
+8
+9
+10
+J
+Q
+K
+A
+JOKER
+```
+
+Для каждого игрока хранить:
+
+```ts
+type FieldSquadMember = {
+  rank: CardRank;
+  name: string;
+  shirtNumber: number;
+};
+```
+
+## 1.2 Голкипер
+
+У каждой сборной есть ровно один голкипер.
+
+Голкипер не привязан к номиналу карты.
+
+Для него хранить:
+
+```ts
+type GoalkeeperSquadMember = {
+  id: string;
+  name: string;
+  shirtNumber: number;
+};
+```
+
+Использовать единый стабильный идентификатор:
+
+```text
+gk
+```
+
+Пример:
+
+```ts
+{
+  id: 'gk',
+  name: 'Wojciech Szczęsny',
+  shirtNumber: 1,
+}
+```
+
+## 1.3 Номер игрока JOKER
+
+Для placeholder-составов и базового шаблона использовать:
+
+```text
+JOKER -> 18
+```
+
+Не использовать:
+
+```text
+JOKER -> 99
+```
+
+Номер `18` должен применяться в текущих дефолтных placeholder-данных до последующей загрузки реальных современных составов.
+
+## 1.4 Уникальность номеров
+
+Внутри одной сборной номера должны быть уникальными среди:
+
+```text
+14 полевых игроков;
+1 голкипера.
+```
+
+Всего проверять:
+
+```text
+15 уникальных номеров.
+```
+
+## 1.5 Современные составы
+
+Архитектура должна быть готова к последующей замене placeholder-данных на реальные современные фиксированные составы всех `64` сборных.
+
+В рамках этого этапа:
+
+```text
+не собирать данные из интернета;
+не обновлять реальные составы автоматически;
+не добавлять сетевые запросы;
+не придумывать новые реальные составы самостоятельно.
+```
+
+Если реальные составы еще не переданы пользователем, сохранить placeholder-данные, но привести их к новой структуре:
+
+```text
+14 полевых игроков;
+1 GK;
+JOKER -> 18.
+```
+
+---
+
+# 2. Обновить типы составов
+
+## Изменить
+
+```text
+src/data/squadTypes.ts
+```
+
+## Было
+
+Ожидаемо сейчас существует структура с двумя GK:
+
+```ts
+goalkeepers: [
+  GoalkeeperSquadMember,
+  GoalkeeperSquadMember,
+];
+
+defaultStartingGoalkeeperId: string;
+```
+
+## Нужно сделать
+
+Перейти на одного GK:
+
+```ts
+export type GoalkeeperSquadMember = {
+  id: 'gk';
+  name: string;
+  shirtNumber: number;
+};
+
+export type NationalTeamSquad = {
+  flagCode: string;
+
+  fieldPlayers: Record<CardRank, FieldSquadMember>;
+
+  goalkeeper: GoalkeeperSquadMember;
+
+  /**
+   * Временно оставить только при необходимости обратной совместимости.
+   * Не использовать в новой логике.
+   */
+  teamId?: string;
+};
+```
+
+Удалить из основной модели:
+
+```text
+goalkeepers;
+defaultStartingGoalkeeperId;
+startingGoalkeeperId;
+выбор основного GK.
+```
+
+## Compatibility
+
+Если существующие модули временно требуют старые поля для компиляции:
+
+1. сначала изучить зависимости;
+2. аккуратно обновить потребителей;
+3. не сохранять старую структуру только ради удобства;
+4. допускается временный adapter-helper;
+5. adapter должен быть явно помечен как временный.
+
+Не оставлять два источника истины.
+
+---
+
+# 3. Обновить дефолтные составы
+
+## Изменить
+
+```text
+src/data/defaultSquads.ts
+```
+
+## Требования
+
+Для каждой из `64` сборных создать placeholder-состав:
+
+```text
+14 полевых игроков;
+1 голкипер.
+```
+
+Использовать номера:
+
+```text
+GK     -> 1
+
+2      -> 2
+3      -> 3
+4      -> 4
+5      -> 5
+6      -> 6
+7      -> 7
+8      -> 8
+9      -> 9
+10     -> 10
+J      -> 11
+Q      -> 14
+K      -> 15
+A      -> 17
+JOKER  -> 18
+```
+
+Использовать placeholder-имена:
+
+```text
+Игрок 2
+Игрок 3
+Игрок 4
+Игрок 5
+Игрок 6
+Игрок 7
+Игрок 8
+Игрок 9
+Игрок 10
+Игрок J
+Игрок Q
+Игрок K
+Игрок A
+Игрок JOKER
+Вратарь
+```
+
+Пример:
+
+```ts
+{
+  flagCode: 'pl',
+
+  fieldPlayers: {
+    '2': {
+      rank: '2',
+      name: 'Игрок 2',
+      shirtNumber: 2,
+    },
+
+    // ...
+
+    JOKER: {
+      rank: 'JOKER',
+      name: 'Игрок JOKER',
+      shirtNumber: 18,
+    },
+  },
+
+  goalkeeper: {
+    id: 'gk',
+    name: 'Вратарь',
+    shirtNumber: 1,
+  },
+}
+```
+
+Не использовать номер `99`.
+
+---
+
+# 4. Обновить валидацию составов
+
+## Изменить
+
+```text
+src/data/squadValidation.ts
+src/tests/squads.test.ts
+```
+
+## Проверять
+
+```text
+flagCode существует;
+есть ровно 14 полевых игроков;
+есть каждый обязательный rank;
+есть ровно один goalkeeper;
+goalkeeper.id = 'gk';
+defaultStartingGoalkeeperId отсутствует;
+goalkeepers[] отсутствует;
+имя каждого игрока непустое;
+имя trim;
+длина имени 1..24;
+номер целый;
+номер 0..99;
+номера уникальны среди 15 игроков;
+JOKER placeholder использует shirtNumber = 18.
+```
+
+## Важно
+
+Валидация должна работать и для будущих реальных составов.
+
+Не требовать, чтобы реальный игрок `JOKER` обязательно имел номер `18`.
+
+Правило:
+
+```text
+JOKER -> 18
+```
+
+обязательно только для текущего placeholder-шаблона.
+
+В реальных составах допускается другой уникальный номер.
+
+---
+
+# 5. Удалить пользовательское хранение составов
+
+## Изменить или удалить
+
+```text
+src/services/squadStorage.ts
+src/tests/squadStorage.test.ts
+```
+
+## Требование
+
+Пользовательские составы больше не сохраняются.
+
+Удалить использование:
+
+```text
+localStorage;
+saveSquad;
+resetSquad;
+loadAllSquads как источник пользовательских данных;
+SQUAD_STORAGE_KEY;
+total-soccer-mundial:squads:v1.
+```
+
+## Рекомендуемый вариант
+
+Удалить:
+
+```text
+src/services/squadStorage.ts
+src/tests/squadStorage.test.ts
+```
+
+если они больше нигде не нужны.
+
+## Если сервис пока нужен существующим модулям
+
+Допускается временно заменить его простым read-only adapter:
+
+```ts
+export function loadSquad(
+  flagCode: string,
+): NationalTeamSquad {
+  return getDefaultSquad(flagCode);
+}
+```
+
+При этом:
+
+```text
+не читать localStorage;
+не писать localStorage;
+не экспортировать saveSquad;
+не экспортировать resetSquad;
+не хранить SQUAD_STORAGE_KEY.
+```
+
+В отчете обязательно указать:
+
+```text
+удален ли squadStorage полностью;
+или оставлен временный read-only adapter;
+почему adapter пока необходим.
+```
+
+---
+
+# 6. Превратить редактор составов в экран просмотра
+
+## Изменить
+
+```text
+src/scenes/SquadSelectScene.ts
+src/scenes/SquadEditorScene.ts
+src/scenes/MenuScene.ts
+src/main.ts
+```
+
+## MenuScene
+
+Сохранить кнопку:
+
+```text
+Составы
+```
+
+Она по-прежнему открывает:
+
+```text
+SquadSelectScene
+```
+
+## SquadSelectScene
 
 Сохранить:
 
 ```text
-время запуска;
-аргументы CLI;
-результат по каждой команде;
-wikipedia revision ID;
-извлеченные параметры;
-игнорируемые параметры гетр;
-найденные файлы;
-пропущенные паттерны;
-fallback-слои;
-ошибки;
-warnings.
+список 64 сборных;
+флаг;
+название;
+кнопку открытия;
+кнопку "Назад".
 ```
 
-## Важное правило
+При необходимости изменить подпись кнопки:
 
-Не удалять attribution metadata даже для кэшированных файлов.
+```text
+Открыть
+```
+
+или:
+
+```text
+Посмотреть состав
+```
+
+## SquadEditorScene
+
+Сохранить сцену, но превратить ее в read-only экран.
+
+Допускается переименовать файл и класс:
+
+```text
+SquadEditorScene
+->
+SquadViewScene
+```
+
+Но только если изменение не усложняет текущую архитектуру.
+
+Если переименование требует слишком много несвязанных правок, оставить имя:
+
+```text
+SquadEditorScene
+```
+
+и добавить комментарий:
+
+```text
+Read-only squad viewer. Editing was removed intentionally.
+```
+
+## Экран состава должен показывать
+
+```text
+флаг;
+название сборной;
+заголовок "Состав сборной";
+14 полевых игроков;
+номинал карты;
+имя игрока;
+номер игрока;
+одного GK;
+кнопку "Назад".
+```
+
+## Таблица полевых игроков
+
+| Номинал | Игрок       | Номер |
+| ------- | ----------- | ----: |
+| 2       | Игрок 2     |     2 |
+| ...     | ...         |   ... |
+| JOKER   | Игрок JOKER |    18 |
+
+## Таблица GK
+
+| Роль | Игрок   | Номер |
+| ---- | ------- | ----: |
+| GK   | Вратарь |     1 |
+
+## Удалить
+
+```text
+DOM inputs;
+radio buttons;
+кнопку "Сохранить";
+кнопку "Сбросить состав";
+валидацию формы UI;
+listener ввода;
+сохранение через squadStorage;
+reset через squadStorage;
+сообщения об ошибке редактирования.
+```
+
+Использовать обычные Phaser Text-элементы.
+
+После ухода со сцены не должно оставаться DOM-контейнеров от старого редактора.
 
 ---
 
-# 16. Этап 8. Контактная таблица для визуальной проверки
+# 7. Удалить draft-helper редактора
 
-## Цель
-
-Автоматически создавать превью всех импортированных комплектов.
-
-## Создать
+## Проверить
 
 ```text
-scripts/wiki-kits/previewWriter.ts
+src/scenes/squadEditorDraft.ts
+src/tests/squadEditor.test.ts
 ```
 
-## Выходной файл
+Если helper обслуживает только редактирование:
 
 ```text
-reports/wiki-kits-preview.png
+удалить его;
+удалить устаревшие тесты;
+создать новые тесты read-only просмотра.
 ```
 
-## Макет
+Если часть helper полезна для формирования строк просмотра:
 
 ```text
-3 строки;
-2 колонки;
-белый или светло-серый технический фон;
-слева home;
-справа away.
+переименовать;
+оставить только чистую read-only логику;
+удалить мутации;
+удалить save/reset flow.
 ```
 
-Под каждым комплектом добавить техническую подпись:
+Не сохранять неиспользуемый код.
+
+---
+
+# 8. Обновить профиль игрока карты
+
+## Изменить при необходимости
 
 ```text
-Poland / home
-Poland / away
-Ukraine / home
-Ukraine / away
-Brazil / home
-Brazil / away
+src/ui/cardPlayerProfile.ts
+src/ui/kitCardFaceModel.ts
+src/ui/CardView.ts
+src/ui/KitCardFaceView.ts
+src/tests/cardFace.test.ts
 ```
 
-Это только диагностическое изображение.
+## Полевые карты
 
-Подписи не должны попадать в игровые PNG.
+Логика остается:
 
-## Тесты
+```text
+flagCode команды;
+rank карты;
+->
+полевой игрок;
+->
+имя;
+номер;
+tooltip;
+номер на груди.
+```
+
+## GK
+
+На этом этапе отдельная GK-колода еще не внедряется.
+
+Но helper-профиль должен быть готов получить одного голкипера:
+
+```ts
+squad.goalkeeper
+```
+
+вместо:
+
+```ts
+squad.goalkeepers[index]
+```
+
+Не внедрять новую механику GK-карт сейчас.
+
+---
+
+# 9. Обновить MatchTeamSetup
+
+## Изменить
+
+```text
+src/game/MatchTeamSetup.ts
+src/tests/gameEngine.test.ts
+src/tests/tournamentFlow.test.ts
+```
+
+## Новая структура
+
+Подготовить минимальный snapshot:
+
+```ts
+export type MatchTeamSetup = {
+  flagCode: string;
+
+  squad: NationalTeamSquad;
+
+  goalkeeperKitId: GoalkeeperKitId;
+
+  /**
+   * Временно оставить только при необходимости совместимости.
+   */
+  teamId?: string;
+};
+```
+
+Удалить:
+
+```text
+startingGoalkeeperId;
+defaultStartingGoalkeeperId;
+выбор основного GK.
+```
+
+## Важно
+
+В этом этапе:
+
+```text
+не внедрять отдельную GK-колоду;
+не менять правила матча;
+не менять обработку гола;
+не менять обработку сэйва;
+не менять обработку штанги.
+```
+
+Если текущий `MatchTeamSetup` уже используется матчем, обновить его аккуратно, сохранив существующее поведение.
+
+---
+
+# 10. Обновить тесты проекта
+
+## Изменить или удалить устаревшие тесты
 
 Проверить:
 
 ```text
-контактная таблица создается;
-размер стабилен;
-есть 6 ячеек;
-отсутствующий PNG заменяется placeholder-блоком.
+src/tests/squads.test.ts
+src/tests/squadStorage.test.ts
+src/tests/squadEditor.test.ts
+src/tests/cardFace.test.ts
+src/tests/gameEngine.test.ts
+src/tests/tournamentFlow.test.ts
+src/tests/project.test.ts
+```
+
+## Добавить проверки
+
+### Статические составы
+
+```text
+есть ровно 64 состава;
+у каждой сборной 14 полевых игроков;
+у каждой сборной 1 GK;
+у GK id = 'gk';
+у placeholder JOKER номер 18;
+номер 99 отсутствует в placeholder-составах;
+номера уникальны.
+```
+
+### Read-only UI
+
+```text
+кнопка "Составы" остается в меню;
+SquadSelectScene показывает 64 сборные;
+экран состава показывает 14 полевых игроков;
+экран состава показывает 1 GK;
+нет input;
+нет radio;
+нет кнопки "Сохранить";
+нет кнопки "Сбросить состав";
+есть кнопка "Назад".
+```
+
+### localStorage
+
+```text
+runtime состава не читает localStorage;
+runtime состава не пишет localStorage;
+SQUAD_STORAGE_KEY удален или не используется.
+```
+
+### Карты
+
+```text
+полевой профиль по rank работает;
+JOKER placeholder возвращает shirtNumber = 18;
+tooltip показывает корректный номер;
+рендер карты не ломается.
 ```
 
 ---
 
-# 17. Этап 9. Тесты pipeline без интернета
+# 11. Не изменять в рамках этапа
 
-## Цель
+Не менять:
 
-Обеспечить надежные тесты без обращения к внешним API во время `npm test`.
+```text
+src/scenes/BootScene.ts
+src/scenes/bootKitAssets.ts
+src/game/kitAssetResolver.ts
+src/data/teamKits.ts
+scripts/wiki-kits/
+scripts/validate-kits.ts
+public/kits/
+отдельную GK-колоду
+логику гола
+логику сэйва
+логику штанги
+статистику голов
+турнирную механику
+правила карт
+```
+
+---
+
+# 12. Проверка
+
+После реализации выполнить:
+
+```bash
+npm run validate:kits
+npm test
+npm run build
+npm run dev
+```
+
+## Ручная проверка
+
+Проверить в браузере:
+
+```text
+1. В меню есть кнопка "Составы".
+2. Открывается список 64 сборных.
+3. Можно открыть Польшу, Украину и Бразилию.
+4. Экран показывает read-only список игроков.
+5. На экране нет input.
+6. На экране нет radio.
+7. Нет кнопки "Сохранить".
+8. Нет кнопки "Сбросить состав".
+9. У команды показан один GK.
+10. У JOKER показан номер 18.
+11. Кнопка "Назад" работает.
+12. После выхода DOM inputs не остаются.
+13. Матч запускается.
+14. Карты продолжают отображаться.
+15. Tooltip продолжает работать.
+16. На карте JOKER отображается номер 18.
+```
+
+---
+
+# 13. Критерии приемки
+
+Этап считается выполненным, если:
+
+1. Редактирование составов удалено.
+2. Кнопка `Составы` сохранена.
+3. Раздел составов работает в read-only режиме.
+4. У каждой из 64 сборных есть 14 полевых игроков.
+5. У каждой сборной есть один GK.
+6. Голкипер не привязан к rank.
+7. `defaultStartingGoalkeeperId` удален.
+8. `startingGoalkeeperId` удален.
+9. Массив из двух GK удален.
+10. UI не содержит inputs.
+11. UI не содержит radio.
+12. UI не содержит сохранения и сброса.
+13. Пользовательский `localStorage` составов не используется.
+14. Для placeholder JOKER используется номер `18`.
+15. Номер `99` не используется в placeholder-составах.
+16. Рендер карт продолжает работать.
+17. Tooltip продолжает работать.
+18. `npm run validate:kits` проходит.
+19. `npm test` проходит.
+20. `npm run build` проходит.
+
+---
+
+# 14. Финальный отчет Codex
+
+После выполнения вывести:
+
+```text
+Этап 9 завершен.
+
+Созданные файлы:
+- ...
+
+Измененные файлы:
+- ...
+
+Удаленные файлы:
+- ...
+
+Что сделано со squadStorage:
+- удален полностью / оставлен read-only adapter;
+- причина.
+
+Что сделано с SquadEditorScene:
+- переименован / оставлен как read-only viewer;
+- причина.
+
+Количество сборных:
+- ...
+
+Полевых игроков на сборную:
+- ...
+
+GK на сборную:
+- ...
+
+Номер placeholder JOKER:
+- ...
+
+Используется ли localStorage составов:
+- да / нет
+
+Результат npm run validate:kits:
+- ...
+
+Результат npm test:
+- ...
+
+Результат npm run build:
+- ...
+
+Результат npm run dev:
+- ...
+
+Что проверить вручную:
+- ...
+
+Что остается на следующий этап:
+- ...
+```
+
+После отчета остановиться.
+
+Не переходить к внедрению отдельной GK-колоды автоматически.
+
+
+# 12. Этап 10 — отдельная GK-колода
 
 ## Создать
 
 ```text
-src/tests/wikiKitsImporter.test.ts
+src/cards/GoalkeeperCard.ts
+src/cards/GoalkeeperDeck.ts
+src/cards/createGoalkeeperDeck.ts
+src/tests/goalkeeperDeck.test.ts
 ```
 
-## Правило
+## GK-колода
 
-Обычные тесты не должны выполнять реальные HTTP-запросы.
-
-Использовать:
+Содержит:
 
 ```text
-fixtures wikitext;
-mock fetch;
-fixture PNG/SVG;
-временную папку output;
-временную папку cache.
+3
+4
+5
+6
+7
+8
+9
+10
+J
+Q
+K
+A
 ```
 
-## Покрыть
-
-### Парсер
+Не содержит:
 
 ```text
-Poland fixture;
-Ukraine fixture;
-Brazil fixture;
-home;
-away;
-пустые socks;
-непустые socks;
-параметры в строку;
-параметры по строкам.
+2
+JOKER
 ```
 
-### Wikipedia API client
+## API
+
+```ts
+drawTop(): GoalkeeperCard;
+returnToBottom(card: GoalkeeperCard): void;
+peekTop(): GoalkeeperCard | undefined;
+getSize(): number;
+```
+
+Использовать seeded random.
+
+---
+
+# 13. Этап 11 — подключение GK-колоды к полю
+
+## Изменить
 
 ```text
-успех;
-404-like missing page;
-500;
-невалидный JSON;
-пустой content.
+src/game/Player.ts
+src/game/PlayerField.ts
+src/game/GameState.ts
+src/game/fieldRules.ts
+src/game/GameEngine.ts
 ```
 
-### Commons API client
+## Правила
 
 ```text
-успех;
-missing pattern;
-extmetadata;
-descriptionUrl;
-sourceUrl;
-кэш.
+goalkeeper -> GK deck;
+defenders -> main deck;
+midfielders -> main deck.
 ```
 
-### Renderer
+Порядок восстановления:
 
 ```text
-прозрачность;
-размер;
-цвета;
-паттерны;
-нет гетр;
-fallback.
+GK;
+защита;
+полузащита.
 ```
 
-### Pipeline
+Не допускать:
 
 ```text
-генерация двух PNG для команды;
-генерация шести PNG для трех команд;
-manifest;
-ATTRIBUTION;
-report;
-preview;
---force;
-SKIPPED;
-PARTIAL.
+полевую карту в GK;
+GK-карту в поле;
+GK-карту в атаку;
+GK-карту в attackBank;
+GK-карту в main deck.
 ```
 
-## Отдельный сетевой smoke test
+---
 
-Не включать сетевой smoke test в обычный:
+# 14. Этап 12 — жизненный цикл GK
+
+## После гола
+
+```text
+снять GK-карту;
+вернуть вниз GK-колоды;
+не захватывать;
+не перекрашивать;
+не добавлять в attackBank;
+не добавлять в main deck.
+```
+
+## После сэйва
+
+```text
+GK остается на поле;
+rank не меняется;
+форма не меняется.
+```
+
+## После штанги
+
+```text
+GK остается на поле;
+rank не меняется;
+форма не меняется.
+```
+
+## Tooltip GK
+
+```text
+<Имя GK>
+№<номер>
+GK: <rank>
+```
+
+---
+
+# 15. Этап 13 — автор гола и статистика
+
+## Изменить
+
+```text
+src/game/GameEvent.ts
+src/game/matchStats.ts
+src/ui/TeamStatsView.ts
+src/scenes/ResultScene.ts
+```
+
+## Scorer snapshot
+
+```ts
+export type ScorerSnapshot = {
+  playerName: string;
+  shirtNumber: number;
+  rank: CardRank;
+  flagCode: string;
+};
+```
+
+При голе сохранить snapshot автора.
+
+Не вычислять имя автора позже из localStorage.
+
+## Экран матча
+
+```text
+Голы: Kowalski (#9), Nowak (#10)
+```
+
+## ResultScene
+
+Показывать авторов голов (без номер хода).
+
+---
+
+# 16. Этап 14 — финальная регрессия
+
+Выполнить:
 
 ```bash
-npm test
-```
-
-Создать отдельную команду:
-
-```bash
-npm run import:kits:test
-```
-
-Именно она обращается к реальным API.
-
----
-
-# 18. Этап 10. Ручная проверка реального импорта
-
-## Цель
-
-Запустить реальный импорт и проверить результаты.
-
-## Выполнить
-
-```bash
-npm run import:kits:test -- --clear-cache
-npm run import:kits:test -- --force --debug
-npm test
-npm run build
-```
-
-## Проверить файлы
-
-```text
-public/kits/imported/poland/home.png
-public/kits/imported/poland/away.png
-
-public/kits/imported/ukraine/home.png
-public/kits/imported/ukraine/away.png
-
-public/kits/imported/brazil/home.png
-public/kits/imported/brazil/away.png
-
-public/kits/imported/manifest.json
-public/kits/imported/ATTRIBUTION.json
-
-reports/wiki-kits-import-report.json
-reports/wiki-kits-preview.png
-```
-
-## Визуально проверить
-
-```text
-есть футболка;
-есть оба рукава;
-есть шорты;
-нет гетр;
-фон прозрачный;
-цвета соответствуют параметрам;
-домашний и выездной комплекты отличаются;
-нет лишнего текста;
-нет номера;
-нет номинала;
-нет белого фона;
-паттерны не выходят за контуры;
-пропущенные паттерны заменяются однотонным fallback.
-```
-
----
-
-# 19. Этап 11. Финальный отчет Codex
-
-После завершения вывести:
-
-```text
-1. Список созданных файлов.
-2. Список измененных файлов.
-3. Установленные зависимости.
-4. Схему работы импортера.
-5. Какие параметры извлекаются из Wikipedia.
-6. Какие параметры гетр намеренно игнорируются.
-7. Какие Commons-файлы используются как базовые маски.
-8. Какие паттерны были найдены.
-9. Какие паттерны не были найдены.
-10. Где применен fallback.
-11. Результат импорта Poland.
-12. Результат импорта Ukraine.
-13. Результат импорта Brazil.
-14. Результат npm test.
-15. Результат npm run build.
-16. Путь к контактной таблице.
-17. Путь к manifest.json.
-18. Путь к ATTRIBUTION.json.
-19. Найденные лицензионные ограничения.
-20. Рекомендации перед масштабированием на 64 сборные.
-```
-
----
-
-# 20. Что не входит в эту задачу
-
-Не реализовывать:
-
-```text
-подключение PNG к CardView;
-рендер номера игрока;
-рендер номинала карты;
-импорт гетр;
-импорт вратарских форм;
-выбор формы перед матчем;
-импорт всех 64 сборных;
-автоматическое обновление при старте игры;
-hotlinking из игрового клиента;
-сетевые запросы из Phaser;
-редактор экипировок;
-загрузку эмблем федераций;
-загрузку логотипов производителей;
-облачный cron;
-автоматический commit бинарных файлов.
-```
-
----
-
-# 21. Критерии приемки
-
-Задача считается выполненной, если:
-
-- [ ] Импортер написан на TypeScript.
-- [ ] Импортер запускается отдельной npm-командой.
-- [ ] Обрабатываются Польша, Украина и Бразилия.
-- [ ] Для каждой команды генерируются `home.png` и `away.png`.
-- [ ] PNG имеют прозрачный фон.
-- [ ] PNG содержат футболку, рукава и шорты.
-- [ ] Гетры отсутствуют.
-- [ ] Параметры гетр не используются при рендере.
-- [ ] Wikitext получается через Wikipedia API.
-- [ ] URL файлов получаются через Wikimedia Commons API.
-- [ ] Сетевые запросы используют информативный User-Agent.
-- [ ] Запросы выполняются последовательно.
-- [ ] Отсутствующие необязательные паттерны не ломают импорт.
-- [ ] При отсутствии паттерна используется однотонный fallback.
-- [ ] Скачанные слои кэшируются.
-- [ ] Есть `manifest.json`.
-- [ ] Есть `ATTRIBUTION.json`.
-- [ ] Есть диагностический JSON-отчет.
-- [ ] Есть контактная таблица из шести комплектов.
-- [ ] Unit-тесты не требуют интернета.
-- [ ] `npm test` проходит.
-- [ ] `npm run build` проходит.
-- [ ] Импортер не изменяет игровую механику.
-- [ ] Импортер не подключает ассеты к Phaser автоматически.
-- [ ] После каждого этапа Codex останавливается и выводит отчет.
-
----
-
-# 22. Порядок запуска Codex
-
-Не выполнять всю задачу одним проходом.
-
-Сначала выполнить только:
-
-- [x] Этап 0. Аудит проекта
-
-После согласования отчета последовательно выполнять:
-
-- [x] Этап 1. Конфигурация и типы
-- [x] Этап 2. Wikipedia API client
-- [x] Этап 3. Парсер wikitext
-- [x] Этап 4. Commons API client
-- [x] Этап 5. Рендерер
-- [x] Этап 6. Полный pipeline
-- [x] Этап 7. Manifest и лицензии
-- [x] Этап 8. Контактная таблица
-- [x] Этап 9. Тесты без интернета
-- [x] Этап 10. Реальный импорт
-- [ ] Этап 11. Финальный отчет
-
-После каждого этапа:
-
-```bash
+npm run validate:kits
 npm test
 npm run build
+npm run dev
 ```
 
-И после каждого этапа остановиться.
+Проверить:
+
+```text
+меню;
+редактор составов;
+localStorage;
+fallback;
+ручной PNG;
+номер на груди;
+rank;
+tooltip;
+атаки;
+захваченные карты;
+GK deck;
+гол;
+сэйв;
+штангу;
+статистику;
+ResultScene;
+отсутствие runtime-запросов к Wikipedia;
+отсутствие runtime-зависимости от sharp;
+отсутствие загрузки imported/.
+```
+
+---
+
+# 17. Порядок выполнения Codex
+
+Выполнять строго по одному этапу.
+
+Текущий следующий этап:
+
+```text
+Этап 1 — data contract экипировок
+```
+
+После его завершения остановиться.
+
+Не переходить к Этапу 2 автоматически.

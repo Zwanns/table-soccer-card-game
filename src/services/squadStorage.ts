@@ -10,14 +10,14 @@ type SavedSquadState = {
   squads: SavedSquadMap;
 };
 
-export function loadSquad(teamId: string): NationalTeamSquad {
-  const savedSquad = readSavedSquads()[teamId];
+export function loadSquad(flagCode: string): NationalTeamSquad {
+  const savedSquad = readSavedSquads()[flagCode];
 
   if (savedSquad !== undefined && isValidSquad(savedSquad)) {
     return cloneSquad(savedSquad);
   }
 
-  return getDefaultSquadCopy(teamId);
+  return getDefaultSquadCopy(flagCode);
 }
 
 export function saveSquad(squad: NationalTeamSquad): void {
@@ -32,24 +32,24 @@ export function saveSquad(squad: NationalTeamSquad): void {
   }
 
   const savedSquads = readSavedSquads();
-  savedSquads[squad.teamId] = cloneSquad(squad);
+  savedSquads[squad.flagCode] = cloneSquad(squad);
   writeSavedSquads(storage, savedSquads);
 }
 
-export function resetSquad(teamId: string): NationalTeamSquad {
+export function resetSquad(flagCode: string): NationalTeamSquad {
   const storage = getStorage();
 
   if (storage !== null) {
     const savedSquads = readSavedSquads();
-    delete savedSquads[teamId];
+    delete savedSquads[flagCode];
     writeSavedSquads(storage, savedSquads);
   }
 
-  return getDefaultSquadCopy(teamId);
+  return getDefaultSquadCopy(flagCode);
 }
 
 export function loadAllSquads(): NationalTeamSquad[] {
-  return DEFAULT_SQUADS.map((squad) => loadSquad(squad.teamId));
+  return DEFAULT_SQUADS.map((squad) => loadSquad(squad.flagCode));
 }
 
 function readSavedSquads(): SavedSquadMap {
@@ -79,12 +79,14 @@ function readSavedSquads(): SavedSquadMap {
     }
 
     return Object.fromEntries(
-      Object.entries(parsedValue.squads).flatMap(([teamId, squad]) => {
-        if (!isSquadLike(squad)) {
+      Object.values(parsedValue.squads).flatMap((squad) => {
+        const normalizedSquad = normalizeStoredSquad(squad);
+
+        if (normalizedSquad === null) {
           return [];
         }
 
-        return [[teamId, squad]];
+        return [[normalizedSquad.flagCode, normalizedSquad]];
       })
     );
   } catch {
@@ -104,8 +106,8 @@ function writeSavedSquads(storage: Storage, squads: SavedSquadMap): void {
   }
 }
 
-function getDefaultSquadCopy(teamId: string): NationalTeamSquad {
-  return cloneSquad(DEFAULT_SQUADS.find((squad) => squad.teamId === teamId) ?? createDefaultSquad(teamId));
+function getDefaultSquadCopy(flagCode: string): NationalTeamSquad {
+  return cloneSquad(DEFAULT_SQUADS.find((squad) => squad.flagCode === flagCode) ?? createDefaultSquad(flagCode));
 }
 
 function isValidSquad(squad: NationalTeamSquad): boolean {
@@ -114,7 +116,8 @@ function isValidSquad(squad: NationalTeamSquad): boolean {
 
 function cloneSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
-    teamId: squad.teamId,
+    flagCode: squad.flagCode,
+    teamId: squad.flagCode,
     fieldPlayers: Object.fromEntries(
       Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])
     ) as NationalTeamSquad['fieldPlayers'],
@@ -123,9 +126,15 @@ function cloneSquad(squad: NationalTeamSquad): NationalTeamSquad {
   };
 }
 
-function isSquadLike(value: unknown): value is NationalTeamSquad {
-  if (!isRecord(value) || typeof value.teamId !== 'string' || !isRecord(value.fieldPlayers)) {
-    return false;
+function normalizeStoredSquad(value: unknown): NationalTeamSquad | null {
+  if (!isRecord(value) || !isRecord(value.fieldPlayers)) {
+    return null;
+  }
+
+  const flagCode = typeof value.flagCode === 'string' ? value.flagCode : value.teamId;
+
+  if (typeof flagCode !== 'string') {
+    return null;
   }
 
   for (const rank of FIELD_SQUAD_RANKS) {
@@ -137,12 +146,12 @@ function isSquadLike(value: unknown): value is NationalTeamSquad {
       typeof player.name !== 'string' ||
       typeof player.shirtNumber !== 'number'
     ) {
-      return false;
+      return null;
     }
   }
 
   if (!Array.isArray(value.goalkeepers) || value.goalkeepers.length !== 2) {
-    return false;
+    return null;
   }
 
   for (const goalkeeper of value.goalkeepers) {
@@ -152,11 +161,23 @@ function isSquadLike(value: unknown): value is NationalTeamSquad {
       typeof goalkeeper.name !== 'string' ||
       typeof goalkeeper.shirtNumber !== 'number'
     ) {
-      return false;
+      return null;
     }
   }
 
-  return typeof value.defaultStartingGoalkeeperId === 'string' && isValidSquad(value as NationalTeamSquad);
+  if (typeof value.defaultStartingGoalkeeperId !== 'string') {
+    return null;
+  }
+
+  const squad: NationalTeamSquad = {
+    flagCode,
+    teamId: flagCode,
+    fieldPlayers: value.fieldPlayers as NationalTeamSquad['fieldPlayers'],
+    goalkeepers: value.goalkeepers as NationalTeamSquad['goalkeepers'],
+    defaultStartingGoalkeeperId: value.defaultStartingGoalkeeperId
+  };
+
+  return isValidSquad(squad) ? squad : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

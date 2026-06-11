@@ -23,6 +23,7 @@ export type SquadEditorValues = {
 
 export function createDraftSquadFromValues(values: SquadEditorValues): NationalTeamSquad {
   return {
+    flagCode: values.teamId,
     teamId: values.teamId,
     fieldPlayers: Object.fromEntries(
       values.fieldPlayers.map((player) => [

@@ -48,7 +48,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('Tournaments');
     expect(menuSceneSource).toContain('Quick match');
     expect(menuSceneSource).toContain('Penalty shootout');
-    expect(menuSceneSource).toContain('Squads');
+    expect(menuSceneSource).toContain('Составы');
     expect(menuSceneSource).toContain('About');
     expect(menuSceneSource).toContain('GAME_AUTHOR_URL');
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');

@@ -20,15 +20,41 @@ describe('squad editor scene integration', () => {
   it('adds a main menu button for squads', () => {
     const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
 
-    expect(menuSource).toContain('Squads');
+    expect(menuSource).toContain('Составы');
     expect(menuSource).toContain("this.scene.start('SquadSelectScene')");
+  });
+
+  it('shows all national teams in the squad selector', () => {
+    const selectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadSelectScene.ts'), 'utf8');
+
+    expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
+    expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
+    expect(selectSource).toContain('team.name');
+    expect(selectSource).toContain('Открыть');
+    expect(selectSource).toContain('Назад');
+    expect(selectSource).not.toContain('TEAMS_PER_PAGE');
   });
 
   it('keeps editor DOM cleanup explicit and does not use prompt', () => {
     const editorSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadEditorScene.ts'), 'utf8');
 
     expect(editorSource).toContain('cleanupDom');
+    expect(editorSource).toContain('removeEventListener');
     expect(editorSource).not.toContain('prompt(');
+  });
+
+  it('renders the required editor controls and validation flow', () => {
+    const editorSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadEditorScene.ts'), 'utf8');
+
+    expect(editorSource).toContain('Сохранить');
+    expect(editorSource).toContain('Сбросить состав');
+    expect(editorSource).toContain('Назад');
+    expect(editorSource).toContain('Полевые игроки');
+    expect(editorSource).toContain('Вратари');
+    expect(editorSource).toContain('Основной');
+    expect(editorSource).toContain('validateSquad(draftSquad)');
+    expect(editorSource).toContain('saveSquad(draftSquad)');
+    expect(editorSource).toContain('resetSquad(this.teamId)');
   });
 });
 
@@ -38,6 +64,7 @@ describe('squad editor draft helpers', () => {
     const draft = createDraftSquadFromValues(values);
 
     expect(draft.teamId).toBe('pl');
+    expect(draft.flagCode).toBe('pl');
     expect(draft.fieldPlayers['9']).toEqual({
       rank: '9',
       name: 'Lewandowski',

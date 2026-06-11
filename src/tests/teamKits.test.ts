@@ -1,183 +1,183 @@
-import { existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
-  createTeamKitConfig,
-  DEFAULT_FIELD_KIT,
-  FIELD_KIT_VARIANTS,
-  GOALKEEPER_KIT_IDS,
-  getGoalkeeperKitAssetKey,
-  getGoalkeeperKitAssetPath,
-  getAllKitAssetDescriptors,
-  getGoalkeeperKitAssetDescriptors,
-  getTeamKitAssetDescriptors,
-  getTeamKitAssetKey,
-  getTeamKitAssetPath,
-  loadAvailableKitTextures,
-  TEAM_KIT_CONFIGS,
-  type FieldKitVariant,
+  AVAILABLE_GOALKEEPER_KIT_IDS,
+  AVAILABLE_MANUAL_KIT_FLAG_CODES,
+  DEFAULT_KIT_IMAGE_SCALE,
+  DEFAULT_SHIRT_NUMBER_STYLE,
+  GOALKEEPER_KIT_STYLES,
+  KIT_IMAGE_SIZE,
+  SHIRT_NUMBER_ANCHOR,
+  TEAM_KIT_STYLES,
+  getGoalkeeperKitStyle,
+  getTeamKitStyle,
+  hasManualGoalkeeperKit,
+  hasManualTeamKit,
+  validateTeamKitStylesAgainstNationalTeams,
   type GoalkeeperKitId,
-  type MatchTeamKitSelection
+  type GoalkeeperKitStyle,
+  type ShirtNumberAnchor,
+  type TeamKitStyle
 } from '../data/teamKits';
 
-describe('team kit configuration', () => {
-  it('defines the field kit and goalkeeper kit type contracts', () => {
-    expectTypeOf<FieldKitVariant>().toEqualTypeOf<'home' | 'away'>();
-    expectTypeOf<GoalkeeperKitId>().toEqualTypeOf<'gk-1' | 'gk-2' | 'gk-3' | 'gk-4'>();
-    expectTypeOf<MatchTeamKitSelection>().toEqualTypeOf<{
-      fieldKit: FieldKitVariant;
-      goalkeeperKitId: GoalkeeperKitId;
+const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
+
+describe('team kit data contract', () => {
+  it('defines the Stage 1 kit types and shared constants', () => {
+    expectTypeOf<ShirtNumberAnchor>().toEqualTypeOf<{
+      x: number;
+      y: number;
+    }>();
+    expectTypeOf<TeamKitStyle>().toMatchTypeOf<{
+      flagCode: string;
+      assetKey: string;
+      path: string;
+      primaryColor: string;
+      secondaryColor: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
+    }>();
+    expectTypeOf<GoalkeeperKitId>().toEqualTypeOf<'gk-1' | 'gk-2'>();
+    expectTypeOf<GoalkeeperKitStyle>().toMatchTypeOf<{
+      id: GoalkeeperKitId;
+      assetKey: string;
+      path: string;
+      primaryColor: string;
+      secondaryColor: string;
+      shirtNumberColor: string;
+      shirtNumberStrokeColor: string;
     }>();
 
-    expect(FIELD_KIT_VARIANTS).toEqual(['home', 'away']);
-    expect(GOALKEEPER_KIT_IDS).toEqual(['gk-1', 'gk-2', 'gk-3', 'gk-4']);
-    expect(DEFAULT_FIELD_KIT).toBe('home');
+    expect(SHIRT_NUMBER_ANCHOR).toEqual({ x: 0.5, y: 0.31 });
+    expect(KIT_IMAGE_SIZE).toEqual({ width: 384, height: 420 });
+    expect(DEFAULT_KIT_IMAGE_SCALE).toBe(1);
+    expect(DEFAULT_SHIRT_NUMBER_STYLE).toEqual({
+      fontFamily: 'Arial Black',
+      fontSize: 17,
+      strokeThickness: 2
+    });
   });
 
-  it('builds stable field kit asset keys and paths', () => {
-    expect(getTeamKitAssetKey('pl', 'home')).toBe('kit-team-pl-home');
-    expect(getTeamKitAssetKey('gb-eng', 'away')).toBe('kit-team-gb-eng-away');
-    expect(getTeamKitAssetPath('pl', 'home')).toBe('kits/teams/pl/home.png');
-    expect(getTeamKitAssetPath('gb-eng', 'away')).toBe('kits/teams/gb-eng/away.png');
+  it('defines exactly 64 team kit styles matching national teams', () => {
+    expect(TEAM_KIT_STYLES).toHaveLength(64);
+    expect(NATIONAL_TEAMS).toHaveLength(64);
+
+    const styleFlagCodes = TEAM_KIT_STYLES.map((style) => style.flagCode).sort();
+    const nationalFlagCodes = NATIONAL_TEAMS.map((team) => team.flagCode).sort();
+
+    expect(styleFlagCodes).toEqual(nationalFlagCodes);
+    expect(new Set(styleFlagCodes).size).toBe(64);
   });
 
-  it('builds stable goalkeeper kit asset keys and paths', () => {
-    expect(getGoalkeeperKitAssetKey('gk-1')).toBe('kit-goalkeeper-gk-1');
-    expect(getGoalkeeperKitAssetKey('gk-4')).toBe('kit-goalkeeper-gk-4');
-    expect(getGoalkeeperKitAssetPath('gk-1')).toBe('kits/goalkeepers/gk-1.png');
-    expect(getGoalkeeperKitAssetPath('gk-4')).toBe('kits/goalkeepers/gk-4.png');
-  });
+  it('uses valid team kit colors, keys, and image paths', () => {
+    const assetKeys = new Set<string>();
+    const paths = new Set<string>();
 
-  it('can derive expected kit asset keys for every national team', () => {
-    expect(TEAM_KIT_CONFIGS).toHaveLength(NATIONAL_TEAMS.length);
+    for (const style of TEAM_KIT_STYLES) {
+      expect(style.assetKey).toBe(`kit-${style.flagCode}`);
+      expect(style.path).toBe(`kits/images/${style.flagCode}.png`);
+      expect(style.assetKey.startsWith('kit-')).toBe(true);
+      expect(style.path.startsWith('kits/images/')).toBe(true);
+      expect(style.path.endsWith('.png')).toBe(true);
+      expect(style.primaryColor).toMatch(HEX_COLOR_PATTERN);
+      expect(style.secondaryColor).toMatch(HEX_COLOR_PATTERN);
+      expect(style.shirtNumberColor).toMatch(HEX_COLOR_PATTERN);
+      expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
+      expect(assetKeys.has(style.assetKey)).toBe(false);
+      expect(paths.has(style.path)).toBe(false);
 
-    for (const team of NATIONAL_TEAMS) {
-      const config = createTeamKitConfig(team.flagCode);
-
-      expect(config).toEqual({
-        teamId: team.flagCode,
-        homeAssetKey: `kit-team-${team.flagCode}-home`,
-        awayAssetKey: `kit-team-${team.flagCode}-away`
-      });
-      expect(TEAM_KIT_CONFIGS).toContainEqual(config);
+      assetKeys.add(style.assetKey);
+      paths.add(style.path);
     }
   });
 
-  it('describes every optional kit png that can be loaded', () => {
-    expect(getTeamKitAssetDescriptors('fr')).toEqual([
-      {
-        kind: 'field',
-        textureKey: 'kit-team-fr-home',
-        path: 'kits/teams/fr/home.png'
-      },
-      {
-        kind: 'field',
-        textureKey: 'kit-team-fr-away',
-        path: 'kits/teams/fr/away.png'
-      }
-    ]);
-    expect(getGoalkeeperKitAssetDescriptors()).toEqual([
-      {
-        kind: 'goalkeeper',
-        textureKey: 'kit-goalkeeper-gk-1',
-        path: 'kits/goalkeepers/gk-1.png'
-      },
-      {
-        kind: 'goalkeeper',
-        textureKey: 'kit-goalkeeper-gk-2',
-        path: 'kits/goalkeepers/gk-2.png'
-      },
-      {
-        kind: 'goalkeeper',
-        textureKey: 'kit-goalkeeper-gk-3',
-        path: 'kits/goalkeepers/gk-3.png'
-      },
-      {
-        kind: 'goalkeeper',
-        textureKey: 'kit-goalkeeper-gk-4',
-        path: 'kits/goalkeepers/gk-4.png'
-      }
-    ]);
-    expect(getAllKitAssetDescriptors()).toHaveLength(NATIONAL_TEAMS.length * 2 + 4);
+  it('provides helper lookup for required example teams', () => {
+    expect(getTeamKitStyle('pl')).toMatchObject({
+      flagCode: 'pl',
+      assetKey: 'kit-pl',
+      path: 'kits/images/pl.png'
+    });
+    expect(getTeamKitStyle('ua')).toMatchObject({
+      flagCode: 'ua',
+      assetKey: 'kit-ua',
+      path: 'kits/images/ua.png'
+    });
+    expect(getTeamKitStyle('br')).toMatchObject({
+      flagCode: 'br',
+      assetKey: 'kit-br',
+      path: 'kits/images/br.png'
+    });
+    expect(getTeamKitStyle('gb-eng')).toMatchObject({
+      flagCode: 'gb-eng',
+      assetKey: 'kit-gb-eng',
+      path: 'kits/images/gb-eng.png'
+    });
+    expect(getTeamKitStyle('gb-sct')).toMatchObject({
+      flagCode: 'gb-sct',
+      assetKey: 'kit-gb-sct',
+      path: 'kits/images/gb-sct.png'
+    });
+    expect(getTeamKitStyle('gb-wls')).toMatchObject({
+      flagCode: 'gb-wls',
+      assetKey: 'kit-gb-wls',
+      path: 'kits/images/gb-wls.png'
+    });
+    expect(getTeamKitStyle('unknown')).toBeUndefined();
   });
 
-  it('quietly loads only reachable optional kit textures', async () => {
-    const originalFetch = globalThis.fetch;
-    const originalImage = globalThis.Image;
-    const addedTextureKeys: string[] = [];
-
-    Object.defineProperty(globalThis, 'fetch', {
-      configurable: true,
-      value: async (path: string) =>
-        ({
-          ok: path.endsWith('/home.png'),
-          headers: {
-            get: (name: string) =>
-              name.toLowerCase() === 'content-type' && path.endsWith('/home.png')
-                ? 'image/png'
-                : 'text/html'
-          }
-        }) as Response
-    });
-    Object.defineProperty(globalThis, 'Image', {
-      configurable: true,
-      value: class {
-        public onerror: (() => void) | null = null;
-        public onload: (() => void) | null = null;
-
-        public set src(_path: string) {
-          setTimeout(() => this.onload?.(), 0);
-        }
+  it('defines exactly two goalkeeper kit styles and no gk-3 or gk-4', () => {
+    expect(GOALKEEPER_KIT_STYLES).toEqual([
+      {
+        id: 'gk-1',
+        assetKey: 'kit-gk-1',
+        path: 'kits/images/gk-1.png',
+        primaryColor: '#111111',
+        secondaryColor: '#3A3A3A',
+        shirtNumberColor: '#FFFFFF',
+        shirtNumberStrokeColor: '#111111'
+      },
+      {
+        id: 'gk-2',
+        assetKey: 'kit-gk-2',
+        path: 'kits/images/gk-2.png',
+        primaryColor: '#FFB81C',
+        secondaryColor: '#111111',
+        shirtNumberColor: '#111111',
+        shirtNumberStrokeColor: '#FFFFFF'
       }
-    });
-
-    try {
-      const summary = await loadAvailableKitTextures(
-        {
-          textures: {
-            exists: () => false,
-            addImage: (textureKey) => {
-              addedTextureKeys.push(textureKey);
-            }
-          }
-        },
-        [
-          {
-            kind: 'field',
-            textureKey: 'kit-team-fr-home',
-            path: 'kits/teams/fr/home.png'
-          },
-          {
-            kind: 'field',
-            textureKey: 'kit-team-fr-away',
-            path: 'kits/teams/fr/away.png'
-          }
-        ],
-        { timeoutMs: 50 }
-      );
-
-      expect(addedTextureKeys).toEqual(['kit-team-fr-home']);
-      expect(summary.loadedTextureKeys).toEqual(['kit-team-fr-home']);
-      expect(summary.skippedTextureKeys).toEqual(['kit-team-fr-away']);
-    } finally {
-      Object.defineProperty(globalThis, 'fetch', {
-        configurable: true,
-        value: originalFetch
-      });
-      Object.defineProperty(globalThis, 'Image', {
-        configurable: true,
-        value: originalImage
-      });
-    }
+    ]);
+    expect(GOALKEEPER_KIT_STYLES.map((style) => style.id)).not.toContain('gk-3');
+    expect(GOALKEEPER_KIT_STYLES.map((style) => style.id)).not.toContain('gk-4');
+    expect(getGoalkeeperKitStyle('gk-1')?.assetKey).toBe('kit-gk-1');
+    expect(getGoalkeeperKitStyle('gk-2')?.path).toBe('kits/images/gk-2.png');
   });
 
-  it('prepares the kit asset folders and documentation', () => {
-    const kitsPath = join(process.cwd(), 'public', 'kits');
+  it('keeps the shirt number anchor in normalized coordinates', () => {
+    expect(SHIRT_NUMBER_ANCHOR.x).toBeGreaterThanOrEqual(0);
+    expect(SHIRT_NUMBER_ANCHOR.x).toBeLessThanOrEqual(1);
+    expect(SHIRT_NUMBER_ANCHOR.y).toBeGreaterThanOrEqual(0);
+    expect(SHIRT_NUMBER_ANCHOR.y).toBeLessThanOrEqual(1);
+  });
 
-    expect(existsSync(kitsPath)).toBe(true);
-    expect(existsSync(join(kitsPath, 'README.md'))).toBe(true);
-    expect(existsSync(join(kitsPath, 'teams'))).toBe(true);
-    expect(existsSync(join(kitsPath, 'goalkeepers'))).toBe(true);
+  it('allows empty manual PNG registries', () => {
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.size).toBe(0);
+    expect(AVAILABLE_GOALKEEPER_KIT_IDS.size).toBe(0);
+    expect(hasManualTeamKit('pl')).toBe(false);
+    expect(hasManualGoalkeeperKit('gk-1')).toBe(false);
+  });
+
+  it('validates the complete team kit contract against national teams', () => {
+    expect(() => validateTeamKitStylesAgainstNationalTeams()).not.toThrow();
+  });
+
+  it('does not import sharp in runtime kit data', () => {
+    const teamKitsSource = readFileSync(join(process.cwd(), 'src', 'data', 'teamKits.ts'), 'utf8');
+
+    expect(teamKitsSource).not.toContain("from 'sharp'");
+    expect(teamKitsSource).not.toContain('from "sharp"');
+    expect(teamKitsSource).not.toContain("require('sharp')");
+    expect(teamKitsSource).not.toContain('require("sharp")');
   });
 });

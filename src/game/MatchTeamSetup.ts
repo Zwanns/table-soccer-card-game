@@ -35,7 +35,8 @@ export function pickGoalkeeperKitId(random: RandomGenerator): GoalkeeperKitId {
 
 export function cloneNationalTeamSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
-    teamId: squad.teamId,
+    flagCode: squad.flagCode,
+    teamId: squad.flagCode,
     fieldPlayers: Object.fromEntries(
       Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])
     ) as NationalTeamSquad['fieldPlayers'],

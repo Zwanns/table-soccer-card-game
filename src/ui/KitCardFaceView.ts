@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { CardColor } from '../cards';
-import { getFallbackKitColors, type FallbackKitColorScheme } from './kitFallback';
+import type { ResolvedKitAsset } from '../game/kitAssetResolver';
+import { getShirtNumberLayout } from './kitCardFaceModel';
+import { getFallbackKitColors } from './kitFallback';
 
 const CARD_WIDTH = 108;
 const CARD_HEIGHT = 148.5;
@@ -11,12 +13,20 @@ export interface KitCardFaceViewOptions {
   highlighted?: boolean;
   shirtNumber?: number;
   kitTextureKey?: string;
+  kitAsset?: ResolvedKitAsset;
 }
 
 const KIT_BOUNDS = {
   width: 76,
   height: 98
 } as const;
+
+type RenderedKitColorScheme = {
+  shirt: number;
+  shorts: number;
+  accent: number;
+  number: string;
+};
 
 export class KitCardFaceView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
@@ -34,6 +44,14 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   }
 
   private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
+    if (options.kitAsset?.type === 'image' && scene.textures.exists(options.kitAsset.assetKey)) {
+      const image = scene.add.image(0, 8, options.kitAsset.assetKey);
+      const scale = Math.min(KIT_BOUNDS.width / image.width, KIT_BOUNDS.height / image.height);
+      image.setScale(scale);
+      this.add(image);
+      return;
+    }
+
     if (options.kitTextureKey !== undefined && scene.textures.exists(options.kitTextureKey)) {
       const image = scene.add.image(0, 8, options.kitTextureKey);
       const scale = Math.min(KIT_BOUNDS.width / image.width, KIT_BOUNDS.height / image.height);
@@ -42,7 +60,12 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       return;
     }
 
-    this.add(createFallbackKitGraphics(scene, getFallbackKitColors(options.teamColor)));
+    const fallbackColors =
+      options.kitAsset?.type === 'fallback'
+        ? getResolvedFallbackKitColors(options.kitAsset)
+        : getFallbackKitColors(options.teamColor);
+
+    this.add(createFallbackKitGraphics(scene, fallbackColors));
   }
 
   private addShirtNumber(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
@@ -50,15 +73,21 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       return;
     }
 
-    const colors = getFallbackKitColors(options.teamColor);
+    const color =
+      options.kitAsset?.shirtNumberColor ??
+      getFallbackKitColors(options.teamColor).number;
+    const stroke =
+      options.kitAsset?.shirtNumberStrokeColor ??
+      '#000000';
+    const position = getShirtNumberLayout();
     const number = scene.add
-      .text(0, -8, String(options.shirtNumber), {
+      .text(position.x, position.y, String(options.shirtNumber), {
         align: 'center',
-        color: colors.number,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+        color,
+        fontFamily: 'Arial Black, Arial, sans-serif',
+        fontSize: '18px',
         fontStyle: '700',
-        stroke: '#000000',
+        stroke,
         strokeThickness: 2
       })
       .setOrigin(0.5);
@@ -80,7 +109,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   }
 }
 
-function createFallbackKitGraphics(scene: Phaser.Scene, colors: FallbackKitColorScheme): Phaser.GameObjects.Graphics {
+function createFallbackKitGraphics(scene: Phaser.Scene, colors: RenderedKitColorScheme): Phaser.GameObjects.Graphics {
   const graphics = scene.add.graphics();
 
   graphics.fillStyle(colors.accent, 1);
@@ -96,16 +125,10 @@ function createFallbackKitGraphics(scene: Phaser.Scene, colors: FallbackKitColor
   graphics.fillRoundedRect(-24, 24, 20, 28, 4);
   graphics.fillRoundedRect(4, 24, 20, 28, 4);
 
-  graphics.fillStyle(colors.socks, 1);
-  graphics.fillRoundedRect(-22, 56, 14, 34, 4);
-  graphics.fillRoundedRect(8, 56, 14, 34, 4);
-
   graphics.lineStyle(2, 0x1f2a2e, 0.72);
   graphics.strokeRoundedRect(-24, -36, 48, 58, 8);
   graphics.strokeRoundedRect(-24, 24, 20, 28, 4);
   graphics.strokeRoundedRect(4, 24, 20, 28, 4);
-  graphics.strokeRoundedRect(-22, 56, 14, 34, 4);
-  graphics.strokeRoundedRect(8, 56, 14, 34, 4);
 
   graphics.setScale(0.82);
   graphics.y = -2;
@@ -115,4 +138,17 @@ function createFallbackKitGraphics(scene: Phaser.Scene, colors: FallbackKitColor
 
 function getRankColor(teamColor?: CardColor): string {
   return teamColor === 'RED' ? '#b72f37' : '#1f2a2e';
+}
+
+function getResolvedFallbackKitColors(asset: Extract<ResolvedKitAsset, { type: 'fallback' }>): RenderedKitColorScheme {
+  return {
+    shirt: hexColorToNumber(asset.primaryColor),
+    shorts: hexColorToNumber(asset.secondaryColor),
+    accent: hexColorToNumber(asset.secondaryColor),
+    number: asset.shirtNumberColor
+  };
+}
+
+function hexColorToNumber(value: string): number {
+  return Number.parseInt(value.replace('#', ''), 16);
 }

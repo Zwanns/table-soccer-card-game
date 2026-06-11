@@ -244,7 +244,7 @@ function createFinishedGameState(): GameState {
         playerId: 'PLAYER_1',
         turnNumber: 2,
         scorer: {
-          playerName: 'Player A',
+          playerName: 'Игрок A',
           shirtNumber: 17,
           rank: 'A',
           teamId: 'fr'

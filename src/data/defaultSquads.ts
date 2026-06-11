@@ -21,23 +21,24 @@ const DEFAULT_FIELD_SHIRT_NUMBERS: Record<CardRank, number> = {
   JOKER: 99
 };
 
-export function createDefaultSquad(teamId: string): NationalTeamSquad {
+export function createDefaultSquad(flagCode: string): NationalTeamSquad {
   return {
-    teamId,
+    flagCode,
+    teamId: flagCode,
     fieldPlayers: createDefaultFieldPlayers(),
     goalkeepers: [
       {
-        id: `${teamId}-gk-1`,
-        name: 'Goalkeeper 1',
+        id: `${flagCode}-gk-1`,
+        name: 'Вратарь 1',
         shirtNumber: 1
       },
       {
-        id: `${teamId}-gk-2`,
-        name: 'Goalkeeper 2',
+        id: `${flagCode}-gk-2`,
+        name: 'Вратарь 2',
         shirtNumber: 12
       }
     ],
-    defaultStartingGoalkeeperId: `${teamId}-gk-1`
+    defaultStartingGoalkeeperId: `${flagCode}-gk-1`
   };
 }
 
@@ -51,7 +52,7 @@ function createDefaultFieldPlayers(): Record<CardRank, FieldSquadMember> {
       rank,
       {
         rank,
-        name: `Player ${rank}`,
+        name: `Игрок ${rank}`,
         shirtNumber: DEFAULT_FIELD_SHIRT_NUMBERS[rank]
       }
     ])

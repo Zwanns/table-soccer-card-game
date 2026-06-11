@@ -3,6 +3,7 @@ import type { CardColor } from '../cards';
 import { CardTooltipView } from './CardTooltipView';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { KitCardFaceView } from './KitCardFaceView';
+import { prepareKitCardFace } from './kitCardFaceModel';
 
 export interface CardViewOptions {
   rank: string;
@@ -33,13 +34,19 @@ export class CardView extends Phaser.GameObjects.Container {
       body.setStrokeStyle(options.highlighted === true ? 5 : 2, options.highlighted === true ? 0xf0c95a : 0x7bb8d8);
       this.add(body);
     } else {
+      const face = prepareKitCardFace({
+        rank: options.rank,
+        playerProfile: options.playerProfile
+      });
+
       this.add(
         new KitCardFaceView(scene, 0, 0, {
-          rank: options.rank,
+          rank: face.rank,
           teamColor: options.color,
           highlighted: options.highlighted,
-          shirtNumber: options.playerProfile?.shirtNumber,
-          kitTextureKey: options.kitTextureKey
+          shirtNumber: face.shirtNumber,
+          kitTextureKey: options.kitTextureKey,
+          kitAsset: face.kitAsset ?? undefined
         })
       );
     }
