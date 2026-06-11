@@ -1,0 +1,482 @@
+{
+  "generatedAt": "2026-06-11T09:12:23.676Z",
+  "args": {
+    "force": true,
+    "clearCache": false,
+    "debug": true
+  },
+  "teams": [
+    {
+      "teamId": "poland",
+      "wikipediaTitle": "Сборная Польши по футболу",
+      "status": "SUCCESS",
+      "kits": [
+        {
+          "variant": "home",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\poland\\home.png",
+          "extractedParams": {
+            "patternLeftArm": "pol24h",
+            "patternBody": "pol24h",
+            "patternRightArm": "pol24h",
+            "patternShorts": "pol24h",
+            "leftArmColor": "FFFFFF",
+            "bodyColor": "FFFFFF",
+            "rightArmColor": "FFFFFF",
+            "shortsColor": "F40018",
+            "ignoredSocksColor": "FFFFFF"
+          },
+          "ignoredSocks": {
+            "color": "FFFFFF"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm pol24h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Kit_left_arm_pol24h.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body pol24h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Kit_body_pol24h.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm pol24h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Kit_right_arm_pol24h.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts pol24h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/70/Kit_shorts_pol24h.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        },
+        {
+          "variant": "away",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\poland\\away.png",
+          "extractedParams": {
+            "patternLeftArm": "pol24a",
+            "patternBody": "pol24a",
+            "patternRightArm": "pol24a",
+            "patternShorts": "pol24a",
+            "leftArmColor": "F40018",
+            "bodyColor": "F40018",
+            "rightArmColor": "F40018",
+            "shortsColor": "F40018",
+            "ignoredSocksColor": "F40018"
+          },
+          "ignoredSocks": {
+            "color": "F40018"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm pol24a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/3/39/Kit_left_arm_pol24a.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body pol24a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Kit_body_pol24a.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm pol24a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Kit_right_arm_pol24a.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts pol24a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/6/61/Kit_shorts_pol24a.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "revisionId": 152742924
+    },
+    {
+      "teamId": "ukraine",
+      "wikipediaTitle": "Сборная Украины по футболу",
+      "status": "SUCCESS",
+      "kits": [
+        {
+          "variant": "home",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\ukraine\\home.png",
+          "extractedParams": {
+            "patternLeftArm": "ukr26h",
+            "patternBody": "ukr26hA",
+            "patternRightArm": "ukr26h",
+            "patternShorts": "ukr26h",
+            "leftArmColor": "F9E733",
+            "bodyColor": "F9E733",
+            "rightArmColor": "F9E733",
+            "shortsColor": "F9E733",
+            "ignoredSocksColor": "F9E733"
+          },
+          "ignoredSocks": {
+            "color": "F9E733"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm ukr26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Kit_left_arm_ukr26h.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body ukr26hA.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Kit_body_ukr26hA.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm ukr26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Kit_right_arm_ukr26h.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts ukr26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Kit_shorts_ukr26h.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        },
+        {
+          "variant": "away",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\ukraine\\away.png",
+          "extractedParams": {
+            "patternLeftArm": "ukr26a",
+            "patternBody": "ukr26aA",
+            "patternRightArm": "ukr26a",
+            "patternShorts": "ukr26a",
+            "leftArmColor": "085CB9",
+            "bodyColor": "085CB9",
+            "rightArmColor": "085CB9",
+            "shortsColor": "085CB9",
+            "ignoredSocksColor": "085CB9",
+            "ignoredSocksPattern": "ukr26al"
+          },
+          "ignoredSocks": {
+            "color": "085CB9",
+            "pattern": "ukr26al"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm ukr26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Kit_left_arm_ukr26a.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body ukr26aA.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/0/07/Kit_body_ukr26aA.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm ukr26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/5/58/Kit_right_arm_ukr26a.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts ukr26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/4/45/Kit_shorts_ukr26a.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "revisionId": 153450252
+    },
+    {
+      "teamId": "brazil",
+      "wikipediaTitle": "Сборная Бразилии по футболу",
+      "status": "SUCCESS",
+      "kits": [
+        {
+          "variant": "home",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\brazil\\home.png",
+          "extractedParams": {
+            "patternLeftArm": "bra26h",
+            "patternBody": "bra26h",
+            "patternRightArm": "bra26h",
+            "patternShorts": "bra26h",
+            "leftArmColor": "FFE540",
+            "bodyColor": "FFE540",
+            "rightArmColor": "FFE540",
+            "shortsColor": "4080FF",
+            "ignoredSocksColor": "FFFFFF",
+            "ignoredSocksPattern": "bra26hl"
+          },
+          "ignoredSocks": {
+            "color": "FFFFFF",
+            "pattern": "bra26hl"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm bra26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Kit_left_arm_bra26h.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body bra26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5b/Kit_body_bra26h.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm bra26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Kit_right_arm_bra26h.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts bra26h.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Kit_shorts_bra26h.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        },
+        {
+          "variant": "away",
+          "status": "SUCCESS",
+          "outputPath": "public\\kits\\imported\\brazil\\away.png",
+          "extractedParams": {
+            "patternLeftArm": "bra26a",
+            "patternBody": "bra26a",
+            "patternRightArm": "bra26a",
+            "patternShorts": "bra26a1",
+            "leftArmColor": "2A4A9F",
+            "bodyColor": "2A4A9F",
+            "rightArmColor": "2A4A9F",
+            "shortsColor": "2A4A9F",
+            "ignoredSocksColor": "0F0F0F"
+          },
+          "ignoredSocks": {
+            "color": "0F0F0F"
+          },
+          "resolvedFiles": [
+            {
+              "part": "leftArm",
+              "kind": "base",
+              "title": "File:Kit left arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Kit_left_arm.svg/960px-Kit_left_arm.svg.png"
+            },
+            {
+              "part": "body",
+              "kind": "base",
+              "title": "File:Kit body.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Kit_body.svg/960px-Kit_body.svg.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "base",
+              "title": "File:Kit right arm.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Kit_right_arm.svg/960px-Kit_right_arm.svg.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "base",
+              "title": "File:Kit shorts.svg",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Kit_shorts.svg/960px-Kit_shorts.svg.png"
+            },
+            {
+              "part": "leftArm",
+              "kind": "pattern",
+              "title": "File:Kit left arm bra26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Kit_left_arm_bra26a.png"
+            },
+            {
+              "part": "body",
+              "kind": "pattern",
+              "title": "File:Kit body bra26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kit_body_bra26a.png"
+            },
+            {
+              "part": "rightArm",
+              "kind": "pattern",
+              "title": "File:Kit right arm bra26a.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Kit_right_arm_bra26a.png"
+            },
+            {
+              "part": "shorts",
+              "kind": "pattern",
+              "title": "File:Kit shorts bra26a1.png",
+              "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Kit_shorts_bra26a1.png"
+            }
+          ],
+          "missingPatterns": [],
+          "fallbackLayers": [],
+          "warnings": [],
+          "errors": []
+        }
+      ],
+      "warnings": [],
+      "errors": [],
+      "revisionId": 153470678
+    }
+  ]
+}

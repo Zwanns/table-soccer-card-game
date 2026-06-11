@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-06-11T09:16:13.018Z",
+  "source": "ru.wikipedia.org + commons.wikimedia.org",
+  "ignoredSocks": true,
+  "teams": {
+    "poland": {
+      "home": {
+        "path": "poland/home.png",
+        "wikipediaTitle": "Сборная Польши по футболу",
+        "revisionId": 152742924,
+        "warnings": []
+      },
+      "away": {
+        "path": "poland/away.png",
+        "wikipediaTitle": "Сборная Польши по футболу",
+        "revisionId": 152742924,
+        "warnings": []
+      }
+    },
+    "ukraine": {
+      "home": {
+        "path": "ukraine/home.png",
+        "wikipediaTitle": "Сборная Украины по футболу",
+        "revisionId": 153450252,
+        "warnings": []
+      },
+      "away": {
+        "path": "ukraine/away.png",
+        "wikipediaTitle": "Сборная Украины по футболу",
+        "revisionId": 153450252,
+        "warnings": []
+      }
+    },
+    "brazil": {
+      "home": {
+        "path": "brazil/home.png",
+        "wikipediaTitle": "Сборная Бразилии по футболу",
+        "revisionId": 153470678,
+        "warnings": []
+      },
+      "away": {
+        "path": "brazil/away.png",
+        "wikipediaTitle": "Сборная Бразилии по футболу",
+        "revisionId": 153470678,
+        "warnings": []
+      }
+    }
+  }
+}

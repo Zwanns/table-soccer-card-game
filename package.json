@@ -7,14 +7,20 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "import:kits:test": "tsx scripts/wiki-kits/index.ts",
+    "import:kits:team": "tsx scripts/wiki-kits/index.ts --team",
+    "import:kits:clear-cache": "tsx scripts/wiki-kits/index.ts --clear-cache",
+    "test:kits-importer": "vitest run src/tests/wikiKitsImporter.test.ts"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "sharp": "^0.35.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "flag-icons": "^7.5.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^4.1.8"
