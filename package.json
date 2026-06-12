@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.7",
+    "@fontsource/bangers": "^5.2.8",
     "@fontsource/oswald": "^5.2.8",
     "phaser": "^3.90.0",
     "sharp": "^0.35.0"
