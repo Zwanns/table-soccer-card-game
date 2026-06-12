@@ -61,12 +61,12 @@ function state(playerOneDeck: CardRank[], playerTwoDeck: CardRank[]): GameState 
       PLAYER_1: createMatchTeamSetup({
         teamId: 'fr',
         squad: createDefaultSquad('fr'),
-        goalkeeperKitId: 'gk-1'
+        goalkeeperKitId: 'gk1'
       }),
       PLAYER_2: createMatchTeamSetup({
         teamId: 'es',
         squad: createDefaultSquad('es'),
-        goalkeeperKitId: 'gk-2'
+        goalkeeperKitId: 'gk2'
       })
     },
     activePlayerId: 'PLAYER_1',
@@ -343,12 +343,12 @@ describe('game engine attacks', () => {
     gameState.matchSetups.PLAYER_1 = createMatchTeamSetup({
       teamId: 'fr',
       squad: franceSquad,
-      goalkeeperKitId: 'gk-1'
+      goalkeeperKitId: 'gk1'
     });
     gameState.matchSetups.PLAYER_2 = createMatchTeamSetup({
       teamId: 'es',
       squad: spainSquad,
-      goalkeeperKitId: 'gk-2'
+      goalkeeperKitId: 'gk2'
     });
     fillField(gameState.players[0].field);
     gameState.players[0].deck.cards[0] = {

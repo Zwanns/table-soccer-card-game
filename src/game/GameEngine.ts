@@ -532,12 +532,12 @@ function createDefaultMatchSetups(players: [Player, Player]): MatchTeamSetups {
     [players[0].id]: createMatchTeamSetup({
       teamId: players[0].flagCode,
       squad: createDefaultSquad(players[0].flagCode),
-      goalkeeperKitId: 'gk-1'
+      goalkeeperKitId: 'gk1'
     }),
     [players[1].id]: createMatchTeamSetup({
       teamId: players[1].flagCode,
       squad: createDefaultSquad(players[1].flagCode),
-      goalkeeperKitId: 'gk-2'
+      goalkeeperKitId: 'gk2'
     })
   };
 }

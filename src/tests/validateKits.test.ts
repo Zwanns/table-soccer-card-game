@@ -11,26 +11,31 @@ const tempRoots: string[] = [];
 describe('kit validator', () => {
   afterEach(() => {
     for (const root of tempRoots.splice(0)) {
-      rmSync(root, { force: true, recursive: true });
+      try {
+        rmSync(root, { force: true, maxRetries: 5, recursive: true, retryDelay: 100 });
+      } catch {
+        // Windows can keep sharp-created temp files locked briefly after metadata reads.
+      }
     }
   });
 
-  it('accepts the current empty manual registries', async () => {
+  it('accepts the current WebP kit contract', async () => {
     await expect(validateRegisteredKits()).resolves.toEqual({
       errors: [],
       warnings: []
     });
   });
 
-  it('validates registered PNG files and attribution entries', async () => {
+  it('validates registered WebP files', async () => {
     const projectRoot = createTempProjectRoot();
     const style = getTeamKitStyle('pl');
 
     expect(style).toBeDefined();
-    await createPng(join(projectRoot, 'public', 'kits', 'images', 'pl.png'), true);
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
 
     const attribution: KitAttribution = {
-      'images/pl.png': {
+      'images/pl.webp': {
         license: 'CC BY-SA 4.0'
       }
     };
@@ -46,37 +51,36 @@ describe('kit validator', () => {
     });
   });
 
-  it('reports missing attribution, wrong size, and opaque PNG warnings for registry entries', async () => {
+  it('reports missing mandatory files, wrong size, and non-WebP files', async () => {
     const projectRoot = createTempProjectRoot();
 
-    await createPng(join(projectRoot, 'public', 'kits', 'images', 'gk-1.png'), false, 200, 200);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'none.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'gk1.webp'), 200, 200);
+    await createPng(join(projectRoot, 'public', 'kits', 'images', 'gk2.webp'));
 
     const result = await validateRegisteredKits({
-      projectRoot,
-      attribution: {},
-      goalkeeperKitIds: ['gk-1']
+      projectRoot
     });
 
-    expect(result.errors).toContain('goalkeeper kit gk-1: image size must be 384x420, got 200x200.');
-    expect(result.errors).toContain('goalkeeper kit gk-1: missing attribution entry "images/gk-1.png".');
-    expect(result.warnings).toContain('goalkeeper kit gk-1: Opaque PNG accepted because card face background is white.');
+    expect(result.errors).toContain('goalkeeper kit gk1: image size must be 130x150, got 200x200.');
+    expect(result.errors).toContain('goalkeeper kit gk2: file is not a WebP.');
+    expect(result.warnings).toEqual([]);
   });
 
-  it('documents the manual PNG contract and importer boundary', () => {
+  it('documents the WebP contract and importer boundary', () => {
     const readme = readFileSync(join(process.cwd(), 'public', 'kits', 'README.md'), 'utf8');
 
     expect(readme).toContain('public/kits/images/');
-    expect(readme).toContain('384 x 420 px');
-    expect(readme).toContain('Transparent background is preferred');
-    expect(readme).toContain('solid white background is temporarily accepted');
-    expect(readme).toContain('Include only the shirt and shorts');
-    expect(readme).toContain('Do not include socks');
+    expect(readme).toContain('130 x 150 px');
+    expect(readme).toContain('File must be readable as WebP');
+    expect(readme).toContain('File path must be inside `kits/images/`');
     expect(readme).toContain('Do not include a player number');
     expect(readme).toContain('Do not include the card rank');
     expect(readme).toContain('Do not include text or labels');
-    expect(readme).toContain('File name must be `<flagCode>.png`');
-    expect(readme).toContain('gk-1.png');
-    expect(readme).toContain('gk-2.png');
+    expect(readme).toContain('Field kit file name must be `<flagCode>.webp`');
+    expect(readme).toContain('none.webp');
+    expect(readme).toContain('gk1.webp');
+    expect(readme).toContain('gk2.webp');
     expect(readme).toContain('SHIRT_NUMBER_ANCHOR');
     expect(readme).toContain('scripts/wiki-kits/');
     expect(readme).toContain('public/kits/imported/');
@@ -87,20 +91,42 @@ describe('kit validator', () => {
     expect(existsSync(join(process.cwd(), 'public', 'kits', 'images'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'kits', 'ATTRIBUTION.json'))).toBe(true);
     expect(JSON.parse(readFileSync(join(process.cwd(), 'public', 'kits', 'ATTRIBUTION.json'), 'utf8'))).toEqual({});
-    expect(getGoalkeeperKitStyle('gk-1')?.path).toBe('kits/images/gk-1.png');
-    expect(getGoalkeeperKitStyle('gk-2')?.path).toBe('kits/images/gk-2.png');
+    expect(existsSync(join(process.cwd(), 'public', 'kits', 'images', 'none.webp'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'kits', 'images', 'gk1.webp'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'kits', 'images', 'gk2.webp'))).toBe(true);
+    expect(getGoalkeeperKitStyle('gk1')?.path).toBe('kits/images/gk1.webp');
+    expect(getGoalkeeperKitStyle('gk2')?.path).toBe('kits/images/gk2.webp');
   });
 });
 
-async function createPng(filePath: string, transparent: boolean, width = 384, height = 420): Promise<void> {
+async function createRequiredWebps(projectRoot: string): Promise<void> {
+  await Promise.all([
+    createWebp(join(projectRoot, 'public', 'kits', 'images', 'none.webp')),
+    createWebp(join(projectRoot, 'public', 'kits', 'images', 'gk1.webp')),
+    createWebp(join(projectRoot, 'public', 'kits', 'images', 'gk2.webp'))
+  ]);
+}
+
+async function createWebp(filePath: string, width = 130, height = 150): Promise<void> {
   await sharp({
     create: {
       width,
       height,
-      channels: transparent ? 4 : 3,
-      background: transparent
-        ? { r: 255, g: 255, b: 255, alpha: 0 }
-        : { r: 255, g: 255, b: 255 }
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 0 }
+    }
+  })
+    .webp()
+    .toFile(filePath);
+}
+
+async function createPng(filePath: string): Promise<void> {
+  await sharp({
+    create: {
+      width: 130,
+      height: 150,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 0 }
     }
   })
     .png()

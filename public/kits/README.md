@@ -1,6 +1,6 @@
 # Kit Assets
 
-Manual kit PNG files for Total Soccer: Mundial live in:
+Static kit WebP files for Total Soccer: Mundial live in:
 
 ```text
 public/kits/images/
@@ -9,40 +9,61 @@ public/kits/images/
 Field player kits use the `flagCode` from `src/data/nationalTeams.ts`:
 
 ```text
-public/kits/images/pl.png
-public/kits/images/ua.png
-public/kits/images/br.png
-public/kits/images/gb-eng.png
-public/kits/images/gb-sct.png
-public/kits/images/gb-wls.png
+public/kits/images/pl.webp
+public/kits/images/ua.webp
+public/kits/images/br.webp
+public/kits/images/gb-eng.webp
+public/kits/images/gb-wls.webp
 ```
 
-Universal goalkeeper kits use:
+Fallback for teams without a registered kit:
 
 ```text
-public/kits/images/gk-1.png
-public/kits/images/gk-2.png
+public/kits/images/none.webp
+```
+
+Universal goalkeeper kits:
+
+```text
+public/kits/images/gk1.webp
+public/kits/images/gk2.webp
 ```
 
 ## Image Requirements
 
-- PNG size: 384 x 420 px.
-- Transparent background is preferred.
-- A solid white background is temporarily accepted.
-- Include only the shirt and shorts.
-- Do not include socks.
+- WebP size: 130 x 150 px.
+- File must be readable as WebP.
+- File path must be inside `kits/images/`.
+- Field kit file name must be `<flagCode>.webp`.
+- Fallback file name must be `none.webp`.
+- Goalkeeper file names must be `gk1.webp` and `gk2.webp`.
+- Include only the kit artwork.
 - Do not include a player number.
 - Do not include the card rank.
 - Do not include text or labels.
 - Do not include a human figure or face.
-- File name must be `<flagCode>.png`.
-- Goalkeeper file names must be `gk-1.png` and `gk-2.png`.
 
 The player number is added programmatically. Its position is controlled by `SHIRT_NUMBER_ANCHOR` from `src/data/teamKits.ts`.
 
+## Registry
+
+Registered team kits are listed in `AVAILABLE_MANUAL_KIT_FLAG_CODES` in:
+
+```text
+src/data/teamKits.ts
+```
+
+The mandatory service files are not optional registry entries. The validator always requires:
+
+```text
+public/kits/images/none.webp
+public/kits/images/gk1.webp
+public/kits/images/gk2.webp
+```
+
 ## Attribution
 
-Every PNG listed in the manual registries must have an entry in:
+Attribution metadata may be kept in:
 
 ```text
 public/kits/ATTRIBUTION.json
@@ -52,7 +73,7 @@ Example:
 
 ```json
 {
-  "images/pl.png": {
+  "images/pl.webp": {
     "sourcePage": "",
     "sourceFilePage": "",
     "source": "Wikipedia / Wikimedia Commons",
@@ -71,4 +92,4 @@ Example:
 
 `public/kits/imported/` is not used by the game runtime.
 
-Manual PNG files must be copied into `public/kits/images/`.
+Runtime kit assets must be copied into `public/kits/images/` as WebP files.

@@ -12,9 +12,19 @@ import {
   prepareKitCardFace
 } from '../ui/kitCardFaceModel';
 
+const initialManualKitFlagCodes = new Set(AVAILABLE_MANUAL_KIT_FLAG_CODES);
+
+function restoreManualKitRegistry(): void {
+  AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
+
+  for (const flagCode of initialManualKitFlagCodes) {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
+  }
+}
+
 describe('card face profile resolver', () => {
   afterEach(() => {
-    AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
+    restoreManualKitRegistry();
   });
 
   it('resolves a field card profile from the real squad by team id and rank', () => {
@@ -42,7 +52,7 @@ describe('card face profile resolver', () => {
 
 describe('kit card face rendering contracts', () => {
   afterEach(() => {
-    AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
+    restoreManualKitRegistry();
   });
 
   it('defines readable fallback colors for both current team colors', () => {
@@ -94,6 +104,8 @@ describe('kit card face rendering contracts', () => {
 
   it('prepares image and fallback kit assets from the resolver', () => {
     const profile = getFieldCardPlayerProfile('pl', '9');
+
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
 
     expect(prepareKitCardFace({ rank: '9', playerProfile: profile })).toMatchObject({
       rank: '9',

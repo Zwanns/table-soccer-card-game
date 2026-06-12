@@ -40,27 +40,27 @@ describe('BootScene kit asset loading', () => {
     expect(getRegisteredKitAssetsToLoad()).toEqual([
       {
         assetKey: 'kit-pl',
-        path: 'kits/images/pl.png'
+        path: 'kits/images/pl.webp'
       },
       {
         assetKey: 'kit-ua',
-        path: 'kits/images/ua.png'
+        path: 'kits/images/ua.webp'
       }
     ]);
   });
 
   it('queues only registered goalkeeper kits', () => {
-    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk-1');
-    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk-2');
+    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk1');
+    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk2');
 
     expect(getRegisteredKitAssetsToLoad()).toEqual([
       {
-        assetKey: 'kit-gk-1',
-        path: 'kits/images/gk-1.png'
+        assetKey: 'kit-gk1',
+        path: 'kits/images/gk1.webp'
       },
       {
-        assetKey: 'kit-gk-2',
-        path: 'kits/images/gk-2.png'
+        assetKey: 'kit-gk2',
+        path: 'kits/images/gk2.webp'
       }
     ]);
   });

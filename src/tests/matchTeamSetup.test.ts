@@ -60,12 +60,12 @@ describe('match team setup snapshot', () => {
     const franceSetup = createMatchTeamSetup({
       teamId: 'fr',
       squad: franceSquad,
-      goalkeeperKitId: 'gk-1'
+      goalkeeperKitId: 'gk1'
     });
     const spainSetup = createMatchTeamSetup({
       teamId: 'es',
       squad: spainSquad,
-      goalkeeperKitId: 'gk-2'
+      goalkeeperKitId: 'gk2'
     });
     const capturedCard = card('Q');
 

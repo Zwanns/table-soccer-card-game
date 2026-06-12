@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import {
-  AVAILABLE_GOALKEEPER_KIT_IDS,
   AVAILABLE_MANUAL_KIT_FLAG_CODES,
   GOALKEEPER_KIT_STYLES,
   KIT_IMAGE_SIZE,
@@ -44,21 +43,34 @@ type RegisteredKit = {
   label: string;
   assetKey: string;
   path: string;
-  attributionKey: string;
 };
 
-type PngMetadata = {
+type ImageMetadata = {
   format?: string;
   width?: number;
   height?: number;
-  hasAlpha?: boolean;
 };
 
-const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const MANDATORY_KITS: readonly RegisteredKit[] = [
+  {
+    label: 'fallback kit none',
+    assetKey: 'kit-none',
+    path: 'kits/images/none.webp'
+  },
+  {
+    label: 'goalkeeper kit gk1',
+    assetKey: 'kit-gk1',
+    path: 'kits/images/gk1.webp'
+  },
+  {
+    label: 'goalkeeper kit gk2',
+    assetKey: 'kit-gk2',
+    path: 'kits/images/gk2.webp'
+  }
+];
 
 export async function validateRegisteredKits(options: ValidateKitsOptions = {}): Promise<ValidateKitsResult> {
   const projectRoot = options.projectRoot ?? process.cwd();
-  const attribution = options.attribution ?? readAttribution(projectRoot);
   const registeredKits = collectRegisteredKits(options);
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -67,6 +79,8 @@ export async function validateRegisteredKits(options: ValidateKitsOptions = {}):
   pushDuplicateErrors(errors, registeredKits.map((kit) => kit.path), 'path');
 
   for (const kit of registeredKits) {
+    validateKitPath(errors, kit);
+
     const filePath = join(projectRoot, 'public', kit.path);
 
     if (!existsSync(filePath)) {
@@ -74,19 +88,19 @@ export async function validateRegisteredKits(options: ValidateKitsOptions = {}):
       continue;
     }
 
-    if (!hasPngSignature(filePath)) {
-      errors.push(`${kit.label}: file is not a PNG.`);
+    if (!hasWebpSignature(filePath)) {
+      errors.push(`${kit.label}: file is not a WebP.`);
       continue;
     }
 
-    const metadata = await readPngMetadata(filePath, errors, kit.label);
+    const metadata = await readImageMetadata(filePath, errors, kit.label);
 
     if (metadata === null) {
       continue;
     }
 
-    if (metadata.format !== 'png') {
-      errors.push(`${kit.label}: image format must be PNG, got ${metadata.format ?? 'unknown'}.`);
+    if (metadata.format !== 'webp') {
+      errors.push(`${kit.label}: image format must be WebP, got ${metadata.format ?? 'unknown'}.`);
     }
 
     if (metadata.width !== KIT_IMAGE_SIZE.width || metadata.height !== KIT_IMAGE_SIZE.height) {
@@ -95,21 +109,6 @@ export async function validateRegisteredKits(options: ValidateKitsOptions = {}):
           metadata.width ?? 'unknown'
         }x${metadata.height ?? 'unknown'}.`
       );
-    }
-
-    if (await isOpaquePng(filePath, metadata.hasAlpha)) {
-      warnings.push(`${kit.label}: Opaque PNG accepted because card face background is white.`);
-    }
-
-    const attributionEntry = attribution[kit.attributionKey];
-
-    if (attributionEntry === undefined) {
-      errors.push(`${kit.label}: missing attribution entry "${kit.attributionKey}".`);
-      continue;
-    }
-
-    if ((attributionEntry.license ?? '').trim().length === 0) {
-      warnings.push(`${kit.label}: attribution license is empty.`);
     }
   }
 
@@ -120,8 +119,8 @@ function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
   const teamStyles = options.teamKitStyles ?? TEAM_KIT_STYLES;
   const goalkeeperStyles = options.goalkeeperKitStyles ?? GOALKEEPER_KIT_STYLES;
   const manualKitFlagCodes = [...(options.manualKitFlagCodes ?? AVAILABLE_MANUAL_KIT_FLAG_CODES)];
-  const goalkeeperKitIds = [...(options.goalkeeperKitIds ?? AVAILABLE_GOALKEEPER_KIT_IDS)];
-  const registeredKits: RegisteredKit[] = [];
+  const goalkeeperKitIds = [...(options.goalkeeperKitIds ?? [])];
+  const registeredKits: RegisteredKit[] = [...MANDATORY_KITS];
 
   for (const flagCode of manualKitFlagCodes) {
     const style = teamStyles.find((candidate) => candidate.flagCode === flagCode);
@@ -130,8 +129,7 @@ function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
       registeredKits.push({
         label: `team kit ${flagCode}`,
         assetKey: style.assetKey,
-        path: style.path,
-        attributionKey: style.path.replace(/^kits\//, '')
+        path: style.path
       });
     }
   }
@@ -143,8 +141,7 @@ function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
       registeredKits.push({
         label: `goalkeeper kit ${id}`,
         assetKey: style.assetKey,
-        path: style.path,
-        attributionKey: style.path.replace(/^kits\//, '')
+        path: style.path
       });
     }
   }
@@ -152,21 +149,11 @@ function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
   return registeredKits;
 }
 
-function readAttribution(projectRoot: string): KitAttribution {
-  const attributionPath = join(projectRoot, 'public', 'kits', 'ATTRIBUTION.json');
-
-  if (!existsSync(attributionPath)) {
-    return {};
-  }
-
-  return JSON.parse(readFileSync(attributionPath, 'utf8')) as KitAttribution;
-}
-
-async function readPngMetadata(
+async function readImageMetadata(
   filePath: string,
   errors: string[],
   label: string
-): Promise<PngMetadata | null> {
+): Promise<ImageMetadata | null> {
   try {
     return await sharp(filePath).metadata();
   } catch (error) {
@@ -176,21 +163,24 @@ async function readPngMetadata(
   }
 }
 
-async function isOpaquePng(filePath: string, hasAlpha: boolean | undefined): Promise<boolean> {
-  if (hasAlpha !== true) {
-    return true;
-  }
-
-  const stats = await sharp(filePath).ensureAlpha().stats();
-  const alpha = stats.channels[3];
-
-  return alpha !== undefined && alpha.min === 255 && alpha.max === 255;
-}
-
-function hasPngSignature(filePath: string): boolean {
+function hasWebpSignature(filePath: string): boolean {
   const signature = readFileSync(filePath);
 
-  return signature.length >= PNG_SIGNATURE.length && signature.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE);
+  return (
+    signature.length >= 12 &&
+    signature.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    signature.subarray(8, 12).toString('ascii') === 'WEBP'
+  );
+}
+
+function validateKitPath(errors: string[], kit: RegisteredKit): void {
+  if (!kit.path.startsWith('kits/images/')) {
+    errors.push(`${kit.label}: path must start with kits/images/, got "${kit.path}".`);
+  }
+
+  if (!kit.path.endsWith('.webp')) {
+    errors.push(`${kit.label}: path must end with .webp, got "${kit.path}".`);
+  }
 }
 
 function pushDuplicateErrors(errors: string[], values: readonly string[], label: string): void {

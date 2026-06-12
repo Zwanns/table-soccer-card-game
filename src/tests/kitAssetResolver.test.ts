@@ -32,7 +32,7 @@ describe('kit asset resolver', () => {
     }
   });
 
-  it('resolves a registered team PNG as an image asset', () => {
+  it('resolves a registered team WebP as an image asset', () => {
     AVAILABLE_MANUAL_KIT_FLAG_CODES.add('pl');
 
     expect(resolveTeamKitAsset('pl')).toEqual({
@@ -63,19 +63,19 @@ describe('kit asset resolver', () => {
     });
   });
 
-  it('resolves gk-1 as an image asset when registered', () => {
-    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk-1');
+  it('resolves gk1 as an image asset when registered', () => {
+    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk1');
 
-    expect(resolveGoalkeeperKitAsset('gk-1')).toEqual({
+    expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
       type: 'image',
-      assetKey: 'kit-gk-1',
+      assetKey: 'kit-gk1',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: '#111111'
     });
   });
 
-  it('resolves gk-1 as a fallback when not registered', () => {
-    expect(resolveGoalkeeperKitAsset('gk-1')).toEqual({
+  it('resolves gk1 as a fallback when not registered', () => {
+    expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
       type: 'fallback',
       primaryColor: '#111111',
       secondaryColor: '#3A3A3A',
@@ -84,8 +84,8 @@ describe('kit asset resolver', () => {
     });
   });
 
-  it('resolves gk-2 as a fallback with the empty registry', () => {
-    expect(resolveGoalkeeperKitAsset('gk-2')).toEqual({
+  it('resolves gk2 as a fallback with the empty registry', () => {
+    expect(resolveGoalkeeperKitAsset('gk2')).toEqual({
       type: 'fallback',
       primaryColor: '#FFB81C',
       secondaryColor: '#111111',

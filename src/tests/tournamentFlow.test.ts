@@ -213,12 +213,12 @@ function createFinishedGameState(): GameState {
       PLAYER_1: createMatchTeamSetup({
         teamId: 'fr',
         squad: createDefaultSquad('fr'),
-        goalkeeperKitId: 'gk-1'
+        goalkeeperKitId: 'gk1'
       }),
       PLAYER_2: createMatchTeamSetup({
         teamId: 'es',
         squad: createDefaultSquad('es'),
-        goalkeeperKitId: 'gk-2'
+        goalkeeperKitId: 'gk2'
       })
     },
     activePlayerId: null,

@@ -55,12 +55,12 @@ export function createSimulatedTournamentGameState(options: SimulatedTournamentM
       PLAYER_1: createMatchTeamSetup({
         teamId: options.homeTeam.flagCode,
         squad: homeSquad,
-        goalkeeperKitId: 'gk-1'
+        goalkeeperKitId: 'gk1'
       }),
       PLAYER_2: createMatchTeamSetup({
         teamId: options.awayTeam.flagCode,
         squad: awaySquad,
-        goalkeeperKitId: 'gk-2'
+        goalkeeperKitId: 'gk2'
       })
     },
     activePlayerId: null,

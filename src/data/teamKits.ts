@@ -19,8 +19,8 @@ export type TeamKitStyle = {
 };
 
 export type GoalkeeperKitId =
-  | 'gk-1'
-  | 'gk-2';
+  | 'gk1'
+  | 'gk2';
 
 export type GoalkeeperKitStyle = {
   id: GoalkeeperKitId;
@@ -41,8 +41,8 @@ export const SHIRT_NUMBER_ANCHOR: ShirtNumberAnchor = {
 };
 
 export const KIT_IMAGE_SIZE = {
-  width: 384,
-  height: 420
+  width: 130,
+  height: 150
 } as const;
 
 export const DEFAULT_KIT_IMAGE_SCALE = 1;
@@ -130,7 +130,7 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
   ]) => ({
     flagCode,
     assetKey: `kit-${flagCode}`,
-    path: `kits/images/${flagCode}.png`,
+    path: `kits/images/${flagCode}.webp`,
     primaryColor,
     secondaryColor,
     shirtNumberColor,
@@ -140,9 +140,9 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
 
 export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
   {
-    id: 'gk-1',
-    assetKey: 'kit-gk-1',
-    path: 'kits/images/gk-1.png',
+    id: 'gk1',
+    assetKey: 'kit-gk1',
+    path: 'kits/images/gk1.webp',
 
     primaryColor: '#111111',
     secondaryColor: '#3A3A3A',
@@ -151,9 +151,9 @@ export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
     shirtNumberStrokeColor: '#111111'
   },
   {
-    id: 'gk-2',
-    assetKey: 'kit-gk-2',
-    path: 'kits/images/gk-2.png',
+    id: 'gk2',
+    assetKey: 'kit-gk2',
+    path: 'kits/images/gk2.webp',
 
     primaryColor: '#FFB81C',
     secondaryColor: '#111111',
@@ -163,9 +163,29 @@ export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
   }
 ] as const;
 
-export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>([]);
+export const FALLBACK_TEAM_KIT_ASSET = {
+  assetKey: 'kit-none',
+  path: 'kits/images/none.webp'
+} as const;
 
-export const AVAILABLE_GOALKEEPER_KIT_IDS = new Set<GoalkeeperKitId>([]);
+export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>([
+  'ar',
+  'br',
+  'de',
+  'es',
+  'fr',
+  'gb-eng',
+  'gb-wls',
+  'it',
+  'mx',
+  'ng',
+  'no',
+  'pl',
+  'ua',
+  'uy'
+]);
+
+export const AVAILABLE_GOALKEEPER_KIT_IDS = new Set<GoalkeeperKitId>(['gk1', 'gk2']);
 
 const TEAM_KIT_STYLES_BY_FLAG_CODE: ReadonlyMap<string, TeamKitStyle> = new Map(
   TEAM_KIT_STYLES.map((style) => [style.flagCode, style])
@@ -244,14 +264,24 @@ export function validateTeamKitStylesAgainstNationalTeams(): void {
     errors.push(`GOALKEEPER_KIT_STYLES must contain 2 entries, got ${GOALKEEPER_KIT_STYLES.length}.`);
   }
 
-  for (const id of ['gk-1', 'gk-2'] satisfies GoalkeeperKitId[]) {
+  for (const id of ['gk1', 'gk2'] satisfies GoalkeeperKitId[]) {
     if (!goalkeeperKitIds.includes(id)) {
       errors.push(`Missing goalkeeper kit "${id}".`);
     }
   }
 
-  if ((goalkeeperKitIds as string[]).includes('gk-3') || (goalkeeperKitIds as string[]).includes('gk-4')) {
-    errors.push('Goalkeeper kit styles must not include gk-3 or gk-4.');
+  for (const oldId of ['gk-1', 'gk-2', 'gk-3', 'gk-4']) {
+    if ((goalkeeperKitIds as string[]).includes(oldId)) {
+      errors.push(`Goalkeeper kit styles must not include ${oldId}.`);
+    }
+  }
+
+  if (!FALLBACK_TEAM_KIT_ASSET.path.startsWith('kits/images/')) {
+    errors.push(`Fallback kit path must start with kits/images/, got "${FALLBACK_TEAM_KIT_ASSET.path}".`);
+  }
+
+  if (!FALLBACK_TEAM_KIT_ASSET.path.endsWith('.webp')) {
+    errors.push(`Fallback kit path must end with .webp, got "${FALLBACK_TEAM_KIT_ASSET.path}".`);
   }
 
   if (errors.length > 0) {
@@ -286,8 +316,8 @@ function validateKitStyleShape(
     errors.push(`${label} path must start with kits/images/, got "${style.path}".`);
   }
 
-  if (!style.path.endsWith('.png')) {
-    errors.push(`${label} path must end with .png, got "${style.path}".`);
+  if (!style.path.endsWith('.webp')) {
+    errors.push(`${label} path must end with .webp, got "${style.path}".`);
   }
 
   if (!style.assetKey.startsWith('kit-')) {
@@ -350,16 +380,24 @@ export type LoadAvailableKitTexturesOptions = {
 
 export const FIELD_KIT_VARIANTS: readonly FieldKitVariant[] = ['home'];
 
-export const GOALKEEPER_KIT_IDS: readonly GoalkeeperKitId[] = ['gk-1', 'gk-2'];
+export const GOALKEEPER_KIT_IDS: readonly GoalkeeperKitId[] = ['gk1', 'gk2'];
 
 export const DEFAULT_FIELD_KIT: FieldKitVariant = 'home';
 
 export function getTeamKitAssetKey(flagCode: string, _variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
-  return getTeamKitStyle(flagCode)?.assetKey ?? `kit-${flagCode}`;
+  if (!hasManualTeamKit(flagCode)) {
+    return FALLBACK_TEAM_KIT_ASSET.assetKey;
+  }
+
+  return getTeamKitStyle(flagCode)?.assetKey ?? FALLBACK_TEAM_KIT_ASSET.assetKey;
 }
 
 export function getTeamKitAssetPath(flagCode: string, _variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
-  return getTeamKitStyle(flagCode)?.path ?? `kits/images/${flagCode}.png`;
+  if (!hasManualTeamKit(flagCode)) {
+    return FALLBACK_TEAM_KIT_ASSET.path;
+  }
+
+  return getTeamKitStyle(flagCode)?.path ?? FALLBACK_TEAM_KIT_ASSET.path;
 }
 
 export function getGoalkeeperKitAssetKey(goalkeeperKitId: GoalkeeperKitId): string {
@@ -367,7 +405,7 @@ export function getGoalkeeperKitAssetKey(goalkeeperKitId: GoalkeeperKitId): stri
 }
 
 export function getGoalkeeperKitAssetPath(goalkeeperKitId: GoalkeeperKitId): string {
-  return getGoalkeeperKitStyle(goalkeeperKitId)?.path ?? `kits/images/${goalkeeperKitId}.png`;
+  return getGoalkeeperKitStyle(goalkeeperKitId)?.path ?? `kits/images/${goalkeeperKitId}.webp`;
 }
 
 export function getTeamKitAssetDescriptors(flagCode: string): KitAssetDescriptor[] {

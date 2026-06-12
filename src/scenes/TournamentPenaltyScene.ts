@@ -949,9 +949,9 @@ function getTeamSideColor(shootoutState: PenaltyShootoutState | null, teamId: To
 
 function getGoalkeeperKitId(teamId: TournamentTeamId, shootoutState: PenaltyShootoutState | null): GoalkeeperKitId {
   if (shootoutState === null) {
-    return 'gk-1';
+    return 'gk1';
   }
 
-  return teamId === shootoutState.homeTeamId ? 'gk-1' : 'gk-2';
+  return teamId === shootoutState.homeTeamId ? 'gk1' : 'gk2';
 }
 
