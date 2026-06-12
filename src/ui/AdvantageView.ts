@@ -15,7 +15,6 @@ export class AdvantageView extends Phaser.GameObjects.Container {
     const trackHeight = 14;
     const playerOneWidth = Math.round(trackWidth * options.advantage.playerOneShare);
     const playerTwoWidth = trackWidth - playerOneWidth;
-    const hasPoints = options.advantage.playerOnePoints + options.advantage.playerTwoPoints > 0;
 
     const background = scene.add.rectangle(0, 0, width, height, 0x08120f, 0.88);
     background.setStrokeStyle(2, 0x436b58, 0.9);
@@ -29,7 +28,7 @@ export class AdvantageView extends Phaser.GameObjects.Container {
       Math.max(1, playerOneWidth),
       trackHeight - 2,
       0xd84a3f,
-      hasPoints ? 0.96 : 0.35
+      0.96
     );
     const playerTwoFill = scene.add.rectangle(
       trackWidth / 2 - playerTwoWidth / 2,
@@ -37,7 +36,7 @@ export class AdvantageView extends Phaser.GameObjects.Container {
       Math.max(1, playerTwoWidth),
       trackHeight - 2,
       0x4da3d9,
-      hasPoints ? 0.96 : 0.35
+      0.96
     );
 
     const splitX = -trackWidth / 2 + playerOneWidth;

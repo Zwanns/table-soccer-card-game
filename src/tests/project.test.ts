@@ -112,4 +112,12 @@ describe('project scaffold', () => {
     expect(resultSceneSource).toContain("scrollZone.on('wheel'");
     expect(resultSceneSource).toContain('timelineContent.setMask');
   });
+
+  it('keeps the advantage bar active at match start and neutral 50/50', () => {
+    const advantageViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'AdvantageView.ts'), 'utf8');
+
+    expect(advantageViewSource).not.toContain('hasPoints ?');
+    expect(advantageViewSource).not.toContain(': 0.35');
+    expect(advantageViewSource.match(/0\.96/g)?.length).toBeGreaterThanOrEqual(2);
+  });
 });
