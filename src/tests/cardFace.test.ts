@@ -47,7 +47,7 @@ describe('card face profile resolver', () => {
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Buksa\n№17\nНоминал: A');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Buksa');
   });
 });
 
@@ -95,9 +95,12 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('-CARD_WIDTH / 2 + 9');
     expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + 8');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
+    expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '24px' : '38px'");
     expect(kitFaceSource).toContain('getKitImageLayout()');
     expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
     expect(kitFaceSource).toContain('setDisplaySize(layout.width, layout.height)');
+    expect(kitFaceSource).toContain('createRoundedCardBackground');
+    expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');
     expect(kitFaceSource).not.toContain('fillRoundedRect(-22');
     expect(kitFaceSource).not.toContain('fillRoundedRect(8, 56');
     expect(kitFaceSource).not.toContain('socks');
@@ -132,24 +135,26 @@ describe('kit card face rendering contracts', () => {
     });
   });
 
-  it('places the kit in the bottom-right corner at 130x150', () => {
+  it('places the reduced kit in the bottom-right corner', () => {
     expect(KIT_CARD_LAYOUT).toEqual({
-      kitWidth: 130,
-      kitHeight: 150,
+      kitWidth: 92,
+      kitHeight: 106,
       kitAnchorX: 1,
       kitAnchorY: 1,
       kitOffsetRight: 0,
       kitOffsetBottom: 0,
       shirtNumberX: 0.5,
       shirtNumberY: 0.33,
-      rankColor: '#000000'
+      rankColor: '#000000',
+      cardCornerRadius: 8,
+      deckCornerRadius: 8
     });
 
     expect(getKitImageLayout()).toEqual({
       x: KIT_CARD_FACE_WIDTH / 2,
       y: KIT_CARD_FACE_HEIGHT / 2,
-      width: 130,
-      height: 150,
+      width: 92,
+      height: 106,
       originX: 1,
       originY: 1
     });
@@ -184,10 +189,14 @@ describe('kit card face rendering contracts', () => {
   it('uses resolver number colors and keeps closed cards unchanged', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+    const deckViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'DeckView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberColor');
     expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberStrokeColor');
     expect(kitFaceSource).toContain('strokeThickness: 2');
+    expect(deckViewSource).toContain('createRoundedDeckCard');
+    expect(deckViewSource).toContain('createRoundedDeckBorder');
+    expect(deckViewSource).toContain('KIT_CARD_LAYOUT.deckCornerRadius');
     expect(cardViewSource).toContain('options.faceDown === true');
     expect(cardViewSource).toContain('0x214f6b');
     expect(cardViewSource).toContain('0x7bb8d8');

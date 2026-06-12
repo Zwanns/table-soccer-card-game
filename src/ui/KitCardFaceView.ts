@@ -27,8 +27,11 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
     super(scene, x, y);
 
-    const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 1);
-    body.setStrokeStyle(options.highlighted === true ? 5 : 2, options.highlighted === true ? 0xf0c95a : 0x1f2a2e);
+    const body = createRoundedCardBackground(scene, {
+      fillColor: 0xffffff,
+      strokeColor: options.highlighted === true ? 0xf0c95a : 0x1f2a2e,
+      strokeWidth: options.highlighted === true ? 5 : 2
+    });
 
     this.add(body);
     this.addKit(scene, options);
@@ -95,7 +98,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       .text(-CARD_WIDTH / 2 + 9, -CARD_HEIGHT / 2 + 8, options.rank, {
         color: KIT_CARD_LAYOUT.rankColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '20px' : '32px',
+        fontSize: options.rank.length > 2 ? '24px' : '38px',
         fontStyle: '700'
       })
       .setOrigin(0, 0);
@@ -126,6 +129,26 @@ function createFallbackKitGraphics(scene: Phaser.Scene, colors: RenderedKitColor
   graphics.strokeRoundedRect(4, 24, 20, 28, 4);
 
   graphics.setScale(1.12);
+
+  return graphics;
+}
+
+function createRoundedCardBackground(
+  scene: Phaser.Scene,
+  options: {
+    fillColor: number;
+    strokeColor: number;
+    strokeWidth: number;
+  }
+): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+  const x = -CARD_WIDTH / 2;
+  const y = -CARD_HEIGHT / 2;
+
+  graphics.fillStyle(options.fillColor, 1);
+  graphics.fillRoundedRect(x, y, CARD_WIDTH, CARD_HEIGHT, KIT_CARD_LAYOUT.cardCornerRadius);
+  graphics.lineStyle(options.strokeWidth, options.strokeColor, 1);
+  graphics.strokeRoundedRect(x, y, CARD_WIDTH, CARD_HEIGHT, KIT_CARD_LAYOUT.cardCornerRadius);
 
   return graphics;
 }

@@ -3,6 +3,7 @@ import { fitImageContain, getFallbackCoverTextureKey } from '../assets/teamCover
 import type { CardColor } from '../cards';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
+import { KIT_CARD_LAYOUT } from './kitCardFaceModel';
 
 const DECK_WIDTH = CARD_WIDTH;
 const DECK_HEIGHT = CARD_HEIGHT;
@@ -22,17 +23,15 @@ export class DeckView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, count: number, options: DeckViewOptions = {}) {
     super(scene, x, y);
 
-    const back = scene.add.rectangle(-10, 10, DECK_WIDTH, DECK_HEIGHT, 0x17384c);
-    back.setStrokeStyle(2, 0x85bfd5);
+    const back = createRoundedDeckCard(scene, -10, 10, 0x17384c, 0x85bfd5);
 
-    const frontBackground = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b);
+    const frontBackground = createRoundedDeckCard(scene, 0, 0, 0x214f6b, 0x9ed0e0);
     const cover = scene.add.image(0, 0, options.coverTextureKey ?? getFallbackCoverTextureKey());
     fitImageContain(cover, {
       width: DECK_WIDTH,
       height: DECK_HEIGHT
     });
-    const frontBorder = scene.add.rectangle(0, 0, DECK_WIDTH, DECK_HEIGHT, 0x214f6b, 0);
-    frontBorder.setStrokeStyle(2, 0x9ed0e0);
+    const frontBorder = createRoundedDeckBorder(scene, 0, 0, 0x9ed0e0);
 
     const countOffsetX = options.countSide === 'left' ? -84 : 84;
     const countText = scene.add
@@ -82,4 +81,53 @@ export class DeckView extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
   }
+}
+
+function createRoundedDeckCard(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  fillColor: number,
+  strokeColor: number
+): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+
+  graphics.fillStyle(fillColor, 1);
+  graphics.fillRoundedRect(
+    x - DECK_WIDTH / 2,
+    y - DECK_HEIGHT / 2,
+    DECK_WIDTH,
+    DECK_HEIGHT,
+    KIT_CARD_LAYOUT.deckCornerRadius
+  );
+  graphics.lineStyle(2, strokeColor, 1);
+  graphics.strokeRoundedRect(
+    x - DECK_WIDTH / 2,
+    y - DECK_HEIGHT / 2,
+    DECK_WIDTH,
+    DECK_HEIGHT,
+    KIT_CARD_LAYOUT.deckCornerRadius
+  );
+
+  return graphics;
+}
+
+function createRoundedDeckBorder(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  strokeColor: number
+): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+
+  graphics.lineStyle(2, strokeColor, 1);
+  graphics.strokeRoundedRect(
+    x - DECK_WIDTH / 2,
+    y - DECK_HEIGHT / 2,
+    DECK_WIDTH,
+    DECK_HEIGHT,
+    KIT_CARD_LAYOUT.deckCornerRadius
+  );
+
+  return graphics;
 }

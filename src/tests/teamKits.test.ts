@@ -149,7 +149,7 @@ describe('team kit data contract', () => {
         path: 'kits/images/gk2.webp',
         primaryColor: '#FFB81C',
         secondaryColor: '#111111',
-        shirtNumberColor: '#111111',
+        shirtNumberColor: '#FFFFFF',
         shirtNumberStrokeColor: '#FFFFFF'
       }
     ]);

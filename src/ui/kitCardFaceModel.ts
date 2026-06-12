@@ -5,15 +5,17 @@ export const KIT_CARD_FACE_WIDTH = 108;
 export const KIT_CARD_FACE_HEIGHT = 148.5;
 
 export const KIT_CARD_LAYOUT = {
-  kitWidth: 130,
-  kitHeight: 150,
+  kitWidth: 92,
+  kitHeight: 106,
   kitAnchorX: 1,
   kitAnchorY: 1,
   kitOffsetRight: 0,
   kitOffsetBottom: 0,
   shirtNumberX: 0.5,
   shirtNumberY: 0.33,
-  rankColor: '#000000'
+  rankColor: '#000000',
+  cardCornerRadius: 8,
+  deckCornerRadius: 8
 } as const;
 
 export type PreparedKitCardFace = {
