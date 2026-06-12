@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
-import { getShirtNumberLayout } from './kitCardFaceModel';
+import { getKitImageLayout, getShirtNumberLayout, KIT_CARD_LAYOUT } from './kitCardFaceModel';
 import { getFallbackKitColors } from './kitFallback';
 
 const CARD_WIDTH = 108;
@@ -15,11 +15,6 @@ export interface KitCardFaceViewOptions {
   kitTextureKey?: string;
   kitAsset?: ResolvedKitAsset;
 }
-
-const KIT_BOUNDS = {
-  width: 76,
-  height: 98
-} as const;
 
 type RenderedKitColorScheme = {
   shirt: number;
@@ -44,23 +39,28 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   }
 
   private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
+    const layout = getKitImageLayout();
+
     if (options.kitAsset !== undefined && scene.textures.exists(options.kitAsset.assetKey)) {
-      const image = scene.add.image(0, 8, options.kitAsset.assetKey);
-      const scale = Math.min(KIT_BOUNDS.width / image.width, KIT_BOUNDS.height / image.height);
-      image.setScale(scale);
+      const image = scene.add.image(layout.x, layout.y, options.kitAsset.assetKey);
+      image.setOrigin(layout.originX, layout.originY);
+      image.setDisplaySize(layout.width, layout.height);
       this.add(image);
       return;
     }
 
     if (options.kitTextureKey !== undefined && scene.textures.exists(options.kitTextureKey)) {
-      const image = scene.add.image(0, 8, options.kitTextureKey);
-      const scale = Math.min(KIT_BOUNDS.width / image.width, KIT_BOUNDS.height / image.height);
-      image.setScale(scale);
+      const image = scene.add.image(layout.x, layout.y, options.kitTextureKey);
+      image.setOrigin(layout.originX, layout.originY);
+      image.setDisplaySize(layout.width, layout.height);
       this.add(image);
       return;
     }
 
-    this.add(createFallbackKitGraphics(scene, getFallbackKitColors(options.teamColor)));
+    const fallback = createFallbackKitGraphics(scene, getFallbackKitColors(options.teamColor));
+    fallback.x = layout.x - layout.width / 2;
+    fallback.y = layout.y - layout.height / 2;
+    this.add(fallback);
   }
 
   private addShirtNumber(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
@@ -93,9 +93,9 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
     const rank = scene.add
       .text(-CARD_WIDTH / 2 + 9, -CARD_HEIGHT / 2 + 8, options.rank, {
-        color: getRankColor(options.teamColor),
+        color: KIT_CARD_LAYOUT.rankColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '17px' : '24px',
+        fontSize: options.rank.length > 2 ? '20px' : '32px',
         fontStyle: '700'
       })
       .setOrigin(0, 0);
@@ -125,13 +125,7 @@ function createFallbackKitGraphics(scene: Phaser.Scene, colors: RenderedKitColor
   graphics.strokeRoundedRect(-24, 24, 20, 28, 4);
   graphics.strokeRoundedRect(4, 24, 20, 28, 4);
 
-  graphics.setScale(0.82);
-  graphics.y = -2;
+  graphics.setScale(1.12);
 
   return graphics;
 }
-
-function getRankColor(teamColor?: CardColor): string {
-  return teamColor === 'RED' ? '#b72f37' : '#1f2a2e';
-}
-

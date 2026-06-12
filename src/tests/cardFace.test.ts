@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  AVAILABLE_MANUAL_KIT_FLAG_CODES,
-  SHIRT_NUMBER_ANCHOR
-} from '../data/teamKits';
+import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
 import { getCardTooltipText, getFieldCardPlayerProfile } from '../ui/cardPlayerProfile';
 import { getFallbackKitColors } from '../ui/kitFallback';
 import {
+  getKitImageLayout,
   getShirtNumberLayout,
+  KIT_CARD_FACE_HEIGHT,
+  KIT_CARD_FACE_WIDTH,
+  KIT_CARD_LAYOUT,
   prepareKitCardFace
 } from '../ui/kitCardFaceModel';
 
@@ -87,15 +88,16 @@ describe('kit card face rendering contracts', () => {
     expect(tooltipSource).not.toContain('setStrokeStyle');
   });
 
-  it('renders a white card face with top-left rank and fallback kit geometry', () => {
+  it('renders a layered white card face with top-left black rank and image kit layout', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('0xffffff');
     expect(kitFaceSource).toContain('-CARD_WIDTH / 2 + 9');
     expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + 8');
-    expect(kitFaceSource).toContain('fillRoundedRect');
-    expect(kitFaceSource).toContain('fillTriangle');
-    expect(kitFaceSource).toContain('createFallbackKitGraphics');
+    expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
+    expect(kitFaceSource).toContain('getKitImageLayout()');
+    expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
+    expect(kitFaceSource).toContain('setDisplaySize(layout.width, layout.height)');
     expect(kitFaceSource).not.toContain('fillRoundedRect(-22');
     expect(kitFaceSource).not.toContain('fillRoundedRect(8, 56');
     expect(kitFaceSource).not.toContain('socks');
@@ -130,12 +132,36 @@ describe('kit card face rendering contracts', () => {
     });
   });
 
-  it('positions the shirt number with the shared anchor and omits missing numbers', () => {
-    const layout = getShirtNumberLayout();
+  it('places the kit in the bottom-right corner at 130x150', () => {
+    expect(KIT_CARD_LAYOUT).toEqual({
+      kitWidth: 130,
+      kitHeight: 150,
+      kitAnchorX: 1,
+      kitAnchorY: 1,
+      kitOffsetRight: 0,
+      kitOffsetBottom: 0,
+      shirtNumberX: 0.5,
+      shirtNumberY: 0.33,
+      rankColor: '#000000'
+    });
 
-    expect(SHIRT_NUMBER_ANCHOR).toEqual({ x: 0.5, y: 0.31 });
-    expect(layout.x).toBe(0);
-    expect(layout.y).toBeCloseTo(-28.215);
+    expect(getKitImageLayout()).toEqual({
+      x: KIT_CARD_FACE_WIDTH / 2,
+      y: KIT_CARD_FACE_HEIGHT / 2,
+      width: 130,
+      height: 150,
+      originX: 1,
+      originY: 1
+    });
+  });
+
+  it('positions the shirt number in the centered upper third of the kit and omits missing numbers', () => {
+    const layout = getShirtNumberLayout();
+    const kitLayout = getKitImageLayout();
+
+    expect(layout.x).toBeCloseTo(kitLayout.x - kitLayout.width * 0.5);
+    expect(layout.y).toBeCloseTo(kitLayout.y - kitLayout.height * 0.67);
+    expect(layout.y).toBeLessThan(kitLayout.y - kitLayout.height / 2);
     expect(prepareKitCardFace({ rank: '9' })).toEqual({
       rank: '9',
       shirtNumber: undefined,
@@ -148,10 +174,23 @@ describe('kit card face rendering contracts', () => {
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
 
     expect(kitFaceSource.match(/addRank/g)?.length).toBe(2);
+    expect(kitFaceSource.match(/const rank = scene\.add/g)?.length).toBe(1);
     expect(kitFaceSource).not.toContain('CARD_HEIGHT / 2 -');
     expect(kitFaceSource).not.toContain('playerName');
     expect(cardViewSource).not.toContain('playerName');
     expect(cardViewSource).not.toContain('options.suit');
+  });
+
+  it('uses resolver number colors and keeps closed cards unchanged', () => {
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+
+    expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberColor');
+    expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberStrokeColor');
+    expect(kitFaceSource).toContain('strokeThickness: 2');
+    expect(cardViewSource).toContain('options.faceDown === true');
+    expect(cardViewSource).toContain('0x214f6b');
+    expect(cardViewSource).toContain('0x7bb8d8');
   });
 
   it('passes player profiles to field cards and active attack cards without changing game rules', () => {
