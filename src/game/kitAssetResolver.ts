@@ -1,6 +1,6 @@
 import {
-  AVAILABLE_GOALKEEPER_KIT_IDS,
   AVAILABLE_MANUAL_KIT_FLAG_CODES,
+  FALLBACK_TEAM_KIT_ASSET,
   getGoalkeeperKitStyle,
   getTeamKitStyle,
   type GoalkeeperKitId,
@@ -8,73 +8,57 @@ import {
   type TeamKitStyle
 } from '../data/teamKits';
 
-export type ResolvedKitAsset =
-  | {
-      type: 'image';
-      assetKey: string;
-      shirtNumberColor: string;
-      shirtNumberStrokeColor: string;
-    }
-  | {
-      type: 'fallback';
-      primaryColor: string;
-      secondaryColor: string;
-      shirtNumberColor: string;
-      shirtNumberStrokeColor: string;
-    };
+export type ResolvedKitAsset = {
+  assetKey: string;
+  shirtNumberColor: string;
+  shirtNumberStrokeColor: string;
+};
 
-const SAFE_FALLBACK_KIT: ResolvedKitAsset = {
-  type: 'fallback',
-  primaryColor: '#FFFFFF',
-  secondaryColor: '#111111',
+const FALLBACK_NUMBER_COLORS = {
   shirtNumberColor: '#111111',
   shirtNumberStrokeColor: '#FFFFFF'
-};
+} as const;
 
 export function resolveTeamKitAsset(flagCode: string): ResolvedKitAsset {
   const style = getTeamKitStyle(flagCode);
 
   if (style === undefined) {
-    return SAFE_FALLBACK_KIT;
+    return createFallbackTeamAsset(FALLBACK_NUMBER_COLORS);
   }
 
-  return AVAILABLE_MANUAL_KIT_FLAG_CODES.has(flagCode)
-    ? createImageAsset(style)
-    : createFallbackAsset(style);
+  if (!AVAILABLE_MANUAL_KIT_FLAG_CODES.has(flagCode)) {
+    return createFallbackTeamAsset(style);
+  }
+
+  return createImageAsset(style);
 }
 
 export function resolveGoalkeeperKitAsset(goalkeeperKitId: GoalkeeperKitId): ResolvedKitAsset {
   const style = getGoalkeeperKitStyle(goalkeeperKitId);
 
   if (style === undefined) {
-    return SAFE_FALLBACK_KIT;
+    return createFallbackTeamAsset(FALLBACK_NUMBER_COLORS);
   }
 
-  return AVAILABLE_GOALKEEPER_KIT_IDS.has(goalkeeperKitId)
-    ? createImageAsset(style)
-    : createFallbackAsset(style);
+  return createImageAsset(style);
 }
 
-function createImageAsset(style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'shirtNumberColor' | 'shirtNumberStrokeColor'>): ResolvedKitAsset {
+function createImageAsset(
+  style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'shirtNumberColor' | 'shirtNumberStrokeColor'>
+): ResolvedKitAsset {
   return {
-    type: 'image',
     assetKey: style.assetKey,
     shirtNumberColor: style.shirtNumberColor,
     shirtNumberStrokeColor: style.shirtNumberStrokeColor
   };
 }
 
-function createFallbackAsset(
-  style: Pick<
-    TeamKitStyle | GoalkeeperKitStyle,
-    'primaryColor' | 'secondaryColor' | 'shirtNumberColor' | 'shirtNumberStrokeColor'
-  >
+function createFallbackTeamAsset(
+  colors: Pick<TeamKitStyle, 'shirtNumberColor' | 'shirtNumberStrokeColor'>
 ): ResolvedKitAsset {
   return {
-    type: 'fallback',
-    primaryColor: style.primaryColor,
-    secondaryColor: style.secondaryColor,
-    shirtNumberColor: style.shirtNumberColor,
-    shirtNumberStrokeColor: style.shirtNumberStrokeColor
+    assetKey: FALLBACK_TEAM_KIT_ASSET.assetKey,
+    shirtNumberColor: colors.shirtNumberColor,
+    shirtNumberStrokeColor: colors.shirtNumberStrokeColor
   };
 }

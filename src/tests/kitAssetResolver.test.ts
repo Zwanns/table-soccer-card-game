@@ -1,102 +1,79 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  AVAILABLE_GOALKEEPER_KIT_IDS,
-  AVAILABLE_MANUAL_KIT_FLAG_CODES
-} from '../data/teamKits';
-import {
-  resolveGoalkeeperKitAsset,
-  resolveTeamKitAsset
-} from '../game/kitAssetResolver';
+import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
+import { resolveGoalkeeperKitAsset, resolveTeamKitAsset } from '../game/kitAssetResolver';
 
 const initialManualKitFlagCodes = new Set(AVAILABLE_MANUAL_KIT_FLAG_CODES);
-const initialGoalkeeperKitIds = new Set(AVAILABLE_GOALKEEPER_KIT_IDS);
 
 describe('kit asset resolver', () => {
   beforeEach(() => {
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
-    AVAILABLE_GOALKEEPER_KIT_IDS.clear();
   });
 
   afterEach(() => {
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
-    AVAILABLE_GOALKEEPER_KIT_IDS.clear();
 
     for (const flagCode of initialManualKitFlagCodes) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
     }
-
-    for (const goalkeeperKitId of initialGoalkeeperKitIds) {
-      AVAILABLE_GOALKEEPER_KIT_IDS.add(goalkeeperKitId);
-    }
   });
 
-  it('resolves a registered team WebP as an image asset', () => {
+  it('resolves a registered team to its own WebP asset', () => {
     AVAILABLE_MANUAL_KIT_FLAG_CODES.add('pl');
 
     expect(resolveTeamKitAsset('pl')).toEqual({
-      type: 'image',
       assetKey: 'kit-pl',
       shirtNumberColor: '#DC143C',
       shirtNumberStrokeColor: '#FFFFFF'
     });
   });
 
-  it('resolves an unregistered known team as a style fallback', () => {
+  it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
-      type: 'fallback',
-      primaryColor: '#FFDF00',
-      secondaryColor: '#009C3B',
+      assetKey: 'kit-none',
       shirtNumberColor: '#002776',
       shirtNumberStrokeColor: '#FFFFFF'
     });
   });
 
-  it('resolves an unknown flagCode as a safe fallback', () => {
+  it('resolves an unknown flagCode to none.webp with safe number colors', () => {
     expect(resolveTeamKitAsset('unknown')).toEqual({
-      type: 'fallback',
-      primaryColor: '#FFFFFF',
-      secondaryColor: '#111111',
+      assetKey: 'kit-none',
       shirtNumberColor: '#111111',
       shirtNumberStrokeColor: '#FFFFFF'
     });
   });
 
-  it('resolves gk1 as an image asset when registered', () => {
-    AVAILABLE_GOALKEEPER_KIT_IDS.add('gk1');
-
+  it('resolves gk1 and gk2 to mandatory goalkeeper WebP assets', () => {
     expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
-      type: 'image',
       assetKey: 'kit-gk1',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: '#111111'
     });
-  });
-
-  it('resolves gk1 as a fallback when not registered', () => {
-    expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
-      type: 'fallback',
-      primaryColor: '#111111',
-      secondaryColor: '#3A3A3A',
-      shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#111111'
-    });
-  });
-
-  it('resolves gk2 as a fallback with the empty registry', () => {
     expect(resolveGoalkeeperKitAsset('gk2')).toEqual({
-      type: 'fallback',
-      primaryColor: '#FFB81C',
-      secondaryColor: '#111111',
+      assetKey: 'kit-gk2',
       shirtNumberColor: '#111111',
       shirtNumberStrokeColor: '#FFFFFF'
     });
+  });
+
+  it('does not expose graphics fallback fields from the resolver model', () => {
+    const resolved = resolveTeamKitAsset('unknown') as Record<string, unknown>;
+
+    expect(resolved.type).toBeUndefined();
+    expect(resolved.primaryColor).toBeUndefined();
+    expect(resolved.secondaryColor).toBeUndefined();
   });
 
   it('does not import sharp or use runtime filesystem/network APIs', () => {
     const source = readFileSync(join(process.cwd(), 'src', 'game', 'kitAssetResolver.ts'), 'utf8');
 
+    expect(source).not.toContain('.png');
+    expect(source).not.toContain('public/kits/imported');
+    expect(source).not.toContain('kits/imported');
+    expect(source).not.toContain('Wikipedia');
+    expect(source).not.toContain('Commons');
     expect(source).not.toContain("from 'sharp'");
     expect(source).not.toContain('from "sharp"');
     expect(source).not.toContain("require('sharp')");

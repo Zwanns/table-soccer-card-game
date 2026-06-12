@@ -102,7 +102,7 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).not.toContain('suit');
   });
 
-  it('prepares image and fallback kit assets from the resolver', () => {
+  it('prepares team kit assets from the resolver', () => {
     const profile = getFieldCardPlayerProfile('pl', '9');
 
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
@@ -111,9 +111,7 @@ describe('kit card face rendering contracts', () => {
       rank: '9',
       shirtNumber: 9,
       kitAsset: {
-        type: 'fallback',
-        primaryColor: '#FFFFFF',
-        secondaryColor: '#DC143C',
+        assetKey: 'kit-none',
         shirtNumberColor: '#DC143C',
         shirtNumberStrokeColor: '#FFFFFF'
       }
@@ -125,7 +123,6 @@ describe('kit card face rendering contracts', () => {
       rank: '9',
       shirtNumber: 9,
       kitAsset: {
-        type: 'image',
         assetKey: 'kit-pl',
         shirtNumberColor: '#DC143C',
         shirtNumberStrokeColor: '#FFFFFF'
