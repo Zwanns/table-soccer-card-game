@@ -223,7 +223,7 @@ export class MenuScene extends Phaser.Scene {
   private createMainButtons(): void {
     const buttons = [
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes()),
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Составы', () =>
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap, 'Teams', () =>
         this.scene.start('SquadSelectScene')
       ),
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2, 'About', () =>
