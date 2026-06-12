@@ -279,7 +279,7 @@ export class TournamentHubScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1000, 666, 'Next', () => this.changeMatchPage(1, maxPage), {
+    new Button(this, 1000, 666, '→', () => this.changeMatchPage(1, maxPage), {
       disabled: this.matchPage === maxPage,
       fontSize: '18px',
       width: 170

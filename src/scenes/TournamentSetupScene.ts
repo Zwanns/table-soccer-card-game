@@ -257,7 +257,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       );
     });
 
-    new Button(this, 1038, 606, 'Previous', () => this.changePage(-1), {
+    new Button(this, 1038, 606, '←', () => this.changePage(-1), {
       disabled: this.page === 0,
       fontSize: '18px',
       height: 42,
@@ -271,7 +271,7 @@ export class TournamentSetupScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1426, 606, 'Next', () => this.changePage(1), {
+    new Button(this, 1426, 606, '→', () => this.changePage(1), {
       disabled: this.page === maxPage,
       fontSize: '18px',
       height: 42,

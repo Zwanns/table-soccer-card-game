@@ -71,7 +71,7 @@ export class TeamSelectScene extends Phaser.Scene {
     this.createCountryGrid();
 
     new Button(this, 258, 666, 'Menu', () => this.scene.start('MenuScene'));
-    new Button(this, 620, 666, 'Previous', () => this.changePage(-1), { disabled: this.page === 0 });
+    new Button(this, 620, 666, '←', () => this.changePage(-1), { disabled: this.page === 0 });
     this.add
       .text(centerX, 666, `${this.page + 1} / ${maxPage + 1}`, {
         color: '#d9eadf',
@@ -80,7 +80,7 @@ export class TeamSelectScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 980, 666, 'Next', () => this.changePage(1), { disabled: this.page === maxPage });
+    new Button(this, 980, 666, '→', () => this.changePage(1), { disabled: this.page === maxPage });
     new Button(this, 1342, 666, 'Start', () => this.startMatch(), {
       disabled: this.selectedTeamOne === this.selectedTeamTwo
     });
