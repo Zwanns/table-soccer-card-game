@@ -1,15 +1,12 @@
-import { DEFAULT_SQUADS, createDefaultSquad } from '../data/defaultSquads';
+import { REAL_SQUADS, requireRealSquad } from '../data/realSquads';
 import type { NationalTeamSquad } from '../data/squadTypes';
 
-// Temporary read-only adapter for existing runtime imports. Squad editing and persistence were removed intentionally.
 export function loadSquad(flagCode: string): NationalTeamSquad {
-  const squad = DEFAULT_SQUADS.find((candidate) => candidate.flagCode === flagCode) ?? createDefaultSquad(flagCode);
-
-  return cloneNationalTeamSquad(squad);
+  return cloneNationalTeamSquad(requireRealSquad(flagCode));
 }
 
 export function loadAllSquads(): NationalTeamSquad[] {
-  return DEFAULT_SQUADS.map((squad) => cloneNationalTeamSquad(squad));
+  return REAL_SQUADS.map((squad) => cloneNationalTeamSquad(squad));
 }
 
 function cloneNationalTeamSquad(squad: NationalTeamSquad): NationalTeamSquad {

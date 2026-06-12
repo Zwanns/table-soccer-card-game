@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { CardRank } from '../cards';
 import { createDefaultSquad, DEFAULT_SQUADS, FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { REAL_SQUADS, requireRealSquad } from '../data/realSquads';
 import type { FieldSquadMember, GoalkeeperSquadMember, NationalTeamSquad } from '../data/squadTypes';
 import { validatePlayerName, validateShirtNumber, validateSquad } from '../data/squadValidation';
 
@@ -11,7 +12,8 @@ describe('static national team squads', () => {
     expectTypeOf<GoalkeeperSquadMember>().not.toHaveProperty('rank');
   });
 
-  it('creates one static squad for every national team', () => {
+  it('keeps the compatibility exports wired to real squads', () => {
+    expect(DEFAULT_SQUADS).toBe(REAL_SQUADS);
     expect(DEFAULT_SQUADS).toHaveLength(64);
     expect(DEFAULT_SQUADS).toHaveLength(NATIONAL_TEAMS.length);
 
@@ -20,14 +22,25 @@ describe('static national team squads', () => {
     }
   });
 
+  it('creates deep-copy squad snapshots from the real static source', () => {
+    const squad = createDefaultSquad('pl');
+
+    expect(squad).toEqual(requireRealSquad('pl'));
+    expect(squad).not.toBe(requireRealSquad('pl'));
+    expect(squad.fieldPlayers).not.toBe(requireRealSquad('pl').fieldPlayers);
+
+    squad.fieldPlayers.A.name = 'Mutated';
+    squad.goalkeeper.name = 'Mutated';
+
+    expect(requireRealSquad('pl').fieldPlayers.A.name).toBe('Buksa');
+    expect(requireRealSquad('pl').goalkeeper.name).toBe('Skorupski');
+  });
+
   it('creates 14 field players and one goalkeeper for every squad', () => {
     for (const squad of DEFAULT_SQUADS) {
       expect(Object.keys(squad.fieldPlayers)).toHaveLength(14);
-      expect(squad.goalkeeper).toEqual({
-        id: 'gk',
-        name: 'Вратарь',
-        shirtNumber: 1
-      });
+      expect(squad.goalkeeper.id).toBe('gk');
+      expect(squad.goalkeeper.shirtNumber).toBe(1);
       expect(squad).not.toHaveProperty('teamId');
       expect(squad).not.toHaveProperty('goalkeepers');
       expect(squad).not.toHaveProperty('defaultStartingGoalkeeperId');
@@ -54,23 +67,23 @@ describe('static national team squads', () => {
 
     for (const squad of DEFAULT_SQUADS) {
       for (const rank of FIELD_SQUAD_RANKS) {
-        expect(squad.fieldPlayers[rank]).toEqual({
+        expect(squad.fieldPlayers[rank]).toMatchObject({
           rank,
-          name: `Игрок ${rank}`,
+          name: expect.any(String),
           shirtNumber: expect.any(Number)
         });
       }
     }
   });
 
-  it('uses placeholder JOKER number 18 and no placeholder number 99', () => {
+  it('uses JOKER number 18 and no placeholder number 99', () => {
     for (const squad of DEFAULT_SQUADS) {
       expect(squad.fieldPlayers.JOKER.shirtNumber).toBe(18);
       expect(getSquadNumbers(squad)).not.toContain(99);
     }
   });
 
-  it('uses valid and unique shirt numbers in every default squad', () => {
+  it('uses valid and unique shirt numbers in every real squad', () => {
     for (const squad of DEFAULT_SQUADS) {
       const allNumbers = getSquadNumbers(squad);
 
@@ -83,8 +96,8 @@ describe('static national team squads', () => {
 
 describe('squad validation', () => {
   it('accepts player names from 1 to 24 trimmed characters', () => {
-    expect(validatePlayerName('Игрок 9')).toBe(true);
-    expect(validatePlayerName('  Игрок 9  ')).toBe(true);
+    expect(validatePlayerName('Player 9')).toBe(true);
+    expect(validatePlayerName('  Player 9  ')).toBe(true);
     expect(validatePlayerName('')).toBe(false);
     expect(validatePlayerName('   ')).toBe(false);
     expect(validatePlayerName('a'.repeat(25))).toBe(false);
@@ -168,11 +181,11 @@ describe('squad validation', () => {
     });
   });
 
-  it('allows real squads to use a unique non-placeholder JOKER number', () => {
+  it('allows real squads to use a unique JOKER number 18', () => {
     const squad = cloneSquad(createDefaultSquad('pl'));
-    squad.fieldPlayers.JOKER.name = 'Real Joker';
-    squad.fieldPlayers.JOKER.shirtNumber = 19;
 
+    expect(squad.fieldPlayers.JOKER.name).toBe('Kozlowski');
+    expect(squad.fieldPlayers.JOKER.shirtNumber).toBe(18);
     expect(validateSquad(squad)).toEqual({ ok: true, issues: [] });
   });
 });

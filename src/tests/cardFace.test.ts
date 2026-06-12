@@ -17,26 +17,26 @@ describe('card face profile resolver', () => {
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
   });
 
-  it('resolves a field card profile from the default squad by team id and rank', () => {
+  it('resolves a field card profile from the real squad by team id and rank', () => {
     expect(getFieldCardPlayerProfile('pl', '9')).toEqual({
       teamId: 'pl',
       rank: '9',
-      playerName: 'Игрок 9',
+      playerName: 'Urbanski',
       shirtNumber: 9
     });
   });
 
-  it('resolves JOKER with the static placeholder shirt number', () => {
+  it('resolves JOKER with the real static shirt number', () => {
     expect(getFieldCardPlayerProfile('pl', 'JOKER')).toEqual({
       teamId: 'pl',
       rank: 'JOKER',
-      playerName: 'Игрок JOKER',
+      playerName: 'Kozlowski',
       shirtNumber: 18
     });
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Игрок A\n№17\nНоминал: A');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Buksa\n№17\nНоминал: A');
   });
 });
 

@@ -244,7 +244,7 @@ function createFinishedGameState(): GameState {
         playerId: 'PLAYER_1',
         turnNumber: 2,
         scorer: {
-          playerName: 'Игрок A',
+          playerName: 'Mbappe',
           shirtNumber: 17,
           rank: 'A',
           teamId: 'fr'
@@ -277,7 +277,7 @@ function createPostBeforeGoalGameState(): GameState {
       playerId: 'PLAYER_1',
       turnNumber: 2,
       scorer: {
-        playerName: 'ĐĐłŃ€ĐľĐş A',
+        playerName: 'Mbappe',
         shirtNumber: 17,
         rank: 'A',
         teamId: 'fr'
@@ -305,7 +305,7 @@ function createSaveBeforeGoalGameState(): GameState {
       playerId: 'PLAYER_1',
       turnNumber: 2,
       scorer: {
-        playerName: 'ĐĐłŃ€ĐľĐş A',
+        playerName: 'Mbappe',
         shirtNumber: 17,
         rank: 'A',
         teamId: 'fr'

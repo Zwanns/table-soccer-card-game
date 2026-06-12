@@ -1,51 +1,21 @@
 import { STANDARD_RANKS, type CardRank } from '../cards';
-import { NATIONAL_TEAMS } from './nationalTeams';
-import type { FieldSquadMember, NationalTeamSquad } from './squadTypes';
+import { REAL_SQUADS, requireRealSquad } from './realSquads';
+import type { NationalTeamSquad } from './squadTypes';
 
 export const FIELD_SQUAD_RANKS: readonly CardRank[] = [...STANDARD_RANKS, 'JOKER'];
 
-const DEFAULT_FIELD_SHIRT_NUMBERS: Record<CardRank, number> = {
-  '2': 2,
-  '3': 3,
-  '4': 4,
-  '5': 5,
-  '6': 6,
-  '7': 7,
-  '8': 8,
-  '9': 9,
-  '10': 10,
-  J: 11,
-  Q: 14,
-  K: 15,
-  A: 17,
-  JOKER: 18
-};
+export const DEFAULT_SQUADS: readonly NationalTeamSquad[] = REAL_SQUADS;
 
 export function createDefaultSquad(flagCode: string): NationalTeamSquad {
-  return {
-    flagCode,
-    fieldPlayers: createDefaultFieldPlayers(),
-    goalkeeper: {
-      id: 'gk',
-      name: 'Вратарь',
-      shirtNumber: 1
-    }
-  };
+  return cloneNationalTeamSquad(requireRealSquad(flagCode));
 }
 
-export const DEFAULT_SQUADS: readonly NationalTeamSquad[] = NATIONAL_TEAMS.map((team) =>
-  createDefaultSquad(team.flagCode)
-);
-
-function createDefaultFieldPlayers(): Record<CardRank, FieldSquadMember> {
-  return Object.fromEntries(
-    FIELD_SQUAD_RANKS.map((rank) => [
-      rank,
-      {
-        rank,
-        name: `Игрок ${rank}`,
-        shirtNumber: DEFAULT_FIELD_SHIRT_NUMBERS[rank]
-      }
-    ])
-  ) as Record<CardRank, FieldSquadMember>;
+function cloneNationalTeamSquad(squad: NationalTeamSquad): NationalTeamSquad {
+  return {
+    flagCode: squad.flagCode,
+    fieldPlayers: Object.fromEntries(
+      Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])
+    ) as NationalTeamSquad['fieldPlayers'],
+    goalkeeper: { ...squad.goalkeeper }
+  };
 }

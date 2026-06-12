@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDefaultSquad, DEFAULT_SQUADS } from '../data/defaultSquads';
+import { REAL_SQUADS, requireRealSquad } from '../data/realSquads';
 import { loadAllSquads, loadSquad } from '../services/squadStorage';
 
 const originalLocalStorage = globalThis.localStorage;
@@ -30,16 +30,16 @@ describe('read-only squad adapter', () => {
     });
   });
 
-  it('loads default static squads without reading localStorage', () => {
-    expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
+  it('loads real static squads without reading localStorage', () => {
+    expect(loadSquad('pl')).toEqual(requireRealSquad('pl'));
     expect(globalThis.localStorage.getItem).not.toHaveBeenCalled();
   });
 
   it('ignores saved localStorage data and never writes it', () => {
     const storage = globalThis.localStorage;
 
-    expect(loadSquad('pl')).toEqual(createDefaultSquad('pl'));
-    expect(loadAllSquads()).toHaveLength(DEFAULT_SQUADS.length);
+    expect(loadSquad('pl')).toEqual(requireRealSquad('pl'));
+    expect(loadAllSquads()).toHaveLength(REAL_SQUADS.length);
     expect(storage.getItem).not.toHaveBeenCalled();
     expect(storage.setItem).not.toHaveBeenCalled();
     expect(storage.removeItem).not.toHaveBeenCalled();
@@ -50,13 +50,17 @@ describe('read-only squad adapter', () => {
     firstLoad.fieldPlayers['9'].name = 'Mutated load';
     firstLoad.goalkeeper.name = 'Mutated keeper';
 
-    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Игрок 9');
-    expect(loadSquad('pl').goalkeeper.name).toBe('Вратарь');
+    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Urbanski');
+    expect(loadSquad('pl').goalkeeper.name).toBe('Skorupski');
 
     const allSquads = loadAllSquads();
     allSquads[0].fieldPlayers['9'].name = 'Mutated all squads';
 
-    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Игрок 9');
+    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Laci');
+  });
+
+  it('throws for unknown squads instead of generating placeholders', () => {
+    expect(() => loadSquad('missing')).toThrow('Missing real squad for flagCode: missing');
   });
 
   it('does not export the removed localStorage editing API', async () => {
@@ -68,12 +72,15 @@ describe('read-only squad adapter', () => {
     expect(exports.SQUAD_STORAGE_KEY).toBeUndefined();
   });
 
-  it('does not contain localStorage persistence code', () => {
-    const source = readFileSync(join(process.cwd(), 'src', 'services', 'squadStorage.ts'), 'utf8');
+  it('does not contain localStorage persistence or placeholder generation code', () => {
+    const storageSource = readFileSync(join(process.cwd(), 'src', 'services', 'squadStorage.ts'), 'utf8');
+    const defaultSquadsSource = readFileSync(join(process.cwd(), 'src', 'data', 'defaultSquads.ts'), 'utf8');
 
-    expect(source).not.toContain('localStorage');
-    expect(source).not.toContain('total-soccer-mundial:squads:v1');
-    expect(source).not.toContain('setItem');
-    expect(source).not.toContain('getItem');
+    expect(storageSource).not.toContain('localStorage');
+    expect(storageSource).not.toContain('total-soccer-mundial:squads:v1');
+    expect(storageSource).not.toContain('setItem');
+    expect(storageSource).not.toContain('getItem');
+    expect(defaultSquadsSource).not.toContain('createDefaultFieldPlayers');
+    expect(defaultSquadsSource).not.toContain('DEFAULT_FIELD_SHIRT_NUMBERS');
   });
 });
