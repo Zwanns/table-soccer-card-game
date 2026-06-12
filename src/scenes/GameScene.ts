@@ -311,14 +311,12 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       new TeamStatsView(this, 120, 232, {
         align: 'left',
-        shots: playerOneStats.shots,
         scorers: playerOneStats.scorers.map(formatShortScorer)
       })
     );
     this.dynamicLayer.add(
       new TeamStatsView(this, 1485, 232, {
         align: 'right',
-        shots: playerTwoStats.shots,
         scorers: playerTwoStats.scorers.map(formatShortScorer)
       })
     );
