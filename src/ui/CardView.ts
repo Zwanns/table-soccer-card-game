@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
+import { fitImageContain, getFallbackCoverTextureKey } from '../assets/teamCover';
 import type { CardColor } from '../cards';
 import { CardTooltipView } from './CardTooltipView';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { KitCardFaceView } from './KitCardFaceView';
-import { prepareKitCardFace } from './kitCardFaceModel';
+import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
 
 export interface CardViewOptions {
   rank: string;
@@ -14,6 +15,7 @@ export interface CardViewOptions {
   highlighted?: boolean;
   playerProfile?: CardPlayerProfile;
   kitTextureKey?: string;
+  coverTextureKey?: string;
   tooltipEnabled?: boolean;
   onClick?: () => void;
 }
@@ -30,9 +32,7 @@ export class CardView extends Phaser.GameObjects.Container {
     const positionLabel = options.label === 'GK' ? options.label : '';
 
     if (options.faceDown === true) {
-      const body = scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, 0x214f6b, 1);
-      body.setStrokeStyle(options.highlighted === true ? 5 : 2, options.highlighted === true ? 0xf0c95a : 0x7bb8d8);
-      this.add(body);
+      this.addFaceDownCard(scene, options);
     } else {
       const face = prepareKitCardFace({
         rank: options.rank,
@@ -115,4 +115,71 @@ export class CardView extends Phaser.GameObjects.Container {
     this.getWorldTransformMatrix().transformPoint(CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, position);
     return position;
   }
+
+  private addFaceDownCard(scene: Phaser.Scene, options: CardViewOptions): void {
+    const strokeWidth = options.highlighted === true ? 5 : 2;
+    const strokeColor = options.highlighted === true ? 0xf0c95a : 0x7bb8d8;
+    const background = createRoundedCardBack(scene, 0x214f6b, strokeColor, strokeWidth);
+    const coverTextureKey = options.coverTextureKey ?? getFallbackCoverTextureKey();
+
+    this.add(background);
+
+    if (scene.textures.exists(coverTextureKey)) {
+      const cover = scene.add.image(0, 0, coverTextureKey);
+      fitImageContain(cover, {
+        width: CARD_WIDTH - 8,
+        height: CARD_HEIGHT - 8
+      });
+      this.add(cover);
+    }
+
+    this.add(createRoundedCardBorder(scene, strokeColor, strokeWidth));
+  }
+}
+
+function createRoundedCardBack(
+  scene: Phaser.Scene,
+  fillColor: number,
+  strokeColor: number,
+  strokeWidth: number
+): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+
+  graphics.fillStyle(fillColor, 1);
+  graphics.fillRoundedRect(
+    -CARD_WIDTH / 2,
+    -CARD_HEIGHT / 2,
+    CARD_WIDTH,
+    CARD_HEIGHT,
+    KIT_CARD_LAYOUT.cardCornerRadius
+  );
+  graphics.lineStyle(strokeWidth, strokeColor, 1);
+  graphics.strokeRoundedRect(
+    -CARD_WIDTH / 2,
+    -CARD_HEIGHT / 2,
+    CARD_WIDTH,
+    CARD_HEIGHT,
+    KIT_CARD_LAYOUT.cardCornerRadius
+  );
+
+  return graphics;
+}
+
+function createRoundedCardBorder(
+  scene: Phaser.Scene,
+  strokeColor: number,
+  strokeWidth: number
+): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+
+  graphics.lineStyle(strokeWidth, strokeColor, 1);
+  graphics.strokeRoundedRect(
+    -CARD_WIDTH / 2,
+    -CARD_HEIGHT / 2,
+    CARD_WIDTH,
+    CARD_HEIGHT,
+    KIT_CARD_LAYOUT.cardCornerRadius
+  );
+
+  return graphics;
 }

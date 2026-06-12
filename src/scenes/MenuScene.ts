@@ -1,11 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import {
-  deleteStoredTournament,
-  hasActiveTournamentSave,
-  loadActiveTournament,
-  type TournamentMatchResult
-} from '../tournament';
+import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
 
 const MENU_LAYOUT = {
@@ -292,7 +287,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
-        () => this.startStandalonePenaltyShootout(),
+        () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
         { width: 280 }
       )
     );
@@ -646,37 +641,6 @@ export class MenuScene extends Phaser.Scene {
     this.openAboutModal();
   }
 
-  private startStandalonePenaltyShootout(): void {
-    this.scene.start('TournamentPenaltyScene', {
-      standalone: true,
-      matchResult: createStandalonePenaltyMatchResult()
-    });
-  }
-}
-
-function createStandalonePenaltyMatchResult(): TournamentMatchResult {
-  return {
-    matchId: 'standalone-penalty',
-    homeTeamId: 'fr',
-    awayTeamId: 'es',
-    homeGoals: 0,
-    awayGoals: 0,
-    teamStats: {
-      home: {
-        teamId: 'fr',
-        goals: 0,
-        shots: 0,
-        goalkeeperSaves: 0
-      },
-      away: {
-        teamId: 'es',
-        goals: 0,
-        shots: 0,
-        goalkeeperSaves: 0
-      }
-    },
-    playerStats: []
-  };
 }
 
 function getAboutLanguageCode(language: AboutLanguage): string {

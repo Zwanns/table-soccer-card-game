@@ -208,6 +208,11 @@ describe('kit card face rendering contracts', () => {
     expect(deckViewSource).toContain('createRoundedDeckBorder');
     expect(deckViewSource).toContain('KIT_CARD_LAYOUT.deckCornerRadius');
     expect(cardViewSource).toContain('options.faceDown === true');
+    expect(cardViewSource).toContain('coverTextureKey');
+    expect(cardViewSource).toContain('fitImageContain');
+    expect(cardViewSource).toContain('createRoundedCardBack');
+    expect(cardViewSource).toContain('createRoundedCardBorder');
+    expect(cardViewSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');
     expect(cardViewSource).toContain('0x214f6b');
     expect(cardViewSource).toContain('0x7bb8d8');
   });

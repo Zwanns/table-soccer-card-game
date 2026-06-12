@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
 
 type TeamSlot = 1 | 2;
@@ -16,15 +17,29 @@ export interface TeamSelectionData {
   player2FlagCode: string;
 }
 
+interface TeamSelectSceneData {
+  mode?: 'match' | 'penalty';
+}
+
 export class TeamSelectScene extends Phaser.Scene {
   private selectedTeamOne = DEFAULT_TEAM_ONE;
   private selectedTeamTwo = DEFAULT_TEAM_TWO;
   private activeSlot: TeamSlot = 1;
   private page = 0;
   private message: Phaser.GameObjects.Text | null = null;
+  private mode: TeamSelectSceneData['mode'] = 'match';
 
   public constructor() {
     super('TeamSelectScene');
+  }
+
+  public init(data: TeamSelectSceneData = {}): void {
+    this.mode = data.mode ?? 'match';
+    this.selectedTeamOne = DEFAULT_TEAM_ONE;
+    this.selectedTeamTwo = DEFAULT_TEAM_TWO;
+    this.activeSlot = 1;
+    this.page = 0;
+    this.message = null;
   }
 
   public create(): void {
@@ -48,7 +63,7 @@ export class TeamSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 72, 'Team selection', {
+      .text(centerX, 72, this.mode === 'penalty' ? 'Penalty teams' : 'Team selection', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
@@ -81,7 +96,7 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     new Button(this, 980, 666, '→', () => this.changePage(1), { disabled: this.page === maxPage });
-    new Button(this, 1342, 666, 'Start', () => this.startMatch(), {
+    new Button(this, 1342, 666, this.mode === 'penalty' ? 'Start penalties' : 'Start', () => this.startMatch(), {
       disabled: this.selectedTeamOne === this.selectedTeamTwo
     });
   }
@@ -220,6 +235,14 @@ export class TeamSelectScene extends Phaser.Scene {
       player2FlagCode: this.getSelectedTeam(2).flagCode
     };
 
+    if (this.mode === 'penalty') {
+      this.scene.start('TournamentPenaltyScene', {
+        standalone: true,
+        matchResult: createStandalonePenaltyMatchResult(data)
+      });
+      return;
+    }
+
     this.scene.start('GameScene', data);
   }
 
@@ -246,6 +269,31 @@ export class TeamSelectScene extends Phaser.Scene {
     const teamName = slot === 1 ? this.selectedTeamOne : this.selectedTeamTwo;
     return NATIONAL_TEAMS.find((team) => team.name === teamName) ?? NATIONAL_TEAMS[0];
   }
+}
+
+function createStandalonePenaltyMatchResult(selection: TeamSelectionData): TournamentMatchResult {
+  return {
+    matchId: `standalone-penalty-${selection.player1FlagCode}-${selection.player2FlagCode}`,
+    homeTeamId: selection.player1FlagCode,
+    awayTeamId: selection.player2FlagCode,
+    homeGoals: 0,
+    awayGoals: 0,
+    teamStats: {
+      home: {
+        teamId: selection.player1FlagCode,
+        goals: 0,
+        shots: 0,
+        goalkeeperSaves: 0
+      },
+      away: {
+        teamId: selection.player2FlagCode,
+        goals: 0,
+        shots: 0,
+        goalkeeperSaves: 0
+      }
+    },
+    playerStats: []
+  };
 }
 
 function getMaxPage(): number {

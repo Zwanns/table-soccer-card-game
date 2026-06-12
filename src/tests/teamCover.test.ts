@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AVAILABLE_TEAM_COVER_FLAG_CODES,
   fitImageContain,
   getFallbackCoverTextureKey,
   getTeamCoverFilename,
@@ -47,6 +48,20 @@ describe('team cover assets', () => {
     markTeamCoverLoadFailed('cover-ar');
 
     expect(resolveTeamCoverLoadResult(textures, 'ar')).toEqual({
+      textureKey: 'cover-none',
+      usedFallback: true
+    });
+  });
+
+  it('declares available team covers while preserving fallback for missing teams', () => {
+    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).toEqual(expect.arrayContaining(['fr', 'es', 'ua', 'pl']));
+    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).not.toContain('be');
+
+    const textures: TextureLookup = {
+      exists: (textureKey) => textureKey === 'cover-none'
+    };
+
+    expect(resolveTeamCoverLoadResult(textures, 'be')).toEqual({
       textureKey: 'cover-none',
       usedFallback: true
     });

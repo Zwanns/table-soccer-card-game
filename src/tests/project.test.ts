@@ -60,7 +60,8 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createAboutViewport');
     expect(menuSceneSource).toContain('createGeometryMask');
     expect(menuSceneSource).toContain("scrollZone.on('wheel'");
-    expect(menuSceneSource).toContain('createStandalonePenaltyMatchResult');
+    expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
+    expect(menuSceneSource).not.toContain('createStandalonePenaltyMatchResult');
     expect(menuSceneSource).toContain('Tournament progress is currently saved only locally');
     expect(menuSceneSource).toContain('Postęp turnieju jest obecnie zapisywany tylko lokalnie');
   });

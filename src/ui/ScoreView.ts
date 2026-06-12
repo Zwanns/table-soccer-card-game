@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 import { getFlagAssetKey } from '../data/nationalTeams';
 
+export interface ScoreViewOptions {
+  penaltyScore?: {
+    playerOne: number;
+    playerTwo: number;
+  };
+}
+
 export class ScoreView extends Phaser.GameObjects.Container {
   public constructor(
     scene: Phaser.Scene,
@@ -13,7 +20,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
     playerOneGoals: number,
     playerTwoGoals: number,
     playerOneShots: number,
-    playerTwoShots: number
+    playerTwoShots: number,
+    options: ScoreViewOptions = {}
   ) {
     super(scene, x, y);
 
@@ -37,6 +45,21 @@ export class ScoreView extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
 
     this.add([background, playerOneShotsText, playerOneFlag, playerTwoFlag, playerOneLabel, playerTwoLabel, playerTwoShotsText, label]);
+
+    if (options.penaltyScore !== undefined) {
+      this.add(
+        scene.add
+          .text(0, 29, `PEN ${options.penaltyScore.playerOne}:${options.penaltyScore.playerTwo}`, {
+            align: 'center',
+            color: '#f0c95a',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            fontStyle: '700'
+          })
+          .setOrigin(0.5)
+      );
+    }
+
     scene.add.existing(this);
   }
 

@@ -9,6 +9,35 @@ const FALLBACK_COVER_TEXTURE_KEY = `${COVER_TEXTURE_PREFIX}-${FALLBACK_COVER_BAS
 
 const failedCoverTextureKeys = new Set<string>();
 
+export const AVAILABLE_TEAM_COVER_FLAG_CODES: readonly string[] = [
+  'ar',
+  'br',
+  'ca',
+  'cz',
+  'de',
+  'dk',
+  'es',
+  'fr',
+  'gb-eng',
+  'gb-sct',
+  'gb-wls',
+  'ge',
+  'hr',
+  'kr',
+  'mx',
+  'ng',
+  'nl',
+  'no',
+  'pl',
+  'pt',
+  'py',
+  'tn',
+  'tr',
+  'ua',
+  'uy',
+  'za'
+] as const;
+
 export interface TeamCoverLoadResult {
   textureKey: string;
   usedFallback: boolean;

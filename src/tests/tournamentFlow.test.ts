@@ -68,6 +68,56 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).not.toContain('getPenaltyExtraSymbol');
   });
 
+  it('renders penalty shootouts on the match-style field layout', () => {
+    const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+    const bootSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+    const scoreSource = readFileSync(join(process.cwd(), 'src', 'ui', 'ScoreView.ts'), 'utf8');
+    const teamSelectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TeamSelectScene.ts'), 'utf8');
+
+    expect(penaltySource).toContain('new ScoreView');
+    expect(scoreSource).toContain('penaltyScore');
+    expect(scoreSource).toContain('`PEN ${options.penaltyScore.playerOne}:${options.penaltyScore.playerTwo}`');
+    expect(penaltySource).toContain('penaltyScore: {');
+    expect(penaltySource).toContain('new AdvantageView');
+    expect(bootSource).toContain("document.fonts.load('64px DS-Digital')");
+    expect(bootSource).toContain("document.fonts.load('400 42px Anton')");
+    expect(bootSource).toContain("document.fonts.load('600 18px Oswald')");
+    expect(bootSource).toContain('document.fonts.ready');
+    expect(penaltySource).toContain('createPenaltyField');
+    expect(penaltySource).toContain('createMenuButton');
+    expect(penaltySource).toContain("new Button(this, 120, 34, 'Menu'");
+    expect(penaltySource).toContain("this.scene.start('MenuScene')");
+    expect(penaltySource).toContain('const PENALTY_FIELD_CENTER_Y = 400');
+    expect(penaltySource).toContain('const PENALTY_GOALKEEPER_HOME_X = -490');
+    expect(penaltySource).toContain('const PENALTY_GOALKEEPER_AWAY_X = 490');
+    expect(penaltySource).toContain('queueTeamCoverLoad(this, this.matchResult.homeTeamId)');
+    expect(penaltySource).toContain('queueTeamCoverLoad(this, this.matchResult.awayTeamId)');
+    expect(bootSource).toContain('AVAILABLE_TEAM_COVER_FLAG_CODES');
+    expect(bootSource).toContain('getTeamCoverTextureKey(flagCode)');
+    expect(bootSource).toContain('getTeamCoverPath(flagCode)');
+    expect(teamSelectSource).toContain("mode?: 'match' | 'penalty'");
+    expect(teamSelectSource).toContain("'Penalty teams'");
+    expect(teamSelectSource).toContain("'Start penalties'");
+    expect(teamSelectSource).toContain("this.scene.start('TournamentPenaltyScene'");
+    expect(teamSelectSource).toContain('createStandalonePenaltyMatchResult(data)');
+    expect(penaltySource).toContain('coverTextureKey: this.getCoverTextureKey(teamId)');
+    expect(penaltySource).toContain('createPenaltyCardColumns');
+    expect(penaltySource).toContain("this.createPenaltyCardColumn(field, shootoutState, 'home', getPenaltyAttackColumnX(shootoutState, 'home'))");
+    expect(penaltySource).toContain("this.createPenaltyCardColumn(field, shootoutState, 'away', getPenaltyAttackColumnX(shootoutState, 'away'))");
+    expect(penaltySource).toContain('return targetX < 0 ? -PENALTY_ATTACK_COLUMN_X : PENALTY_ATTACK_COLUMN_X');
+    expect(penaltySource).toContain('const PENALTY_ATTACK_CARD_ROTATION = Math.PI / 2');
+    expect(penaltySource).toContain('card.setRotation(isRevealed ? 0 : PENALTY_ATTACK_CARD_ROTATION)');
+    expect(penaltySource).toContain('.setPadding(24, 18, 24, 20)');
+    expect(penaltySource).toContain('const SHOOTOUT_MARKER_Y = 148');
+    expect(penaltySource).toContain('this.createShootoutMarkers(this.shootoutState)');
+    expect(penaltySource).toContain('PENALTY_SELECTED_CARD_SCALE');
+    expect(penaltySource).toContain('const PENALTY_CARD_SCALE = 0.78');
+    expect(penaltySource).toContain('const PENALTY_SELECTED_CARD_SCALE = 0.9');
+    expect(penaltySource).toContain('const PENALTY_ATTACK_CARD_GAP = 60');
+    expect(penaltySource).toContain('markings.strokeRect');
+    expect(penaltySource).not.toContain('createPenaltyGoalFrame');
+  });
+
   it('provides a tournament completion scene with champion summary and stats navigation', () => {
     const completeSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentCompleteScene.ts'), 'utf8');
     const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');

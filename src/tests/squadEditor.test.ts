@@ -70,7 +70,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
-    expect(selectSource).toContain('const KIT_PREVIEW_OFFSET_X = 135');
+    expect(selectSource).toContain('const KIT_PREVIEW_OFFSET_X = 190');
     expect(selectSource).toContain('createTeamKitPreview');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
     expect(selectSource).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
