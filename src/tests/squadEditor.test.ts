@@ -11,7 +11,7 @@ describe('read-only squad scenes', () => {
 
     expect(mainSource).toContain('SquadSelectScene');
     expect(mainSource).toContain('SquadEditorScene');
-    expect(menuSource).toContain('Составы');
+    expect(menuSource).toContain('Teams');
     expect(menuSource).toContain("this.scene.start('SquadSelectScene')");
   });
 
@@ -22,8 +22,8 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');
-    expect(selectSource).toContain('Открыть');
-    expect(selectSource).toContain('Назад');
+    expect(selectSource).toContain('this.createBackButton');
+    expect(selectSource).toContain("this.scene.start('MenuScene')");
     expect(selectSource).not.toContain('TEAMS_PER_PAGE');
   });
 
@@ -62,6 +62,21 @@ describe('read-only squad scenes', () => {
   it('keeps the read-only table aligned with the 14 field ranks', () => {
     expect(FIELD_SQUAD_RANKS).toHaveLength(14);
     expect(FIELD_SQUAD_RANKS).toContain('JOKER');
+  });
+
+  it('shows the selected team kit beside a compact borderless squad card', () => {
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+
+    expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
+    expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
+    expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
+    expect(selectSource).toContain('const KIT_PREVIEW_OFFSET_X = 135');
+    expect(selectSource).toContain('createTeamKitPreview');
+    expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
+    expect(selectSource).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
+    expect(selectSource).toContain('kit.setDisplaySize(KIT_PREVIEW_WIDTH, KIT_PREVIEW_HEIGHT)');
+    expect(selectSource).toContain('SQUAD_CARD_WIDTH + KIT_PREVIEW_OFFSET_X');
+    expect(selectSource).not.toContain('background.setStrokeStyle(2, 0x5f9572, 0.95);');
   });
 });
 

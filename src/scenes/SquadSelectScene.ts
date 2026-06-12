@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
@@ -14,7 +15,12 @@ const GRID_START_Y = 112;
 const LEFT_PANEL_X = 80;
 const RIGHT_PANEL_X = 840;
 const RIGHT_PANEL_WIDTH = 760;
-const RIGHT_PANEL_HEIGHT = 584;
+const RIGHT_PANEL_HEIGHT = 571;
+const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2;
+const SQUAD_TABLE_Y = 94;
+const KIT_PREVIEW_WIDTH = 260;
+const KIT_PREVIEW_HEIGHT = 300;
+const KIT_PREVIEW_OFFSET_X = 190;
 const SQUAD_SECTION_ROW_GAP = 28;
 
 export class SquadSelectScene extends Phaser.Scene {
@@ -140,8 +146,7 @@ export class SquadSelectScene extends Phaser.Scene {
 
   private createSquadPanel(panelX: number, panelY: number): void {
     const panel = this.add.container(panelX, panelY);
-    const background = this.add.rectangle(0, 0, RIGHT_PANEL_WIDTH, RIGHT_PANEL_HEIGHT, 0x143f2c, 0.92).setOrigin(0);
-    background.setStrokeStyle(2, 0x5f9572, 0.95);
+    const background = this.add.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, 0x143f2c, 0.92).setOrigin(0);
 
     const team = getTeam(this.selectedTeamId);
     const header = this.add.container(28, 32);
@@ -153,7 +158,8 @@ export class SquadSelectScene extends Phaser.Scene {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
-        fontStyle: '700'
+        fontStyle: '700',
+        wordWrap: { width: SQUAD_CARD_WIDTH - 120 }
       })
       .setOrigin(0, 0.5);
     const subtitle = this.add
@@ -166,26 +172,42 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
     header.add([flag, title, subtitle]);
 
-    const squadTable = this.add.container(28, 110);
+    const squadTable = this.add.container(28, SQUAD_TABLE_Y);
     squadTable.add(this.createHeaderText(0, 0, 'Rank', 'left'));
     squadTable.add(this.createHeaderText(92, 0, 'Player', 'left'));
-    squadTable.add(this.createHeaderText(RIGHT_PANEL_WIDTH - 84, 0, 'Number', 'right'));
-    squadTable.add(this.add.rectangle(0, 24, RIGHT_PANEL_WIDTH - 56, 2, 0x5f9572, 0.9).setOrigin(0, 0));
+    squadTable.add(this.createHeaderText(SQUAD_CARD_WIDTH - 84, 0, 'Number', 'right'));
+    squadTable.add(this.add.rectangle(0, 24, SQUAD_CARD_WIDTH - 56, 2, 0x5f9572, 0.9).setOrigin(0, 0));
 
     const goalkeeperY = 48;
     squadTable.add(this.createCellText(0, goalkeeperY, 'GK', 'left', '#f0c95a'));
     squadTable.add(this.createCellText(92, goalkeeperY, this.squad.goalkeeper.name, 'left', '#ffffff'));
-    squadTable.add(this.createCellText(RIGHT_PANEL_WIDTH - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', '#d9eadf'));
+    squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', '#d9eadf'));
 
     FIELD_SQUAD_RANKS.forEach((rank, index) => {
       const player = this.squad.fieldPlayers[rank];
       const y = 84 + index * SQUAD_SECTION_ROW_GAP;
       squadTable.add(this.createCellText(0, y, rank, 'left', '#f0c95a'));
       squadTable.add(this.createCellText(92, y, player.name, 'left', '#ffffff'));
-      squadTable.add(this.createCellText(RIGHT_PANEL_WIDTH - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
+      squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
     });
 
-    panel.add([background, header, squadTable]);
+    const kitPreview = this.createTeamKitPreview(team);
+
+    panel.add(kitPreview === null ? [background, header, squadTable] : [background, header, squadTable, kitPreview]);
+  }
+
+  private createTeamKitPreview(team: NationalTeam): Phaser.GameObjects.Image | null {
+    const teamKitAssetKey = getTeamKitAssetKey(team.flagCode);
+    const textureKey = this.textures.exists(teamKitAssetKey) ? teamKitAssetKey : FALLBACK_TEAM_KIT_ASSET.assetKey;
+
+    if (!this.textures.exists(textureKey)) {
+      return null;
+    }
+
+    const kit = this.add.image(SQUAD_CARD_WIDTH + KIT_PREVIEW_OFFSET_X, RIGHT_PANEL_HEIGHT / 2, textureKey);
+    kit.setDisplaySize(KIT_PREVIEW_WIDTH, KIT_PREVIEW_HEIGHT);
+
+    return kit;
   }
 
   private createSectionTitle(x: number, y: number, text: string): Phaser.GameObjects.Text {
