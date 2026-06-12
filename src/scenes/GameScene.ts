@@ -404,7 +404,7 @@ export class GameScene extends Phaser.Scene {
     const text = this.add
       .text(centerX, centerY - 40, message, {
         color,
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: tone === 'goal' || tone === 'save' ? 'Bangers, Arial, sans-serif' : 'Arial, sans-serif',
         fontSize,
         fontStyle: '700',
         stroke: '#123b2a',

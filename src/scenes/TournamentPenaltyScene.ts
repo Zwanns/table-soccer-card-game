@@ -785,7 +785,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const text = this.add
       .text(SCENE_WIDTH / 2, SCENE_HEIGHT / 2 - 40, message, {
         color,
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: tone === 'goal' || tone === 'save' ? 'Bangers, Arial, sans-serif' : 'Arial, sans-serif',
         fontSize,
         fontStyle: '700',
         stroke: '#123b2a',

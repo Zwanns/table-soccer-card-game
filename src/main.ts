@@ -12,6 +12,7 @@ import { TournamentHubScene } from './scenes/TournamentHubScene';
 import { TournamentPenaltyScene } from './scenes/TournamentPenaltyScene';
 import { TournamentSetupScene } from './scenes/TournamentSetupScene';
 import '@fontsource/anton/400.css';
+import '@fontsource/bangers/400.css';
 import '@fontsource/oswald/600.css';
 import './styles/main.css';
 
