@@ -73,18 +73,20 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
     const color =
       options.kitAsset?.shirtNumberColor ??
+      getGoalkeeperNumberColor(options.kitTextureKey) ??
       getFallbackKitColors(options.teamColor).number;
     const stroke =
       options.kitAsset?.shirtNumberStrokeColor ??
+      getGoalkeeperNumberStrokeColor(options.kitTextureKey) ??
       '#000000';
     const position = getShirtNumberLayout();
     const number = scene.add
       .text(position.x, position.y, String(options.shirtNumber), {
         align: 'center',
         color,
-        fontFamily: 'Arial Black, Arial, sans-serif',
+        fontFamily: KIT_CARD_LAYOUT.shirtNumberFontFamily,
         fontSize: '18px',
-        fontStyle: '700',
+        fontStyle: '600',
         stroke,
         strokeThickness: 2
       })
@@ -95,16 +97,33 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
     const rank = scene.add
-      .text(-CARD_WIDTH / 2 + 9, -CARD_HEIGHT / 2 + 8, options.rank, {
-        color: KIT_CARD_LAYOUT.rankColor,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: options.rank.length > 2 ? '24px' : '38px',
-        fontStyle: '700'
-      })
+      .text(
+        -CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft,
+        -CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop,
+        options.rank,
+        {
+          color: KIT_CARD_LAYOUT.rankColor,
+          fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
+          fontSize: options.rank.length > 2 ? '26px' : '42px',
+          fontStyle: '400'
+        }
+      )
       .setOrigin(0, 0);
 
     this.add(rank);
   }
+}
+
+function getGoalkeeperNumberColor(kitTextureKey?: string): string | undefined {
+  return isGoalkeeperKitTexture(kitTextureKey) ? '#FFFFFF' : undefined;
+}
+
+function getGoalkeeperNumberStrokeColor(kitTextureKey?: string): string | undefined {
+  return isGoalkeeperKitTexture(kitTextureKey) ? '#111111' : undefined;
+}
+
+function isGoalkeeperKitTexture(kitTextureKey?: string): boolean {
+  return kitTextureKey === 'kit-gk1' || kitTextureKey === 'kit-gk2';
 }
 
 function createFallbackKitGraphics(scene: Phaser.Scene, colors: RenderedKitColorScheme): Phaser.GameObjects.Graphics {

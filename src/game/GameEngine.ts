@@ -16,7 +16,7 @@ import { createDefaultSquad } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { GameEvent, ScorerSnapshot } from './GameEvent';
 import type { GameState } from './GameState';
-import { createMatchTeamSetup, pickGoalkeeperKitId, type MatchTeamSetups } from './MatchTeamSetup';
+import { createGoalkeeperKitPair, createMatchTeamSetup, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
 import { getFieldPlayerForCard } from './squadResolver';
 import {
@@ -60,6 +60,7 @@ export class GameEngine {
     const playerTwoTeamId = options.player2FlagCode ?? 'es';
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
+    const [playerOneGoalkeeperKitId, playerTwoGoalkeeperKitId] = createGoalkeeperKitPair(setupRandom);
     const players: [Player, Player] = [
       createPlayer(
         'PLAYER_1',
@@ -86,12 +87,12 @@ export class GameEngine {
       [players[0].id]: createMatchTeamSetup({
         teamId: playerOneTeamId,
         squad: loadSquad(playerOneTeamId),
-        goalkeeperKitId: pickGoalkeeperKitId(setupRandom)
+        goalkeeperKitId: playerOneGoalkeeperKitId
       }),
       [players[1].id]: createMatchTeamSetup({
         teamId: playerTwoTeamId,
         squad: loadSquad(playerTwoTeamId),
-        goalkeeperKitId: pickGoalkeeperKitId(setupRandom)
+        goalkeeperKitId: playerTwoGoalkeeperKitId
       })
     };
 

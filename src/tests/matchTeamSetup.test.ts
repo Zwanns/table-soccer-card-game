@@ -50,6 +50,17 @@ describe('match team setup snapshot', () => {
 
     expect(first.PLAYER_1.goalkeeperKitId).toBe(second.PLAYER_1.goalkeeperKitId);
     expect(first.PLAYER_2.goalkeeperKitId).toBe(second.PLAYER_2.goalkeeperKitId);
+    expect(first.PLAYER_1.goalkeeperKitId).not.toBe(first.PLAYER_2.goalkeeperKitId);
+  });
+
+  it('gives team two the remaining goalkeeper kit from team one', () => {
+    const state = new GameEngine().startNewGame({ seed: 'goalkeeper-kit-pair' });
+    const playerOneKitId = state.matchSetups.PLAYER_1.goalkeeperKitId;
+    const playerTwoKitId = state.matchSetups.PLAYER_2.goalkeeperKitId;
+
+    expect(['gk1', 'gk2']).toContain(playerOneKitId);
+    expect(['gk1', 'gk2']).toContain(playerTwoKitId);
+    expect(playerTwoKitId).toBe(playerOneKitId === 'gk1' ? 'gk2' : 'gk1');
   });
 
   it('resolves a captured card through the team setup snapshot', () => {

@@ -135,8 +135,8 @@ export const REAL_SQUADS: readonly NationalTeamSquad[] = [
     'Almada',
     'Lautaro Martinez',
     'Julian Alvarez',
-    'Messi',
     'Nico Paz',
+    'Messi',
   ]),
 
   createSquad('am', 'Cancarevic', [

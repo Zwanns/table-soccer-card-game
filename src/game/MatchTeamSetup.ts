@@ -33,6 +33,13 @@ export function pickGoalkeeperKitId(random: RandomGenerator): GoalkeeperKitId {
   return GOALKEEPER_KIT_IDS[Math.floor(random() * GOALKEEPER_KIT_IDS.length)] ?? GOALKEEPER_KIT_IDS[0];
 }
 
+export function createGoalkeeperKitPair(random: RandomGenerator): readonly [GoalkeeperKitId, GoalkeeperKitId] {
+  const firstKitId = pickGoalkeeperKitId(random);
+  const secondKitId = GOALKEEPER_KIT_IDS.find((kitId) => kitId !== firstKitId) ?? firstKitId;
+
+  return [firstKitId, secondKitId];
+}
+
 export function cloneNationalTeamSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
     flagCode: squad.flagCode,

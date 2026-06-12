@@ -5,15 +5,19 @@ export const KIT_CARD_FACE_WIDTH = 108;
 export const KIT_CARD_FACE_HEIGHT = 148.5;
 
 export const KIT_CARD_LAYOUT = {
-  kitWidth: 92,
-  kitHeight: 106,
+  kitWidth: 82,
+  kitHeight: 95,
   kitAnchorX: 1,
   kitAnchorY: 1,
-  kitOffsetRight: 0,
-  kitOffsetBottom: 0,
+  kitOffsetRight: 6,
+  kitOffsetBottom: 6,
   shirtNumberX: 0.5,
   shirtNumberY: 0.33,
+  rankOffsetLeft: 10,
+  rankOffsetTop: 8,
   rankColor: '#000000',
+  rankFontFamily: 'Anton, Arial, sans-serif',
+  shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
   cardCornerRadius: 8,
   deckCornerRadius: 8
 } as const;

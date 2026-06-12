@@ -54,7 +54,7 @@ describe('kit asset resolver', () => {
     expect(resolveGoalkeeperKitAsset('gk2')).toEqual({
       assetKey: 'kit-gk2',
       shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#FFFFFF'
+      shirtNumberStrokeColor: '#111111'
     });
   });
 

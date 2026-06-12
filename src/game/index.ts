@@ -5,7 +5,12 @@ export type { GameEvent, ScorerSnapshot } from './GameEvent';
 export type { GamePhase } from './GamePhase';
 export type { GameState } from './GameState';
 export type { MatchTeamSetup, MatchTeamSetups } from './MatchTeamSetup';
-export { cloneNationalTeamSquad, createMatchTeamSetup, pickGoalkeeperKitId } from './MatchTeamSetup';
+export {
+  cloneNationalTeamSquad,
+  createGoalkeeperKitPair,
+  createMatchTeamSetup,
+  pickGoalkeeperKitId
+} from './MatchTeamSetup';
 export {
   getFieldPlayerForCard,
   getStartingGoalkeeper,

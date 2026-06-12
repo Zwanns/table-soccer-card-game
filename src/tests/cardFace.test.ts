@@ -92,10 +92,11 @@ describe('kit card face rendering contracts', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('0xffffff');
-    expect(kitFaceSource).toContain('-CARD_WIDTH / 2 + 9');
-    expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + 8');
+    expect(kitFaceSource).toContain('-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft');
+    expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
-    expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '24px' : '38px'");
+    expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankFontFamily');
+    expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '26px' : '42px'");
     expect(kitFaceSource).toContain('getKitImageLayout()');
     expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
     expect(kitFaceSource).toContain('setDisplaySize(layout.width, layout.height)');
@@ -135,26 +136,30 @@ describe('kit card face rendering contracts', () => {
     });
   });
 
-  it('places the reduced kit in the bottom-right corner', () => {
+  it('places the compact kit in the padded bottom-right corner', () => {
     expect(KIT_CARD_LAYOUT).toEqual({
-      kitWidth: 92,
-      kitHeight: 106,
+      kitWidth: 82,
+      kitHeight: 95,
       kitAnchorX: 1,
       kitAnchorY: 1,
-      kitOffsetRight: 0,
-      kitOffsetBottom: 0,
+      kitOffsetRight: 6,
+      kitOffsetBottom: 6,
       shirtNumberX: 0.5,
       shirtNumberY: 0.33,
+      rankOffsetLeft: 10,
+      rankOffsetTop: 8,
       rankColor: '#000000',
+      rankFontFamily: 'Anton, Arial, sans-serif',
+      shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
       cardCornerRadius: 8,
       deckCornerRadius: 8
     });
 
     expect(getKitImageLayout()).toEqual({
-      x: KIT_CARD_FACE_WIDTH / 2,
-      y: KIT_CARD_FACE_HEIGHT / 2,
-      width: 92,
-      height: 106,
+      x: KIT_CARD_FACE_WIDTH / 2 - 6,
+      y: KIT_CARD_FACE_HEIGHT / 2 - 6,
+      width: 82,
+      height: 95,
       originX: 1,
       originY: 1
     });
@@ -193,6 +198,11 @@ describe('kit card face rendering contracts', () => {
 
     expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberColor');
     expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberStrokeColor');
+    expect(kitFaceSource).toContain('getGoalkeeperNumberColor(options.kitTextureKey)');
+    expect(kitFaceSource).toContain("kitTextureKey === 'kit-gk1' || kitTextureKey === 'kit-gk2'");
+    expect(kitFaceSource).toContain("'#FFFFFF'");
+    expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.shirtNumberFontFamily');
+    expect(kitFaceSource).toContain("fontStyle: '600'");
     expect(kitFaceSource).toContain('strokeThickness: 2');
     expect(deckViewSource).toContain('createRoundedDeckCard');
     expect(deckViewSource).toContain('createRoundedDeckBorder');
@@ -221,5 +231,12 @@ describe('kit card face rendering contracts', () => {
     expect(bootSceneSource).toContain('getRegisteredKitAssetsToLoad()');
     expect(kitFaceSource).toContain('scene.textures.exists(options.kitTextureKey)');
     expect(kitFaceSource).toContain('this.add(image)');
+  });
+
+  it('loads card fonts locally through Fontsource', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain("@fontsource/anton/400.css");
+    expect(mainSource).toContain("@fontsource/oswald/600.css");
   });
 });

@@ -159,7 +159,7 @@ export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
     secondaryColor: '#111111',
 
     shirtNumberColor: '#FFFFFF',
-    shirtNumberStrokeColor: '#FFFFFF'
+    shirtNumberStrokeColor: '#111111'
   }
 ] as const;
 

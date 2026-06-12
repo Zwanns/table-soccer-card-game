@@ -150,7 +150,7 @@ describe('team kit data contract', () => {
         primaryColor: '#FFB81C',
         secondaryColor: '#111111',
         shirtNumberColor: '#FFFFFF',
-        shirtNumberStrokeColor: '#FFFFFF'
+        shirtNumberStrokeColor: '#111111'
       }
     ]);
     expect(GOALKEEPER_KIT_STYLES.map((style) => style.id)).not.toContain('gk-1');
