@@ -8,6 +8,7 @@ export function createGoalkeeperDeck(random: RandomGenerator): GoalkeeperDeck {
 
 export function createGoalkeeperCards(): GoalkeeperCard[] {
   return GOALKEEPER_RANKS.map((rank) => ({
+    id: `GK_${rank}`,
     kind: 'goalkeeper',
     rank
   }));

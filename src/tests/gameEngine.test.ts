@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperRank } from '../cards';
+import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperCard, type GoalkeeperRank } from '../cards';
 import {
   createMatchTeamSetup,
   createEmptyField,
@@ -28,8 +28,9 @@ function deck(ranks: CardRank[]): Deck {
   };
 }
 
-function goalkeeperCard(rank: GoalkeeperRank): { kind: 'goalkeeper'; rank: GoalkeeperRank } {
+function goalkeeperCard(rank: GoalkeeperRank): GoalkeeperCard {
   return {
+    id: `ENGINE_GK_${rank}`,
     kind: 'goalkeeper',
     rank
   };

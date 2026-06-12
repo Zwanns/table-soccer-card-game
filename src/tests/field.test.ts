@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperRank } from '../cards';
+import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperCard, type GoalkeeperRank } from '../cards';
 import {
   createEmptyField,
   getCardsInCurrentTargetLine,
@@ -25,8 +25,9 @@ function deck(ranks: CardRank[]): Deck {
   };
 }
 
-function goalkeeperCard(rank: GoalkeeperRank): { kind: 'goalkeeper'; rank: GoalkeeperRank } {
+function goalkeeperCard(rank: GoalkeeperRank): GoalkeeperCard {
   return {
+    id: `TEST_GK_${rank}`,
     kind: 'goalkeeper',
     rank
   };
@@ -107,7 +108,7 @@ describe('player field restoration', () => {
     expect(player.field['midfielder-2']?.rank).toBe('5');
     expect(player.field['midfielder-3']?.rank).toBe('6');
     expect(player.deck.cards.map((deckCard) => deckCard.rank)).toEqual(['7', '8']);
-    expect(player.goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual([]);
+    expect(player.goalkeeperDeck.getCards().map((deckCard) => deckCard.rank)).toEqual([]);
   });
 
   it('restores goalkeeper from the goalkeeper deck and lets joker stay in the outfield', () => {

@@ -107,7 +107,7 @@ function createPlayer(id: Player['id'], team: NationalTeam, goals: number): Play
     teamColor: id === 'PLAYER_1' ? 'RED' : 'BLACK',
     goals,
     deck: { cards: [] },
-    goalkeeperDeck: new GoalkeeperDeck([{ kind: 'goalkeeper', rank: '6' }]),
+    goalkeeperDeck: new GoalkeeperDeck([{ id: 'SIM_GK_DECK_6', kind: 'goalkeeper', rank: '6' }]),
     field: createEmptyField()
   };
 }
@@ -192,8 +192,11 @@ function createCard(rank: CardRank, index: number): Card {
 }
 
 function createGoalkeeperCard(index: number): GoalkeeperCard {
+  const rank = index % 3 === 0 ? '6' : index % 3 === 1 ? '8' : '10';
+
   return {
+    id: `SIM_GK_${rank}_${index}`,
     kind: 'goalkeeper',
-    rank: index % 3 === 0 ? '6' : index % 3 === 1 ? '8' : '10'
+    rank
   };
 }

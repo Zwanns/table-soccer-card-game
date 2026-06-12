@@ -15,6 +15,7 @@ describe('goalkeeper cards', () => {
     expectTypeOf<GoalkeeperRank>().toEqualTypeOf<Exclude<Card['rank'], '2' | 'JOKER'>>();
     expectTypeOf<GoalkeeperCard>().not.toEqualTypeOf<Card>();
     expect(createGoalkeeperCards()[0]).toMatchObject({
+      id: expect.any(String),
       kind: 'goalkeeper',
       rank: expect.any(String)
     });
@@ -45,6 +46,7 @@ describe('goalkeeper cards', () => {
 
     expect(cards).toHaveLength(12);
     expect(cards.map((card) => card.rank)).toEqual(GOALKEEPER_RANKS);
+    expect(cards.map((card) => card.id)).toEqual(GOALKEEPER_RANKS.map((rank) => `GK_${rank}`));
     expect(cards.every((card) => card.kind === 'goalkeeper')).toBe(true);
   });
 });
@@ -55,20 +57,21 @@ describe('goalkeeper deck', () => {
     const top = deck.peekTop();
     const drawn = deck.drawTop();
 
-    expect(top).toEqual({ kind: 'goalkeeper', rank: '3' });
+    expect(top).toEqual({ id: 'GK_3', kind: 'goalkeeper', rank: '3' });
     expect(drawn).toEqual(top);
     expect(deck.getSize()).toBe(11);
-    expect(deck.peekTop()).toEqual({ kind: 'goalkeeper', rank: '4' });
+    expect(deck.peekTop()).toEqual({ id: 'GK_4', kind: 'goalkeeper', rank: '4' });
   });
 
   it('returns cards to the bottom', () => {
     const deck = new GoalkeeperDeck(createGoalkeeperCards());
     const drawn = deck.drawTop();
 
-    deck.returnToBottom(drawn);
+    expect(drawn).toBeDefined();
+    deck.returnToBottom(drawn!);
 
     expect(deck.getSize()).toBe(12);
-    expect(deck.toArray().at(-1)).toEqual(drawn);
+    expect(deck.getCards().at(-1)).toEqual(drawn);
   });
 
   it('cycles through cards when drawn cards are returned to the bottom', () => {
@@ -77,8 +80,12 @@ describe('goalkeeper deck', () => {
 
     for (let index = 0; index < GOALKEEPER_RANKS.length + 2; index += 1) {
       const card = deck.drawTop();
+      expect(card).toBeDefined();
+      if (card === undefined) {
+        throw new Error('Expected goalkeeper card while cycling the deck.');
+      }
       ranks.push(card.rank);
-      deck.returnToBottom(card);
+      deck.returnToBottom(card!);
     }
 
     expect(ranks).toEqual([...GOALKEEPER_RANKS, '3', '4']);
@@ -89,8 +96,8 @@ describe('goalkeeper deck', () => {
     const secondDeck = createGoalkeeperDeck(createSeededRandom(42));
     const thirdDeck = createGoalkeeperDeck(createSeededRandom(43));
 
-    expect(firstDeck.toArray().map((card) => card.rank)).toEqual(secondDeck.toArray().map((card) => card.rank));
-    expect(firstDeck.toArray().map((card) => card.rank)).not.toEqual(thirdDeck.toArray().map((card) => card.rank));
+    expect(firstDeck.getCards().map((card) => card.rank)).toEqual(secondDeck.getCards().map((card) => card.rank));
+    expect(firstDeck.getCards().map((card) => card.rank)).not.toEqual(thirdDeck.getCards().map((card) => card.rank));
   });
 
   it('protects stored cards from outside mutation', () => {
@@ -103,14 +110,14 @@ describe('goalkeeper deck', () => {
       peeked.rank = 'K';
     }
 
-    expect(deck.peekTop()).toEqual({ kind: 'goalkeeper', rank: '3' });
+    expect(deck.peekTop()).toEqual({ id: 'GK_3', kind: 'goalkeeper', rank: '3' });
   });
 
-  it('throws when drawing from an empty goalkeeper deck', () => {
+  it('returns undefined when drawing from an empty goalkeeper deck', () => {
     const deck = new GoalkeeperDeck([]);
 
     expect(deck.peekTop()).toBeUndefined();
     expect(deck.getSize()).toBe(0);
-    expect(() => deck.drawTop()).toThrow('Cannot draw from an empty goalkeeper deck.');
+    expect(deck.drawTop()).toBeUndefined();
   });
 });

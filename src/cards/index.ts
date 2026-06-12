@@ -2,7 +2,7 @@ export type { Card, CardColor, CardRank, CardSuit } from './Card';
 export { BLACK_SUITS, RED_SUITS, STANDARD_RANKS } from './Card';
 export type { Deck } from './Deck';
 export { addCardsToBottom, drawTopCard, shuffleDeck } from './Deck';
-export type { GoalkeeperCard, GoalkeeperRank } from './GoalkeeperCard';
+export type { GoalkeeperCard, GoalkeeperCardRank, GoalkeeperRank } from './GoalkeeperCard';
 export { GOALKEEPER_RANKS } from './GoalkeeperCard';
 export { GoalkeeperDeck } from './GoalkeeperDeck';
 export { createGoalkeeperCards, createGoalkeeperDeck } from './createGoalkeeperDeck';

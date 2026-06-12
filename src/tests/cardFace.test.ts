@@ -138,8 +138,8 @@ describe('kit card face rendering contracts', () => {
 
   it('places the compact kit in the padded bottom-right corner', () => {
     expect(KIT_CARD_LAYOUT).toEqual({
-      kitWidth: 82,
-      kitHeight: 95,
+      kitWidth: 76,
+      kitHeight: 88,
       kitAnchorX: 1,
       kitAnchorY: 1,
       kitOffsetRight: 6,
@@ -158,8 +158,8 @@ describe('kit card face rendering contracts', () => {
     expect(getKitImageLayout()).toEqual({
       x: KIT_CARD_FACE_WIDTH / 2 - 6,
       y: KIT_CARD_FACE_HEIGHT / 2 - 6,
-      width: 82,
-      height: 95,
+      width: 76,
+      height: 88,
       originX: 1,
       originY: 1
     });

@@ -348,6 +348,7 @@ function card(rank: Card['rank']): Card {
 
 function goalkeeperCard(rank: GoalkeeperCard['rank']): GoalkeeperCard {
   return {
+    id: `TOURNAMENT_GK_${rank}`,
     kind: 'goalkeeper',
     rank
   };

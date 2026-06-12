@@ -75,6 +75,10 @@ function createRestoredPositions(player: Player, emptyPositions: readonly FieldP
     if (positionId === 'goalkeeper') {
       const card = player.goalkeeperDeck.drawTop();
 
+      if (card === undefined) {
+        throw new Error('Cannot restore goalkeeper position without a goalkeeper deck card.');
+      }
+
       return {
         positionId,
         card,

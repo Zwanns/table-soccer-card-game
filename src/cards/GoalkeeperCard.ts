@@ -1,10 +1,12 @@
 import type { CardRank } from './Card';
 
-export type GoalkeeperRank = Exclude<CardRank, '2' | 'JOKER'>;
+export type GoalkeeperCardRank = Exclude<CardRank, '2' | 'JOKER'>;
+export type GoalkeeperRank = GoalkeeperCardRank;
 
 export type GoalkeeperCard = {
+  id: string;
+  rank: GoalkeeperCardRank;
   kind: 'goalkeeper';
-  rank: GoalkeeperRank;
 };
 
 export const GOALKEEPER_RANKS: readonly GoalkeeperRank[] = [

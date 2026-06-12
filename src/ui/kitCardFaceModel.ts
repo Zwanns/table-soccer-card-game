@@ -5,8 +5,8 @@ export const KIT_CARD_FACE_WIDTH = 108;
 export const KIT_CARD_FACE_HEIGHT = 148.5;
 
 export const KIT_CARD_LAYOUT = {
-  kitWidth: 82,
-  kitHeight: 95,
+  kitWidth: 76,
+  kitHeight: 88,
   kitAnchorX: 1,
   kitAnchorY: 1,
   kitOffsetRight: 6,

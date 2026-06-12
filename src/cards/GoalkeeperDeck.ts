@@ -7,14 +7,10 @@ export class GoalkeeperDeck {
     this.cards = cards.map((card) => ({ ...card }));
   }
 
-  public drawTop(): GoalkeeperCard {
+  public drawTop(): GoalkeeperCard | undefined {
     const card = this.cards.shift();
 
-    if (card === undefined) {
-      throw new Error('Cannot draw from an empty goalkeeper deck.');
-    }
-
-    return { ...card };
+    return card === undefined ? undefined : { ...card };
   }
 
   public returnToBottom(card: GoalkeeperCard): void {
@@ -31,7 +27,11 @@ export class GoalkeeperDeck {
     return this.cards.length;
   }
 
-  public toArray(): GoalkeeperCard[] {
+  public getCards(): readonly GoalkeeperCard[] {
     return this.cards.map((card) => ({ ...card }));
+  }
+
+  public toArray(): GoalkeeperCard[] {
+    return [...this.getCards()];
   }
 }
