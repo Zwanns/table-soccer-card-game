@@ -95,9 +95,17 @@ describe('project scaffold', () => {
 
   it('keeps final match statistics labels readable', () => {
     const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+    const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+    const teamStatsViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'TeamStatsView.ts'), 'utf8');
 
     expect(resultSceneSource).toContain("'Goalscorers'");
-    expect(resultSceneSource).toContain('turn ${scorer.turnNumber}');
+    expect(resultSceneSource).toContain('${scorer.playerName} (turn ${scorer.turnNumber})');
+    expect(resultSceneSource).not.toContain('(#${scorer.shirtNumber})');
+    expect(gameSceneSource).toContain('${scorer.playerName} (turn ${scorer.turnNumber})');
+    expect(gameSceneSource).not.toContain('(#${scorer.shirtNumber})');
+    expect(teamStatsViewSource).toContain("options.scorers.join('\\n')");
+    expect(teamStatsViewSource).toContain('createGeometryMask');
+    expect(teamStatsViewSource).toContain("scrollZone.on('wheel'");
     expect(resultSceneSource).not.toContain('Winner');
     expect(resultSceneSource).not.toContain("'Post'");
     expect(resultSceneSource).not.toContain("'GK saves'");

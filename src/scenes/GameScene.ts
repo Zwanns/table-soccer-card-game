@@ -911,7 +911,7 @@ function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id'])
 }
 
 function formatShortScorer(scorer: GoalScorerStat): string {
-  return `${scorer.playerName} (#${scorer.shirtNumber})`;
+  return `${scorer.playerName} (turn ${scorer.turnNumber})`;
 }
 
 function createAiMatchSeed(

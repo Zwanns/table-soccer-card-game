@@ -429,7 +429,7 @@ function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: Go
 } {
   return {
     playerId,
-    text: `${scorer.playerName} (#${scorer.shirtNumber}), turn ${scorer.turnNumber}`,
+    text: `${scorer.playerName} (turn ${scorer.turnNumber})`,
     turnNumber: scorer.turnNumber
   };
 }
