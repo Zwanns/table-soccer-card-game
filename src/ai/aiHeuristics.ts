@@ -1,4 +1,11 @@
-import { canBeat, createSeededRandom, getRankValue, type Card } from '../cards';
+import {
+  canBeat,
+  canCommittedMidfielderBeat,
+  createSeededRandom,
+  getRankValue,
+  isSpecialBeat,
+  type Card
+} from '../cards';
 import type { GameState, MidfielderPositionId, Player } from '../game';
 import { getCurrentTargetLine } from '../game';
 import { MIDFIELDER_POSITION_IDS, RESTORE_ORDER, type FieldPositionId } from '../game/PlayerField';
@@ -31,8 +38,10 @@ type MidfielderCandidate = {
 
 type TargetCandidate = {
   positionId: FieldPositionId;
-  defenderCard: Card;
+  defenderCard: Pick<Card, 'rank'>;
 };
+
+export const MAX_MIDFIELDER_OVERPAY_STEPS = 2;
 
 export function chooseAttackSource(
   state: Readonly<GameState>,
@@ -71,15 +80,6 @@ export function chooseTarget(
     return null;
   }
 
-  const gapPositionIds = getLegalMidfieldGapPositionIds(state);
-
-  if (state.currentAttackCardSource === 'DECK' && gapPositionIds.length > 0) {
-    return {
-      type: 'SELECT_MIDFIELD_GAP',
-      positionId: pickRandom(gapPositionIds, random)
-    };
-  }
-
   const opponent = getOpponent(state, playerId);
 
   if (opponent === undefined) {
@@ -92,14 +92,7 @@ export function chooseTarget(
     return null;
   }
 
-  if (targetPositionIds.includes('goalkeeper')) {
-    return {
-      type: 'SELECT_TARGET',
-      positionId: 'goalkeeper'
-    };
-  }
-
-  const targetCandidates = getOutfieldTargetCandidates(targetPositionIds, opponent);
+  const targetCandidates = getTargetCandidates(targetPositionIds, opponent);
 
   if (targetCandidates.length === 0) {
     return null;
@@ -107,12 +100,25 @@ export function chooseTarget(
 
   const beatableTargets = targetCandidates.filter((candidate) => canBeat(state.attackCard as Card, candidate.defenderCard));
 
+  if (beatableTargets.length > 0) {
+    return {
+      type: 'SELECT_TARGET',
+      positionId: pickStrongestTarget(beatableTargets, random).positionId
+    };
+  }
+
+  const gapPositionIds = getLegalMidfieldGapPositionIds(state);
+
+  if (state.currentAttackCardSource === 'DECK' && gapPositionIds.length > 0) {
+    return {
+      type: 'SELECT_MIDFIELD_GAP',
+      positionId: pickRandom(gapPositionIds, random)
+    };
+  }
+
   return {
     type: 'SELECT_TARGET',
-    positionId:
-      beatableTargets.length > 0
-        ? pickStrongestTarget(beatableTargets, random).positionId
-        : pickWeakestTarget(targetCandidates, random).positionId
+    positionId: pickWeakestTarget(targetCandidates, random).positionId
   };
 }
 
@@ -135,7 +141,7 @@ function getSuccessfulMidfielderCandidates(
       return [];
     }
 
-    return canBeat(attackerCard, defenderCard)
+    return canCommittedMidfielderBeat(attackerCard, defenderCard) && isEfficientMidfielderCommit(attackerCard, defenderCard)
       ? [
           {
             positionId,
@@ -144,6 +150,16 @@ function getSuccessfulMidfielderCandidates(
         ]
       : [];
   });
+}
+
+function isEfficientMidfielderCommit(attackerCard: Card, defenderCard: Card): boolean {
+  if (isSpecialBeat(attackerCard, defenderCard)) {
+    return true;
+  }
+
+  const overpaySteps = getRankValue(attackerCard.rank) - getRankValue(defenderCard.rank);
+
+  return overpaySteps > 0 && overpaySteps <= MAX_MIDFIELDER_OVERPAY_STEPS;
 }
 
 function getMidfielderCommitProbability(activePlayer: Player, opponent: Player): number {
@@ -181,12 +197,8 @@ function getLegalTargetPositionIds(state: Readonly<GameState>): FieldPositionId[
   return state.legalTargetPositionIds.filter(isFieldPositionId);
 }
 
-function getOutfieldTargetCandidates(targetPositionIds: readonly FieldPositionId[], opponent: Player): TargetCandidate[] {
+function getTargetCandidates(targetPositionIds: readonly FieldPositionId[], opponent: Player): TargetCandidate[] {
   return targetPositionIds.flatMap((positionId) => {
-    if (positionId === 'goalkeeper') {
-      return [];
-    }
-
     const defenderCard = opponent.field[positionId];
 
     return defenderCard === null

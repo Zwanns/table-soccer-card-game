@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addCardsToBottom,
   canBeat,
+  canCommittedMidfielderBeat,
   createPlayerDecks,
   createSeededRandom,
   drawTopCard,
@@ -52,6 +53,23 @@ describe('card rules', () => {
     'supports special hit %s against %s',
     (attackerRank, defenderRank) => {
       expect(canBeat(card(attackerRank), card(defenderRank))).toBe(true);
+    }
+  );
+
+  it.each([
+    ['5', '5', false],
+    ['A', 'A', false],
+    ['6', '5', true],
+    ['5', '6', false],
+    ['2', 'JOKER', true],
+    ['6', 'A', true],
+    ['7', 'K', true],
+    ['8', 'Q', true],
+    ['9', 'J', true]
+  ] satisfies Array<[CardRank, CardRank, boolean]>)(
+    'checks committed midfielder hit %s against %s',
+    (attackerRank, defenderRank, expected) => {
+      expect(canCommittedMidfielderBeat(card(attackerRank), card(defenderRank))).toBe(expected);
     }
   );
 });

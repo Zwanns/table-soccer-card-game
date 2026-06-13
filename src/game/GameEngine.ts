@@ -1,6 +1,7 @@
 import {
   addCardsToBottom,
   canBeat,
+  canCommittedMidfielderBeat,
   createGoalkeeperDeck,
   createPlayerDecks,
   createSeededRandom,
@@ -190,7 +191,7 @@ export class GameEngine {
     }
 
     if (!this.canCommitMidfielder(positionId)) {
-      throw new Error(`Cannot commit midfielder "${positionId}" in the current attack state.`);
+      return this.state;
     }
 
     const activePlayer = this.getActivePlayer();
@@ -349,7 +350,7 @@ export class GameEngine {
       throw new Error(`Cannot resolve committed midfielder duel because "${positionId}" is empty.`);
     }
 
-    if (!canBeatFieldTarget(attackCard, targetCard, positionId)) {
+    if (!canCommittedMidfielderBeat(attackCard, targetCard)) {
       return this.resolveFailedFieldDuel(activePlayer, attackCard, targetCard, positionId);
     }
 
@@ -398,10 +399,17 @@ export class GameEngine {
     const committedPositionIds = this.state.committedMidfielderPositionIds ?? [];
 
     return MIDFIELDER_POSITION_IDS.filter(
-      (positionId) =>
-        activePlayer.field[positionId] !== null &&
-        opponent.field[positionId] !== null &&
-        !committedPositionIds.includes(positionId)
+      (positionId) => {
+        const attackerCard = activePlayer.field[positionId];
+        const defenderCard = opponent.field[positionId];
+
+        return (
+          attackerCard !== null &&
+          defenderCard !== null &&
+          !committedPositionIds.includes(positionId) &&
+          canCommittedMidfielderBeat(attackerCard, defenderCard)
+        );
+      }
     );
   }
 

@@ -102,6 +102,21 @@ function setPositions(field: PlayerField, entries: Partial<Record<FieldPositionI
   }
 }
 
+function createMidfielderNoopSnapshot(gameState: Readonly<GameState>): unknown {
+  return {
+    phase: gameState.phase,
+    activePlayerId: gameState.activePlayerId,
+    attackCard: gameState.attackCard,
+    currentAttackCardSource: gameState.currentAttackCardSource,
+    currentAttackingMidfielderPositionId: gameState.currentAttackingMidfielderPositionId,
+    attackBank: gameState.attackBank,
+    logLength: gameState.log.length,
+    playerFields: gameState.players.map((candidate) =>
+      Object.fromEntries(Object.entries(candidate.field).map(([positionId, fieldCard]) => [positionId, fieldCard?.id ?? null]))
+    )
+  };
+}
+
 function createReadyEngine(playerOneDeck: CardRank[], playerTwoDeck: CardRank[] = []): GameEngine {
   const gameState = state(playerOneDeck, playerTwoDeck);
   fillField(gameState.players[0].field);
@@ -162,6 +177,25 @@ describe('game engine attacks', () => {
 
     expect(engine.getLegalTargets()).toEqual(['midfielder-1', 'midfielder-2', 'midfielder-3']);
     expect(engine.selectTarget('midfielder-1').log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
+  });
+
+  it('keeps equal-rank deck attacks successful against regular field cards', () => {
+    const engine = createReadyEngine(['5']);
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '5'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-1');
+
+    expect(result.players[1].field['midfielder-1']).toBeNull();
+    expect(result.log.find((event) => event.type === 'CARD_DEFEATED')).toMatchObject({
+      type: 'CARD_DEFEATED',
+      positionId: 'midfielder-1',
+      attackerCard: { rank: '5' },
+      defenderCard: { rank: '5' }
+    });
   });
 
   it('scenario 3: failing to beat a midfield card returns the attack card and switches turn', () => {
@@ -234,7 +268,7 @@ describe('game engine attacks', () => {
     const afterSuccess = successEngine.selectTarget('midfielder-1');
 
     expect(afterSuccess.phase).toBe('WAITING_FOR_ATTACK_CARD');
-    expect(afterSuccess.committableMidfielderPositionIds).toEqual(['midfielder-2', 'midfielder-3']);
+    expect(afterSuccess.committableMidfielderPositionIds).toEqual(['midfielder-3']);
     expect(afterSuccess.players[1].field['midfielder-1']).toBeNull();
     expect(afterSuccess.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
 
@@ -296,7 +330,7 @@ describe('game engine attacks', () => {
     engine.startNextTurn();
 
     expect(engine.canCommitMidfielder('midfielder-1')).toBe(true);
-    expect(engine.canCommitMidfielder('midfielder-2')).toBe(true);
+    expect(engine.canCommitMidfielder('midfielder-2')).toBe(false);
 
     const result = engine.commitMidfielder('midfielder-1');
 
@@ -320,7 +354,7 @@ describe('game engine attacks', () => {
     });
   });
 
-  it('does not allow committing a midfielder against an empty opposite slot', () => {
+  it('does not change state when committing a midfielder against an empty opposite slot', () => {
     const engine = createReadyEngine(['9']);
     setPositions(engine.getState().players[0].field, {
       'midfielder-2': 'A'
@@ -330,29 +364,92 @@ describe('game engine attacks', () => {
     });
 
     engine.startNextTurn();
+    const before = createMidfielderNoopSnapshot(engine.getState());
 
     expect(engine.canCommitMidfielder('midfielder-2')).toBe(false);
-    expect(() => engine.commitMidfielder('midfielder-2')).toThrow(
-      'Cannot commit midfielder "midfielder-2" in the current attack state.'
-    );
+    const result = engine.commitMidfielder('midfielder-2');
+
+    expect(createMidfielderNoopSnapshot(result)).toEqual(before);
+    expect(result.log.some((event) => event.type === 'MIDFIELDER_COMMITTED')).toBe(false);
+    expect(result.log.some((event) => event.type === 'ATTACK_MISSED')).toBe(false);
+    expect(result.log.some((event) => event.type === 'TURN_ENDED')).toBe(false);
   });
 
-  it('creates one counterattack midfield gap after a failed committed midfielder duel', () => {
-    const engine = createReadyEngine([], ['8']);
+  it.each([
+    ['5', '5'],
+    ['A', 'A'],
+    ['JOKER', 'JOKER'],
+    ['5', '6']
+  ] satisfies Array<[CardRank, CardRank]>)(
+    'does not make midfielder %s committable against %s',
+    (attackerRank, defenderRank) => {
+      const engine = createReadyEngine(['9']);
+      setPositions(engine.getState().players[0].field, {
+        'midfielder-1': attackerRank
+      });
+      setPositions(engine.getState().players[1].field, {
+        'midfielder-1': defenderRank
+      });
+
+      engine.startNextTurn();
+      const before = createMidfielderNoopSnapshot(engine.getState());
+      const result = engine.commitMidfielder('midfielder-1');
+
+      expect(engine.getCommittableMidfielderPositionIds()).not.toContain('midfielder-1');
+      expect(createMidfielderNoopSnapshot(result)).toEqual(before);
+    }
+  );
+
+  it.each([
+    ['6', '5'],
+    ['2', 'JOKER'],
+    ['6', 'A'],
+    ['7', 'K'],
+    ['8', 'Q'],
+    ['9', 'J']
+  ] satisfies Array<[CardRank, CardRank]>)(
+    'allows midfielder %s to commit against %s',
+    (attackerRank, defenderRank) => {
+      const engine = createReadyEngine(['9']);
+      setPositions(engine.getState().players[0].field, {
+        'midfielder-1': attackerRank
+      });
+      setPositions(engine.getState().players[1].field, {
+        'midfielder-1': defenderRank
+      });
+
+      engine.startNextTurn();
+
+      expect(engine.getCommittableMidfielderPositionIds()).toContain('midfielder-1');
+      expect(engine.commitMidfielder('midfielder-1').log).toContainEqual(
+        expect.objectContaining({
+          type: 'MIDFIELDER_COMMITTED',
+          positionId: 'midfielder-1',
+          card: expect.objectContaining({ rank: attackerRank })
+        })
+      );
+    }
+  );
+
+  it('creates one counterattack midfield gap after a failed deck attack with a committed midfielder', () => {
+    const engine = createReadyEngine(['3'], ['8']);
     setPositions(engine.getState().players[0].field, {
-      'midfielder-1': '3'
+      'midfielder-1': 'A'
     });
     setPositions(engine.getState().players[1].field, {
-      'midfielder-1': '10'
+      'midfielder-1': '6',
+      'midfielder-2': '10'
     });
 
     engine.startNextTurn();
-    const result = engine.commitMidfielder('midfielder-1');
+    engine.commitMidfielder('midfielder-1');
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-2');
 
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
     expect(result.players[0].field['midfielder-1']).toBeNull();
-    expect(result.players[1].field['midfielder-1']?.rank).toBe('10');
+    expect(result.players[1].field['midfielder-2']?.rank).toBe('10');
     expect(result.counterattackMidfieldGap).toMatchObject({
       defendingPlayerId: 'PLAYER_1',
       positionIds: ['midfielder-1'],
@@ -361,24 +458,27 @@ describe('game engine attacks', () => {
     });
     expect(result.log.at(-2)).toMatchObject({
       type: 'ATTACK_MISSED',
-      positionId: 'midfielder-1',
+      positionId: 'midfielder-2',
       attackerCard: { rank: '3' },
       defenderCard: { rank: '10' }
     });
   });
 
   it('uses a counterattack midfield gap once without creating CARD_DEFEATED', () => {
-    const engine = createReadyEngine([], ['8', 'K']);
+    const engine = createReadyEngine(['3'], ['8', 'K']);
     fillField(engine.getState().players[1].field);
     setPositions(engine.getState().players[0].field, {
-      'midfielder-1': '3'
+      'midfielder-1': 'A'
     });
     setPositions(engine.getState().players[1].field, {
-      'midfielder-1': '10'
+      'midfielder-1': '6',
+      'midfielder-2': '10'
     });
 
     engine.startNextTurn();
     engine.commitMidfielder('midfielder-1');
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-2');
     engine.startNextTurn();
     engine.drawAttackCard();
 
@@ -391,8 +491,7 @@ describe('game engine attacks', () => {
     expect(result.log.at(-1)).toMatchObject({
       type: 'MIDFIELD_GAP_USED',
       playerId: 'PLAYER_2',
-      positionId: 'midfielder-1',
-      attackerCard: { rank: '8' }
+      positionId: 'midfielder-1'
     });
     expect(result.counterattackMidfieldGap?.used).toBe(true);
     expect(result.legalMidfieldGapPositionIds).toEqual([]);
@@ -444,7 +543,7 @@ describe('game engine attacks', () => {
     fillField(engine.getState().players[1].field);
     setPositions(engine.getState().players[0].field, {
       'defender-1': '3',
-      'midfielder-1': '3'
+      'midfielder-1': 'A'
     });
     setPositions(engine.getState().players[1].field, {
       'midfielder-1': '10'

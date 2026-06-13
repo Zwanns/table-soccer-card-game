@@ -316,7 +316,7 @@ describe('AiTurnController', () => {
 
     controller.requestTurnCheck('TURN_STARTED');
 
-    for (let callIndex = 0; callIndex < 1000 && engine.getState().phase !== 'GAME_OVER'; callIndex += 1) {
+    for (let callIndex = 0; callIndex < 2000 && engine.getState().phase !== 'GAME_OVER'; callIndex += 1) {
       expect(scheduler.calls[callIndex], `Expected AI timer ${callIndex} to be scheduled.`).toBeDefined();
       scheduler.run(callIndex);
     }

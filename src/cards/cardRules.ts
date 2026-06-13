@@ -1,5 +1,7 @@
 import type { Card, CardRank } from './Card';
 
+type RankedCard = Pick<Card, 'rank'>;
+
 const RANK_VALUES: Record<CardRank, number> = {
   '2': 2,
   '3': 3,
@@ -23,10 +25,22 @@ export function getRankValue(rank: CardRank): number {
   return RANK_VALUES[rank];
 }
 
-export function canBeat(attacker: Card, defender: Card): boolean {
-  if (SPECIAL_BEATS.has(`${attacker.rank}:${defender.rank}`)) {
+export function isSpecialBeat(attacker: RankedCard, defender: RankedCard): boolean {
+  return SPECIAL_BEATS.has(`${attacker.rank}:${defender.rank}`);
+}
+
+export function canBeat(attacker: RankedCard, defender: RankedCard): boolean {
+  if (isSpecialBeat(attacker, defender)) {
     return true;
   }
 
   return getRankValue(attacker.rank) >= getRankValue(defender.rank);
+}
+
+export function canCommittedMidfielderBeat(attacker: RankedCard, defender: RankedCard): boolean {
+  if (isSpecialBeat(attacker, defender)) {
+    return true;
+  }
+
+  return getRankValue(attacker.rank) > getRankValue(defender.rank);
 }

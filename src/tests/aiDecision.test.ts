@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   chooseAiAction,
   createAiDecisionRandom,
+  MAX_MIDFIELDER_OVERPAY_STEPS,
   type AiAction,
   type SeededRandomLike
 } from '../ai';
@@ -187,8 +188,8 @@ describe('AI decision model', () => {
 
   it('can commit a legal midfielder that beats the opposite midfield card', () => {
     const gameState = state('WAITING_FOR_ATTACK_CARD');
-    setPositions(gameState.players[0].field, { 'midfielder-1': 'A' });
-    setPositions(gameState.players[1].field, { 'midfielder-1': '6' });
+    setPositions(gameState.players[0].field, { 'midfielder-1': '6' });
+    setPositions(gameState.players[1].field, { 'midfielder-1': '5' });
     gameState.committableMidfielderPositionIds = ['midfielder-1'];
 
     expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
@@ -200,11 +201,11 @@ describe('AI decision model', () => {
   it('does not commit a midfielder against an empty or already used slot', () => {
     const gameState = state('WAITING_FOR_ATTACK_CARD');
     setPositions(gameState.players[0].field, {
-      'midfielder-1': 'A',
+      'midfielder-1': '6',
       'midfielder-2': 'A'
     });
     setPositions(gameState.players[1].field, {
-      'midfielder-1': '6'
+      'midfielder-1': '5'
     });
     gameState.committableMidfielderPositionIds = ['midfielder-1'];
     gameState.committedMidfielderPositionIds = ['midfielder-2'];
@@ -245,13 +246,106 @@ describe('AI decision model', () => {
     expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0.8))).toEqual({ type: 'DRAW_FROM_DECK' });
   });
 
-  it('uses a midfield gap from deck source before regular targets', () => {
+  it.each([
+    ['3', '2', true],
+    ['4', '2', true],
+    ['5', '2', false],
+    ['A', '2', false],
+    ['K', '3', false],
+    ['5', '3', true]
+  ] satisfies Array<[CardRank, CardRank, boolean]>)(
+    `uses standard midfielder commits only within ${MAX_MIDFIELDER_OVERPAY_STEPS} overpay steps: %s vs %s`,
+    (attackerRank, defenderRank, shouldCommit) => {
+      const gameState = createMidfielderChoiceState(attackerRank, defenderRank);
+
+      expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual(
+        shouldCommit
+          ? {
+              type: 'COMMIT_MIDFIELDER',
+              positionId: 'midfielder-1'
+            }
+          : { type: 'DRAW_FROM_DECK' }
+      );
+    }
+  );
+
+  it.each([
+    ['2', 'JOKER'],
+    ['6', 'A'],
+    ['7', 'K'],
+    ['8', 'Q'],
+    ['9', 'J']
+  ] satisfies Array<[CardRank, CardRank]>)(
+    'can use special rule midfielder commit %s against %s',
+    (attackerRank, defenderRank) => {
+      const gameState = createMidfielderChoiceState(attackerRank, defenderRank);
+
+      expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
+        type: 'COMMIT_MIDFIELDER',
+        positionId: 'midfielder-1'
+      });
+    }
+  );
+
+  it('saves an overpowered midfielder when the only opposite target is too weak even with guaranteed commit random', () => {
+    const gameState = createMidfielderChoiceState('A', '3');
+
+    expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({ type: 'DRAW_FROM_DECK' });
+  });
+
+  it('chooses the weakest sufficient efficient midfielder', () => {
+    const gameState = state('WAITING_FOR_ATTACK_CARD');
+    setPositions(gameState.players[0].field, {
+      'midfielder-1': 'K',
+      'midfielder-2': '5'
+    });
+    setPositions(gameState.players[1].field, {
+      'midfielder-1': 'Q',
+      'midfielder-2': '3'
+    });
+    gameState.committableMidfielderPositionIds = ['midfielder-1', 'midfielder-2'];
+
+    expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
+      type: 'COMMIT_MIDFIELDER',
+      positionId: 'midfielder-2'
+    });
+  });
+
+  it('chooses a beatable regular target before a midfield gap', () => {
     const gameState = state('WAITING_FOR_TARGET');
     gameState.attackCard = card('8', 'ATTACK');
     gameState.currentAttackCardSource = 'DECK';
     gameState.legalMidfieldGapPositionIds = ['midfielder-1', 'midfielder-2'];
     gameState.legalTargetPositionIds = ['defender-1'];
     setPositions(gameState.players[1].field, { 'defender-1': '3' });
+
+    expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0.9))).toEqual({
+      type: 'SELECT_TARGET',
+      positionId: 'defender-1'
+    });
+  });
+
+  it('chooses a beatable goalkeeper target before a midfield gap', () => {
+    const gameState = state('WAITING_FOR_TARGET');
+    gameState.attackCard = card('A', 'ATTACK');
+    gameState.currentAttackCardSource = 'DECK';
+    gameState.legalMidfieldGapPositionIds = ['midfielder-1'];
+    gameState.legalTargetPositionIds = ['goalkeeper'];
+    setPositions(gameState.players[1].field, { goalkeeper: '6' });
+
+    expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
+      type: 'SELECT_TARGET',
+      positionId: 'goalkeeper'
+    });
+  });
+
+  it('uses a midfield gap from deck source only when no regular target can be beaten', () => {
+    const gameState = state('WAITING_FOR_TARGET');
+    gameState.attackCard = card('3', 'ATTACK');
+    gameState.currentAttackCardSource = 'DECK';
+    gameState.legalMidfieldGapPositionIds = ['midfielder-1', 'midfielder-2'];
+    gameState.legalTargetPositionIds = ['defender-1'];
+    setPositions(gameState.players[1].field, { 'defender-1': 'K' });
 
     expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0.9))).toEqual({
       type: 'SELECT_MIDFIELD_GAP',
@@ -270,6 +364,23 @@ describe('AI decision model', () => {
     expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
       type: 'SELECT_TARGET',
       positionId: 'defender-1'
+    });
+  });
+
+  it('chooses the weakest regular target for turnover when no target is beatable and no gap is available', () => {
+    const gameState = state('WAITING_FOR_TARGET');
+    gameState.attackCard = card('3', 'ATTACK');
+    gameState.currentAttackCardSource = 'DECK';
+    gameState.legalMidfieldGapPositionIds = [];
+    setPositions(gameState.players[1].field, {
+      'defender-1': 'K',
+      'defender-2': '10'
+    });
+    gameState.legalTargetPositionIds = ['defender-1', 'defender-2'];
+
+    expect(chooseAiAction(gameState, 'PLAYER_1', fixedRandom(0))).toEqual({
+      type: 'SELECT_TARGET',
+      positionId: 'defender-2'
     });
   });
 
@@ -328,10 +439,11 @@ describe('AI decision model', () => {
     const targetAction = chooseAiAction(targetState, 'PLAYER_1', fixedRandom(0));
 
     const gapState = state('WAITING_FOR_TARGET');
-    gapState.attackCard = card('A', 'ATTACK');
+    gapState.attackCard = card('3', 'ATTACK');
     gapState.currentAttackCardSource = 'DECK';
     gapState.legalMidfieldGapPositionIds = ['midfielder-2'];
     gapState.legalTargetPositionIds = ['midfielder-1'];
+    setPositions(gapState.players[1].field, { 'midfielder-1': 'K' });
     const gapAction = chooseAiAction(gapState, 'PLAYER_1', fixedRandom(0));
 
     expect(targetAction).toEqual({ type: 'SELECT_TARGET', positionId: 'midfielder-1' });
@@ -369,6 +481,15 @@ function createEqualTargetChoiceState(): GameState {
     'midfielder-3': '6'
   });
   gameState.legalTargetPositionIds = ['midfielder-1', 'midfielder-2', 'midfielder-3'];
+
+  return gameState;
+}
+
+function createMidfielderChoiceState(attackerRank: CardRank, defenderRank: CardRank): GameState {
+  const gameState = state('WAITING_FOR_ATTACK_CARD');
+  setPositions(gameState.players[0].field, { 'midfielder-1': attackerRank });
+  setPositions(gameState.players[1].field, { 'midfielder-1': defenderRank });
+  gameState.committableMidfielderPositionIds = ['midfielder-1'];
 
   return gameState;
 }

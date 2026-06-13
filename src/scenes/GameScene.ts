@@ -286,6 +286,11 @@ export class GameScene extends Phaser.Scene {
 
   private commitMidfielder(positionId: MidfielderPositionId): void {
     const engine = this.requireEngine();
+
+    if (!engine.canCommitMidfielder(positionId)) {
+      return;
+    }
+
     const animationContext = this.createMidfielderCommitAnimationContext(positionId);
     let state: GameState;
 

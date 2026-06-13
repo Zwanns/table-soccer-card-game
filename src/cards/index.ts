@@ -7,6 +7,6 @@ export { GOALKEEPER_RANKS } from './GoalkeeperCard';
 export { GoalkeeperDeck } from './GoalkeeperDeck';
 export { createGoalkeeperCards, createGoalkeeperDeck } from './createGoalkeeperDeck';
 export { createPlayerDecks } from './createDecks';
-export { canBeat, getRankValue } from './cardRules';
+export { canBeat, canCommittedMidfielderBeat, getRankValue, isSpecialBeat } from './cardRules';
 export type { RandomGenerator } from './seededRandom';
 export { createSeededRandom } from './seededRandom';
