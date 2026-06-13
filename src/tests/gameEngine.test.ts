@@ -664,6 +664,30 @@ describe('game engine attacks', () => {
     expect(nextShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
   });
 
+  it('treats equal face-card goalkeeper ranks as a goalpost hit instead of a goal', () => {
+    const engine = createReadyEngine(['Q', 'A']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: 'Q'
+    });
+    const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
+    const originalGoalkeeperDeck = engine.getState().players[1].goalkeeperDeck.toArray();
+
+    engine.startNextTurn();
+    const waitingForShot = engine.drawAttackCard();
+
+    expect(waitingForShot.phase).toBe('WAITING_FOR_TARGET');
+    expect(waitingForShot.attackCard?.rank).toBe('Q');
+
+    const afterPost = engine.selectTarget('goalkeeper');
+
+    expect(afterPost.players[0].goals).toBe(0);
+    expect(afterPost.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(afterPost.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
+    expect(afterPost.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
+    expect(afterPost.log.some((event) => event.type === 'GOAL_SCORED')).toBe(false);
+    expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
+  });
+
   it('ends the attack with a goalkeeper save when the selected shot cannot beat the goalkeeper', () => {
     const engine = createReadyEngine(['5']);
     setPositions(engine.getState().players[1].field, {

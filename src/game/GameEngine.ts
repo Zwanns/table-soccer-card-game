@@ -891,15 +891,21 @@ function appendUniqueMidfielderPosition(
 }
 
 function canBeatFieldTarget(attacker: Card, defender: Card | GoalkeeperCard, positionId: FieldPositionId): boolean {
-  if (positionId === 'goalkeeper' && isStrictGoalkeeperRank(defender.rank)) {
-    return getRankValue(attacker.rank) > getRankValue(defender.rank);
+  if (positionId === 'goalkeeper') {
+    if (attacker.rank === defender.rank) {
+      return false;
+    }
+
+    if (isStrictGoalkeeperRank(defender.rank)) {
+      return getRankValue(attacker.rank) > getRankValue(defender.rank);
+    }
   }
 
   return canBeat(attacker, defender as Card);
 }
 
 function isGoalpostHit(attacker: Card, goalkeeper: GoalkeeperCard): boolean {
-  return isStrictGoalkeeperRank(goalkeeper.rank) && attacker.rank === goalkeeper.rank;
+  return attacker.rank === goalkeeper.rank;
 }
 
 function assignCardsToPlayer(cards: readonly Card[], player: Player): void {
