@@ -235,41 +235,52 @@ export class ResultScene extends Phaser.Scene {
     playerOneGoals: number,
     playerTwoGoals: number
   ): void {
+    const teamNameInnerGap = 96;
+    const teamNameWidth = 260;
+    const flagGap = 18;
+    const flagWidth = 64;
+    const flagHeight = 44;
     const scoreLine = this.add.container(x, y);
-    const playerOneFlag = this.add.image(-280, 0, getFlagAssetKey(playerOneFlagCode));
-    playerOneFlag.setDisplaySize(52, 36);
-    const playerTwoFlag = this.add.image(280, 0, getFlagAssetKey(playerTwoFlagCode));
-    playerTwoFlag.setDisplaySize(52, 36);
+    const playerOneNameX = -teamNameInnerGap;
+    const playerTwoNameX = teamNameInnerGap;
 
     const playerOneText = this.add
-      .text(-244, 0, playerOneName, {
-        color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700',
-        wordWrap: { width: 210 }
-      })
-      .setOrigin(0, 0.5);
-
-    const score = this.add
-      .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
-        color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
-    const playerTwoText = this.add
-      .text(244, 0, playerTwoName, {
+      .text(playerOneNameX, 0, playerOneName, {
         align: 'right',
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
         fontSize: '30px',
         fontStyle: '700',
-        wordWrap: { width: 210 }
+        wordWrap: { width: teamNameWidth }
       })
       .setOrigin(1, 0.5);
+
+    const score = this.add
+      .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
+        color: '#dfeaf2',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '36px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const playerTwoText = this.add
+      .text(playerTwoNameX, 0, playerTwoName, {
+        align: 'left',
+        color: '#dfeaf2',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: '700',
+        wordWrap: { width: teamNameWidth }
+      })
+      .setOrigin(0, 0.5);
+
+    const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2;
+    const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2;
+    const playerOneFlag = this.add.image(playerOneFlagX, 0, getFlagAssetKey(playerOneFlagCode));
+    playerOneFlag.setDisplaySize(flagWidth, flagHeight);
+    const playerTwoFlag = this.add.image(playerTwoFlagX, 0, getFlagAssetKey(playerTwoFlagCode));
+    playerTwoFlag.setDisplaySize(flagWidth, flagHeight);
 
     scoreLine.add([playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag]);
   }

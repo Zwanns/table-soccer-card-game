@@ -16,6 +16,7 @@ export type AiScheduledTimer = {
 export type AiTurnControllerOptions = {
   getState: () => Readonly<GameState> | null;
   getMatchSeed: () => string;
+  canAct?: () => boolean;
   executeAction: (action: AiAction) => void;
   scheduleDelayedCall: (delayMs: number, callback: () => void) => AiScheduledTimer;
   timingJitterMs?: number;
@@ -59,6 +60,10 @@ export class AiTurnController {
       return;
     }
 
+    if (!this.canAct()) {
+      return;
+    }
+
     const delayMs = this.getDelayMs(state, activePlayerId, reason);
 
     this.pendingTimer = this.options.scheduleDelayedCall(delayMs, () => {
@@ -91,7 +96,7 @@ export class AiTurnController {
     const state = this.options.getState();
     const activePlayerId = state?.activePlayerId ?? null;
 
-    if (state === null || activePlayerId === null || !this.isAiTurn(state) || !isAiActionPhase(state)) {
+    if (state === null || activePlayerId === null || !this.isAiTurn(state) || !isAiActionPhase(state) || !this.canAct()) {
       return;
     }
 
@@ -170,6 +175,10 @@ export class AiTurnController {
 
     this.pendingTimer.remove(false);
     this.pendingTimer = null;
+  }
+
+  private canAct(): boolean {
+    return this.options.canAct?.() ?? true;
   }
 }
 

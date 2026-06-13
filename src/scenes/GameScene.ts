@@ -34,6 +34,7 @@ import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { ScoreView } from '../ui/ScoreView';
 import { TeamStatsView } from '../ui/TeamStatsView';
 import type { TeamSelectionData } from './TeamSelectScene';
+import { getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
 
 const FIELD_WIDTH = 1120;
 const FIELD_TOP = 100;
@@ -83,6 +84,8 @@ export class GameScene extends Phaser.Scene {
   private player1CoverTextureKey = getFallbackCoverTextureKey();
   private player2CoverTextureKey = getFallbackCoverTextureKey();
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
+  private handledGoalScoredEventCursor = 0;
+  private isMatchEffectInProgress = false;
 
   public constructor() {
     super('GameScene');
@@ -106,6 +109,8 @@ export class GameScene extends Phaser.Scene {
     this.player1CoverTextureKey = getFallbackCoverTextureKey();
     this.player2CoverTextureKey = getFallbackCoverTextureKey();
     this.animatedRestoreCount = 0;
+    this.handledGoalScoredEventCursor = 0;
+    this.isMatchEffectInProgress = false;
     this.startWhistlePlayed = false;
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
@@ -126,6 +131,7 @@ export class GameScene extends Phaser.Scene {
     this.aiTurnController = new AiTurnController({
       getState: () => this.engine?.getState() ?? null,
       getMatchSeed: () => this.aiMatchSeed,
+      canAct: () => !this.isMatchEffectInProgress && this.input.enabled,
       executeAction: (action) => this.executeAiAction(action),
       scheduleDelayedCall: (delayMs, callback) => this.time.delayedCall(delayMs, callback)
     });
@@ -255,7 +261,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (interactive) {
+    if (interactive && !this.isMatchEffectInProgress) {
       this.playStartWhistleIfReady(state);
       this.aiTurnController?.requestTurnCheck(options.aiCheckReason);
     }
@@ -344,14 +350,19 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (state.phase === 'ENDING_TURN') {
-      const scoredGoal = state.log.slice(-4).some((event) => event.type === 'GOAL_SCORED');
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
       const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
+      const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalScoredEventCursor);
 
-      if (scoredGoal) {
+      if (goalEffect !== null) {
+        this.handledGoalScoredEventCursor = goalEffect.eventIndex + 1;
         this.render(state, { interactive: false });
-        this.playSound('sound-goal', 0.72);
-        this.showFlyingMessage('GOAL!!', 'goal', () => this.startTurn());
+        this.playSound(goalEffect.soundKey, goalEffect.soundVolume);
+        this.isMatchEffectInProgress = true;
+        this.showFlyingMessage(goalEffect.flyingMessage, goalEffect.flyingMessageTone, () => {
+          this.isMatchEffectInProgress = false;
+          this.startTurn();
+        });
       } else if (goalkeeperSave) {
         this.render(state, { interactive: false });
         this.playSound('sound-goalkeeper-save', 0.72);

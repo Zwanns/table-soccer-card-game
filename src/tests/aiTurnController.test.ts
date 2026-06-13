@@ -237,4 +237,54 @@ describe('AiTurnController', () => {
 
     expect(actions).toEqual([]);
   });
+
+  it('does not schedule a new AI action while the scene is resolving a goal effect', () => {
+    const gameState = state('WAITING_FOR_ATTACK_CARD');
+    const scheduler = new FakeScheduler();
+    let sceneStable = false;
+    const actions: AiAction[] = [];
+    const controller = new AiTurnController({
+      getState: () => gameState,
+      getMatchSeed: () => 'ai-turn-test',
+      canAct: () => sceneStable,
+      executeAction: (action) => {
+        actions.push(action);
+      },
+      scheduleDelayedCall: (delayMs, callback) => scheduler.schedule(delayMs, callback),
+      timingJitterMs: 0
+    });
+
+    controller.requestTurnCheck();
+
+    expect(scheduler.calls).toHaveLength(0);
+
+    sceneStable = true;
+    controller.requestTurnCheck();
+    scheduler.run();
+
+    expect(actions).toEqual([{ type: 'DRAW_FROM_DECK' }]);
+  });
+
+  it('drops a queued AI timer if a goal effect starts before the timer fires', () => {
+    const gameState = state('WAITING_FOR_ATTACK_CARD');
+    const scheduler = new FakeScheduler();
+    let sceneStable = true;
+    const actions: AiAction[] = [];
+    const controller = new AiTurnController({
+      getState: () => gameState,
+      getMatchSeed: () => 'ai-turn-test',
+      canAct: () => sceneStable,
+      executeAction: (action) => {
+        actions.push(action);
+      },
+      scheduleDelayedCall: (delayMs, callback) => scheduler.schedule(delayMs, callback),
+      timingJitterMs: 0
+    });
+
+    controller.requestTurnCheck();
+    sceneStable = false;
+    scheduler.run();
+
+    expect(actions).toEqual([]);
+  });
 });
