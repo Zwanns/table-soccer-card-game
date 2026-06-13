@@ -122,6 +122,7 @@ function isTournamentStateLike(value: unknown): value is TournamentState {
     typeof value.stage === 'string' &&
     SUPPORTED_TOURNAMENT_STAGES.includes(value.stage as TournamentStage) &&
     Array.isArray(value.teamIds) &&
+    (value.participants === undefined || Array.isArray(value.participants)) &&
     Array.isArray(value.groups) &&
     Array.isArray(value.matches) &&
     isRecord(value.drawOrder)

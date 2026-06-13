@@ -2,7 +2,7 @@ export type { KnockoutRoundFormat, TournamentFormat } from './TournamentFormat';
 export { getTournamentFormat, getTournamentMatchCount, TOURNAMENT_FORMATS } from './TournamentFormat';
 export { createTournamentGroups } from './TournamentGroup';
 export { createTournamentMatches, getCompletedGroupMatches } from './TournamentMatch';
-export { createTournamentState } from './TournamentState';
+export { createTournamentState, getTournamentTeamControllerType } from './TournamentState';
 export {
   createTournamentMatchResult,
   fillEmptyTournamentSlots,
@@ -65,6 +65,7 @@ export type {
   TournamentMatchStatus,
   TournamentMatchTeamStat,
   TournamentMatchTeamStats,
+  TournamentParticipant,
   TournamentPenaltyResult,
   TournamentPlayerStats,
   TournamentStage,

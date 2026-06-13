@@ -48,6 +48,35 @@ describe('tournament hub scene integration', () => {
     expect(resultSource).toContain("this.scene.start('TournamentCompleteScene')");
   });
 
+  it('passes tournament participant controller types to visual matches without replacing simulations', () => {
+    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+    const simulationSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'tournamentMatchSimulation.ts'), 'utf8');
+
+    expect(hubSource).toContain('getTournamentTeamControllerType');
+    expect(hubSource).toContain('player1ControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
+    expect(hubSource).toContain('player2ControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
+    expect(hubSource).toContain('createAiMarker');
+    expect(hubSource).toContain('createSimulatedTournamentGameState');
+    expect(simulationSource).not.toContain('AiTurnController');
+    expect(simulationSource).not.toContain('chooseAiAction');
+  });
+
+  it('stores participant controller types in tournament state while preserving team ids', () => {
+    const tournament = createTournamentState({
+      formatId: 'cup-m',
+      teamIds: ['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar'],
+      participants: [
+        { flagCode: 'fr', controllerType: 'AI' },
+        { flagCode: 'es', controllerType: 'HUMAN' }
+      ],
+      seed: 'tournament-ai-participants'
+    });
+
+    expect(tournament.teamIds).toEqual(['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar']);
+    expect(tournament.participants.find((participant) => participant.flagCode === 'fr')?.controllerType).toBe('AI');
+    expect(tournament.participants.find((participant) => participant.flagCode === 'pl')?.controllerType).toBe('HUMAN');
+  });
+
   it('routes drawn playoff matches through the tournament penalty scene', () => {
     const resultSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');

@@ -1,4 +1,5 @@
 import type { CardRank, GoalkeeperRank } from '../cards';
+import type { PlayerControllerType } from '../ai';
 
 export type TournamentFormatId = 'cup-m' | 'cup-l' | 'cup-xl';
 
@@ -14,6 +15,11 @@ export type TournamentMatchStatus = 'locked' | 'available' | 'completed';
 
 export type TournamentTeamId = string;
 export type TournamentGroupId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
+
+export type TournamentParticipant = {
+  flagCode: TournamentTeamId;
+  controllerType: PlayerControllerType;
+};
 
 export type TournamentGroup = {
   id: TournamentGroupId;
@@ -130,6 +136,7 @@ export type TournamentState = {
   seed: string;
   stage: TournamentStage;
   teamIds: TournamentTeamId[];
+  participants: TournamentParticipant[];
   groups: TournamentGroup[];
   matches: TournamentMatch[];
   drawOrder: Record<TournamentTeamId, number>;

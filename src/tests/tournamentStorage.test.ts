@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   createTournamentState,
   deleteStoredTournament,
+  getTournamentTeamControllerType,
   hasActiveTournamentSave,
   loadActiveTournament,
   loadStoredTournament,
@@ -96,6 +97,30 @@ describe('tournament localStorage', () => {
     loadedTournament.stage = 'complete';
 
     expect(loadActiveTournament()?.stage).toBe('group');
+  });
+
+  it('loads legacy tournament saves without participant controller data as HUMAN', () => {
+    const tournament = createTournamentState({
+      formatId: 'cup-m',
+      seed: 'storage-legacy-participants',
+      teamIds: ['fr', 'es', 'br', 'ar', 'de', 'it', 'pt', 'nl']
+    });
+    const legacyTournament = JSON.parse(JSON.stringify(tournament)) as Record<string, unknown>;
+    delete legacyTournament.participants;
+
+    localStorage.setItem(
+      TOURNAMENT_STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: TOURNAMENT_STORAGE_SCHEMA_VERSION,
+        tournament: legacyTournament,
+        savedAt: new Date().toISOString()
+      })
+    );
+
+    const loadedTournament = loadActiveTournament();
+
+    expect(loadedTournament?.id).toBe(tournament.id);
+    expect(getTournamentTeamControllerType(loadedTournament!, 'fr')).toBe('HUMAN');
   });
 
   it('does not expose completed tournaments as active saves', () => {

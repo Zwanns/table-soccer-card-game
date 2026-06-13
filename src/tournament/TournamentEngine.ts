@@ -5,6 +5,7 @@ import { createTournamentState } from './TournamentState';
 import { shuffleValues, takeRandomUnique } from './tournamentRandom';
 import type {
   TournamentFormatId,
+  TournamentParticipant,
   TournamentMatchResult,
   TournamentState,
   TournamentTeamId
@@ -18,8 +19,13 @@ export type SubmitTournamentMatchResultInput = {
 };
 
 export class TournamentEngine {
-  public static create(formatId: TournamentFormatId, teamIds: readonly TournamentTeamId[], seed?: string): TournamentState {
-    return createTournamentState({ formatId, teamIds, seed });
+  public static create(
+    formatId: TournamentFormatId,
+    teamIds: readonly TournamentTeamId[],
+    seed?: string,
+    participants?: readonly TournamentParticipant[]
+  ): TournamentState {
+    return createTournamentState({ formatId, teamIds, seed, participants });
   }
 
   public static submitMatchResult(

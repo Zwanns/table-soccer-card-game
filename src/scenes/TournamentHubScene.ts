@@ -4,6 +4,7 @@ import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nati
 import {
   getTournamentFormat,
   getTournamentGroupStandings,
+  getTournamentTeamControllerType,
   getTournamentPlayerStats,
   getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
@@ -301,7 +302,17 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     row.add([background, label]);
-    this.addTeamCell(row, MATCH_CARD_HOME_TEAM_X, 19, match.homeTeamId, MATCH_CARD_HOME_TEAM_WIDTH, 26, 19, '15px');
+    this.addTeamCell(
+      row,
+      MATCH_CARD_HOME_TEAM_X,
+      19,
+      match.homeTeamId,
+      MATCH_CARD_HOME_TEAM_WIDTH,
+      26,
+      19,
+      '15px',
+      match.homeTeamId !== undefined && getTournamentTeamControllerType(tournament, match.homeTeamId) === 'AI'
+    );
     row.add(
       this.add
         .text(MATCH_CARD_SCORE_X, 19, formatMatchScore(match), {
@@ -313,7 +324,17 @@ export class TournamentHubScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
     );
-    this.addTeamCell(row, MATCH_CARD_AWAY_TEAM_X, 19, match.awayTeamId, MATCH_CARD_AWAY_TEAM_WIDTH, 26, 19, '15px');
+    this.addTeamCell(
+      row,
+      MATCH_CARD_AWAY_TEAM_X,
+      19,
+      match.awayTeamId,
+      MATCH_CARD_AWAY_TEAM_WIDTH,
+      26,
+      19,
+      '15px',
+      match.awayTeamId !== undefined && getTournamentTeamControllerType(tournament, match.awayTeamId) === 'AI'
+    );
 
     if (match.status !== 'available') {
       row.add(
@@ -913,7 +934,8 @@ export class TournamentHubScene extends Phaser.Scene {
     width = 230,
     flagWidth = 30,
     flagHeight = 22,
-    fontSize = '16px'
+    fontSize = '16px',
+    isAi = false
   ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
 
@@ -921,6 +943,10 @@ export class TournamentHubScene extends Phaser.Scene {
       const flag = this.add.image(x, y, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(flagWidth, flagHeight);
       container.add(flag);
+
+      if (isAi) {
+        container.add(this.createAiMarker(x, y + flagHeight / 2 + 4));
+      }
     }
 
     container.add(
@@ -934,6 +960,18 @@ export class TournamentHubScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5)
     );
+  }
+
+  private createAiMarker(x: number, y: number): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, 'AI', {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '9px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
   }
 
   private startTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
@@ -953,6 +991,8 @@ export class TournamentHubScene extends Phaser.Scene {
       player2Name: awayTeam.name,
       player1FlagCode: homeTeam.flagCode,
       player2FlagCode: awayTeam.flagCode,
+      player1ControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode),
+      player2ControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode),
       launchContext: {
         mode: 'tournament',
         tournamentId: tournament.id,

@@ -14,6 +14,7 @@ import {
   removeTournamentSetupTeam,
   selectTournamentSetupTeam,
   shuffleTournamentSetupGroups,
+  toggleTournamentSetupTeamControllerType,
   type TournamentSetupDraft
 } from './tournamentSetupDraft';
 import {
@@ -24,18 +25,19 @@ import {
   type TournamentTeamId
 } from '../tournament';
 
-const TEAMS_PER_PAGE = 32;
-const TEAM_GRID_COLUMNS = 4;
+const TEAM_GRID_COLUMNS = 3;
 const TEAM_BUTTON_WIDTH = 154;
 const TEAM_BUTTON_HEIGHT = 42;
 const TEAM_GRID_GAP_X = 12;
 const TEAM_GRID_GAP_Y = 8;
-const TEAM_GRID_START_X = 880;
-const TEAM_GRID_START_Y = 166;
-const SLOT_WIDTH = 146;
-const SLOT_HEIGHT = 34;
-const GROUP_PANEL_WIDTH = 166;
-const GROUP_PANEL_HEIGHT = 174;
+const TEAM_GRID_START_X = 1076;
+const TEAM_GRID_VIEWPORT_TOP = 164;
+const TEAM_GRID_VIEWPORT_HEIGHT = 464;
+const TEAM_GRID_VIEWPORT_PADDING = 8;
+const SLOT_WIDTH = 200;
+const SLOT_HEIGHT = 38;
+const GROUP_PANEL_WIDTH = 220;
+const GROUP_PANEL_HEIGHT = 196;
 const GROUP_GAP_X = 14;
 const GROUP_GAP_Y = 16;
 const GROUPS_START_X = 54;
@@ -50,7 +52,7 @@ const FORMAT_LABELS: Record<TournamentFormatId, string> = {
 export class TournamentSetupScene extends Phaser.Scene {
   private draft: TournamentSetupDraft = createTournamentSetupDraft('cup-m');
   private activeSlotIndex = 0;
-  private page = 0;
+  private teamGridScrollY = 0;
   private seed = 'tournament-setup';
   private randomActionIndex = 0;
   private message: Phaser.GameObjects.Text | null = null;
@@ -60,6 +62,9 @@ export class TournamentSetupScene extends Phaser.Scene {
   }
 
   public create(): void {
+    this.draft = createTournamentSetupDraft('cup-m');
+    this.activeSlotIndex = 0;
+    this.teamGridScrollY = 0;
     this.seed = `tournament-${Date.now().toString(36)}`;
     this.render();
   }
@@ -186,7 +191,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     for (let slotOffset = 0; slotOffset < 4; slotOffset += 1) {
       const slotIndex = groupIndex * 4 + slotOffset;
 
-      panel.add(this.createSlot(10, 42 + slotOffset * 31, slotIndex));
+      panel.add(this.createSlot(10, 44 + slotOffset * 36, slotIndex));
     }
   }
 
@@ -205,22 +210,23 @@ export class TournamentSetupScene extends Phaser.Scene {
     });
 
     const name = this.add
-      .text(12, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
+      .text(team === undefined ? 12 : 42, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
         color: selected ? '#1f2a2e' : team === undefined ? '#8fb39d' : '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         fontStyle: '700',
-        wordWrap: { width: team === undefined ? 112 : 92 }
+        wordWrap: { width: team === undefined ? 170 : 86 }
       })
       .setOrigin(0, 0.5);
 
     slot.add([background, name]);
 
     if (team !== undefined) {
-      const flag = this.add.image(104, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(28, 20);
+      const flag = this.add.image(24, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(24, 18);
+      const aiCheckbox = this.createAiCheckbox(154, SLOT_HEIGHT / 2, slotIndex, selected);
       const remove = this.add
-        .text(133, SLOT_HEIGHT / 2, 'x', {
+        .text(188, SLOT_HEIGHT / 2, 'x', {
           align: 'center',
           color: selected ? '#1f2a2e' : '#f0c95a',
           fontFamily: 'Arial, sans-serif',
@@ -228,13 +234,13 @@ export class TournamentSetupScene extends Phaser.Scene {
           fontStyle: '700'
         })
         .setOrigin(0.5);
-      const removeHitArea = this.add.rectangle(132, SLOT_HEIGHT / 2, 22, 26, 0x000000, 0.01);
+      const removeHitArea = this.add.rectangle(188, SLOT_HEIGHT / 2, 22, 26, 0x000000, 0.01);
       removeHitArea.setInteractive({ useHandCursor: true });
       removeHitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
         this.removeTeam(slotIndex);
       });
-      slot.add([flag, remove, removeHitArea]);
+      slot.add([flag, aiCheckbox, remove, removeHitArea]);
     }
 
     slot.setSize(SLOT_WIDTH, SLOT_HEIGHT);
@@ -242,44 +248,119 @@ export class TournamentSetupScene extends Phaser.Scene {
     return slot;
   }
 
-  private createTeamGrid(): void {
-    const maxPage = getMaxPage();
-    const pageTeams = NATIONAL_TEAMS.slice(this.page * TEAMS_PER_PAGE, (this.page + 1) * TEAMS_PER_PAGE);
-
-    pageTeams.forEach((team, index) => {
-      const column = index % TEAM_GRID_COLUMNS;
-      const row = Math.floor(index / TEAM_GRID_COLUMNS);
-
-      this.createTeamOption(
-        TEAM_GRID_START_X + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
-        TEAM_GRID_START_Y + row * (TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y),
-        team
-      );
-    });
-
-    new Button(this, 1038, 606, '←', () => this.changePage(-1), {
-      disabled: this.page === 0,
-      fontSize: '18px',
-      height: 42,
-      width: 160
-    });
-    this.add
-      .text(1232, 606, `${this.page + 1} / ${maxPage + 1}`, {
-        color: '#d9eadf',
+  private createAiCheckbox(
+    x: number,
+    y: number,
+    slotIndex: number,
+    selected: boolean
+  ): Phaser.GameObjects.Container {
+    const isAi = this.draft.controllerTypes[slotIndex] === 'AI';
+    const checkbox = this.add.container(x, y);
+    const box = this.add.rectangle(-12, 0, 12, 12, isAi ? 0xf0c95a : 0x0b2118, 1);
+    box.setStrokeStyle(2, selected ? 0x1f2a2e : 0xf0c95a, 0.95);
+    const mark = this.add
+      .text(-12, 0, isAi ? '✓' : '', {
+        align: 'center',
+        color: '#1f2a2e',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
+        fontSize: '11px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1426, 606, '→', () => this.changePage(1), {
-      disabled: this.page === maxPage,
-      fontSize: '18px',
-      height: 42,
-      width: 160
+    const label = this.add
+      .text(-1, 0, 'AI', {
+        color: selected ? '#1f2a2e' : '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        fontStyle: '700'
+      })
+      .setOrigin(0, 0.5);
+    const hitArea = this.add.rectangle(0, 0, 42, 24, 0x000000, 0.01);
+
+    hitArea.setInteractive({ useHandCursor: true });
+    hitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.toggleTeamControllerType(slotIndex);
     });
+    checkbox.add([box, mark, label, hitArea]);
+
+    return checkbox;
   }
 
-  private createTeamOption(x: number, y: number, team: NationalTeam): void {
+  private createTeamGrid(): void {
+    const content = this.add.container(0, TEAM_GRID_VIEWPORT_TOP);
+    const viewportLeft = TEAM_GRID_START_X - TEAM_BUTTON_WIDTH / 2 - TEAM_GRID_VIEWPORT_PADDING;
+    const viewportWidth =
+      TEAM_GRID_COLUMNS * TEAM_BUTTON_WIDTH + (TEAM_GRID_COLUMNS - 1) * TEAM_GRID_GAP_X + TEAM_GRID_VIEWPORT_PADDING * 2;
+    const rowHeight = TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y;
+    const rowCount = Math.ceil(NATIONAL_TEAMS.length / TEAM_GRID_COLUMNS);
+    const contentHeight = rowCount * rowHeight - TEAM_GRID_GAP_Y;
+    const maxScroll = Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT);
+    const setScroll = (value: number): void => {
+      this.teamGridScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      content.y = TEAM_GRID_VIEWPORT_TOP - this.teamGridScrollY;
+    };
+
+    NATIONAL_TEAMS.forEach((team, index) => {
+      const column = index % TEAM_GRID_COLUMNS;
+      const row = Math.floor(index / TEAM_GRID_COLUMNS);
+      const option = this.createTeamOption(
+        TEAM_GRID_START_X + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
+        TEAM_BUTTON_HEIGHT / 2 + row * rowHeight,
+        team
+      );
+
+      option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+        setScroll(this.teamGridScrollY + deltaY * 0.35);
+      });
+      content.add(option);
+    });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(viewportLeft, TEAM_GRID_VIEWPORT_TOP, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(
+        viewportLeft + viewportWidth / 2,
+        TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2,
+        viewportWidth,
+        TEAM_GRID_VIEWPORT_HEIGHT
+      )
+      .setInteractive({ useHandCursor: maxScroll > 0 })
+      .setDepth(-10);
+
+    this.teamGridScrollY = Phaser.Math.Clamp(this.teamGridScrollY, 0, maxScroll);
+    setScroll(this.teamGridScrollY);
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.teamGridScrollY + deltaY * 0.35);
+    });
+
+    if (maxScroll > 0) {
+      const trackX = viewportLeft + viewportWidth + 12;
+      const track = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2, 4, TEAM_GRID_VIEWPORT_HEIGHT, 0x5f9572, 0.28);
+      const thumbHeight = Math.max(28, (TEAM_GRID_VIEWPORT_HEIGHT / contentHeight) * TEAM_GRID_VIEWPORT_HEIGHT);
+      const thumb = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+      const updateThumb = (): void => {
+        thumb.y =
+          TEAM_GRID_VIEWPORT_TOP +
+          thumbHeight / 2 +
+          (this.teamGridScrollY / maxScroll) * (TEAM_GRID_VIEWPORT_HEIGHT - thumbHeight);
+      };
+
+      updateThumb();
+      this.events.on(Phaser.Scenes.Events.UPDATE, updateThumb);
+      content.once(Phaser.GameObjects.Events.DESTROY, () => {
+        this.events.off(Phaser.Scenes.Events.UPDATE, updateThumb);
+      });
+    }
+  }
+
+  private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
     const selectedSlotIndex = this.draft.slots.findIndex((teamId) => teamId === team.flagCode);
     const isSelected = selectedSlotIndex !== -1;
     const option = this.add.container(x, y);
@@ -314,6 +395,8 @@ export class TournamentSetupScene extends Phaser.Scene {
       }
     });
     option.on('pointerdown', () => this.selectTeam(team.flagCode));
+
+    return option;
   }
 
   private createBottomButtons(): void {
@@ -350,7 +433,7 @@ export class TournamentSetupScene extends Phaser.Scene {
   private changeFormat(formatId: TournamentFormatId): void {
     this.draft = changeTournamentSetupFormat(this.draft, formatId);
     this.activeSlotIndex = Math.min(this.activeSlotIndex, this.draft.slots.length - 1);
-    this.page = 0;
+    this.teamGridScrollY = 0;
     this.render();
   }
 
@@ -366,6 +449,12 @@ export class TournamentSetupScene extends Phaser.Scene {
 
   private removeTeam(slotIndex: number): void {
     this.draft = removeTournamentSetupTeam(this.draft, slotIndex);
+    this.activeSlotIndex = slotIndex;
+    this.render();
+  }
+
+  private toggleTeamControllerType(slotIndex: number): void {
+    this.draft = toggleTournamentSetupTeamControllerType(this.draft, slotIndex);
     this.activeSlotIndex = slotIndex;
     this.render();
   }
@@ -414,11 +503,6 @@ export class TournamentSetupScene extends Phaser.Scene {
     }
   }
 
-  private changePage(direction: -1 | 1): void {
-    this.page = Phaser.Math.Clamp(this.page + direction, 0, getMaxPage());
-    this.render();
-  }
-
   private showMessage(text: string, color: string): void {
     this.message?.destroy();
     this.message = this.add
@@ -445,10 +529,6 @@ export class TournamentSetupScene extends Phaser.Scene {
 
     return `${this.seed}:${action}:${this.randomActionIndex}`;
   }
-}
-
-function getMaxPage(): number {
-  return Math.ceil(NATIONAL_TEAMS.length / TEAMS_PER_PAGE) - 1;
 }
 
 function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
