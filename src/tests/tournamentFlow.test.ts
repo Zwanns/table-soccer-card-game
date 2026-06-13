@@ -6,6 +6,7 @@ import { createDefaultSquad } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
   createEmptyField,
+  GameEngine,
   createMatchTeamSetup,
   type GameState,
   type Player
@@ -14,6 +15,7 @@ import { createSimulatedTournamentGameState } from '../scenes/tournamentMatchSim
 import {
   createTournamentMatchResultFromGameState,
   createTournamentState,
+  getTournamentTeamControllerType,
   submitTournamentMatchResultObject,
   type TournamentMatch
 } from '../tournament';
@@ -75,6 +77,30 @@ describe('tournament hub scene integration', () => {
     expect(tournament.teamIds).toEqual(['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar']);
     expect(tournament.participants.find((participant) => participant.flagCode === 'fr')?.controllerType).toBe('AI');
     expect(tournament.participants.find((participant) => participant.flagCode === 'pl')?.controllerType).toBe('HUMAN');
+  });
+
+  it('maps tournament participant controller types into a visual match setup', () => {
+    const tournament = createTournamentState({
+      formatId: 'cup-m',
+      teamIds: ['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar'],
+      participants: [
+        { flagCode: 'fr', controllerType: 'AI' },
+        { flagCode: 'es', controllerType: 'HUMAN' }
+      ],
+      seed: 'tournament-ai-visual-match'
+    });
+    const engine = new GameEngine();
+    const state = engine.startNewGame({
+      seed: 'tournament-ai-visual-match:group-A-1',
+      player1FlagCode: 'fr',
+      player2FlagCode: 'es',
+      player1ControllerType: getTournamentTeamControllerType(tournament, 'fr'),
+      player2ControllerType: getTournamentTeamControllerType(tournament, 'es')
+    });
+
+    expect(state.matchSetups.PLAYER_1.controllerType).toBe('AI');
+    expect(state.matchSetups.PLAYER_2.controllerType).toBe('HUMAN');
+    expect(getTournamentTeamControllerType(tournament, 'pl')).toBe('HUMAN');
   });
 
   it('routes drawn playoff matches through the tournament penalty scene', () => {

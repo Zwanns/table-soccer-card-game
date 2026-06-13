@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AI_TIMING, AiTurnController, type AiAction, type AiScheduledTimer } from '../ai';
 import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperCard, type GoalkeeperRank } from '../cards';
 import {
   createEmptyField,
   createMatchTeamSetup,
+  GameEngine,
   type GamePhase,
   type GameState,
   type Player
@@ -287,4 +290,186 @@ describe('AiTurnController', () => {
 
     expect(actions).toEqual([]);
   });
+
+  it('can drive an AI vs AI game through the public game action pipeline until GAME_OVER', () => {
+    const engine = new GameEngine();
+    engine.startNewGame({
+      seed: 'ai-vs-ai-turn-controller',
+      player1ControllerType: 'AI',
+      player2ControllerType: 'AI'
+    });
+    engine.startNextTurn();
+
+    const scheduler = new FakeScheduler();
+    const actions: AiAction[] = [];
+    const controller = new AiTurnController({
+      getState: () => engine.getState(),
+      getMatchSeed: () => 'ai-vs-ai-turn-controller',
+      executeAction: (action) => {
+        actions.push(action);
+        executeEngineAction(engine, action);
+        requestNextStableCheck(engine, controller);
+      },
+      scheduleDelayedCall: (delayMs, callback) => scheduler.schedule(delayMs, callback),
+      timingJitterMs: 0
+    });
+
+    controller.requestTurnCheck('TURN_STARTED');
+
+    for (let callIndex = 0; callIndex < 1000 && engine.getState().phase !== 'GAME_OVER'; callIndex += 1) {
+      expect(scheduler.calls[callIndex], `Expected AI timer ${callIndex} to be scheduled.`).toBeDefined();
+      scheduler.run(callIndex);
+    }
+
+    expect(engine.getState().phase).toBe('GAME_OVER');
+    expect(actions.length).toBeGreaterThan(0);
+  });
+
+  it('can run HUMAN vs AI and AI vs HUMAN matches through the public game action pipeline until GAME_OVER', () => {
+    const humanVsAi = drivePublicPipelineMatch('HUMAN', 'AI', 'human-vs-ai-turn-controller');
+    const aiVsHuman = drivePublicPipelineMatch('AI', 'HUMAN', 'ai-vs-human-turn-controller');
+
+    expect(humanVsAi.finalPhase).toBe('GAME_OVER');
+    expect(humanVsAi.aiActions.length).toBeGreaterThan(0);
+    expect(humanVsAi.humanActions.length).toBeGreaterThan(0);
+    expect(aiVsHuman.finalPhase).toBe('GAME_OVER');
+    expect(aiVsHuman.aiActions.length).toBeGreaterThan(0);
+    expect(aiVsHuman.humanActions.length).toBeGreaterThan(0);
+  });
+
+  it('integrates with GameScene only after stable renders and disables field input during AI turns', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+
+    expect(source).toContain('const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false)');
+    expect(source).toContain('canAct: () => this.isSceneStableForAi()');
+    expect(source).toContain('if (interactive && this.isSceneStableForAi())');
+    expect(source).toContain('this.aiTurnController?.requestTurnCheck(options.aiCheckReason)');
+    expect(source).toContain('private isSceneStableForAi(): boolean');
+    expect(source).toContain('!this.isAttackAnimationInProgress');
+    expect(source).toContain('!this.isRestoreAnimationInProgress');
+    expect(source).toContain('!this.isMatchEffectInProgress');
+  });
 });
+
+function executeEngineAction(engine: GameEngine, action: AiAction): void {
+  switch (action.type) {
+    case 'DRAW_FROM_DECK':
+      engine.drawAttackCard();
+      return;
+    case 'COMMIT_MIDFIELDER':
+      engine.commitMidfielder(action.positionId);
+      return;
+    case 'SELECT_TARGET':
+      engine.selectTarget(action.positionId);
+      return;
+    case 'SELECT_MIDFIELD_GAP':
+      engine.useMidfieldGap(action.positionId);
+      return;
+  }
+}
+
+function requestNextStableCheck(engine: GameEngine, controller: AiTurnController): void {
+  let state = engine.getState();
+
+  while (state.phase === 'ENDING_TURN') {
+    state = engine.startNextTurn();
+  }
+
+  if (state.phase !== 'GAME_OVER') {
+    controller.requestTurnCheck(state.phase === 'WAITING_FOR_ATTACK_CARD' ? 'TURN_STARTED' : 'STATE_RENDERED');
+  }
+}
+
+function drivePublicPipelineMatch(
+  player1ControllerType: 'HUMAN' | 'AI',
+  player2ControllerType: 'HUMAN' | 'AI',
+  seed: string
+): { finalPhase: GamePhase; aiActions: AiAction[]; humanActions: string[] } {
+  const engine = new GameEngine();
+  engine.startNewGame({
+    seed,
+    player1ControllerType,
+    player2ControllerType
+  });
+  engine.startNextTurn();
+
+  const scheduler = new FakeScheduler();
+  const aiActions: AiAction[] = [];
+  const humanActions: string[] = [];
+  let nextTimerIndex = 0;
+  const controller = new AiTurnController({
+    getState: () => engine.getState(),
+    getMatchSeed: () => seed,
+    executeAction: (action) => {
+      aiActions.push(action);
+      executeEngineAction(engine, action);
+      requestNextStableCheck(engine, controller);
+    },
+    scheduleDelayedCall: (delayMs, callback) => scheduler.schedule(delayMs, callback),
+    timingJitterMs: 0
+  });
+
+  requestNextStableCheck(engine, controller);
+
+  for (let stepIndex = 0; stepIndex < 1500 && engine.getState().phase !== 'GAME_OVER'; stepIndex += 1) {
+    const state = settleEndingTurns(engine);
+
+    if (state.phase === 'GAME_OVER') {
+      break;
+    }
+
+    const activePlayerId = state.activePlayerId;
+    expect(activePlayerId).not.toBeNull();
+
+    if (activePlayerId !== null && state.matchSetups[activePlayerId].controllerType === 'AI') {
+      expect(scheduler.calls[nextTimerIndex], `Expected AI timer ${nextTimerIndex} to be scheduled.`).toBeDefined();
+      scheduler.run(nextTimerIndex);
+      nextTimerIndex += 1;
+      continue;
+    }
+
+    humanActions.push(executeHumanAction(engine));
+    requestNextStableCheck(engine, controller);
+  }
+
+  return {
+    finalPhase: engine.getState().phase,
+    aiActions,
+    humanActions
+  };
+}
+
+function settleEndingTurns(engine: GameEngine): Readonly<GameState> {
+  let state = engine.getState();
+
+  while (state.phase === 'ENDING_TURN') {
+    state = engine.startNextTurn();
+  }
+
+  return state;
+}
+
+function executeHumanAction(engine: GameEngine): string {
+  const state = engine.getState();
+
+  if (state.phase === 'WAITING_FOR_ATTACK_CARD') {
+    engine.drawAttackCard();
+    return 'DRAW_FROM_DECK';
+  }
+
+  if (state.phase === 'WAITING_FOR_TARGET') {
+    const gapPositionId = state.legalMidfieldGapPositionIds?.[0];
+
+    if (gapPositionId !== undefined) {
+      engine.useMidfieldGap(gapPositionId);
+      return `SELECT_MIDFIELD_GAP:${gapPositionId}`;
+    }
+
+    const targetPositionId = state.legalTargetPositionIds[0];
+    expect(targetPositionId).toBeDefined();
+    engine.selectTarget(targetPositionId);
+    return `SELECT_TARGET:${targetPositionId}`;
+  }
+
+  throw new Error(`Unexpected HUMAN action phase "${state.phase}".`);
+}

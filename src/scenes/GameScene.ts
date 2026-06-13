@@ -86,6 +86,8 @@ export class GameScene extends Phaser.Scene {
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
   private handledGoalScoredEventCursor = 0;
   private isMatchEffectInProgress = false;
+  private isAttackAnimationInProgress = false;
+  private isRestoreAnimationInProgress = false;
 
   public constructor() {
     super('GameScene');
@@ -111,6 +113,8 @@ export class GameScene extends Phaser.Scene {
     this.animatedRestoreCount = 0;
     this.handledGoalScoredEventCursor = 0;
     this.isMatchEffectInProgress = false;
+    this.isAttackAnimationInProgress = false;
+    this.isRestoreAnimationInProgress = false;
     this.startWhistlePlayed = false;
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
@@ -131,7 +135,7 @@ export class GameScene extends Phaser.Scene {
     this.aiTurnController = new AiTurnController({
       getState: () => this.engine?.getState() ?? null,
       getMatchSeed: () => this.aiMatchSeed,
-      canAct: () => !this.isMatchEffectInProgress && this.input.enabled,
+      canAct: () => this.isSceneStableForAi(),
       executeAction: (action) => this.executeAiAction(action),
       scheduleDelayedCall: (delayMs, callback) => this.time.delayedCall(delayMs, callback)
     });
@@ -253,6 +257,7 @@ export class GameScene extends Phaser.Scene {
     const pendingRestores = getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
 
     if (interactive && pendingRestores.length > 0) {
+      this.isRestoreAnimationInProgress = true;
       this.render(state, {
         hiddenRestoredCards: pendingRestores,
         interactive: false
@@ -261,7 +266,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (interactive && !this.isMatchEffectInProgress) {
+    if (interactive && this.isSceneStableForAi()) {
       this.playStartWhistleIfReady(state);
       this.aiTurnController?.requestTurnCheck(options.aiCheckReason);
     }
@@ -589,6 +594,7 @@ export class GameScene extends Phaser.Scene {
     outcome: AttackAnimationOutcome,
     onComplete: () => void
   ): void {
+    this.isAttackAnimationInProgress = true;
     this.input.enabled = false;
 
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
@@ -670,6 +676,7 @@ export class GameScene extends Phaser.Scene {
 
   private finishAnimationObject(card: CardView, onComplete: () => void): void {
     card.destroy();
+    this.isAttackAnimationInProgress = false;
     this.input.enabled = true;
     onComplete();
   }
@@ -709,6 +716,7 @@ export class GameScene extends Phaser.Scene {
     const entry = entries[index];
 
     if (entry === undefined) {
+      this.isRestoreAnimationInProgress = false;
       this.render(state);
       return;
     }
@@ -765,9 +773,19 @@ export class GameScene extends Phaser.Scene {
           return;
         }
 
+        this.isRestoreAnimationInProgress = false;
         this.render(state);
       }
     });
+  }
+
+  private isSceneStableForAi(): boolean {
+    return (
+      this.input.enabled &&
+      !this.isAttackAnimationInProgress &&
+      !this.isRestoreAnimationInProgress &&
+      !this.isMatchEffectInProgress
+    );
   }
 
   private openResult(state: Readonly<GameState>): void {
