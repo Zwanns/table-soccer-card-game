@@ -38,6 +38,28 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain("this.scene.start('GameScene', data)");
   });
 
+  it('passes standalone penalty controller types to the penalty scene', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain("this.scene.start('TournamentPenaltyScene'");
+    expect(source).toContain('matchResult: createStandalonePenaltyMatchResult(data)');
+    expect(source).toContain('player1ControllerType: data.player1ControllerType');
+    expect(source).toContain('player2ControllerType: data.player2ControllerType');
+  });
+
+  it('uses the same default-off independent AI checkboxes for standalone penalties without a separate settings screen', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain("this.mode === 'penalty' ? 'Penalty teams' : 'Team selection'");
+    expect(source).toContain("this.mode === 'penalty' ? 'Start penalties' : 'Start'");
+    expect(source).toContain('this.createSelectedPanel(370, 126');
+    expect(source).toContain('this.createSelectedPanel(1230, 126');
+    expect(source).toContain('this.addAiCheckbox(panel, 156, -20, slot)');
+    expect(source).toContain("export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN'");
+    expect(source).not.toContain('PenaltyAiSettings');
+    expect(source).not.toContain('AI settings');
+  });
+
   it('keeps the AI checkbox hit area separate from the selected team panel', () => {
     const source = readTeamSelectSource();
 

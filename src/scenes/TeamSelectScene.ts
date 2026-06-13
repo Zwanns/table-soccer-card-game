@@ -299,7 +299,9 @@ export class TeamSelectScene extends Phaser.Scene {
     if (this.mode === 'penalty') {
       this.scene.start('TournamentPenaltyScene', {
         standalone: true,
-        matchResult: createStandalonePenaltyMatchResult(data)
+        matchResult: createStandalonePenaltyMatchResult(data),
+        player1ControllerType: data.player1ControllerType,
+        player2ControllerType: data.player2ControllerType
       });
       return;
     }

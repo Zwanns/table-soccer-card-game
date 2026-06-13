@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
 import {
+  createPenaltyAiRandom,
+  PenaltyAiController,
+  type PenaltyAiAction,
+  type PenaltyAiControllerSide,
+  type PlayerControllerType
+} from '../ai';
+import {
   getFallbackCoverTextureKey,
   markTeamCoverLoadFailed,
   queueTeamCoverLoad,
@@ -34,6 +41,10 @@ interface TournamentPenaltySceneData {
   tournamentId?: string;
   matchResult?: TournamentMatchResult;
   standalone?: boolean;
+  player1ControllerType?: PlayerControllerType;
+  player2ControllerType?: PlayerControllerType;
+  homeControllerType?: PlayerControllerType;
+  awayControllerType?: PlayerControllerType;
 }
 
 const PENALTY_FIELD_CENTER_X = SCENE_WIDTH / 2;
@@ -84,6 +95,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private message: string | null = null;
   private inputLocked = false;
   private standalone = false;
+  private homeControllerType: PlayerControllerType = 'HUMAN';
+  private awayControllerType: PlayerControllerType = 'HUMAN';
+  private penaltyAiController: PenaltyAiController | null = null;
   private homeCoverTextureKey = getFallbackCoverTextureKey();
   private awayCoverTextureKey = getFallbackCoverTextureKey();
 
@@ -98,6 +112,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.message = null;
     this.inputLocked = false;
     this.standalone = data.standalone === true;
+    this.homeControllerType = data.homeControllerType ?? data.player1ControllerType ?? 'HUMAN';
+    this.awayControllerType = data.awayControllerType ?? data.player2ControllerType ?? 'HUMAN';
     this.homeCoverTextureKey = getFallbackCoverTextureKey();
     this.awayCoverTextureKey = getFallbackCoverTextureKey();
     this.input.enabled = true;
@@ -114,6 +130,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
   public create(): void {
     this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleLoadError, this);
+    this.destroyPenaltyAiController();
 
     if (this.matchResult !== null && (this.tournamentId !== null || this.standalone)) {
       this.homeCoverTextureKey = this.resolvePenaltyCoverTextureKey(this.matchResult.homeTeamId);
@@ -124,8 +141,17 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         awayTeamId: this.matchResult.awayTeamId,
         seed: `${this.tournamentId ?? 'standalone'}:${this.matchResult.matchId}:penalties`
       });
+      this.penaltyAiController = new PenaltyAiController({
+        getState: () => this.shootoutState,
+        getControllerType: (side) => this.getPenaltyControllerType(side),
+        random: createPenaltyAiRandom(this.shootoutState.seed, 'home'),
+        scheduleTimer: (delayMs, callback) => this.time.delayedCall(delayMs, callback),
+        onAction: (action) => this.handlePenaltyAiAction(action)
+      });
     }
 
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyPenaltyAiController, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyPenaltyAiController, this);
     this.render();
   }
 
@@ -172,6 +198,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         { width: 300 }
       );
     }
+
+    this.schedulePenaltyAiAction();
   }
 
   private renderMissingPenaltyData(): void {
@@ -318,13 +346,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   ): void {
     const goalkeeperIsActive = getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter) === goalkeeperTeamId;
     const canDrawGoalkeeper = goalkeeperIsActive && shootoutState.phase === 'selecting-goalkeeper';
+    const inputControlledByAi = this.isPenaltyDecisionControlledByAi(shootoutState);
     const goalkeeperRank = goalkeeperIsActive ? shootoutState.currentGoalkeeperRank : null;
 
     field.add(
       this.createGoalkeeperCardView(x, PENALTY_GOALKEEPER_FIELD_Y, goalkeeperRank, goalkeeperTeamId, {
         faceDown: goalkeeperRank === null,
         highlighted: goalkeeperIsActive,
-        onClick: canDrawGoalkeeper ? () => this.drawGoalkeeperCard() : undefined
+        onClick: canDrawGoalkeeper && !inputControlledByAi ? () => this.handleGoalkeeperAction() : undefined
       })
     );
   }
@@ -347,6 +376,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const shooterTeamId = getShooterTeamId(shootoutState, shooterSide);
     const shooterColor = getSideCardColor(shooterSide);
     const canReveal = shootoutState.phase === 'selecting-attacker' && shootoutState.nextShooter === shooterSide;
+    const inputControlledByAi = this.isPenaltyDecisionControlledByAi(shootoutState);
     const startY = -((cards.length - 1) * PENALTY_ATTACK_CARD_GAP) / 2;
 
     cards.forEach((rank, index) => {
@@ -355,7 +385,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       const card = this.createAttackCardView(x, localY, rank, shooterTeamId, shooterColor, {
         faceDown: !isRevealed,
         highlighted: canReveal || isRevealed,
-        onClick: canReveal ? () => this.revealAttackCard(index) : undefined,
+        onClick: canReveal && !inputControlledByAi ? () => this.handleShotAction(index) : undefined,
         scale: isRevealed ? PENALTY_SELECTED_CARD_SCALE : PENALTY_CARD_SCALE
       });
 
@@ -364,10 +394,21 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private drawGoalkeeperCard(): void {
+  private handlePenaltyAiAction(action: PenaltyAiAction): void {
+    if (action.type === 'DRAW_GOALKEEPER_CARD') {
+      this.handleGoalkeeperAction();
+      return;
+    }
+
+    this.handleShotAction(action.cardIndex);
+  }
+
+  private handleGoalkeeperAction(): void {
     if (this.shootoutState === null || this.inputLocked) {
       return;
     }
+
+    this.penaltyAiController?.cancelPendingAction();
 
     try {
       this.shootoutState = drawPenaltyGoalkeeperCard(this.shootoutState);
@@ -379,10 +420,12 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.render();
   }
 
-  private revealAttackCard(cardIndex: number): void {
+  private handleShotAction(cardIndex: number): void {
     if (this.shootoutState === null || this.inputLocked) {
       return;
     }
+
+    this.penaltyAiController?.cancelPendingAction();
 
     try {
       this.shootoutState = revealPenaltyAttackCard(this.shootoutState, cardIndex);
@@ -456,6 +499,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         this.shootoutState = nextState;
 
         if (this.shootoutState.status === 'complete') {
+          this.penaltyAiController?.destroy();
           this.completeTournamentMatch();
         } else {
           this.message = null;
@@ -851,9 +895,45 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         text.destroy();
         this.inputLocked = false;
         this.input.enabled = true;
+        this.schedulePenaltyAiAction();
       }
     });
   }
+
+  private schedulePenaltyAiAction(): void {
+    if (this.inputLocked || this.shootoutState?.status === 'complete') {
+      return;
+    }
+
+    this.penaltyAiController?.scheduleNextAction();
+  }
+
+  private destroyPenaltyAiController(): void {
+    this.penaltyAiController?.destroy();
+    this.penaltyAiController = null;
+  }
+
+  private isPenaltyDecisionControlledByAi(shootoutState: PenaltyShootoutState): boolean {
+    const side = getPenaltyDecisionSide(shootoutState);
+
+    return side !== null && this.getPenaltyControllerType(side) === 'AI';
+  }
+
+  private getPenaltyControllerType(side: PenaltyAiControllerSide): PlayerControllerType {
+    return side === 'home' ? this.homeControllerType : this.awayControllerType;
+  }
+}
+
+function getPenaltyDecisionSide(shootoutState: PenaltyShootoutState): PenaltyAiControllerSide | null {
+  if (shootoutState.phase === 'selecting-goalkeeper') {
+    return getOppositeSide(shootoutState.nextShooter);
+  }
+
+  if (shootoutState.phase === 'selecting-attacker') {
+    return shootoutState.nextShooter;
+  }
+
+  return null;
 }
 
 function getPenaltyPhaseTitle(shootoutState: PenaltyShootoutState): string {

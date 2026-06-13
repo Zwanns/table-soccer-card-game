@@ -5,6 +5,7 @@ import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import {
   createTournamentMatchResultFromGameState,
+  getTournamentTeamControllerType,
   QUICK_MATCH_CONTEXT,
   saveTournament,
   submitTournamentMatchResultObject,
@@ -141,7 +142,7 @@ export class ResultScene extends Phaser.Scene {
       const result = createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId);
 
       if (match.stage !== 'group' && result.winnerTeamId === undefined) {
-        this.startPenaltyShootout(launchContext.tournamentId, result);
+        this.startPenaltyShootout(tournament, result);
         return;
       }
 
@@ -162,10 +163,12 @@ export class ResultScene extends Phaser.Scene {
     this.scene.start('TournamentHubScene');
   }
 
-  private startPenaltyShootout(tournamentId: string, matchResult: TournamentMatchResult): void {
+  private startPenaltyShootout(tournament: TournamentState, matchResult: TournamentMatchResult): void {
     this.scene.start('TournamentPenaltyScene', {
-      tournamentId,
-      matchResult
+      tournamentId: tournament.id,
+      matchResult,
+      homeControllerType: getTournamentTeamControllerType(tournament, matchResult.homeTeamId),
+      awayControllerType: getTournamentTeamControllerType(tournament, matchResult.awayTeamId)
     });
   }
 

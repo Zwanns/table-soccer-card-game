@@ -123,6 +123,34 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).not.toContain('getPenaltyExtraSymbol');
   });
 
+  it('passes controller types into penalty shootout scene data without starting penalty AI', () => {
+    const resultSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+    const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+
+    expect(resultSource).toContain('getTournamentTeamControllerType');
+    expect(resultSource).toContain('homeControllerType: getTournamentTeamControllerType(tournament, matchResult.homeTeamId)');
+    expect(resultSource).toContain('awayControllerType: getTournamentTeamControllerType(tournament, matchResult.awayTeamId)');
+    expect(penaltySource).toContain('player1ControllerType?: PlayerControllerType');
+    expect(penaltySource).toContain('player2ControllerType?: PlayerControllerType');
+    expect(penaltySource).toContain("this.homeControllerType = data.homeControllerType ?? data.player1ControllerType ?? 'HUMAN'");
+    expect(penaltySource).toContain("this.awayControllerType = data.awayControllerType ?? data.player2ControllerType ?? 'HUMAN'");
+    expect(penaltySource).not.toContain('AiTurnController');
+    expect(penaltySource).not.toContain('chooseAiAction');
+  });
+
+  it('connects penalty AI actions through the same scene handlers as HUMAN clicks', () => {
+    const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+
+    expect(penaltySource).toContain('new PenaltyAiController');
+    expect(penaltySource).toContain('onAction: (action) => this.handlePenaltyAiAction(action)');
+    expect(penaltySource).toContain('this.handleGoalkeeperAction()');
+    expect(penaltySource).toContain('this.handleShotAction(action.cardIndex)');
+    expect(penaltySource).toContain('onClick: canDrawGoalkeeper && !inputControlledByAi ? () => this.handleGoalkeeperAction() : undefined');
+    expect(penaltySource).toContain('onClick: canReveal && !inputControlledByAi ? () => this.handleShotAction(index) : undefined');
+    expect(penaltySource).toContain('this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyPenaltyAiController, this)');
+    expect(penaltySource).toContain('this.penaltyAiController?.destroy()');
+  });
+
   it('renders penalty shootouts on the match-style field layout', () => {
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
     const bootSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');

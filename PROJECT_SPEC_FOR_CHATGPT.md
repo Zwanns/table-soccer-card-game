@@ -8,7 +8,7 @@
 
 Игроки выбирают две национальные сборные и проводят матч карточными колодами. Каждая команда может управляться человеком или встроенным AI, поэтому поддерживаются матчи HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI. Поле каждой команды состоит из линии полузащиты, линии защиты и позиции вратаря. Атака проходит линии соперника строго по порядку: полузащита, защита, вратарь. Во время атаки на линию полузащиты игрок может вместо карты из колоды подключать собственных полузащитников строго по соответствующим коридорам. Подключенный полузащитник бьет только строго меньший rank, кроме специальных правил. При пробитии вратаря засчитывается гол.
 
-Текущая версия приложения в коде: `1.2.0`.
+Текущая версия приложения в коде: `1.3.0`.
 
 ## 2. Технологии и команды
 
@@ -38,7 +38,7 @@ src/config.ts
 Глобальная конфигурация:
 
 - `GAME_TITLE = 'Total Soccer: Mundial'`
-- `GAME_VERSION = '1.2.0'`
+- `GAME_VERSION = '1.3.0'`
 - `GAME_AUTHOR = 'Oleh Myronchuk'`
 - `SCENE_WIDTH = 1600`
 - `SCENE_HEIGHT = 720`
@@ -64,7 +64,7 @@ src/scenes/
 - `BootScene.ts` - загрузка базовых ассетов, звуков, меню и экипировок.
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
 - `MenuScene.ts` - главное меню.
-- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 64 команды отображаются на одной странице компактной сеткой 8x8 без пагинации.
+- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 64 команды отображаются на одной странице компактной сеткой 8x8 без пагинации.
 - `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр/редактирование состава.
 - `GameScene.ts` - основной матч.
 - `ResultScene.ts` - финальный экран матча.
@@ -99,6 +99,8 @@ AI-логика:
 - `aiDecision.ts` - чистый API выбора действия AI без Phaser и без мутаций `GameState`.
 - `aiHeuristics.ts` - эвристика выбора источника атаки, цели, midfield gap и экономии сильных полузащитников.
 - `AiTurnController.ts` - таймерный контроллер AI-хода для `GameScene`, работающий через публичный API `GameEngine`.
+- `penaltyAiTypes.ts`, `penaltyAiDecision.ts`, `penaltyAiRandom.ts` - отдельная чистая модель решений AI для серий пенальти. Она выбирает только легальные действия `DRAW_GOALKEEPER_CARD` и `SELECT_ATTACK_CARD`, не мутирует `PenaltyShootoutState`, не использует `Math.random()` и не смотрит скрытые rank-карты для выбора.
+- `PenaltyAiController.ts` - таймерный контроллер AI для `TournamentPenaltyScene`. Он ставит один pending timer, использует отдельный seeded random stream, вызывает `choosePenaltyAiAction()` и передает действие в общий UI pipeline сцены.
 - `index.ts` - публичный экспорт AI-модуля.
 
 ```text
@@ -790,7 +792,11 @@ goalkeeper = 3
 
 Setup турнира отображает группы как панели со слотами по 4 команды. Клик по строке выбирает слот, клик по `x` удаляет команду из слота. Интерактивные зоны строк и кнопок удаления должны совпадать с видимыми прямоугольниками, без смещения hit area относительно UI.
 
-У каждого турнирного слота есть AI-checkbox. По умолчанию checkbox выключен, то есть новая команда создается как `HUMAN`. `controllerType` сохраняется в tournament state в `participants`; удаление команды очищает AI-state слота, а новая команда в освобожденном слоте снова становится `HUMAN`. Визуальные матчи турнира получают `player1ControllerType` и `player2ControllerType` из участников турнира. `tournamentMatchSimulation` не использует `AiTurnController` и не зависит от эвристик обычного AI-матча. Penalty shootout живет в отдельном engine и не смешивается с AI обычного матча.
+У каждого турнирного слота есть AI-checkbox. По умолчанию checkbox выключен, то есть новая команда создается как `HUMAN`. `controllerType` сохраняется в tournament state в `participants`; удаление команды очищает AI-state слота, а новая команда в освобожденном слоте снова становится `HUMAN`. Визуальные матчи турнира получают `player1ControllerType` и `player2ControllerType` из участников турнира. Турнирные серии пенальти получают `homeControllerType` и `awayControllerType` из тех же участников. Standalone-пенальти получают `player1ControllerType` и `player2ControllerType` из `TeamSelectScene`.
+
+`TournamentPenaltyScene` поддерживает HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI для standalone- и турнирных серий. HUMAN-клики и AI-действия проходят через общие handlers `handleGoalkeeperAction` и `handleShotAction`, поэтому правила, анимации, sounds, flying messages и переходы фаз не дублируются. Если текущую сторону контролирует AI, игровые клики по карточкам блокируются только для этой стороны; служебные кнопки остаются вне этой блокировки.
+
+`tournamentMatchSimulation` не использует `AiTurnController` и не зависит от эвристик обычного AI-матча. Penalty shootout живет в отдельном engine и не смешивается с AI обычного матча, обычной GK-колодой, main deck, midfielder logic или match events. `PenaltyAiController` очищает timers при `SHUTDOWN`, `DESTROY` и завершении серии.
 
 ## 17. События игры
 
@@ -895,13 +901,15 @@ src/tests/
 - `teamKits.test.ts` и `kitAssetResolver.test.ts` - registry и resolver экипировок.
 - `validateKits.test.ts` - validator WebP-ассетов.
 - `realSquads.test.ts` и `squads.test.ts` - составы.
-- tournament tests - турнирная механика, статистика, AI-checkboxes, visual AI match setup, simulation и penalty routing.
+- tournament tests - турнирная механика, статистика, AI-checkboxes, visual AI match setup, simulation, penalty routing и сохранение победителя серии пенальти с HUMAN/AI.
+- `penaltyAiDecision.test.ts` - чистая модель решений penalty AI, legal-only действия, отсутствие мутаций, отдельный random stream и запрет `Math.random()`.
+- `penaltyAiController.test.ts` - timers penalty AI, cleanup, общий pipeline действий, standalone HUMAN/AI комбинации и дополнительная серия после ничьей.
 
 На момент обновления документа:
 
 ```text
-26 test files
-360 tests
+28 test files
+389 tests
 ```
 
 Перед завершением значимых правок рекомендуется запускать:

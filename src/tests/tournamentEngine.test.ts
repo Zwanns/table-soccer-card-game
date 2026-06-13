@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PenaltyAiController, type PenaltyAiAction, type PlayerControllerType } from '../ai';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
   createPenaltyShootoutState,
@@ -20,10 +21,12 @@ import {
   submitTournamentMatchResult,
   submitTournamentMatchResultObject,
   takePenaltyKick,
+  type PenaltyShootoutState,
   type TournamentFormatId,
   type TournamentMatch,
   type TournamentMatchPlayerStats,
   type TournamentMatchResult,
+  type TournamentPenaltyResult,
   type TournamentState,
   type TournamentTeamId,
   type TournamentTeamStats
@@ -453,6 +456,65 @@ describe('knockout bracket', () => {
       homeTeamId: awayTeamId
     });
   });
+
+  it.each([
+    ['HUMAN vs HUMAN', 'HUMAN', 'HUMAN'],
+    ['HUMAN vs AI', 'HUMAN', 'AI'],
+    ['AI vs HUMAN', 'AI', 'HUMAN'],
+    ['AI vs AI', 'AI', 'AI']
+  ] satisfies Array<[string, PlayerControllerType, PlayerControllerType]>)(
+    'saves tournament penalty shootout winner for %s',
+    (_label, homeControllerType, awayControllerType) => {
+      let tournament = completeGroupStage(
+        createTournamentState({
+          formatId: 'cup-m',
+          teamIds: teamIds(8),
+          participants: teamIds(8).map((flagCode, index) => ({
+            flagCode,
+            controllerType: index % 2 === 0 ? homeControllerType : awayControllerType
+          })),
+          seed: `cup-m-tournament-penalty-ai-${homeControllerType}-${awayControllerType}`
+        })
+      );
+      const semiFinal = requireMatch(tournament, 'semi-final-1');
+      const homeTeamId = requireTeam(semiFinal.homeTeamId);
+      const awayTeamId = requireTeam(semiFinal.awayTeamId);
+      const penaltyShootout = createCompletedPenaltyShootoutForControllers(
+        semiFinal.id,
+        homeTeamId,
+        awayTeamId,
+        homeControllerType,
+        awayControllerType
+      );
+
+      tournament = submitTournamentMatchResultObject(
+        tournament,
+        createDetailedMatchResult(semiFinal, {
+          homeGoals: 1,
+          awayGoals: 1,
+          homeShots: 5,
+          awayShots: 5,
+          winnerTeamId: penaltyShootout.winnerTeamId,
+          penaltyShootout
+        })
+      );
+
+      const savedSemiFinal = requireMatch(tournament, semiFinal.id);
+      tournament = submitTournamentMatchResult(tournament, 'semi-final-2', {
+        homeGoals: 2,
+        awayGoals: 0
+      });
+      const final = requireMatch(tournament, 'final-1');
+
+      expect(savedSemiFinal.result?.penaltyShootout).toMatchObject({
+        winnerTeamId: penaltyShootout.winnerTeamId,
+        homeGoals: penaltyShootout.homeGoals,
+        awayGoals: penaltyShootout.awayGoals
+      });
+      expect([final.homeTeamId, final.awayTeamId]).toContain(penaltyShootout.winnerTeamId);
+      expect(final.status).toBe('available');
+    }
+  );
 });
 
 describe('tournament team stats', () => {
@@ -762,6 +824,73 @@ function createMatchPlayerStats(
     penaltyGoals: 0,
     penaltyGoalkeeperSaves: 0
   };
+}
+
+function createCompletedPenaltyShootoutForControllers(
+  matchId: string,
+  homeTeamId: TournamentTeamId,
+  awayTeamId: TournamentTeamId,
+  homeControllerType: PlayerControllerType,
+  awayControllerType: PlayerControllerType
+): TournamentPenaltyResult {
+  let shootout = createPenaltyShootoutState({
+    matchId,
+    homeTeamId,
+    awayTeamId,
+    seed: `${matchId}:tournament-penalty-ai-test`
+  });
+  const timers: Array<() => void> = [];
+  const controller = new PenaltyAiController({
+    getState: () => shootout,
+    getControllerType: (side) => (side === 'home' ? homeControllerType : awayControllerType),
+    random: () => 0,
+    scheduleTimer: (_delayMs, callback) => {
+      timers.push(callback);
+
+      return {
+        remove: () => {
+          timers.shift();
+        }
+      };
+    },
+    onAction: (action) => {
+      shootout = applyPenaltyAiAction(shootout, action);
+    }
+  });
+
+  for (let index = 0; index < 80 && shootout.status !== 'complete'; index += 1) {
+    controller.scheduleNextAction();
+    const timer = timers.shift();
+
+    if (timer !== undefined) {
+      timer();
+    } else {
+      shootout = applyHumanPenaltyAction(shootout);
+    }
+  }
+
+  controller.destroy();
+  return createTournamentPenaltyResult(shootout);
+}
+
+function applyPenaltyAiAction(state: PenaltyShootoutState, action: PenaltyAiAction): PenaltyShootoutState {
+  if (action.type === 'DRAW_GOALKEEPER_CARD') {
+    return drawPenaltyGoalkeeperCard(state);
+  }
+
+  return takePenaltyKick(revealPenaltyAttackCard(state, action.cardIndex));
+}
+
+function applyHumanPenaltyAction(state: PenaltyShootoutState): PenaltyShootoutState {
+  if (state.phase === 'selecting-goalkeeper') {
+    return drawPenaltyGoalkeeperCard(state);
+  }
+
+  if (state.phase === 'selecting-attacker') {
+    return revealPenaltyAttackCard(state, 0);
+  }
+
+  return takePenaltyKick(state);
 }
 
 function requireTeamStats(

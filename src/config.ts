@@ -1,5 +1,5 @@
 export const GAME_TITLE = 'Total Soccer: Mundial';
-export const GAME_VERSION = '1.2.0';
+export const GAME_VERSION = '1.3.0';
 export const GAME_AUTHOR = 'Oleh Myronchuk';
 export const GAME_AUTHOR_URL = 'https://www.linkedin.com/in/myronczuk-oleg/';
 export const SCENE_WIDTH = 1600;

@@ -1,6 +1,11 @@
 export { AI_TIMING, AiTurnController } from './AiTurnController';
 export type { AiScheduledTimer, AiTurnCheckReason, AiTurnControllerOptions } from './AiTurnController';
+export { PENALTY_AI_TIMING, PenaltyAiController } from './PenaltyAiController';
+export type { PenaltyAiControllerOptions, PenaltyAiScheduledTimer } from './PenaltyAiController';
 export type { AiAction, SeededRandomLike } from './aiDecision';
 export { chooseAiAction, createAiDecisionRandom } from './aiDecision';
 export { MAX_MIDFIELDER_OVERPAY_STEPS } from './aiHeuristics';
 export type { MatchControllerSetup, PlayerControllerType } from './aiTypes';
+export { choosePenaltyAiAction } from './penaltyAiDecision';
+export { createPenaltyAiRandom } from './penaltyAiRandom';
+export type { PenaltyAiAction, PenaltyAiControllerSide, PenaltyAiRandomSource } from './penaltyAiTypes';
