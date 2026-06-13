@@ -6,9 +6,14 @@ import { Button } from '../ui/Button';
 
 type TeamSlot = 1 | 2;
 
-const TEAMS_PER_PAGE = 32;
 const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
+const TEAM_GRID_COLUMNS = 8;
+const TEAM_BUTTON_WIDTH = 156;
+const TEAM_BUTTON_HEIGHT = 42;
+const TEAM_GRID_GAP_X = 12;
+const TEAM_GRID_GAP_Y = 8;
+const TEAM_GRID_START_Y = 206;
 
 export interface TeamSelectionData {
   player1Name: string;
@@ -25,7 +30,6 @@ export class TeamSelectScene extends Phaser.Scene {
   private selectedTeamOne = DEFAULT_TEAM_ONE;
   private selectedTeamTwo = DEFAULT_TEAM_TWO;
   private activeSlot: TeamSlot = 1;
-  private page = 0;
   private message: Phaser.GameObjects.Text | null = null;
   private mode: TeamSelectSceneData['mode'] = 'match';
 
@@ -38,7 +42,6 @@ export class TeamSelectScene extends Phaser.Scene {
     this.selectedTeamOne = DEFAULT_TEAM_ONE;
     this.selectedTeamTwo = DEFAULT_TEAM_TWO;
     this.activeSlot = 1;
-    this.page = 0;
     this.message = null;
   }
 
@@ -50,7 +53,6 @@ export class TeamSelectScene extends Phaser.Scene {
     this.children.removeAll(true);
 
     const centerX = SCENE_WIDTH / 2;
-    const maxPage = getMaxPage();
 
     this.add.rectangle(centerX, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
     this.add
@@ -86,16 +88,6 @@ export class TeamSelectScene extends Phaser.Scene {
     this.createCountryGrid();
 
     new Button(this, 258, 666, 'Menu', () => this.scene.start('MenuScene'));
-    new Button(this, 620, 666, '←', () => this.changePage(-1), { disabled: this.page === 0 });
-    this.add
-      .text(centerX, 666, `${this.page + 1} / ${maxPage + 1}`, {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    new Button(this, 980, 666, '→', () => this.changePage(1), { disabled: this.page === maxPage });
     new Button(this, 1342, 666, this.mode === 'penalty' ? 'Start penalties' : 'Start', () => this.startMatch(), {
       disabled: this.selectedTeamOne === this.selectedTeamTwo
     });
@@ -139,23 +131,18 @@ export class TeamSelectScene extends Phaser.Scene {
   }
 
   private createCountryGrid(): void {
-    const pageTeams = NATIONAL_TEAMS.slice(this.page * TEAMS_PER_PAGE, (this.page + 1) * TEAMS_PER_PAGE);
-    const columns = 8;
-    const buttonWidth = 156;
-    const buttonHeight = 58;
-    const gapX = 12;
-    const gapY = 12;
-    const startX = (SCENE_WIDTH - columns * buttonWidth - (columns - 1) * gapX) / 2 + buttonWidth / 2;
-    const startY = 216;
+    const startX =
+      (SCENE_WIDTH - TEAM_GRID_COLUMNS * TEAM_BUTTON_WIDTH - (TEAM_GRID_COLUMNS - 1) * TEAM_GRID_GAP_X) / 2 +
+      TEAM_BUTTON_WIDTH / 2;
 
-    pageTeams.forEach((team, index) => {
-      const column = index % columns;
-      const row = Math.floor(index / columns);
+    NATIONAL_TEAMS.forEach((team, index) => {
+      const column = index % TEAM_GRID_COLUMNS;
+      const row = Math.floor(index / TEAM_GRID_COLUMNS);
       this.createCountryOption(
-        startX + column * (buttonWidth + gapX),
-        startY + row * (buttonHeight + gapY),
-        buttonWidth,
-        buttonHeight,
+        startX + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
+        TEAM_GRID_START_Y + row * (TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y),
+        TEAM_BUTTON_WIDTH,
+        TEAM_BUTTON_HEIGHT,
         team
       );
     });
@@ -170,7 +157,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const strokeColor = isTeamOne ? 0xc43845 : isTeamTwo ? 0xd9eadf : 0x5f9572;
     background.setStrokeStyle(isSelected ? 3 : 2, strokeColor, 0.95);
       const flag = this.add.image(-width / 2 + 18, 0, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(38, 28);
+      flag.setDisplaySize(32, 24);
 
     // Remove ordinal rank numbers from the country option list (UI change)
       const teamText = this.add
@@ -178,7 +165,7 @@ export class TeamSelectScene extends Phaser.Scene {
           align: 'left',
           color: isSelected ? '#1f2a2e' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '17px',
+          fontSize: '15px',
           fontStyle: '700',
           wordWrap: { width: width - 64 }
         })
@@ -219,11 +206,6 @@ export class TeamSelectScene extends Phaser.Scene {
       this.activeSlot = 1;
     }
 
-    this.render();
-  }
-
-  private changePage(direction: -1 | 1): void {
-    this.page = Phaser.Math.Clamp(this.page + direction, 0, getMaxPage());
     this.render();
   }
 
@@ -294,8 +276,4 @@ function createStandalonePenaltyMatchResult(selection: TeamSelectionData): Tourn
     },
     playerStats: []
   };
-}
-
-function getMaxPage(): number {
-  return Math.ceil(NATIONAL_TEAMS.length / TEAMS_PER_PAGE) - 1;
 }
