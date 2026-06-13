@@ -3,8 +3,6 @@ import type { GameEvent } from '../game';
 export type GoalScoredSceneEffect = {
   type: 'GOAL_SCORED';
   eventIndex: number;
-  soundKey: 'sound-goal';
-  soundVolume: 0.72;
   flyingMessage: 'GOAL!!';
   flyingMessageTone: 'goal';
 };
@@ -22,8 +20,6 @@ export function getNextGoalScoredSceneEffect(
       return {
         type: 'GOAL_SCORED',
         eventIndex,
-        soundKey: 'sound-goal',
-        soundVolume: 0.72,
         flyingMessage: 'GOAL!!',
         flyingMessageTone: 'goal'
       };

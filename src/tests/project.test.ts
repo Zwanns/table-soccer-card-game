@@ -122,6 +122,21 @@ describe('project scaffold', () => {
     expect(resultSceneSource).toContain('timelineContent.setMask');
   });
 
+  it('starts goalkeeper outcome sounds at attack-card impact time', () => {
+    const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+
+    expect(gameSceneSource).toMatch(
+      /this\.showImpactPulse\(target\.x, target\.y, outcome\);\s+this\.playGoalkeeperImpactSound\(context\.positionId, outcome\);/
+    );
+    expect(gameSceneSource).toContain("case 'goal':");
+    expect(gameSceneSource).toContain("this.playSound('sound-goal', 0.72)");
+    expect(gameSceneSource).toContain("case 'post':");
+    expect(gameSceneSource).toContain("this.playSound('sound-goalpost', 0.72)");
+    expect(gameSceneSource).toContain("case 'save':");
+    expect(gameSceneSource).toContain("this.playSound('sound-goalkeeper-save', 0.72)");
+    expect(gameSceneSource).not.toContain('this.playSound(goalEffect.soundKey');
+  });
+
   it('keeps the advantage bar active at match start and neutral 50/50', () => {
     const advantageViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'AdvantageView.ts'), 'utf8');
 

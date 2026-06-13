@@ -21,20 +21,18 @@ function goalEvent(playerId: Player['id'], playerName: string): GameEvent {
 }
 
 describe('GameScene goal event effects', () => {
-  it('maps a HUMAN goal event to the shared goal sound and GOAL!! flying message', () => {
+  it('maps a HUMAN goal event to the shared GOAL!! flying message', () => {
     const effect = getNextGoalScoredSceneEffect([goalEvent('PLAYER_1', 'Human Team')], 0);
 
     expect(effect).toMatchObject({
       type: 'GOAL_SCORED',
       eventIndex: 0,
-      soundKey: 'sound-goal',
-      soundVolume: 0.72,
       flyingMessage: 'GOAL!!',
       flyingMessageTone: 'goal'
     });
   });
 
-  it('maps an AI goal event to the same goal-effects pipeline as a HUMAN goal', () => {
+  it('maps an AI goal event to the same message-effects pipeline as a HUMAN goal', () => {
     const humanGoalEffect = getNextGoalScoredSceneEffect([goalEvent('PLAYER_1', 'Human Team')], 0);
     const aiGoalEffect = getNextGoalScoredSceneEffect([goalEvent('PLAYER_2', 'AI Team')], 0);
 

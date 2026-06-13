@@ -367,7 +367,6 @@ export class GameScene extends Phaser.Scene {
       if (goalEffect !== null) {
         this.handledGoalScoredEventCursor = goalEffect.eventIndex + 1;
         this.render(state, { interactive: false });
-        this.playSound(goalEffect.soundKey, goalEffect.soundVolume);
         this.isMatchEffectInProgress = true;
         this.showFlyingMessage(goalEffect.flyingMessage, goalEffect.flyingMessageTone, () => {
           this.isMatchEffectInProgress = false;
@@ -375,7 +374,6 @@ export class GameScene extends Phaser.Scene {
         });
       } else if (goalkeeperSave) {
         this.render(state, { interactive: false });
-        this.playSound('sound-goalkeeper-save', 0.72);
         this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
       } else if (missedAttack) {
         this.render(state, { interactive: false });
@@ -391,7 +389,6 @@ export class GameScene extends Phaser.Scene {
     this.render(state);
 
     if (goalpostHit) {
-      this.playSound('sound-goalpost', 0.72);
       this.showFlyingMessage('Post!', 'post');
     }
   }
@@ -635,6 +632,7 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     this.showImpactPulse(target.x, target.y, outcome);
+    this.playGoalkeeperImpactSound(context.positionId, outcome);
 
     if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
       const activeOnLeft = context.attackerId === state.players[0].id;
@@ -677,6 +675,26 @@ export class GameScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => pulse.destroy()
     });
+  }
+
+  private playGoalkeeperImpactSound(positionId: FieldPositionId, outcome: AttackAnimationOutcome): void {
+    if (positionId !== 'goalkeeper') {
+      return;
+    }
+
+    switch (outcome) {
+      case 'goal':
+        this.playSound('sound-goal', 0.72);
+        return;
+      case 'post':
+        this.playSound('sound-goalpost', 0.72);
+        return;
+      case 'save':
+        this.playSound('sound-goalkeeper-save', 0.72);
+        return;
+      default:
+        return;
+    }
   }
 
   private finishAnimationObject(card: CardView, onComplete: () => void): void {
