@@ -1,4 +1,5 @@
 import type { RandomGenerator } from '../cards';
+import type { PlayerControllerType } from '../ai';
 import { GOALKEEPER_KIT_IDS, type GoalkeeperKitId } from '../data/teamKits';
 import type { NationalTeamSquad } from '../data/squadTypes';
 
@@ -6,6 +7,7 @@ export type MatchTeamSetup = {
   flagCode: string;
   squad: NationalTeamSquad;
   goalkeeperKitId: GoalkeeperKitId;
+  controllerType: PlayerControllerType;
   /**
    * Temporary compatibility alias for existing match rendering code.
    */
@@ -18,6 +20,7 @@ export type CreateMatchTeamSetupOptions = {
   teamId: string;
   squad: NationalTeamSquad;
   goalkeeperKitId: GoalkeeperKitId;
+  controllerType?: PlayerControllerType;
 };
 
 export function createMatchTeamSetup(options: CreateMatchTeamSetupOptions): MatchTeamSetup {
@@ -25,6 +28,7 @@ export function createMatchTeamSetup(options: CreateMatchTeamSetupOptions): Matc
     flagCode: options.teamId,
     squad: cloneNationalTeamSquad(options.squad),
     goalkeeperKitId: options.goalkeeperKitId,
+    controllerType: options.controllerType ?? 'HUMAN',
     teamId: options.teamId
   };
 }

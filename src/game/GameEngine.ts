@@ -12,6 +12,7 @@ import {
   type GoalkeeperCard,
   type RandomGenerator
 } from '../cards';
+import type { PlayerControllerType } from '../ai';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { GameEvent, ScorerSnapshot } from './GameEvent';
@@ -40,6 +41,8 @@ export interface StartNewGameOptions {
   player2Name?: string;
   player1FlagCode?: string;
   player2FlagCode?: string;
+  player1ControllerType?: PlayerControllerType;
+  player2ControllerType?: PlayerControllerType;
 }
 
 type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS';
@@ -89,12 +92,14 @@ export class GameEngine {
       [players[0].id]: createMatchTeamSetup({
         teamId: playerOneTeamId,
         squad: loadSquad(playerOneTeamId),
-        goalkeeperKitId: playerOneGoalkeeperKitId
+        goalkeeperKitId: playerOneGoalkeeperKitId,
+        controllerType: options.player1ControllerType
       }),
       [players[1].id]: createMatchTeamSetup({
         teamId: playerTwoTeamId,
         squad: loadSquad(playerTwoTeamId),
-        goalkeeperKitId: playerTwoGoalkeeperKitId
+        goalkeeperKitId: playerTwoGoalkeeperKitId,
+        controllerType: options.player2ControllerType
       })
     };
 

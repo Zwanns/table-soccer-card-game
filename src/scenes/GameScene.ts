@@ -5,6 +5,7 @@ import {
   queueTeamCoverLoad,
   resolveTeamCoverLoadResult
 } from '../assets/teamCover';
+import { AiTurnController, type AiAction, type AiTurnCheckReason, type PlayerControllerType } from '../ai';
 import type { Card } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
@@ -48,6 +49,7 @@ interface RestoreAnimationEntry {
 interface RenderOptions {
   hiddenRestoredCards?: readonly RestoreAnimationEntry[];
   interactive?: boolean;
+  aiCheckReason?: AiTurnCheckReason;
 }
 
 interface AttackAnimationContext {
@@ -65,6 +67,7 @@ type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
+  private aiTurnController: AiTurnController | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
   private exitConfirmModal: Phaser.GameObjects.Container | null = null;
@@ -74,6 +77,9 @@ export class GameScene extends Phaser.Scene {
   private player2Name = 'Spain';
   private player1FlagCode = 'fr';
   private player2FlagCode = 'es';
+  private player1ControllerType: PlayerControllerType = 'HUMAN';
+  private player2ControllerType: PlayerControllerType = 'HUMAN';
+  private aiMatchSeed = 'quick-match';
   private player1CoverTextureKey = getFallbackCoverTextureKey();
   private player2CoverTextureKey = getFallbackCoverTextureKey();
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
@@ -87,7 +93,16 @@ export class GameScene extends Phaser.Scene {
     this.player2Name = data.player2Name ?? 'Spain';
     this.player1FlagCode = data.player1FlagCode ?? 'fr';
     this.player2FlagCode = data.player2FlagCode ?? 'es';
+    this.player1ControllerType = data.player1ControllerType ?? 'HUMAN';
+    this.player2ControllerType = data.player2ControllerType ?? 'HUMAN';
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
+    this.aiMatchSeed = createAiMatchSeed(
+      this.launchContext,
+      this.player1FlagCode,
+      this.player2FlagCode,
+      this.player1ControllerType,
+      this.player2ControllerType
+    );
     this.player1CoverTextureKey = getFallbackCoverTextureKey();
     this.player2CoverTextureKey = getFallbackCoverTextureKey();
     this.animatedRestoreCount = 0;
@@ -104,14 +119,24 @@ export class GameScene extends Phaser.Scene {
 
   public create(): void {
     this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleLoadError, this);
+    this.aiTurnController?.dispose();
     this.player1CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player1Name, this.player1FlagCode);
     this.player2CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player2Name, this.player2FlagCode);
     this.engine = new GameEngine();
+    this.aiTurnController = new AiTurnController({
+      getState: () => this.engine?.getState() ?? null,
+      getMatchSeed: () => this.aiMatchSeed,
+      executeAction: (action) => this.executeAiAction(action),
+      scheduleDelayedCall: (delayMs, callback) => this.time.delayedCall(delayMs, callback)
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
     this.engine.startNewGame({
       player1Name: this.player1Name,
       player2Name: this.player2Name,
       player1FlagCode: this.player1FlagCode,
-      player2FlagCode: this.player2FlagCode
+      player2FlagCode: this.player2FlagCode,
+      player1ControllerType: this.player1ControllerType,
+      player2ControllerType: this.player2ControllerType
     });
     this.startTurn();
   }
@@ -136,13 +161,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.render(state);
+    this.render(state, { aiCheckReason: 'TURN_STARTED' });
   }
 
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
     const interactive = options.interactive !== false;
+    const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
 
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
@@ -186,7 +212,7 @@ export class GameScene extends Phaser.Scene {
         state.players[0],
         'right',
         this.player1CoverTextureKey,
-        interactive,
+        gameInteractive,
         () => this.drawAttackCard()
       )
     );
@@ -199,14 +225,14 @@ export class GameScene extends Phaser.Scene {
         state.players[1],
         'left',
         this.player2CoverTextureKey,
-        interactive,
+        gameInteractive,
         () => this.drawAttackCard()
       )
     );
     this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
         hiddenCards: options.hiddenRestoredCards,
-        interactive,
+        interactive: gameInteractive,
         onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
         onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
       })
@@ -231,6 +257,7 @@ export class GameScene extends Phaser.Scene {
 
     if (interactive) {
       this.playStartWhistleIfReady(state);
+      this.aiTurnController?.requestTurnCheck(options.aiCheckReason);
     }
   }
 
@@ -736,6 +763,28 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('ResultScene', { state, launchContext: this.launchContext });
   }
 
+  private executeAiAction(action: AiAction): void {
+    switch (action.type) {
+      case 'DRAW_FROM_DECK':
+        this.drawAttackCard();
+        return;
+      case 'COMMIT_MIDFIELDER':
+        this.commitMidfielder(action.positionId);
+        return;
+      case 'SELECT_TARGET':
+        this.selectTarget(action.positionId);
+        return;
+      case 'SELECT_MIDFIELD_GAP':
+        this.useMidfieldGap(action.positionId);
+        return;
+    }
+  }
+
+  private handleSceneShutdown(): void {
+    this.aiTurnController?.dispose();
+    this.aiTurnController = null;
+  }
+
   private requireEngine(): GameEngine {
     if (this.engine === null) {
       throw new Error('Game engine is not initialized.');
@@ -829,4 +878,19 @@ function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id'])
 
 function formatShortScorer(scorer: GoalScorerStat): string {
   return `${scorer.playerName} (#${scorer.shirtNumber})`;
+}
+
+function createAiMatchSeed(
+  launchContext: MatchLaunchContext,
+  player1FlagCode: string,
+  player2FlagCode: string,
+  player1ControllerType: PlayerControllerType,
+  player2ControllerType: PlayerControllerType
+): string {
+  const contextSeed =
+    launchContext.mode === 'tournament'
+      ? `${launchContext.tournamentId}:${launchContext.tournamentMatchId}`
+      : 'quick-match';
+
+  return `${contextSeed}:${player1FlagCode}:${player2FlagCode}:${player1ControllerType}:${player2ControllerType}`;
 }

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { PlayerControllerType } from '../ai';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
@@ -14,12 +15,19 @@ const TEAM_BUTTON_HEIGHT = 42;
 const TEAM_GRID_GAP_X = 12;
 const TEAM_GRID_GAP_Y = 8;
 const TEAM_GRID_START_Y = 206;
+export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN';
+
+export function toggleQuickMatchControllerType(controllerType: PlayerControllerType): PlayerControllerType {
+  return controllerType === 'AI' ? 'HUMAN' : 'AI';
+}
 
 export interface TeamSelectionData {
   player1Name: string;
   player2Name: string;
   player1FlagCode: string;
   player2FlagCode: string;
+  player1ControllerType: PlayerControllerType;
+  player2ControllerType: PlayerControllerType;
 }
 
 interface TeamSelectSceneData {
@@ -29,6 +37,8 @@ interface TeamSelectSceneData {
 export class TeamSelectScene extends Phaser.Scene {
   private selectedTeamOne = DEFAULT_TEAM_ONE;
   private selectedTeamTwo = DEFAULT_TEAM_TWO;
+  private player1ControllerType: PlayerControllerType = DEFAULT_QUICK_MATCH_CONTROLLER_TYPE;
+  private player2ControllerType: PlayerControllerType = DEFAULT_QUICK_MATCH_CONTROLLER_TYPE;
   private activeSlot: TeamSlot = 1;
   private message: Phaser.GameObjects.Text | null = null;
   private mode: TeamSelectSceneData['mode'] = 'match';
@@ -41,6 +51,8 @@ export class TeamSelectScene extends Phaser.Scene {
     this.mode = data.mode ?? 'match';
     this.selectedTeamOne = DEFAULT_TEAM_ONE;
     this.selectedTeamTwo = DEFAULT_TEAM_TWO;
+    this.player1ControllerType = DEFAULT_QUICK_MATCH_CONTROLLER_TYPE;
+    this.player2ControllerType = DEFAULT_QUICK_MATCH_CONTROLLER_TYPE;
     this.activeSlot = 1;
     this.message = null;
   }
@@ -122,6 +134,7 @@ export class TeamSelectScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
     panel.add([background, flag, titleText, teamText]);
+    this.addAiCheckbox(panel, 156, -20, slot);
     panel.setSize(440, 82);
     panel.setInteractive({ useHandCursor: true });
     panel.on('pointerdown', () => {
@@ -209,12 +222,78 @@ export class TeamSelectScene extends Phaser.Scene {
     this.render();
   }
 
+  private addAiCheckbox(parent: Phaser.GameObjects.Container, x: number, y: number, slot: TeamSlot): void {
+    const controllerType = this.getControllerType(slot);
+    const isAi = controllerType === 'AI';
+    const checkbox = this.add.container(x, y);
+    const box = this.add.rectangle(0, 0, 20, 20, isAi ? 0xf0c95a : 0x143f2c, isAi ? 1 : 0.92);
+    box.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+
+    const check = this.add
+      .text(0, -1, isAi ? 'X' : '', {
+        align: 'center',
+        color: '#123b2a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+    const label = this.add
+      .text(18, 0, 'AI', {
+        color: '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
+        fontStyle: '700'
+      })
+      .setOrigin(0, 0.5);
+
+    checkbox.add([box, check, label]);
+    checkbox.setSize(58, 28);
+    checkbox.setInteractive({ useHandCursor: true });
+    checkbox.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData
+      ) => {
+        event.stopPropagation();
+        this.toggleControllerType(slot);
+      }
+    );
+    checkbox.on('pointerover', () => {
+      box.setStrokeStyle(2, 0xffd978, 1);
+    });
+    checkbox.on('pointerout', () => {
+      box.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+    });
+
+    parent.add(checkbox);
+  }
+
+  private toggleControllerType(slot: TeamSlot): void {
+    if (slot === 1) {
+      this.player1ControllerType = toggleQuickMatchControllerType(this.player1ControllerType);
+    } else {
+      this.player2ControllerType = toggleQuickMatchControllerType(this.player2ControllerType);
+    }
+
+    this.render();
+  }
+
+  private getControllerType(slot: TeamSlot): PlayerControllerType {
+    return slot === 1 ? this.player1ControllerType : this.player2ControllerType;
+  }
+
   private startMatch(): void {
     const data: TeamSelectionData = {
       player1Name: this.selectedTeamOne,
       player2Name: this.selectedTeamTwo,
       player1FlagCode: this.getSelectedTeam(1).flagCode,
-      player2FlagCode: this.getSelectedTeam(2).flagCode
+      player2FlagCode: this.getSelectedTeam(2).flagCode,
+      player1ControllerType: this.player1ControllerType,
+      player2ControllerType: this.player2ControllerType
     };
 
     if (this.mode === 'penalty') {
