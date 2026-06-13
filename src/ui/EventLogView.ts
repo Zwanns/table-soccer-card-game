@@ -47,8 +47,12 @@ function formatEvent(event: GameEvent, players: readonly Player[]): string {
       return `First turn: ${playerName ?? event.playerId}`;
     case 'ATTACK_CARD_DRAWN':
       return `${playerName ?? event.playerId}: attack ${event.card.rank}`;
+    case 'MIDFIELDER_COMMITTED':
+      return `${playerName ?? event.playerId}: midfielder ${event.card.rank}`;
     case 'CARD_DEFEATED':
       return `${playerName ?? event.playerId}: ${event.attackerCard.rank} beat ${event.defenderCard.rank}`;
+    case 'MIDFIELD_GAP_USED':
+      return `${playerName ?? event.playerId}: gap ${event.attackerCard.rank}`;
     case 'SHOT_ON_GOAL':
       return `Shot on goal: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
     case 'GOALPOST_HIT':

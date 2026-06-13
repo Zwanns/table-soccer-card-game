@@ -1,11 +1,20 @@
 import Phaser from 'phaser';
-import { getFieldPlayerForCard, getStartingGoalkeeper, type FieldPositionId, type GameState, type Player } from '../game';
+import {
+  getFieldPlayerForCard,
+  getStartingGoalkeeper,
+  type FieldPositionId,
+  type GameState,
+  type MidfielderPositionId,
+  type Player
+} from '../game';
 import type { Card, GoalkeeperCard } from '../cards';
 import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
+export type MidfielderCommitHandler = (positionId: MidfielderPositionId) => void;
+export type MidfieldGapSelectHandler = (positionId: MidfielderPositionId) => void;
 
 export interface FieldPositionView {
   positionId: FieldPositionId;
@@ -21,6 +30,8 @@ interface HiddenFieldCard {
 export interface FieldViewOptions {
   hiddenCards?: readonly HiddenFieldCard[];
   interactive?: boolean;
+  onMidfielderCommit?: MidfielderCommitHandler;
+  onMidfieldGapSelect?: MidfieldGapSelectHandler;
 }
 
 export const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
@@ -79,12 +90,29 @@ export class FieldView extends Phaser.GameObjects.Container {
       const card = player.field[position.positionId];
 
       if (card === null || isHidden(player.id, position.positionId, options.hiddenCards ?? [])) {
-        this.addTacticalMarker(scene, position.x, position.y, player.teamColor);
+        const gapSelectable =
+          card === null &&
+          options.interactive !== false &&
+          player.id !== state.activePlayerId &&
+          isMidfielderPositionId(position.positionId) &&
+          (state.legalMidfieldGapPositionIds ?? []).includes(position.positionId);
+
+        this.addTacticalMarker(scene, position.x, position.y, player.teamColor, {
+          onClick:
+            gapSelectable && options.onMidfieldGapSelect !== undefined
+              ? () => options.onMidfieldGapSelect?.(position.positionId as MidfielderPositionId)
+              : undefined
+        });
         return;
       }
 
       const selectable =
         options.interactive !== false && player.id !== state.activePlayerId && state.legalTargetPositionIds.includes(position.positionId);
+      const committable =
+        options.interactive !== false &&
+        player.id === state.activePlayerId &&
+        isMidfielderPositionId(position.positionId) &&
+        (state.committableMidfielderPositionIds ?? []).includes(position.positionId);
       const setup = state.matchSetups[player.id];
       const isGoalkeeper = position.positionId === 'goalkeeper';
       this.add(
@@ -104,18 +132,38 @@ export class FieldView extends Phaser.GameObjects.Container {
                 ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
                 : getTeamKitAssetKey(setup.flagCode),
           label: isGoalkeeper ? 'GK' : '',
-          onClick: selectable ? () => onTargetSelect(position.positionId) : undefined
+          onClick: selectable
+            ? () => onTargetSelect(position.positionId)
+            : committable && options.onMidfielderCommit !== undefined
+              ? () => options.onMidfielderCommit?.(position.positionId as MidfielderPositionId)
+              : undefined
         })
       );
     });
   }
 
-  private addTacticalMarker(scene: Phaser.Scene, x: number, y: number, teamColor: Player['teamColor']): void {
+  private addTacticalMarker(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    teamColor: Player['teamColor'],
+    options: { onClick?: () => void } = {}
+  ): void {
     const markerColor = teamColor === 'RED' ? 0xc43845 : 0xd9eadf;
     const shadow = scene.add.circle(x + 3, y + 4, 17, 0x062519, 0.34);
     const outer = scene.add.circle(x, y, 16, markerColor, 0.18);
     outer.setStrokeStyle(3, markerColor, 0.82);
     const inner = scene.add.circle(x, y, 6, markerColor, 0.92);
+
+    if (options.onClick !== undefined) {
+      const clickTarget = scene.add.rectangle(x, y, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0.01);
+      clickTarget.setInteractive({ useHandCursor: true });
+      clickTarget.on('pointerdown', options.onClick);
+      outer.setFillStyle(0xf0c95a, 0.22);
+      outer.setStrokeStyle(4, 0xf0c95a, 0.95);
+      this.add([shadow, outer, inner, clickTarget]);
+      return;
+    }
 
     this.add([shadow, outer, inner]);
   }
@@ -172,4 +220,8 @@ export function getFieldCardPosition(
 
 function isHidden(playerId: Player['id'], positionId: FieldPositionId, hiddenCards: readonly HiddenFieldCard[]): boolean {
   return hiddenCards.some((card) => card.playerId === playerId && card.positionId === positionId);
+}
+
+function isMidfielderPositionId(positionId: FieldPositionId): positionId is MidfielderPositionId {
+  return positionId === 'midfielder-1' || positionId === 'midfielder-2' || positionId === 'midfielder-3';
 }

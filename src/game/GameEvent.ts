@@ -1,5 +1,5 @@
 import type { Card, CardRank, GoalkeeperCard, GoalkeeperRank } from '../cards';
-import type { FieldCard, FieldPositionId } from './PlayerField';
+import type { FieldCard, FieldPositionId, MidfielderPositionId } from './PlayerField';
 import type { Player } from './Player';
 
 export type ScorerSnapshot = {
@@ -23,7 +23,21 @@ export type GameEvent =
       cardRank: CardRank | GoalkeeperRank;
     }
   | { type: 'ATTACK_CARD_DRAWN'; playerId: Player['id']; card: Card }
+  | {
+      type: 'MIDFIELDER_COMMITTED';
+      playerId: Player['id'];
+      turnNumber: number;
+      positionId: MidfielderPositionId;
+      card: Card;
+    }
   | { type: 'TARGETS_AVAILABLE'; positionIds: string[] }
+  | {
+      type: 'MIDFIELD_GAP_USED';
+      playerId: Player['id'];
+      turnNumber: number;
+      positionId: MidfielderPositionId;
+      attackerCard: Card;
+    }
   | {
       type: 'CARD_DEFEATED';
       playerId: Player['id'];

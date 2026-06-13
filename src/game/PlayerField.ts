@@ -12,6 +12,11 @@ export type TargetLine = 'MIDFIELD' | 'DEFENSE' | 'GOALKEEPER';
 
 export type OutfieldPositionId = Exclude<FieldPositionId, 'goalkeeper'>;
 
+export type MidfielderPositionId = Extract<
+  FieldPositionId,
+  'midfielder-1' | 'midfielder-2' | 'midfielder-3'
+>;
+
 export type FieldCard = Card | GoalkeeperCard;
 
 export type PlayerField = {
@@ -41,6 +46,12 @@ export const TARGET_LINE_POSITIONS: Readonly<Record<TargetLine, readonly FieldPo
   DEFENSE: ['defender-1', 'defender-2'],
   GOALKEEPER: ['goalkeeper']
 };
+
+export const MIDFIELDER_POSITION_IDS: readonly MidfielderPositionId[] = [
+  'midfielder-1',
+  'midfielder-2',
+  'midfielder-3'
+];
 
 export function createEmptyField(): PlayerField {
   return {

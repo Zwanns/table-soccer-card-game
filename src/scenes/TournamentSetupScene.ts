@@ -198,6 +198,11 @@ export class TournamentSetupScene extends Phaser.Scene {
     const background = this.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.92);
     background.setOrigin(0);
     background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.92);
+    background.setInteractive({ useHandCursor: true });
+    background.on('pointerdown', () => {
+      this.activeSlotIndex = slotIndex;
+      this.render();
+    });
 
     const name = this.add
       .text(12, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
@@ -225,19 +230,14 @@ export class TournamentSetupScene extends Phaser.Scene {
         .setOrigin(0.5);
       const removeHitArea = this.add.rectangle(132, SLOT_HEIGHT / 2, 22, 26, 0x000000, 0.01);
       removeHitArea.setInteractive({ useHandCursor: true });
-      removeHitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
+      removeHitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
         this.removeTeam(slotIndex);
       });
       slot.add([flag, remove, removeHitArea]);
     }
 
     slot.setSize(SLOT_WIDTH, SLOT_HEIGHT);
-    slot.setInteractive({ useHandCursor: true });
-    slot.on('pointerdown', () => {
-      this.activeSlotIndex = slotIndex;
-      this.render();
-    });
 
     return slot;
   }

@@ -21,9 +21,11 @@ import type { Player } from './Player';
 import { getFieldPlayerForCard } from './squadResolver';
 import {
   createEmptyField,
+  MIDFIELDER_POSITION_IDS,
   RESTORE_ORDER,
   TARGET_LINE_POSITIONS,
   type FieldPositionId,
+  type MidfielderPositionId,
   type PlayerField
 } from './PlayerField';
 import {
@@ -116,6 +118,20 @@ export class GameEngine {
     return [...this.state.legalTargetPositionIds];
   }
 
+  public getCommittableMidfielderPositionIds(): MidfielderPositionId[] {
+    this.refreshCommittableMidfielderPositionIds();
+
+    return [...(this.state.committableMidfielderPositionIds ?? [])];
+  }
+
+  public canCommitMidfielder(positionId: string): positionId is MidfielderPositionId {
+    return isMidfielderPositionId(positionId) && this.getCommittableMidfielderPositionIds().includes(positionId);
+  }
+
+  public canUseMidfieldGap(positionId: string): positionId is MidfielderPositionId {
+    return isMidfielderPositionId(positionId) && this.getLegalMidfieldGapPositionIds().includes(positionId);
+  }
+
   public startNextTurn(): GameState {
     if (this.state.phase === 'NOT_STARTED') {
       throw new Error('Cannot start next turn before starting a game.');
@@ -131,14 +147,18 @@ export class GameEngine {
 
     this.state.turnNumber += 1;
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.attackBank = [];
     this.state.legalTargetPositionIds = [];
+    this.state.committedMidfielderPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
 
     if (!this.restoreActivePlayerField()) {
       return this.state;
     }
 
     this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+    this.refreshCommittableMidfielderPositionIds();
     return this.state;
   }
 
@@ -152,6 +172,93 @@ export class GameEngine {
     }
 
     this.resolveAttackCard();
+    return this.state;
+  }
+
+  public commitMidfielder(positionId: string): GameState {
+    if (this.state.phase !== 'WAITING_FOR_ATTACK_CARD') {
+      throw new Error('Cannot commit a midfielder because the game is not waiting for an attack source.');
+    }
+
+    if (!isMidfielderPositionId(positionId)) {
+      throw new Error(`Cannot commit "${positionId}" because it is not a midfield position.`);
+    }
+
+    if (!this.canCommitMidfielder(positionId)) {
+      throw new Error(`Cannot commit midfielder "${positionId}" in the current attack state.`);
+    }
+
+    const activePlayer = this.getActivePlayer();
+    const committedCard = activePlayer.field[positionId];
+
+    if (committedCard === null) {
+      throw new Error(`Cannot commit midfielder "${positionId}" because the own slot is empty.`);
+    }
+
+    activePlayer.field[positionId] = null;
+    this.state.attackCard = committedCard;
+    this.state.currentAttackCardSource = 'MIDFIELDER';
+    this.state.currentAttackingMidfielderPositionId = positionId;
+    this.state.committedMidfielderPositionIds = appendUniqueMidfielderPosition(
+      this.state.committedMidfielderPositionIds ?? [],
+      positionId
+    );
+    this.state.committableMidfielderPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
+    this.appendLog({
+      type: 'MIDFIELDER_COMMITTED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId,
+      card: committedCard
+    });
+
+    return this.resolveCommittedMidfielderDuel(positionId);
+  }
+
+  public useMidfieldGap(positionId: string): GameState {
+    if (this.state.phase !== 'WAITING_FOR_TARGET') {
+      throw new Error('Cannot use a midfield gap because the game is not waiting for target selection.');
+    }
+
+    if (!isMidfielderPositionId(positionId)) {
+      throw new Error(`Cannot use "${positionId}" because it is not a midfield position.`);
+    }
+
+    if (!this.canUseMidfieldGap(positionId)) {
+      throw new Error(`Cannot use midfield gap "${positionId}" in the current attack state.`);
+    }
+
+    const attackCard = this.state.attackCard;
+
+    if (attackCard === null) {
+      throw new Error('Cannot use a midfield gap because there is no active attack card.');
+    }
+
+    const activePlayer = this.getActivePlayer();
+    this.state.attackBank.push(attackCard);
+    this.state.attackCard = null;
+    this.clearAttackCardSource();
+    this.state.legalTargetPositionIds = [];
+    this.state.counterattackMidfieldGap = this.state.counterattackMidfieldGap
+      ? { ...this.state.counterattackMidfieldGap, used: true }
+      : null;
+    this.state.legalMidfieldGapPositionIds = [];
+    this.appendLog({
+      type: 'MIDFIELD_GAP_USED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId,
+      attackerCard: attackCard
+    });
+
+    if (!this.hasAvailableNextAttackSource()) {
+      this.finishAttack('NO_MORE_ATTACK_CARDS');
+      return this.state;
+    }
+
+    this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+    this.refreshCommittableMidfielderPositionIds();
     return this.state;
   }
 
@@ -184,6 +291,10 @@ export class GameEngine {
       throw new Error('Cannot select a target because there is no active attack card.');
     }
 
+    if (this.state.counterattackMidfieldGap != null && currentLine !== 'MIDFIELD') {
+      this.closeCounterattackMidfieldGap();
+    }
+
     if (positionId === 'goalkeeper') {
       return this.resolveGoalkeeperShot(activePlayer, opponent, attackCard, targetCard as GoalkeeperCard);
     }
@@ -197,7 +308,9 @@ export class GameEngine {
     opponent.field[positionId] = null;
     this.state.attackBank.push(attackCard, outfieldTargetCard);
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.legalTargetPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
     this.appendLog({
       type: 'CARD_DEFEATED',
       playerId: activePlayer.id,
@@ -207,13 +320,152 @@ export class GameEngine {
       defenderCard: outfieldTargetCard
     });
 
-    if (activePlayer.deck.cards.length === 0) {
+    if (!this.hasAvailableNextAttackSource()) {
       this.finishAttack('NO_MORE_ATTACK_CARDS');
       return this.state;
     }
 
     this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+    this.refreshCommittableMidfielderPositionIds();
     return this.state;
+  }
+
+  private resolveCommittedMidfielderDuel(positionId: MidfielderPositionId): GameState {
+    const activePlayer = this.getActivePlayer();
+    const opponent = this.getOpponentPlayer();
+    const attackCard = this.state.attackCard;
+    const targetCard = opponent.field[positionId];
+
+    if (attackCard === null) {
+      throw new Error('Cannot resolve committed midfielder duel without an attack card.');
+    }
+
+    if (targetCard === null) {
+      throw new Error(`Cannot resolve committed midfielder duel because "${positionId}" is empty.`);
+    }
+
+    if (!canBeatFieldTarget(attackCard, targetCard, positionId)) {
+      return this.resolveFailedFieldDuel(activePlayer, attackCard, targetCard, positionId);
+    }
+
+    opponent.field[positionId] = null;
+    this.state.attackBank.push(attackCard, targetCard);
+    this.state.attackCard = null;
+    this.clearAttackCardSource();
+    this.state.legalTargetPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
+    this.appendLog({
+      type: 'CARD_DEFEATED',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber,
+      positionId,
+      attackerCard: attackCard,
+      defenderCard: targetCard
+    });
+
+    if (!this.hasAvailableNextAttackSource()) {
+      this.finishAttack('NO_MORE_ATTACK_CARDS');
+      return this.state;
+    }
+
+    this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+    this.refreshCommittableMidfielderPositionIds();
+    return this.state;
+  }
+
+  private refreshCommittableMidfielderPositionIds(): void {
+    this.state.committableMidfielderPositionIds =
+      this.state.phase === 'WAITING_FOR_ATTACK_CARD' ? this.computeCommittableMidfielderPositionIds() : [];
+  }
+
+  private computeCommittableMidfielderPositionIds(): MidfielderPositionId[] {
+    if (this.state.attackCard !== null || this.state.activePlayerId === null) {
+      return [];
+    }
+
+    const activePlayer = this.getActivePlayer();
+    const opponent = this.getOpponentPlayer();
+
+    if (getCurrentTargetLine(opponent.field) !== 'MIDFIELD') {
+      return [];
+    }
+
+    const committedPositionIds = this.state.committedMidfielderPositionIds ?? [];
+
+    return MIDFIELDER_POSITION_IDS.filter(
+      (positionId) =>
+        activePlayer.field[positionId] !== null &&
+        opponent.field[positionId] !== null &&
+        !committedPositionIds.includes(positionId)
+    );
+  }
+
+  private getLegalMidfieldGapPositionIds(): MidfielderPositionId[] {
+    const gap = this.state.counterattackMidfieldGap;
+
+    if (
+      gap == null ||
+      gap.used ||
+      !['DRAWING_ATTACK_CARD', 'WAITING_FOR_TARGET'].includes(this.state.phase) ||
+      this.state.currentAttackCardSource !== 'DECK' ||
+      this.state.attackCard === null ||
+      this.state.activePlayerId === null
+    ) {
+      return [];
+    }
+
+    const opponent = this.getOpponentPlayer();
+
+    if (opponent.id !== gap.defendingPlayerId) {
+      return [];
+    }
+
+    return gap.positionIds.filter((positionId) => opponent.field[positionId] === null);
+  }
+
+  private hasAvailableNextAttackSource(): boolean {
+    const activePlayer = this.getActivePlayer();
+
+    return activePlayer.deck.cards.length > 0 || this.computeCommittableMidfielderPositionIds().length > 0;
+  }
+
+  private clearAttackCardSource(): void {
+    this.state.currentAttackCardSource = null;
+    this.state.currentAttackingMidfielderPositionId = null;
+  }
+
+  private closeCounterattackMidfieldGap(): void {
+    this.state.counterattackMidfieldGap = null;
+    this.state.legalMidfieldGapPositionIds = [];
+  }
+
+  private restoreCommittedMidfielderSlotsAfterGoal(
+    player: Player,
+    positionIds: readonly MidfielderPositionId[]
+  ): void {
+    for (const positionId of positionIds) {
+      if (player.field[positionId] !== null) {
+        continue;
+      }
+
+      const card = drawTopCard(player.deck);
+
+      if (card === null) {
+        return;
+      }
+
+      card.color = player.teamColor;
+      player.field[positionId] = card;
+      this.appendLog({
+        type: 'FIELD_CARD_RESTORED',
+        playerId: player.id,
+        turnNumber: this.state.turnNumber,
+        positionId,
+        card,
+        cardKind: 'outfield',
+        cardRank: card.rank
+      });
+    }
   }
 
   private setupInitialFields(): void {
@@ -323,6 +575,9 @@ export class GameEngine {
     }
 
     this.state.attackCard = attackCard;
+    this.state.currentAttackCardSource = 'DECK';
+    this.state.currentAttackingMidfielderPositionId = null;
+    this.state.committableMidfielderPositionIds = [];
     this.appendLog({ type: 'ATTACK_CARD_DRAWN', playerId: activePlayer.id, card: attackCard });
     return true;
   }
@@ -335,19 +590,22 @@ export class GameEngine {
     }
 
     const legalTargets = getCardsInCurrentTargetLine(this.getOpponentPlayer().field).map((entry) => entry.positionId);
+    const legalGapPositionIds = this.getLegalMidfieldGapPositionIds();
 
     this.state.legalTargetPositionIds = legalTargets;
+    this.state.legalMidfieldGapPositionIds = legalGapPositionIds;
 
-    if (legalTargets.length === 0) {
+    if (legalTargets.length === 0 && legalGapPositionIds.length === 0) {
       this.state.attackBank.push(attackCard);
       this.state.attackCard = null;
+      this.clearAttackCardSource();
       this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
       this.finishAttack('MISS');
       return;
     }
 
     this.state.phase = 'WAITING_FOR_TARGET';
-    this.appendLog({ type: 'TARGETS_AVAILABLE', positionIds: [...legalTargets] });
+    this.appendLog({ type: 'TARGETS_AVAILABLE', positionIds: [...legalTargets, ...legalGapPositionIds] });
   }
 
   private resolveGoalkeeperShot(
@@ -366,22 +624,27 @@ export class GameEngine {
     if (isGoalpostHit(attackCard, goalkeeperCard)) {
       this.state.attackBank.push(attackCard);
       this.state.attackCard = null;
+      this.clearAttackCardSource();
       this.state.legalTargetPositionIds = [];
+      this.state.legalMidfieldGapPositionIds = [];
       this.appendLog({ type: 'GOALPOST_HIT', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
 
-      if (activePlayer.deck.cards.length === 0) {
+      if (!this.hasAvailableNextAttackSource()) {
         this.finishAttack('NO_MORE_ATTACK_CARDS');
         return this.state;
       }
 
       this.state.phase = 'WAITING_FOR_ATTACK_CARD';
+      this.refreshCommittableMidfielderPositionIds();
       return this.state;
     }
 
     if (!canBeatFieldTarget(attackCard, goalkeeperCard, 'goalkeeper')) {
       this.state.attackBank.push(attackCard);
       this.state.attackCard = null;
+      this.clearAttackCardSource();
       this.state.legalTargetPositionIds = [];
+      this.state.legalMidfieldGapPositionIds = [];
       this.appendLog({ type: 'GOALKEEPER_SAVE', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
       this.finishAttack('MISS');
       return this.state;
@@ -390,7 +653,9 @@ export class GameEngine {
     opponent.field.goalkeeper = null;
     this.state.attackBank.push(attackCard);
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.legalTargetPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
     this.appendLog({
       type: 'CARD_DEFEATED',
       playerId: activePlayer.id,
@@ -420,7 +685,9 @@ export class GameEngine {
   ): GameState {
     this.state.attackBank.push(attackCard);
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.legalTargetPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
     this.appendLog({
       type: 'ATTACK_MISSED',
       card: attackCard,
@@ -434,13 +701,31 @@ export class GameEngine {
     return this.state;
   }
 
-  private finishAttack(_reason: FinishAttackReason): void {
+  private finishAttack(reason: FinishAttackReason): void {
     const activePlayer = this.getActivePlayer();
+    const committedMidfielderPositionIds = [...(this.state.committedMidfielderPositionIds ?? [])];
+    this.closeCounterattackMidfieldGap();
     assignCardsToPlayer(this.state.attackBank, activePlayer);
     addCardsToBottom(activePlayer.deck, this.state.attackBank);
     this.state.attackBank = [];
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.legalTargetPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
+
+    if (reason === 'GOAL') {
+      this.restoreCommittedMidfielderSlotsAfterGoal(activePlayer, committedMidfielderPositionIds);
+    } else if (committedMidfielderPositionIds.length > 0) {
+      this.state.counterattackMidfieldGap = {
+        defendingPlayerId: activePlayer.id,
+        positionIds: committedMidfielderPositionIds,
+        used: false,
+        turnNumber: this.state.turnNumber + 1
+      };
+    }
+
+    this.state.committedMidfielderPositionIds = [];
+    this.state.committableMidfielderPositionIds = [];
     this.state.phase = 'ENDING_TURN';
     this.appendLog({ type: 'TURN_ENDED', playerId: activePlayer.id });
     this.switchActivePlayer();
@@ -466,8 +751,13 @@ export class GameEngine {
 
     this.state.phase = 'GAME_OVER';
     this.state.attackCard = null;
+    this.clearAttackCardSource();
     this.state.attackBank = [];
     this.state.legalTargetPositionIds = [];
+    this.state.committableMidfielderPositionIds = [];
+    this.state.committedMidfielderPositionIds = [];
+    this.state.legalMidfieldGapPositionIds = [];
+    this.state.counterattackMidfieldGap = null;
 
     if (playerOne.goals > playerTwo.goals) {
       this.state.winnerId = playerOne.id;
@@ -519,8 +809,14 @@ function createInitialState(players: [Player, Player] = [
     activePlayerId: null,
     phase: 'NOT_STARTED',
     attackCard: null,
+    currentAttackCardSource: null,
+    currentAttackingMidfielderPositionId: null,
     attackBank: [],
     legalTargetPositionIds: [],
+    committableMidfielderPositionIds: [],
+    committedMidfielderPositionIds: [],
+    legalMidfieldGapPositionIds: [],
+    counterattackMidfieldGap: null,
     winnerId: null,
     isDraw: false,
     turnNumber: 0,
@@ -576,6 +872,17 @@ function hashSeed(seed: string): number {
 
 function isFieldPositionId(positionId: string): positionId is FieldPositionId {
   return RESTORE_ORDER.includes(positionId as FieldPositionId);
+}
+
+function isMidfielderPositionId(positionId: string): positionId is MidfielderPositionId {
+  return MIDFIELDER_POSITION_IDS.includes(positionId as MidfielderPositionId);
+}
+
+function appendUniqueMidfielderPosition(
+  positionIds: readonly MidfielderPositionId[],
+  positionId: MidfielderPositionId
+): MidfielderPositionId[] {
+  return positionIds.includes(positionId) ? [...positionIds] : [...positionIds, positionId];
 }
 
 function canBeatFieldTarget(attacker: Card, defender: Card | GoalkeeperCard, positionId: FieldPositionId): boolean {

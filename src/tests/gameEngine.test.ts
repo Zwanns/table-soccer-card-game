@@ -233,7 +233,8 @@ describe('game engine attacks', () => {
     successEngine.drawAttackCard();
     const afterSuccess = successEngine.selectTarget('midfielder-1');
 
-    expect(afterSuccess.phase).toBe('ENDING_TURN');
+    expect(afterSuccess.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(afterSuccess.committableMidfielderPositionIds).toEqual(['midfielder-2', 'midfielder-3']);
     expect(afterSuccess.players[1].field['midfielder-1']).toBeNull();
     expect(afterSuccess.log.some((event) => event.type === 'CARD_DEFEATED')).toBe(true);
 
@@ -280,6 +281,218 @@ describe('game engine attacks', () => {
     expect(() => engine.selectTarget('midfielder-2')).toThrow(
       'Cannot select a target because the game is not waiting for target selection.'
     );
+  });
+
+  it('commits an own midfielder to attack only the opposite midfield corridor', () => {
+    const engine = createReadyEngine(['9']);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-1': 'A'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '6',
+      'midfielder-2': '7'
+    });
+
+    engine.startNextTurn();
+
+    expect(engine.canCommitMidfielder('midfielder-1')).toBe(true);
+    expect(engine.canCommitMidfielder('midfielder-2')).toBe(true);
+
+    const result = engine.commitMidfielder('midfielder-1');
+
+    expect(result.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(result.players[0].field['midfielder-1']).toBeNull();
+    expect(result.players[1].field['midfielder-1']).toBeNull();
+    expect(result.players[1].field['midfielder-2']?.rank).toBe('7');
+    expect(result.committedMidfielderPositionIds).toEqual(['midfielder-1']);
+    expect(result.log).toContainEqual({
+      type: 'MIDFIELDER_COMMITTED',
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      positionId: 'midfielder-1',
+      card: card('A', 'midfielder-1_A')
+    });
+    expect(result.log.find((event) => event.type === 'CARD_DEFEATED')).toMatchObject({
+      type: 'CARD_DEFEATED',
+      positionId: 'midfielder-1',
+      attackerCard: { rank: 'A' },
+      defenderCard: { rank: '6' }
+    });
+  });
+
+  it('does not allow committing a midfielder against an empty opposite slot', () => {
+    const engine = createReadyEngine(['9']);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-2': 'A'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '6'
+    });
+
+    engine.startNextTurn();
+
+    expect(engine.canCommitMidfielder('midfielder-2')).toBe(false);
+    expect(() => engine.commitMidfielder('midfielder-2')).toThrow(
+      'Cannot commit midfielder "midfielder-2" in the current attack state.'
+    );
+  });
+
+  it('creates one counterattack midfield gap after a failed committed midfielder duel', () => {
+    const engine = createReadyEngine([], ['8']);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-1': '3'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '10'
+    });
+
+    engine.startNextTurn();
+    const result = engine.commitMidfielder('midfielder-1');
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.players[0].field['midfielder-1']).toBeNull();
+    expect(result.players[1].field['midfielder-1']?.rank).toBe('10');
+    expect(result.counterattackMidfieldGap).toMatchObject({
+      defendingPlayerId: 'PLAYER_1',
+      positionIds: ['midfielder-1'],
+      used: false,
+      turnNumber: 2
+    });
+    expect(result.log.at(-2)).toMatchObject({
+      type: 'ATTACK_MISSED',
+      positionId: 'midfielder-1',
+      attackerCard: { rank: '3' },
+      defenderCard: { rank: '10' }
+    });
+  });
+
+  it('uses a counterattack midfield gap once without creating CARD_DEFEATED', () => {
+    const engine = createReadyEngine([], ['8', 'K']);
+    fillField(engine.getState().players[1].field);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-1': '3'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '10'
+    });
+
+    engine.startNextTurn();
+    engine.commitMidfielder('midfielder-1');
+    engine.startNextTurn();
+    engine.drawAttackCard();
+
+    const beforeGapDefeats = engine.getState().log.filter((event) => event.type === 'CARD_DEFEATED').length;
+    expect(engine.canUseMidfieldGap('midfielder-1')).toBe(true);
+
+    const result = engine.useMidfieldGap('midfielder-1');
+
+    expect(result.log.filter((event) => event.type === 'CARD_DEFEATED')).toHaveLength(beforeGapDefeats);
+    expect(result.log.at(-1)).toMatchObject({
+      type: 'MIDFIELD_GAP_USED',
+      playerId: 'PLAYER_2',
+      positionId: 'midfielder-1',
+      attackerCard: { rank: '8' }
+    });
+    expect(result.counterattackMidfieldGap?.used).toBe(true);
+    expect(result.legalMidfieldGapPositionIds).toEqual([]);
+    expect(result.players[0].field['midfielder-1']).toBeNull();
+    expect(result.phase).toBe('WAITING_FOR_ATTACK_CARD');
+  });
+
+  it('keeps multiple committed midfield slots as one shared counterattack gap', () => {
+    const engine = createReadyEngine(['2'], ['8', 'K']);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-1': 'A',
+      'midfielder-2': 'K'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '3',
+      'midfielder-2': '4',
+      'midfielder-3': 'A'
+    });
+
+    engine.startNextTurn();
+    engine.commitMidfielder('midfielder-1');
+    engine.commitMidfielder('midfielder-2');
+    engine.drawAttackCard();
+    const afterMiss = engine.selectTarget('midfielder-3');
+
+    expect(afterMiss.counterattackMidfieldGap).toMatchObject({
+      defendingPlayerId: 'PLAYER_1',
+      positionIds: ['midfielder-1', 'midfielder-2'],
+      used: false
+    });
+
+    fillField(engine.getState().players[1].field);
+    engine.startNextTurn();
+    engine.drawAttackCard();
+
+    expect(engine.canUseMidfieldGap('midfielder-1')).toBe(true);
+    expect(engine.canUseMidfieldGap('midfielder-2')).toBe(true);
+
+    const afterGap = engine.useMidfieldGap('midfielder-2');
+
+    expect(afterGap.counterattackMidfieldGap?.used).toBe(true);
+    expect(engine.canUseMidfieldGap('midfielder-1')).toBe(false);
+    expect(afterGap.players[0].field['midfielder-1']).toBeNull();
+    expect(afterGap.players[0].field['midfielder-2']).toBeNull();
+  });
+
+  it('closes an unused midfield gap when the counterattack selects defense', () => {
+    const engine = createReadyEngine([], ['A', 'K']);
+    fillField(engine.getState().players[1].field);
+    setPositions(engine.getState().players[0].field, {
+      'defender-1': '3',
+      'midfielder-1': '3'
+    });
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '10'
+    });
+
+    engine.startNextTurn();
+    engine.commitMidfielder('midfielder-1');
+    engine.getState().players[0].field['midfielder-2'] = null;
+    engine.getState().players[0].field['midfielder-3'] = null;
+    engine.startNextTurn();
+    engine.drawAttackCard();
+
+    expect(engine.canUseMidfieldGap('midfielder-1')).toBe(true);
+
+    const result = engine.selectTarget('defender-1');
+
+    expect(result.counterattackMidfieldGap).toBeNull();
+    expect(result.log.some((event) => event.type === 'MIDFIELD_GAP_USED')).toBe(false);
+    expect(result.players[0].field['midfielder-1']).toBeNull();
+  });
+
+  it('restores committed midfield slots after a goal without creating a gap', () => {
+    const engine = createReadyEngine(['A', '9', '10']);
+    setPositions(engine.getState().players[0].field, {
+      'midfielder-1': 'K'
+    });
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6',
+      'midfielder-1': '5'
+    });
+
+    engine.startNextTurn();
+    engine.commitMidfielder('midfielder-1');
+    engine.drawAttackCard();
+    const result = engine.selectTarget('goalkeeper');
+
+    expect(result.players[0].goals).toBe(1);
+    expect(result.players[0].field['midfielder-1']?.rank).toBe('9');
+    expect(result.counterattackMidfieldGap).toBeNull();
+    expect(result.log).toContainEqual({
+      type: 'FIELD_CARD_RESTORED',
+      playerId: 'PLAYER_1',
+      turnNumber: 1,
+      positionId: 'midfielder-1',
+      card: card('9', '9_1'),
+      cardKind: 'outfield',
+      cardRank: '9'
+    });
   });
 
   it('scenario 4: target line moves from midfield to defense to goalkeeper', () => {

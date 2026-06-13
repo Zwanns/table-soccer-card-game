@@ -3,7 +3,7 @@ export { GameEngine } from './GameEngine';
 export type { StartNewGameOptions } from './GameEngine';
 export type { GameEvent, ScorerSnapshot } from './GameEvent';
 export type { GamePhase } from './GamePhase';
-export type { GameState } from './GameState';
+export type { AttackCardSource, CounterattackMidfieldGap, GameState } from './GameState';
 export type { MatchTeamSetup, MatchTeamSetups } from './MatchTeamSetup';
 export {
   cloneNationalTeamSquad,
@@ -21,11 +21,20 @@ export type { GoalScorerStat, PlayerMatchStats } from './matchStats';
 export { getMatchStats } from './matchStats';
 export type { TeamAdvantage } from './advantage';
 export { ADVANTAGE_FULL_PRESSURE_POINTS, ADVANTAGE_TURN_WINDOW, getTeamAdvantage } from './advantage';
-export type { FieldCard, FieldCardEntry, FieldPositionId, OutfieldPositionId, PlayerField, TargetLine } from './PlayerField';
+export type {
+  FieldCard,
+  FieldCardEntry,
+  FieldPositionId,
+  MidfielderPositionId,
+  OutfieldPositionId,
+  PlayerField,
+  TargetLine
+} from './PlayerField';
 export {
   createEmptyField,
   isGoalkeeperCard,
   isOutfieldPosition,
+  MIDFIELDER_POSITION_IDS,
   RESTORE_ORDER,
   TARGET_LINE_ORDER,
   TARGET_LINE_POSITIONS

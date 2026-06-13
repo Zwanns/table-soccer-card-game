@@ -19,6 +19,7 @@ import {
   type GameEvent,
   type GameState,
   type GoalScorerStat,
+  type MidfielderPositionId,
   type Player
 } from '../game';
 import type { GoalkeeperCard } from '../cards';
@@ -54,6 +55,8 @@ interface AttackAnimationContext {
   defenderId: Player['id'];
   positionId: FieldPositionId;
   attackerCard: Card;
+  startX?: number;
+  startY?: number;
   attackerKitTextureKey?: string;
   attackerProfile?: CardPlayerProfile;
 }
@@ -203,7 +206,9 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
         hiddenCards: options.hiddenRestoredCards,
-        interactive
+        interactive,
+        onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
+        onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
       })
     );
     this.dynamicLayer.add(
@@ -239,6 +244,48 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.render(state);
+  }
+
+  private commitMidfielder(positionId: MidfielderPositionId): void {
+    const engine = this.requireEngine();
+    const animationContext = this.createMidfielderCommitAnimationContext(positionId);
+    let state: GameState;
+
+    try {
+      state = engine.commitMidfielder(positionId);
+    } catch (error) {
+      this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid midfielder.');
+      return;
+    }
+
+    if (animationContext !== null) {
+      this.animateAttackSelection(state, animationContext, getAttackAnimationOutcome(state, positionId), () =>
+        this.handleSelectedTargetState(state)
+      );
+      return;
+    }
+
+    this.handleSelectedTargetState(state);
+  }
+
+  private useMidfieldGap(positionId: MidfielderPositionId): void {
+    const engine = this.requireEngine();
+    const animationContext = this.createMidfieldGapAnimationContext(positionId);
+    let state: GameState;
+
+    try {
+      state = engine.useMidfieldGap(positionId);
+    } catch (error) {
+      this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid midfield gap.');
+      return;
+    }
+
+    if (animationContext !== null) {
+      this.animateAttackSelection(state, animationContext, 'defeat', () => this.handleSelectedTargetState(state));
+      return;
+    }
+
+    this.handleSelectedTargetState(state);
   }
 
   private selectTarget(positionId: FieldPositionId): void {
@@ -400,6 +447,7 @@ export class GameScene extends Phaser.Scene {
     const centerY = SCENE_HEIGHT / 2;
     const fontSize = tone === 'goal' ? '76px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
     const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
+    const textPadding = tone === 'goal' || tone === 'save' ? 28 : 14;
 
     const text = this.add
       .text(centerX, centerY - 40, message, {
@@ -410,6 +458,7 @@ export class GameScene extends Phaser.Scene {
         stroke: '#123b2a',
         strokeThickness: 5
       })
+      .setPadding(textPadding, textPadding / 2, textPadding, textPadding / 2)
       .setOrigin(0.5);
 
     this.tweens.add({
@@ -448,6 +497,54 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  private createMidfielderCommitAnimationContext(positionId: MidfielderPositionId): AttackAnimationContext | null {
+    const state = this.requireEngine().getState();
+    const attacker = state.players.find((player) => player.id === state.activePlayerId);
+    const defender = state.players.find((player) => player.id !== state.activePlayerId);
+
+    if (attacker === undefined || defender === undefined) {
+      return null;
+    }
+
+    const attackerCard = attacker.field[positionId];
+
+    if (attackerCard === null || defender.field[positionId] === null) {
+      return null;
+    }
+
+    const start = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, attacker.id, positionId);
+
+    return {
+      attackerId: attacker.id,
+      defenderId: defender.id,
+      positionId,
+      attackerCard: { ...attackerCard },
+      startX: start.x,
+      startY: start.y,
+      attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
+      attackerProfile: resolveFieldCardProfile(state, attacker, attackerCard)
+    };
+  }
+
+  private createMidfieldGapAnimationContext(positionId: MidfielderPositionId): AttackAnimationContext | null {
+    const state = this.requireEngine().getState();
+    const attacker = state.players.find((player) => player.id === state.activePlayerId);
+    const defender = state.players.find((player) => player.id !== state.activePlayerId);
+
+    if (attacker === undefined || defender === undefined || state.attackCard === null) {
+      return null;
+    }
+
+    return {
+      attackerId: attacker.id,
+      defenderId: defender.id,
+      positionId,
+      attackerCard: { ...state.attackCard },
+      attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
+      attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
+    };
+  }
+
   private animateAttackSelection(
     state: Readonly<GameState>,
     context: AttackAnimationContext,
@@ -457,8 +554,9 @@ export class GameScene extends Phaser.Scene {
     this.input.enabled = false;
 
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
-    const startX = getPlayerDeckX(state, context.attackerId);
-    const card = new CardView(this, startX, DECK_Y, {
+    const startX = context.startX ?? getPlayerDeckX(state, context.attackerId);
+    const startY = context.startY ?? DECK_Y;
+    const card = new CardView(this, startX, startY, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
       kitTextureKey: context.attackerKitTextureKey,
