@@ -26,6 +26,25 @@ export type GoalScorerStat = ScorerSnapshot & {
   turnNumber: number;
 };
 
+export function formatGoalScorerLabel(scorer: Pick<GoalScorerStat, 'playerName' | 'shirtNumber' | 'rank'>): string {
+  const playerName = scorer.playerName?.trim();
+  const shirtNumber = scorer.shirtNumber;
+
+  if (shirtNumber !== undefined && shirtNumber > 0 && playerName !== undefined && playerName.length > 0) {
+    return `#${shirtNumber} ${playerName}`;
+  }
+
+  if (shirtNumber !== undefined && shirtNumber > 0) {
+    return `#${shirtNumber}`;
+  }
+
+  if (playerName !== undefined && playerName.length > 0) {
+    return playerName;
+  }
+
+  return `Rank ${scorer.rank}`;
+}
+
 export function getMatchStats(state: Readonly<GameState>): [PlayerMatchStats, PlayerMatchStats] {
   const [playerOne, playerTwo] = state.players;
   const [playerOnePossession, playerTwoPossession] = getMatchPossession(state);

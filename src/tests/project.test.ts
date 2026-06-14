@@ -130,11 +130,12 @@ describe('project scaffold', () => {
     const teamStatsViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'TeamStatsView.ts'), 'utf8');
 
     expect(resultSceneSource).toContain("'Goalscorers'");
-    expect(resultSceneSource).toContain('${scorer.playerName} (turn ${scorer.turnNumber})');
-    expect(resultSceneSource).not.toContain('(#${scorer.shirtNumber})');
-    expect(gameSceneSource).toContain('${scorer.playerName} (turn ${scorer.turnNumber})');
-    expect(gameSceneSource).not.toContain('(#${scorer.shirtNumber})');
+    expect(resultSceneSource).toContain('formatGoalScorerLabel(scorer)');
+    expect(gameSceneSource).toContain('formatGoalScorerLabel');
     expect(teamStatsViewSource).toContain("options.scorers.join('\\n')");
+    expect(teamStatsViewSource).toContain('No goals yet');
+    expect(teamStatsViewSource).toContain('x + maskLeft');
+    expect(teamStatsViewSource).toContain('y + maskTop');
     expect(teamStatsViewSource).toContain('createGeometryMask');
     expect(teamStatsViewSource).toContain("scrollZone.on('wheel'");
     expect(resultSceneSource).not.toContain('Winner');

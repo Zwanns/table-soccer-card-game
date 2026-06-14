@@ -3,6 +3,7 @@ import { GoalkeeperDeck, type Card, type CardRank, type Deck, type GoalkeeperCar
 import {
   createMatchTeamSetup,
   createEmptyField,
+  formatGoalScorerLabel,
   GameEngine,
   getMatchStats,
   getTeamAdvantage,
@@ -636,6 +637,7 @@ describe('game engine attacks', () => {
       type: 'GOAL_SCORED',
       playerId: 'PLAYER_1',
       turnNumber: 1,
+      attackerCard: { rank: 'A' },
       scorer: {
         playerName: 'Mbappe',
         shirtNumber: 17,
@@ -679,6 +681,7 @@ describe('game engine attacks', () => {
     expect(result.log.find((event) => event.type === 'GOAL_SCORED')).toMatchObject({
       type: 'GOAL_SCORED',
       playerId: 'PLAYER_1',
+      attackerCard: { rank: 'Q' },
       scorer: {
         playerName: 'France scorer Q',
         shirtNumber: 77,
@@ -686,6 +689,43 @@ describe('game engine attacks', () => {
         teamId: 'fr'
       }
     });
+  });
+
+  it('falls back to card rank when a scoring card has no squad player mapping', () => {
+    const gameState = state(['Q'], []);
+    const brokenSquad = createDefaultSquad('fr');
+    delete (brokenSquad.fieldPlayers as Partial<typeof brokenSquad.fieldPlayers>).Q;
+    gameState.matchSetups.PLAYER_1 = createMatchTeamSetup({
+      teamId: 'fr',
+      squad: brokenSquad,
+      goalkeeperKitId: 'gk1'
+    });
+    fillField(gameState.players[0].field);
+    gameState.players[1].field.goalkeeper = goalkeeperCard('J');
+    const engine = new GameEngine(gameState);
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('goalkeeper');
+    const [playerOneStats] = getMatchStats(result);
+
+    expect(result.log.find((event) => event.type === 'GOAL_SCORED')).toMatchObject({
+      type: 'GOAL_SCORED',
+      playerId: 'PLAYER_1',
+      attackerCard: { rank: 'Q' },
+      scorer: {
+        rank: 'Q',
+        teamId: 'fr'
+      }
+    });
+    expect(playerOneStats.scorers).toEqual([
+      {
+        rank: 'Q',
+        teamId: 'fr',
+        turnNumber: 1
+      }
+    ]);
+    expect(formatGoalScorerLabel(playerOneStats.scorers[0])).toBe('Rank Q');
   });
 
   it('recycles a beaten goalkeeper to the bottom of the defending goalkeeper deck', () => {
@@ -896,6 +936,7 @@ describe('game engine attacks', () => {
         type: 'GOAL_SCORED',
         playerId: 'PLAYER_1',
         turnNumber: 3,
+        attackerCard: card('A'),
         scorer: {
           playerName: 'Snapshot A',
           shirtNumber: 17,
@@ -946,6 +987,7 @@ describe('game engine attacks', () => {
       type: 'GOAL_SCORED',
       playerId: 'PLAYER_1',
       turnNumber: 4,
+      attackerCard: card('A'),
       scorer: {
         playerName: 'Original scorer',
         shirtNumber: 12,
@@ -965,6 +1007,12 @@ describe('game engine attacks', () => {
         turnNumber: 4
       }
     ]);
+  });
+
+  it('formats match scorer labels with shirt number and safe fallback', () => {
+    expect(formatGoalScorerLabel({ playerName: 'Mbappe', shirtNumber: 17, rank: 'A' })).toBe('#17 Mbappe');
+    expect(formatGoalScorerLabel({ shirtNumber: 14, rank: 'Q' })).toBe('#14');
+    expect(formatGoalScorerLabel({ rank: 'Q' })).toBe('Rank Q');
   });
 
   it('summarizes whole-match possession from max attack depth per turn', () => {

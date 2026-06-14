@@ -20,7 +20,7 @@ import type { GameEvent, ScorerSnapshot } from './GameEvent';
 import type { GameState } from './GameState';
 import { createGoalkeeperKitPair, createMatchTeamSetup, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
-import { getFieldPlayerForCard } from './squadResolver';
+import { getOptionalFieldPlayerForCard } from './squadResolver';
 import {
   createEmptyField,
   MIDFIELDER_POSITION_IDS,
@@ -750,6 +750,7 @@ export class GameEngine {
       type: 'GOAL_SCORED',
       playerId: activePlayer.id,
       turnNumber: this.state.turnNumber,
+      attackerCard: scoringCard,
       scorer: createScorerSnapshot(this.state, activePlayer, scoringCard)
     });
   }
@@ -928,13 +929,13 @@ function recycleGoalkeeperCard(player: Player, card: GoalkeeperCard): void {
 
 function createScorerSnapshot(state: Readonly<GameState>, player: Player, card: Card): ScorerSnapshot {
   const setup = state.matchSetups[player.id];
-  const scorer = getFieldPlayerForCard(setup, card);
+  const scorer = getOptionalFieldPlayerForCard(setup, card);
 
   return {
-    playerName: scorer.name,
-    shirtNumber: scorer.shirtNumber,
+    playerName: scorer?.name,
+    shirtNumber: scorer?.shirtNumber,
     rank: card.rank,
-    teamId: setup.flagCode
+    teamId: setup?.flagCode ?? player.flagCode
   };
 }
 

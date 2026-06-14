@@ -13,6 +13,7 @@ import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
 import {
   GameEngine,
   getFieldPlayerForCard,
+  formatGoalScorerLabel,
   getMatchStats,
   getStartingGoalkeeper,
   getTeamAdvantage,
@@ -20,7 +21,6 @@ import {
   type FieldPositionId,
   type GameEvent,
   type GameState,
-  type GoalScorerStat,
   type MidfielderPositionId,
   type Player
 } from '../game';
@@ -404,13 +404,13 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       new TeamStatsView(this, 120, 232, {
         align: 'left',
-        scorers: playerOneStats.scorers.map(formatShortScorer)
+        scorers: playerOneStats.scorers.map(formatGoalScorerLabel)
       })
     );
     this.dynamicLayer.add(
       new TeamStatsView(this, 1485, 232, {
         align: 'right',
-        scorers: playerTwoStats.scorers.map(formatShortScorer)
+        scorers: playerTwoStats.scorers.map(formatGoalScorerLabel)
       })
     );
   }
@@ -927,10 +927,6 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
   return events.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === playerId).length;
-}
-
-function formatShortScorer(scorer: GoalScorerStat): string {
-  return `${scorer.playerName} (turn ${scorer.turnNumber})`;
 }
 
 function createAiMatchSeed(

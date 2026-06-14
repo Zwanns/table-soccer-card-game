@@ -12,10 +12,13 @@ function scorer(playerName: string): ScorerSnapshot {
 }
 
 function goalEvent(playerId: Player['id'], playerName: string): GameEvent {
+  const attackerCard = { id: `GOAL_${playerName}`, rank: 'A', color: 'RED', suit: 'HEARTS' } as const;
+
   return {
     type: 'GOAL_SCORED',
     playerId,
     turnNumber: 3,
+    attackerCard,
     scorer: scorer(playerName)
   };
 }

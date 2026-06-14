@@ -17,7 +17,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const textOriginX = options.align === 'left' ? 0 : 1;
     const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
     const textAlign = options.align;
-    const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
+    const scorersText = options.scorers.length === 0 ? 'No goals yet' : options.scorers.join('\n');
 
     const background = scene.add.rectangle(0, 0, width, height, 0x143f2d, 0.82);
 
@@ -44,10 +44,13 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       .setOrigin(textOriginX, 0);
     scorersContent.add(scorers);
 
-    const maskGraphics = scene.add.graphics();
+    const maskGraphics = scene.make.graphics();
     const maskLeft = -width / 2 + 16;
     const maskTop = viewportTop;
-    const mask = maskGraphics.fillStyle(0xffffff).fillRect(maskLeft, maskTop, viewportWidth, viewportHeight).createGeometryMask();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(x + maskLeft, y + maskTop, viewportWidth, viewportHeight)
+      .createGeometryMask();
     const scrollZone = scene.add
       .zone(0, viewportTop + viewportHeight / 2, viewportWidth, viewportHeight)
       .setInteractive({ useHandCursor: scorers.height > viewportHeight });
@@ -59,7 +62,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     let scrollY = 0;
 
     scorersContent.setMask(mask);
-    maskGraphics.setVisible(false);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
 
     if (maxScroll === 0) {
       scrollbarTrack.setVisible(false);
@@ -76,7 +79,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       });
     }
 
-    this.add([background, title, maskGraphics, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
+    this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
     scene.add.existing(this);
   }
 }

@@ -13,12 +13,14 @@ export {
 } from './MatchTeamSetup';
 export {
   getFieldPlayerForCard,
+  getOptionalFieldPlayerForCard,
   getStartingGoalkeeper,
   resolveActiveGoalkeeper,
+  resolveOptionalSquadPlayerByCardRank,
   resolveSquadPlayerByCardRank
 } from './squadResolver';
 export type { GoalScorerStat, PlayerMatchStats } from './matchStats';
-export { getMatchStats } from './matchStats';
+export { formatGoalScorerLabel, getMatchStats } from './matchStats';
 export type { TeamAdvantage } from './advantage';
 export { ADVANTAGE_FULL_PRESSURE_POINTS, ADVANTAGE_TURN_WINDOW, getTeamAdvantage } from './advantage';
 export type {

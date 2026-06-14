@@ -376,6 +376,7 @@ function createFinishedGameState(): GameState {
         type: 'GOAL_SCORED',
         playerId: 'PLAYER_1',
         turnNumber: 2,
+        attackerCard: card('A'),
         scorer: {
           playerName: 'Mbappe',
           shirtNumber: 17,
@@ -409,6 +410,7 @@ function createPostBeforeGoalGameState(): GameState {
       type: 'GOAL_SCORED',
       playerId: 'PLAYER_1',
       turnNumber: 2,
+      attackerCard: card('A'),
       scorer: {
         playerName: 'Mbappe',
         shirtNumber: 17,
@@ -437,6 +439,7 @@ function createSaveBeforeGoalGameState(): GameState {
       type: 'GOAL_SCORED',
       playerId: 'PLAYER_1',
       turnNumber: 2,
+      attackerCard: card('A'),
       scorer: {
         playerName: 'Mbappe',
         shirtNumber: 17,

@@ -5,7 +5,13 @@ import type { PlayerControllerType } from '../ai';
 import type { Card } from '../cards';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
-import { createMatchTeamSetup, GameEngine, getFieldPlayerForCard, getStartingGoalkeeper } from '../game';
+import {
+  createMatchTeamSetup,
+  GameEngine,
+  getFieldPlayerForCard,
+  getOptionalFieldPlayerForCard,
+  getStartingGoalkeeper
+} from '../game';
 import { createSimulatedTournamentGameState } from '../scenes/tournamentMatchSimulation';
 import type { TournamentMatch } from '../tournament';
 
@@ -165,6 +171,18 @@ describe('match team setup snapshot', () => {
 
     expect(getFieldPlayerForCard(franceSetup, capturedCard).name).toBe('France Q');
     expect(getFieldPlayerForCard(spainSetup, capturedCard).name).toBe('Spain Q');
+  });
+
+  it('returns null from optional player lookup when a rank is missing', () => {
+    const squad = createDefaultSquad('fr');
+    delete (squad.fieldPlayers as Partial<typeof squad.fieldPlayers>).Q;
+    const setup = createMatchTeamSetup({
+      teamId: 'fr',
+      squad,
+      goalkeeperKitId: 'gk1'
+    });
+
+    expect(getOptionalFieldPlayerForCard(setup, card('Q'))).toBeNull();
   });
 
   it('keeps card rendering tied to matchSetups instead of localStorage reads', () => {

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
+import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import {
@@ -433,7 +433,7 @@ function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: Go
 } {
   return {
     playerId,
-    text: `${scorer.playerName} (turn ${scorer.turnNumber})`,
+    text: `${formatGoalScorerLabel(scorer)} (turn ${scorer.turnNumber})`,
     turnNumber: scorer.turnNumber
   };
 }

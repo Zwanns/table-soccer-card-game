@@ -83,14 +83,14 @@ function createFieldPlayerIdentity(
 function createScorerIdentity(
   teamId: TournamentTeamId,
   rank: CardRank,
-  playerName: string,
-  shirtNumber: number
+  playerName: string | undefined,
+  shirtNumber: number | undefined
 ): PlayerStatIdentity {
   return {
     teamId,
     playerId: createFieldPlayerId(rank),
-    playerName,
-    shirtNumber
+    playerName: playerName?.trim() || `Rank ${rank}`,
+    shirtNumber: shirtNumber ?? 0
   };
 }
 

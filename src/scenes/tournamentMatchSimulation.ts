@@ -167,6 +167,7 @@ function createShotEvents(options: {
         type: 'GOAL_SCORED',
         playerId: options.playerId,
         turnNumber,
+        attackerCard,
         scorer: {
           playerName: scorer.name,
           shirtNumber: scorer.shirtNumber,

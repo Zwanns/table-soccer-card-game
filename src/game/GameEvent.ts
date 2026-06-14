@@ -3,8 +3,8 @@ import type { FieldCard, FieldPositionId, MidfielderPositionId } from './PlayerF
 import type { Player } from './Player';
 
 export type ScorerSnapshot = {
-  playerName: string;
-  shirtNumber: number;
+  playerName?: string;
+  shirtNumber?: number;
   rank: CardRank;
   teamId: string;
 };
@@ -64,6 +64,6 @@ export type GameEvent =
       attackerCard?: Card;
       defenderCard?: Card;
     }
-  | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; scorer: ScorerSnapshot }
+  | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; attackerCard: Card; scorer: ScorerSnapshot }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
   | { type: 'GAME_OVER'; winnerId: Player['id'] | null };
