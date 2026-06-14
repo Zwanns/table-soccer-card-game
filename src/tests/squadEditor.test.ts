@@ -64,19 +64,41 @@ describe('read-only squad scenes', () => {
     expect(FIELD_SQUAD_RANKS).toContain('JOKER');
   });
 
-  it('shows the selected team kit beside a compact borderless squad card', () => {
+  it('shows selected team preview cards beside a compact borderless squad card', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
-    expect(selectSource).toContain('const KIT_PREVIEW_OFFSET_X = 190');
-    expect(selectSource).toContain('createTeamKitPreview');
+    expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
+    expect(selectSource).toContain('const TEAM_PREVIEW_CARD_SCALE = 1.45');
+    expect(selectSource).toContain("const TEAM_PREVIEW_DISPLAY_RANK = 'N'");
+    expect(selectSource).toContain('createTeamCardPreview');
+    expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_FACE_Y');
+    expect(selectSource).toContain('rank: TEAM_PREVIEW_DISPLAY_RANK');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
-    expect(selectSource).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
-    expect(selectSource).toContain('kit.setDisplaySize(KIT_PREVIEW_WIDTH, KIT_PREVIEW_HEIGHT)');
-    expect(selectSource).toContain('SQUAD_CARD_WIDTH + KIT_PREVIEW_OFFSET_X');
+    expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
+    expect(selectSource).toContain('faceDown: true');
+    expect(selectSource).toContain("faceDownVariant: 'preview'");
+    expect(selectSource).toContain('resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey');
+    expect(selectSource).toContain('SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X');
+    expect(selectSource).toContain('faceCard.setScale(TEAM_PREVIEW_CARD_SCALE)');
+    expect(selectSource).toContain('deckBack.setScale(TEAM_PREVIEW_CARD_SCALE)');
+    expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
+    expect(selectSource).not.toContain('createTeamKitPreview');
+    expect(selectSource).not.toContain('kit.setDisplaySize');
     expect(selectSource).not.toContain('background.setStrokeStyle(2, 0x5f9572, 0.95);');
+  });
+
+  it('refreshes team preview cards when the selected squad changes', () => {
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+
+    expect(selectSource).toContain('this.selectedTeamId = team.flagCode');
+    expect(selectSource).toContain('this.squad = loadSquad(this.selectedTeamId)');
+    expect(selectSource).toContain('this.render()');
+    expect(selectSource).toContain('const team = getTeam(this.selectedTeamId)');
+    expect(selectSource).toContain('const teamPreview = this.createTeamCardPreview(team)');
+    expect(selectSource).toContain('panel.add([background, header, squadTable, teamPreview])');
   });
 });
 

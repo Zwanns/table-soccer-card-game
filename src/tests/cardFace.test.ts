@@ -213,6 +213,11 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('createRoundedCardBack');
     expect(cardViewSource).toContain('createRoundedCardBorder');
     expect(cardViewSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');
+    expect(cardViewSource).toContain("faceDownVariant?: 'deck' | 'preview'");
+    expect(cardViewSource).toContain("options.faceDownVariant ?? 'deck'");
+    expect(cardViewSource).toContain("faceDownVariant === 'preview'");
+    expect(cardViewSource).toContain('isPreview ? 0x1f2a2e : 0x7bb8d8');
+    expect(cardViewSource).toContain('isPreview ? 0xffffff : 0x214f6b');
     expect(cardViewSource).toContain('0x214f6b');
     expect(cardViewSource).toContain('0x7bb8d8');
   });

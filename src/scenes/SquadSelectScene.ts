@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
+import { resolveTeamCoverLoadResult } from '../assets/teamCover';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
+import { getTeamKitAssetKey } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
+import { CardView } from '../ui/CardView';
 
 const GRID_COLUMNS = 4;
 const CARD_WIDTH = 171;
@@ -18,9 +20,11 @@ const RIGHT_PANEL_WIDTH = 760;
 const RIGHT_PANEL_HEIGHT = 571;
 const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2;
 const SQUAD_TABLE_Y = 94;
-const KIT_PREVIEW_WIDTH = 260;
-const KIT_PREVIEW_HEIGHT = 300;
-const KIT_PREVIEW_OFFSET_X = 190;
+const TEAM_PREVIEW_OFFSET_X = 190;
+const TEAM_PREVIEW_FACE_Y = 190;
+const TEAM_PREVIEW_BACK_Y = 432;
+const TEAM_PREVIEW_CARD_SCALE = 1.45;
+const TEAM_PREVIEW_DISPLAY_RANK = 'N';
 const SQUAD_SECTION_ROW_GAP = 28;
 
 export class SquadSelectScene extends Phaser.Scene {
@@ -191,23 +195,33 @@ export class SquadSelectScene extends Phaser.Scene {
       squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
     });
 
-    const kitPreview = this.createTeamKitPreview(team);
+    const teamPreview = this.createTeamCardPreview(team);
 
-    panel.add(kitPreview === null ? [background, header, squadTable] : [background, header, squadTable, kitPreview]);
+    panel.add([background, header, squadTable, teamPreview]);
   }
 
-  private createTeamKitPreview(team: NationalTeam): Phaser.GameObjects.Image | null {
+  private createTeamCardPreview(team: NationalTeam): Phaser.GameObjects.Container {
+    const preview = this.add.container(SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X, 0);
     const teamKitAssetKey = getTeamKitAssetKey(team.flagCode);
-    const textureKey = this.textures.exists(teamKitAssetKey) ? teamKitAssetKey : FALLBACK_TEAM_KIT_ASSET.assetKey;
+    const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
+    const faceCard = new CardView(this, 0, TEAM_PREVIEW_FACE_Y, {
+      rank: TEAM_PREVIEW_DISPLAY_RANK,
+      kitTextureKey: teamKitAssetKey,
+      tooltipEnabled: false
+    });
+    const deckBack = new CardView(this, 0, TEAM_PREVIEW_BACK_Y, {
+      rank: TEAM_PREVIEW_DISPLAY_RANK,
+      faceDown: true,
+      coverTextureKey,
+      faceDownVariant: 'preview',
+      tooltipEnabled: false
+    });
 
-    if (!this.textures.exists(textureKey)) {
-      return null;
-    }
+    faceCard.setScale(TEAM_PREVIEW_CARD_SCALE);
+    deckBack.setScale(TEAM_PREVIEW_CARD_SCALE);
+    preview.add([faceCard, deckBack]);
 
-    const kit = this.add.image(SQUAD_CARD_WIDTH + KIT_PREVIEW_OFFSET_X, RIGHT_PANEL_HEIGHT / 2, textureKey);
-    kit.setDisplaySize(KIT_PREVIEW_WIDTH, KIT_PREVIEW_HEIGHT);
-
-    return kit;
+    return preview;
   }
 
   private createSectionTitle(x: number, y: number, text: string): Phaser.GameObjects.Text {

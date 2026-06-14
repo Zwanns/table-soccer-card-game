@@ -16,6 +16,7 @@ export interface CardViewOptions {
   playerProfile?: CardPlayerProfile;
   kitTextureKey?: string;
   coverTextureKey?: string;
+  faceDownVariant?: 'deck' | 'preview';
   tooltipEnabled?: boolean;
   onClick?: () => void;
 }
@@ -117,9 +118,12 @@ export class CardView extends Phaser.GameObjects.Container {
   }
 
   private addFaceDownCard(scene: Phaser.Scene, options: CardViewOptions): void {
+    const faceDownVariant = options.faceDownVariant ?? 'deck';
+    const isPreview = faceDownVariant === 'preview';
     const strokeWidth = options.highlighted === true ? 5 : 2;
-    const strokeColor = options.highlighted === true ? 0xf0c95a : 0x7bb8d8;
-    const background = createRoundedCardBack(scene, 0x214f6b, strokeColor, strokeWidth);
+    const strokeColor = options.highlighted === true ? 0xf0c95a : isPreview ? 0x1f2a2e : 0x7bb8d8;
+    const fillColor = isPreview ? 0xffffff : 0x214f6b;
+    const background = createRoundedCardBack(scene, fillColor, strokeColor, strokeWidth);
     const coverTextureKey = options.coverTextureKey ?? getFallbackCoverTextureKey();
 
     this.add(background);
