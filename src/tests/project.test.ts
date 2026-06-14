@@ -93,6 +93,37 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'covers', 'none.webp'))).toBe(true);
   });
 
+  it('ships production game assets from public with normalized paths', () => {
+    const requiredAssets = [
+      join('public', 'cards', 'ball.webp'),
+      join('public', 'sounds', 'referees-whistle-start.mp3'),
+      join('public', 'sounds', 'referees-whistle-finish.mp3'),
+      join('public', 'sounds', 'bolely-net.mp3'),
+      join('public', 'sounds', 'penalty-goal.mp3'),
+      join('public', 'sounds', 'bolely-goal.mp3'),
+      join('public', 'sounds', 'shtanga.mp3')
+    ];
+
+    for (const assetPath of requiredAssets) {
+      expect(existsSync(join(process.cwd(), assetPath))).toBe(true);
+    }
+
+    const source = [
+      readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8'),
+      readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8'),
+      readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8'),
+      readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8')
+    ].join('\n');
+
+    expect(source).not.toContain('/Sounds/');
+    expect(source).not.toContain('Sounds/');
+    expect(source).not.toContain('referees-whistle_start');
+    expect(source).not.toContain('referees-whistle_finish');
+    expect(source).toContain("'/cards/ball.webp'");
+    expect(source).toContain("'/sounds/referees-whistle-start.mp3'");
+    expect(source).toContain('playSoundSafe');
+  });
+
   it('keeps final match statistics labels readable', () => {
     const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
     const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');

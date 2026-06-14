@@ -6,6 +6,7 @@ import {
   type PenaltyAiControllerSide,
   type PlayerControllerType
 } from '../ai';
+import { playSoundSafe } from '../audio/playSoundSafe';
 import {
   getFallbackCoverTextureKey,
   markTeamCoverLoadFailed,
@@ -855,18 +856,18 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
   private showPenaltyOutcome(outcome: PenaltyAnimationOutcome): void {
     if (outcome === 'goal') {
-      this.sound.play('sound-penalty-goal', { volume: 0.72 });
+      playSoundSafe(this, 'sound-penalty-goal', { volume: 0.72 });
       this.showFlyingMessage('GOAL!!', 'goal');
       return;
     }
 
     if (outcome === 'post') {
-      this.sound.play('sound-goalpost', { volume: 0.72 });
+      playSoundSafe(this, 'sound-goalpost', { volume: 0.72 });
       this.showFlyingMessage('Post!', 'post');
       return;
     }
 
-    this.sound.play('sound-goalkeeper-save', { volume: 0.72 });
+    playSoundSafe(this, 'sound-goalkeeper-save', { volume: 0.72 });
     this.showFlyingMessage('Goalkeeper!!', 'save');
   }
 

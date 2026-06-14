@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playSoundSafe } from '../audio/playSoundSafe';
 import {
   getFallbackCoverTextureKey,
   markTeamCoverLoadFailed,
@@ -714,7 +715,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private playSound(key: string, volume: number): void {
-    this.sound.play(key, { volume });
+    playSoundSafe(this, key, { volume });
   }
 
   private handleLoadError(file: Phaser.Loader.File): void {

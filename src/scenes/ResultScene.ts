@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playSoundSafe } from '../audio/playSoundSafe';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
@@ -42,7 +43,7 @@ export class ResultScene extends Phaser.Scene {
     const playerTwoGoals = playerTwo?.goals ?? 0;
 
     if (this.state?.phase === 'GAME_OVER') {
-      this.sound.play('sound-whistle-finish', { volume: 0.68 });
+      playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });
     }
 
     this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
