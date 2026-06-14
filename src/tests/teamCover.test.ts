@@ -1,12 +1,17 @@
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   AVAILABLE_TEAM_COVER_FLAG_CODES,
   fitImageContain,
   getFallbackCoverTextureKey,
+  getTeamCoverAssetKey,
   getTeamCoverFilename,
   getTeamCoverPath,
   getTeamCoverTextureKey,
+  hasManualTeamCover,
   markTeamCoverLoadFailed,
+  resolveTeamCoverAsset,
   resolveTeamCoverLoadResult,
   type ImageLike,
   type TextureLookup
@@ -27,6 +32,7 @@ describe('team cover assets', () => {
 
   it('builds stable texture keys from flag filenames', () => {
     expect(getTeamCoverTextureKey('poland.png')).toBe('cover-poland');
+    expect(getTeamCoverAssetKey('poland.png')).toBe('cover-poland');
     expect(getTeamCoverTextureKey('gb-eng')).toBe('cover-gb-eng');
     expect(getFallbackCoverTextureKey()).toBe('cover-none');
   });
@@ -53,16 +59,40 @@ describe('team cover assets', () => {
     });
   });
 
-  it('declares available team covers while preserving fallback for missing teams', () => {
-    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).toEqual(expect.arrayContaining(['fr', 'es', 'ua', 'pl']));
-    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).not.toContain('be');
+  it('registers every current team cover file while preserving fallback for unknown teams', () => {
+    expect([...AVAILABLE_TEAM_COVER_FLAG_CODES].sort()).toEqual(getCurrentTeamCoverFileCodes());
+    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).toEqual(
+      expect.arrayContaining(['fr', 'es', 'nir', 'gb-eng', 'gb-sct', 'gb-wls', 'ie'])
+    );
+    expect(AVAILABLE_TEAM_COVER_FLAG_CODES).not.toContain('none');
+    expect(hasManualTeamCover('fr')).toBe(true);
+    expect(hasManualTeamCover('es')).toBe(true);
+    expect(hasManualTeamCover('nir')).toBe(true);
+    expect(hasManualTeamCover('gb-eng')).toBe(true);
+    expect(hasManualTeamCover('none')).toBe(false);
+    expect(hasManualTeamCover('unknown')).toBe(false);
 
     const textures: TextureLookup = {
       exists: (textureKey) => textureKey === 'cover-none'
     };
 
-    expect(resolveTeamCoverLoadResult(textures, 'be')).toEqual({
+    expect(resolveTeamCoverLoadResult(textures, 'unknown')).toEqual({
       textureKey: 'cover-none',
+      usedFallback: true
+    });
+  });
+
+  it('resolves manual and fallback cover assets by flagCode', () => {
+    expect(resolveTeamCoverAsset('fr')).toEqual({
+      textureKey: 'cover-fr',
+      path: 'covers/fr.webp',
+      usedFallback: false
+    });
+    expect(resolveTeamCoverAsset('es').textureKey).toBe('cover-es');
+    expect(resolveTeamCoverAsset('nir').textureKey).toBe('cover-nir');
+    expect(resolveTeamCoverAsset('unknown')).toEqual({
+      textureKey: 'cover-none',
+      path: 'covers/none.webp',
       usedFallback: true
     });
   });
@@ -94,6 +124,17 @@ describe('team cover assets', () => {
     }
   });
 });
+
+function getCurrentTeamCoverFileCodes(): string[] {
+  const nationalFlagCodes = new Set(NATIONAL_TEAMS.map((team) => team.flagCode));
+
+  return readdirSync(join(process.cwd(), 'public', 'covers'))
+    .filter((fileName) => fileName.endsWith('.webp'))
+    .map((fileName) => fileName.slice(0, -'.webp'.length))
+    .filter((flagCode) => flagCode !== 'none')
+    .filter((flagCode) => nationalFlagCodes.has(flagCode))
+    .sort();
+}
 
 function createImageMock(width: number, height: number): ImageLike & { displayWidth: number; displayHeight: number } {
   return {

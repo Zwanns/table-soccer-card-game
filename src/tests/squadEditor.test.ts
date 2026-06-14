@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { getTeamKitStyle } from '../data/teamKits';
 
 describe('read-only squad scenes', () => {
   it('registers squad scenes and keeps the menu button for squads', () => {
@@ -25,6 +26,16 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('this.createBackButton');
     expect(selectSource).toContain("this.scene.start('MenuScene')");
     expect(selectSource).not.toContain('TEAMS_PER_PAGE');
+  });
+
+  it('uses a Back text button on the Teams screen without the old arrow label', () => {
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+
+    expect(selectSource).toContain("this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'))");
+    expect(selectSource).toContain(".text(0, -1, 'Back'");
+    expect(selectSource).toContain('button.setSize(132, 38)');
+    expect(selectSource).toContain("button.on('pointerdown', onClick)");
+    expect(selectSource).not.toContain(".text(0, -1, '<'");
   });
 
   it('renders the squad screen as a read-only Phaser view', () => {
@@ -71,9 +82,12 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
     expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
+    expect(selectSource).toContain('const TEAM_COLORS_SWATCH_Y = 62');
+    expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');
     expect(selectSource).toContain('const TEAM_PREVIEW_CARD_SCALE = 1.45');
     expect(selectSource).toContain("const TEAM_PREVIEW_DISPLAY_RANK = 'N'");
     expect(selectSource).toContain('createTeamCardPreview');
+    expect(selectSource).toContain('this.createTeamColorSwatches(team.flagCode)');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_FACE_Y');
     expect(selectSource).toContain('rank: TEAM_PREVIEW_DISPLAY_RANK');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
@@ -84,10 +98,42 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X');
     expect(selectSource).toContain('faceCard.setScale(TEAM_PREVIEW_CARD_SCALE)');
     expect(selectSource).toContain('deckBack.setScale(TEAM_PREVIEW_CARD_SCALE)');
+    expect(selectSource).toContain('preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode)])');
     expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
     expect(selectSource).not.toContain('createTeamKitPreview');
     expect(selectSource).not.toContain('kit.setDisplaySize');
     expect(selectSource).not.toContain('background.setStrokeStyle(2, 0x5f9572, 0.95);');
+  });
+
+  it('shows selected team colors from teamKits above the squad preview cards', () => {
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+    const armeniaStyle = getTeamKitStyle('am');
+    const northernIrelandStyle = getTeamKitStyle('nir');
+    const franceStyle = getTeamKitStyle('fr');
+    const spainStyle = getTeamKitStyle('es');
+
+    expect(armeniaStyle).toMatchObject({
+      primaryColor: '#D90012',
+      secondaryColor: '#0033A0',
+      shirtNumberColor: '#FFFFFF',
+      shirtNumberStrokeColor: '#111111'
+    });
+    expect(northernIrelandStyle?.primaryColor).toBe('#006A3A');
+    expect(franceStyle?.primaryColor).toBe('#002654');
+    expect(spainStyle?.primaryColor).toBe('#AA151B');
+
+    expect(selectSource).toContain("import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits'");
+    expect(selectSource).toContain("import { buildTeamColorSwatches } from '../ui/teamColorSwatches'");
+    expect(selectSource).toContain('const style = getTeamKitStyle(flagCode)');
+    expect(selectSource).toContain('const layout = buildTeamColorSwatches(style');
+    expect(selectSource).toContain('graphics.setPosition(swatch.x, swatch.y)');
+    expect(selectSource).toContain('graphics.setDepth(20)');
+    expect(selectSource).toContain('graphics.lineStyle(2, swatch.strokeColor, 1)');
+    expect(selectSource).toContain('graphics.fillStyle(swatch.fillColor, 1)');
+    expect(selectSource).toContain('graphics.fillCircle(0, 0, swatch.radius)');
+    expect(selectSource).toContain('graphics.strokeCircle(0, 0, swatch.radius)');
+    expect(selectSource).not.toContain("'Colors'");
+    expect(selectSource).not.toContain('accentColor');
   });
 
   it('refreshes team preview cards when the selected squad changes', () => {

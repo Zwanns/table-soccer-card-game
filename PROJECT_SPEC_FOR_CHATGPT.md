@@ -27,6 +27,7 @@ npm run dev
 npm test
 npm run build
 npm run validate:kits
+npm run validate:covers
 ```
 
 ## 3. Главные файлы
@@ -65,7 +66,7 @@ src/scenes/
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
 - `MenuScene.ts` - главное меню с фоновым изображением, кнопками режимов, отдельными разделами `Rules`/`About` и мигающим scoreboard-логотипом. Анимированный мяч и желтые декоративные треугольники в меню не используются.
 - `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 65 команд отображаются на одной странице компактной сеткой с 8 колонками без пагинации.
-- `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа две preview-карты выбранной сборной: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
+- `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа цвета выбранной сборной и две preview-карты: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
 - `ResultScene.ts` - финальный экран матча.
 - `TournamentSetupScene.ts`, `TournamentHubScene.ts`, `TournamentPenaltyScene.ts`, `TournamentCompleteScene.ts` - турнирный контур и пенальти. В setup-экране слоты групп, AI-checkboxes и кнопки удаления используют интерактивные зоны, совпадающие с видимыми прямоугольниками строк.
@@ -155,6 +156,7 @@ Phaser UI:
 - `CardView.ts` - контейнер карты. Поддерживает открытую карту с формой, обычную закрытую карту, нейтральную закрытую preview-карту и squad-preview рубашку с deck-layering без синей deck-обводки.
 - `KitCardFaceView.ts` - открытая лицевая сторона карты с формой, rank и номером.
 - `kitCardFaceModel.ts` - layout открытой карты.
+- `teamColorSwatches.ts` - чистый helper layout/HEX parsing для цветных кружков сборной на `Teams`.
 - `cardPlayerProfile.ts` - профиль игрока для карты и tooltip.
 - `CardTooltipView.ts` - tooltip.
 - `DeckView.ts`, `FieldView.ts`, `ScoreView.ts`, `TeamStatsView.ts`, `AdvantageView.ts`, `EventLogView.ts`.
@@ -690,6 +692,9 @@ Validator проверяет:
 - читаемость файла;
 - путь `kits/images/`;
 - расширение `.webp`.
+- каждый `AVAILABLE_MANUAL_KIT_FLAG_CODES` существует среди `NATIONAL_TEAMS.flagCode`;
+- `none`, `gk1`, `gk2` не зарегистрированы как team kits;
+- если в `public/kits/images/<flagCode>.webp` есть файл для существующей сборной, этот `flagCode` обязан быть в `AVAILABLE_MANUAL_KIT_FLAG_CODES`, иначе `validate:kits` падает.
 
 ## 11.1 Рубашки командных колод
 
@@ -731,11 +736,39 @@ fitImageContain(image, bounds)
 - texture key строится как `cover-<flagCode>`;
 - fallback texture key - `cover-none`;
 - fallback path - `covers/none.webp`;
-- `AVAILABLE_TEAM_COVER_FLAG_CODES` содержит только реально доступные cover-ассеты;
+- `AVAILABLE_TEAM_COVER_FLAG_CODES` содержит все реально доступные cover-ассеты, совпадающие с `NATIONAL_TEAMS.flagCode`, и не содержит `none`;
+- `hasManualTeamCover(flagCode)` проверяет регистрацию индивидуальной рубашки;
+- `resolveTeamCoverAsset(flagCode)` возвращает `cover-<flagCode>` / `covers/<flagCode>.webp` для зарегистрированной сборной и `cover-none` / `covers/none.webp` для неизвестной или незарегистрированной;
 - если cover не загружен или загрузка помечена как failed, используется `cover-none`;
 - `GameScene` и `TournamentPenaltyScene` могут лениво ставить cover в очередь через `queueTeamCoverLoad()`;
 - `BootScene` всегда загружает `cover-none` и все cover-ассеты из `AVAILABLE_TEAM_COVER_FLAG_CODES`;
 - `DeckView` и closed `CardView` получают `coverTextureKey`, но сами не решают командную fallback-логику.
+
+Validator рубашек колод:
+
+```text
+scripts/validate-covers.ts
+npm run validate:covers
+```
+
+Проверяет:
+
+- `public/covers/none.webp`;
+- каждый registered cover из `AVAILABLE_TEAM_COVER_FLAG_CODES`;
+- совпадение registered cover codes с `NATIONAL_TEAMS.flagCode`;
+- WebP-сигнатуру и читаемость через `sharp`;
+- ошибку, если `public/covers/<flagCode>.webp` существует для текущей сборной, но `<flagCode>` не зарегистрирован;
+- ошибку, если `public/covers/<code>.webp` не соответствует ни одной сборной;
+- запрет `none` как team cover.
+
+Чтобы добавить новую рубашку колоды:
+
+1. положить файл `public/covers/<flagCode>.webp`;
+2. убедиться, что `<flagCode>` совпадает с `nationalTeams.flagCode`;
+3. добавить `<flagCode>` в `AVAILABLE_TEAM_COVER_FLAG_CODES`;
+4. запустить `npm run validate:covers`;
+5. запустить `npm test`;
+6. запустить `npm run build`.
 
 ## 12. Загрузка и resolver экипировок
 
@@ -748,7 +781,16 @@ kit-gk2  -> kits/images/gk2.webp
 cover-none -> covers/none.webp
 ```
 
-Дополнительно загружаются только зарегистрированные формы сборных из `AVAILABLE_MANUAL_KIT_FLAG_CODES`.
+Дополнительно загружаются только зарегистрированные формы сборных из `AVAILABLE_MANUAL_KIT_FLAG_CODES`. Этот whitelist является явным runtime source of truth, потому что браузер/Vercel runtime не читает директорию `public/kits/images` через `fs`.
+
+Текущий процесс добавления новой формы:
+
+1. положить файл `public/kits/images/<flagCode>.webp`;
+2. добавить `<flagCode>` в `AVAILABLE_MANUAL_KIT_FLAG_CODES`;
+3. запустить `npm run validate:kits`;
+4. запустить `npm test`.
+
+Если файл формы существует для текущей сборной, но не зарегистрирован в whitelist, validator сообщает ошибку: такая форма не будет загружена в `BootScene` и игра покажет `kit-none`.
 
 Командные рубашки колод загружаются из `AVAILABLE_TEAM_COVER_FLAG_CODES`.
 
@@ -832,8 +874,17 @@ Tooltip:
 
 ### Teams preview
 
-На экране `Teams` / `SquadSelectScene` справа от таблицы состава отображаются две карты выбранной команды:
+На экране `Teams` / `SquadSelectScene` кнопка возврата подписана `Back`, использует желтый UI-стиль и возвращает в `MenuScene`. Старый label `<` не используется.
 
+Справа от таблицы состава отображаются цветные кружки и две карты выбранной команды:
+
+- над preview-картами есть ряд color swatches без текстового заголовка;
+- swatches берутся из `getTeamKitStyle(team.flagCode)`, без отдельного списка цветов для UI;
+- layout строится через `buildTeamColorSwatches()` из `src/ui/teamColorSwatches.ts`;
+- отображаются `primaryColor`, `secondaryColor`, `shirtNumberColor`, `shirtNumberStrokeColor`, если значения валидные;
+- HEX-строки преобразуются в числовые цвета для Phaser `fillStyle`;
+- swatches рисуются отдельными `Graphics` с явной позицией над верхней preview-картой и добавляются в preview container после карт, чтобы не быть перекрытыми;
+- белый/светлый swatch получает темный контур `0x1f2a2e`, остальные - светлый контур;
 - сверху лицевая preview-карта через `CardView` с `rank: 'N'`, `kitTextureKey: getTeamKitAssetKey(team.flagCode)` и отключенным tooltip;
 - снизу face-down squad-preview карта через `CardView` с `coverTextureKey: resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey`, `faceDown: true`, `faceDownVariant: 'squad-preview'` и отключенным tooltip.
 
@@ -1054,6 +1105,7 @@ src/tests/
 - `gameScene.test.ts` - визуальные контракты игрового экрана: bounce-мяч активной колоды, размер/позиция боковых кнопок `Menu`/`Result`/`Rules`/`About`, in-game info overlay, общий цвет фона табло/info-панелей, прозрачные и высокие Goals-панели, общая ширина табло и advantage indicator, полосатый газон поля.
 - `teamKits.test.ts` и `kitAssetResolver.test.ts` - registry и resolver экипировок.
 - `validateKits.test.ts` - validator WebP-ассетов.
+- `validateCovers.test.ts` - validator WebP-рубашек колод.
 - `realSquads.test.ts` и `squads.test.ts` - составы.
 - `project.test.ts` - метаданные проекта, версия, автор, main menu asset contracts, blink-logo contracts, унификация ширины menu buttons, отдельные `Rules`/`About`, safe sound helper, scorer UI contracts.
 - `bootScene.test.ts` - обязательная загрузка kit-ассетов и текущих menu scoreboard ассетов без старого `menu-logo.png` / `menu-ball`.
@@ -1066,8 +1118,8 @@ src/tests/
 На момент обновления документа:
 
 ```text
-30 test files
-412 tests
+32 test files
+431 tests
 ```
 
 Перед завершением значимых правок рекомендуется запускать:

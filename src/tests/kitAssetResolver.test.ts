@@ -29,6 +29,14 @@ describe('kit asset resolver', () => {
     });
   });
 
+  it('resolves newly registered team WebP assets by flagCode', () => {
+    for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
+      AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
+
+      expect(resolveTeamKitAsset(flagCode).assetKey).toBe(`kit-${flagCode}`);
+    }
+  });
+
   it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
@@ -46,6 +54,14 @@ describe('kit asset resolver', () => {
   });
 
   it('resolves gk1 and gk2 to mandatory goalkeeper WebP assets', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('gk1');
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('gk2');
+
+    expect(resolveTeamKitAsset('gk1')).toEqual({
+      assetKey: 'kit-none',
+      shirtNumberColor: '#111111',
+      shirtNumberStrokeColor: '#FFFFFF'
+    });
     expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
       assetKey: 'kit-gk1',
       shirtNumberColor: '#FFFFFF',

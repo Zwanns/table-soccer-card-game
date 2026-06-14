@@ -1,7 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { NATIONAL_TEAMS } from '../src/data/nationalTeams';
 import {
   AVAILABLE_MANUAL_KIT_FLAG_CODES,
   GOALKEEPER_KIT_STYLES,
@@ -69,14 +70,18 @@ const MANDATORY_KITS: readonly RegisteredKit[] = [
   }
 ];
 
+const RESERVED_TEAM_KIT_BASENAMES = new Set(['none', 'gk1', 'gk2']);
+
 export async function validateRegisteredKits(options: ValidateKitsOptions = {}): Promise<ValidateKitsResult> {
   const projectRoot = options.projectRoot ?? process.cwd();
-  const registeredKits = collectRegisteredKits(options);
   const errors: string[] = [];
   const warnings: string[] = [];
+  const manualKitFlagCodes = [...(options.manualKitFlagCodes ?? AVAILABLE_MANUAL_KIT_FLAG_CODES)];
+  const registeredKits = collectRegisteredKits(options, manualKitFlagCodes, errors);
 
   pushDuplicateErrors(errors, registeredKits.map((kit) => kit.assetKey), 'assetKey');
   pushDuplicateErrors(errors, registeredKits.map((kit) => kit.path), 'path');
+  validateManualKitRegistry(projectRoot, manualKitFlagCodes, errors);
 
   for (const kit of registeredKits) {
     validateKitPath(errors, kit);
@@ -115,23 +120,29 @@ export async function validateRegisteredKits(options: ValidateKitsOptions = {}):
   return { errors, warnings };
 }
 
-function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
+function collectRegisteredKits(
+  options: ValidateKitsOptions,
+  manualKitFlagCodes: readonly string[],
+  errors: string[]
+): RegisteredKit[] {
   const teamStyles = options.teamKitStyles ?? TEAM_KIT_STYLES;
   const goalkeeperStyles = options.goalkeeperKitStyles ?? GOALKEEPER_KIT_STYLES;
-  const manualKitFlagCodes = [...(options.manualKitFlagCodes ?? AVAILABLE_MANUAL_KIT_FLAG_CODES)];
   const goalkeeperKitIds = [...(options.goalkeeperKitIds ?? [])];
   const registeredKits: RegisteredKit[] = [...MANDATORY_KITS];
 
   for (const flagCode of manualKitFlagCodes) {
     const style = teamStyles.find((candidate) => candidate.flagCode === flagCode);
 
-    if (style !== undefined) {
-      registeredKits.push({
-        label: `team kit ${flagCode}`,
-        assetKey: style.assetKey,
-        path: style.path
-      });
+    if (style === undefined) {
+      errors.push(`manual team kit "${flagCode}" has no team kit style.`);
+      continue;
     }
+
+    registeredKits.push({
+      label: `team kit ${flagCode}`,
+      assetKey: style.assetKey,
+      path: style.path
+    });
   }
 
   for (const id of goalkeeperKitIds) {
@@ -147,6 +158,56 @@ function collectRegisteredKits(options: ValidateKitsOptions): RegisteredKit[] {
   }
 
   return registeredKits;
+}
+
+function validateManualKitRegistry(
+  projectRoot: string,
+  manualKitFlagCodes: readonly string[],
+  errors: string[]
+): void {
+  const nationalFlagCodeSet = new Set(NATIONAL_TEAMS.map((team) => team.flagCode));
+  const manualKitFlagCodeSet = new Set(manualKitFlagCodes);
+
+  for (const flagCode of manualKitFlagCodes) {
+    if (RESERVED_TEAM_KIT_BASENAMES.has(flagCode)) {
+      errors.push(`manual team kit "${flagCode}" is reserved for fallback or goalkeeper kits.`);
+      continue;
+    }
+
+    if (!nationalFlagCodeSet.has(flagCode)) {
+      errors.push(`manual team kit "${flagCode}" must match a national team flagCode.`);
+    }
+  }
+
+  for (const fileName of listKitImageFileNames(projectRoot)) {
+    if (!fileName.endsWith('.webp')) {
+      continue;
+    }
+
+    const flagCode = fileName.slice(0, -'.webp'.length);
+
+    if (RESERVED_TEAM_KIT_BASENAMES.has(flagCode) || !nationalFlagCodeSet.has(flagCode)) {
+      continue;
+    }
+
+    if (!manualKitFlagCodeSet.has(flagCode)) {
+      errors.push(
+        `team kit file public/kits/images/${fileName} exists for flagCode "${flagCode}" but is not registered in AVAILABLE_MANUAL_KIT_FLAG_CODES.`
+      );
+    }
+  }
+}
+
+function listKitImageFileNames(projectRoot: string): string[] {
+  const kitImageDir = join(projectRoot, 'public', 'kits', 'images');
+
+  if (!existsSync(kitImageDir)) {
+    return [];
+  }
+
+  return readdirSync(kitImageDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name);
 }
 
 async function readImageMetadata(

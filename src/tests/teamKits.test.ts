@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
@@ -24,6 +24,7 @@ import {
 } from '../data/teamKits';
 
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
+const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
 
 describe('team kit data contract', () => {
   it('defines the Stage 1 kit types and shared constants', () => {
@@ -178,12 +179,26 @@ describe('team kit data contract', () => {
   });
 
   it('registers available WebP files and mandatory goalkeeper kits', () => {
-    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('pl')).toBe(true);
-    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('nir')).toBe(true);
-    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gb-sct')).toBe(false);
+    const registeredFlagCodes = [...AVAILABLE_MANUAL_KIT_FLAG_CODES].sort();
+    const currentTeamKitFileCodes = getCurrentTeamKitFileCodes();
+
+    expect(registeredFlagCodes).toEqual(currentTeamKitFileCodes);
+    expect(registeredFlagCodes).toEqual(
+      expect.arrayContaining(['al', 'fr', 'es', 'gb-eng', 'gb-sct', 'gb-wls', 'nir', 'pt', 'sk', 'tr'])
+    );
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('none')).toBe(false);
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gk1')).toBe(false);
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gk2')).toBe(false);
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('bo')).toBe(false);
     expect(AVAILABLE_GOALKEEPER_KIT_IDS).toEqual(new Set(['gk1', 'gk2']));
     expect(hasManualTeamKit('pl')).toBe(true);
     expect(hasManualTeamKit('nir')).toBe(true);
+    expect(hasManualTeamKit('fr')).toBe(true);
+    expect(hasManualTeamKit('es')).toBe(true);
+    expect(hasManualTeamKit('gb-eng')).toBe(true);
+    expect(hasManualTeamKit('none')).toBe(false);
+    expect(hasManualTeamKit('gk1')).toBe(false);
+    expect(hasManualTeamKit('gk2')).toBe(false);
     expect(hasManualGoalkeeperKit('gk1')).toBe(true);
   });
 
@@ -200,3 +215,14 @@ describe('team kit data contract', () => {
     expect(teamKitsSource).not.toContain('require("sharp")');
   });
 });
+
+function getCurrentTeamKitFileCodes(): string[] {
+  const nationalFlagCodes = new Set(NATIONAL_TEAMS.map((team) => team.flagCode));
+
+  return readdirSync(join(process.cwd(), 'public', 'kits', 'images'))
+    .filter((fileName) => fileName.endsWith('.webp'))
+    .map((fileName) => fileName.slice(0, -'.webp'.length))
+    .filter((flagCode) => !RESERVED_KIT_FILE_CODES.has(flagCode))
+    .filter((flagCode) => nationalFlagCodes.has(flagCode))
+    .sort();
+}

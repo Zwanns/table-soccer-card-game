@@ -67,6 +67,47 @@ describe('kit validator', () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it('reports team WebP files that exist but are not registered', async () => {
+    const projectRoot = createTempProjectRoot();
+
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr.webp'));
+
+    const result = await validateRegisteredKits({
+      projectRoot,
+      manualKitFlagCodes: ['pl']
+    });
+
+    expect(result.errors).toContain(
+      'team kit file public/kits/images/fr.webp exists for flagCode "fr" but is not registered in AVAILABLE_MANUAL_KIT_FLAG_CODES.'
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('rejects reserved and unknown manual team kit codes', async () => {
+    const projectRoot = createTempProjectRoot();
+
+    await createRequiredWebps(projectRoot);
+
+    const result = await validateRegisteredKits({
+      projectRoot,
+      manualKitFlagCodes: ['none', 'gk1', 'missing']
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'manual team kit "none" has no team kit style.',
+        'manual team kit "gk1" has no team kit style.',
+        'manual team kit "missing" has no team kit style.',
+        'manual team kit "none" is reserved for fallback or goalkeeper kits.',
+        'manual team kit "gk1" is reserved for fallback or goalkeeper kits.',
+        'manual team kit "missing" must match a national team flagCode.'
+      ])
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
   it('documents the WebP contract and importer boundary', () => {
     const readme = readFileSync(join(process.cwd(), 'public', 'kits', 'README.md'), 'utf8');
 
@@ -82,6 +123,8 @@ describe('kit validator', () => {
     expect(readme).toContain('gk1.webp');
     expect(readme).toContain('gk2.webp');
     expect(readme).toContain('SHIRT_NUMBER_ANCHOR');
+    expect(readme).toContain('If a matching `<flagCode>.webp` exists for a national team but is not registered, `npm run validate:kits` fails.');
+    expect(readme).toContain('Do not add `none`, `gk1`, or `gk2` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`.');
     expect(readme).toContain('scripts/wiki-kits/');
     expect(readme).toContain('public/kits/imported/');
     expect(readme).toContain('not used by the game runtime');

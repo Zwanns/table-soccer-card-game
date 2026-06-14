@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate:kits": "tsx scripts/validate-kits.ts",
+    "validate:covers": "tsx scripts/validate-covers.ts",
     "import:kits:test": "tsx scripts/wiki-kits/index.ts",
     "import:kits:team": "tsx scripts/wiki-kits/index.ts --team",
     "import:kits:clear-cache": "tsx scripts/wiki-kits/index.ts --clear-cache",

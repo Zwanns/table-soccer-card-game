@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AVAILABLE_TEAM_COVER_FLAG_CODES, getTeamCoverPath, getTeamCoverTextureKey } from '../assets/teamCover';
 import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
 import { getRegisteredKitAssetsToLoad } from '../scenes/bootKitAssets';
 
@@ -64,6 +65,25 @@ describe('BootScene kit asset loading', () => {
     ]);
   });
 
+  it('queues every current registered manual team kit for preload', () => {
+    for (const flagCode of initialManualKitFlagCodes) {
+      AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
+    }
+
+    const queuedAssets = getRegisteredKitAssetsToLoad();
+
+    for (const flagCode of initialManualKitFlagCodes) {
+      expect(queuedAssets).toContainEqual({
+        assetKey: `kit-${flagCode}`,
+        path: `kits/images/${flagCode}.webp`
+      });
+    }
+
+    expect(initialManualKitFlagCodes.has('none')).toBe(false);
+    expect(initialManualKitFlagCodes.has('gk1')).toBe(false);
+    expect(initialManualKitFlagCodes.has('gk2')).toBe(false);
+  });
+
   it('keeps the runtime loader away from PNG kits, imported kits, sharp, filesystem, and network APIs', () => {
     const source = [
       readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8'),
@@ -100,5 +120,20 @@ describe('BootScene kit asset loading', () => {
     expect(source).not.toContain('menu/menu-logo.png');
     expect(source).not.toContain('menu/menu-ball.png');
     expect(source).not.toContain('menu-ball');
+  });
+});
+
+describe('BootScene cover asset loading', () => {
+  it('preloads the fallback cover and every registered team cover', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    expect(bootSceneSource).toContain('this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath())');
+    expect(bootSceneSource).toContain('for (const flagCode of AVAILABLE_TEAM_COVER_FLAG_CODES)');
+    expect(bootSceneSource).toContain('this.load.image(getTeamCoverTextureKey(flagCode), getTeamCoverPath(flagCode))');
+
+    for (const flagCode of AVAILABLE_TEAM_COVER_FLAG_CODES) {
+      expect(getTeamCoverTextureKey(flagCode)).toBe(`cover-${flagCode}`);
+      expect(getTeamCoverPath(flagCode)).toBe(`covers/${flagCode}.webp`);
+    }
   });
 });

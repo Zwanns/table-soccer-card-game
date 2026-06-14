@@ -7,39 +7,85 @@ const FALLBACK_COVER_BASENAME = 'none';
 const FALLBACK_COVER_PATH = `${COVER_FOLDER}/${FALLBACK_COVER_BASENAME}${COVER_EXTENSION}`;
 const FALLBACK_COVER_TEXTURE_KEY = `${COVER_TEXTURE_PREFIX}-${FALLBACK_COVER_BASENAME}`;
 
-const failedCoverTextureKeys = new Set<string>();
-
 export const AVAILABLE_TEAM_COVER_FLAG_CODES: readonly string[] = [
+  'al',
+  'am',
   'ar',
+  'at',
+  'au',
+  'be',
   'br',
+  'by',
   'ca',
+  'ch',
+  'ci',
+  'cl',
+  'cm',
+  'co',
+  'cr',
   'cz',
   'de',
   'dk',
+  'dz',
+  'ec',
+  'eg',
   'es',
   'fr',
   'gb-eng',
   'gb-sct',
   'gb-wls',
   'ge',
+  'gr',
   'hr',
+  'hu',
+  'ie',
+  'iq',
+  'ir',
+  'it',
+  'jp',
   'kr',
+  'kz',
+  'ma',
+  'ml',
   'mx',
   'ng',
+  'nir',
   'nl',
   'no',
+  'pa',
+  'pe',
   'pl',
   'pt',
   'py',
+  'qa',
+  'ro',
+  'rs',
+  'sa',
+  'se',
+  'si',
+  'sk',
+  'sn',
   'tn',
   'tr',
   'ua',
+  'us',
   'uy',
+  'uz',
+  've',
   'za'
 ] as const;
 
+const failedCoverTextureKeys = new Set<string>();
+const AVAILABLE_TEAM_COVER_FLAG_CODE_SET = new Set<string>(AVAILABLE_TEAM_COVER_FLAG_CODES);
+
 export interface TeamCoverLoadResult {
   textureKey: string;
+  usedFallback: boolean;
+}
+
+export interface TeamCoverAsset {
+  textureKey: string;
+  path: string;
   usedFallback: boolean;
 }
 
@@ -70,6 +116,10 @@ export function getTeamCoverTextureKey(flagFilename: string): string {
   return `${COVER_TEXTURE_PREFIX}-${getBasenameWithoutExtension(flagFilename)}`;
 }
 
+export function getTeamCoverAssetKey(flagFilename: string): string {
+  return getTeamCoverTextureKey(flagFilename);
+}
+
 export function getFallbackCoverPath(): string {
   return FALLBACK_COVER_PATH;
 }
@@ -78,18 +128,38 @@ export function getFallbackCoverTextureKey(): string {
   return FALLBACK_COVER_TEXTURE_KEY;
 }
 
+export function hasManualTeamCover(flagCode: string): boolean {
+  return AVAILABLE_TEAM_COVER_FLAG_CODE_SET.has(flagCode);
+}
+
+export function resolveTeamCoverAsset(flagCode: string): TeamCoverAsset {
+  if (!hasManualTeamCover(flagCode)) {
+    return {
+      textureKey: FALLBACK_COVER_TEXTURE_KEY,
+      path: FALLBACK_COVER_PATH,
+      usedFallback: true
+    };
+  }
+
+  return {
+    textureKey: getTeamCoverTextureKey(flagCode),
+    path: getTeamCoverPath(flagCode),
+    usedFallback: false
+  };
+}
+
 export function queueTeamCoverLoad(scene: Phaser.Scene, flagFilename: string): void {
-  const textureKey = getTeamCoverTextureKey(flagFilename);
+  const asset = resolveTeamCoverAsset(flagFilename);
 
   if (
-    textureKey === FALLBACK_COVER_TEXTURE_KEY ||
-    scene.textures.exists(textureKey) ||
-    failedCoverTextureKeys.has(textureKey)
+    asset.usedFallback ||
+    scene.textures.exists(asset.textureKey) ||
+    failedCoverTextureKeys.has(asset.textureKey)
   ) {
     return;
   }
 
-  scene.load.image(textureKey, getTeamCoverPath(flagFilename));
+  scene.load.image(asset.textureKey, asset.path);
 }
 
 export function markTeamCoverLoadFailed(textureKey: string): void {
@@ -99,11 +169,11 @@ export function markTeamCoverLoadFailed(textureKey: string): void {
 }
 
 export function resolveTeamCoverLoadResult(textures: TextureLookup, flagFilename: string): TeamCoverLoadResult {
-  const textureKey = getTeamCoverTextureKey(flagFilename);
+  const asset = resolveTeamCoverAsset(flagFilename);
 
-  if (textures.exists(textureKey) && !failedCoverTextureKeys.has(textureKey)) {
+  if (!asset.usedFallback && textures.exists(asset.textureKey) && !failedCoverTextureKeys.has(asset.textureKey)) {
     return {
-      textureKey,
+      textureKey: asset.textureKey,
       usedFallback: false
     };
   }

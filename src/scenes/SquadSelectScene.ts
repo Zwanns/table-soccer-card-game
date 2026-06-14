@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import { resolveTeamCoverLoadResult } from '../assets/teamCover';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getTeamKitAssetKey } from '../data/teamKits';
+import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { CardView } from '../ui/CardView';
+import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 
 const GRID_COLUMNS = 4;
 const CARD_WIDTH = 171;
@@ -21,6 +22,9 @@ const RIGHT_PANEL_HEIGHT = 571;
 const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2;
 const SQUAD_TABLE_Y = 94;
 const TEAM_PREVIEW_OFFSET_X = 190;
+const TEAM_COLORS_SWATCH_Y = 62;
+const TEAM_COLOR_SWATCH_RADIUS = 10;
+const TEAM_COLOR_SWATCH_GAP = 10;
 const TEAM_PREVIEW_FACE_Y = 190;
 const TEAM_PREVIEW_BACK_Y = 432;
 const TEAM_PREVIEW_CARD_SCALE = 1.45;
@@ -62,27 +66,27 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const leftGridX = LEFT_PANEL_X;
-    this.createBackButton(leftGridX + 22, 60, () => this.scene.start('MenuScene'));
+    this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'));
     this.createTeamGrid(leftGridX);
     this.createSquadPanel(RIGHT_PANEL_X, 96);
   }
 
   private createBackButton(x: number, y: number, onClick: () => void): void {
     const button = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 44, 38, 0xf0c95a, 1);
+    const background = this.add.rectangle(0, 0, 132, 38, 0xf0c95a, 1);
     background.setStrokeStyle(2, 0x2d382f);
-    const arrow = this.add
-      .text(0, -1, '<', {
+    const label = this.add
+      .text(0, -1, 'Back', {
         align: 'center',
         color: '#1f2a2e',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: '20px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    button.add([background, arrow]);
-    button.setSize(44, 38);
+    button.add([background, label]);
+    button.setSize(132, 38);
     button.setInteractive({ useHandCursor: true });
     button.on('pointerover', () => background.setFillStyle(0xffd978));
     button.on('pointerout', () => background.setFillStyle(0xf0c95a));
@@ -219,9 +223,36 @@ export class SquadSelectScene extends Phaser.Scene {
 
     faceCard.setScale(TEAM_PREVIEW_CARD_SCALE);
     deckBack.setScale(TEAM_PREVIEW_CARD_SCALE);
-    preview.add([faceCard, deckBack]);
+    preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode)]);
 
     return preview;
+  }
+
+  private createTeamColorSwatches(flagCode: string): Phaser.GameObjects.Container {
+    const swatches = this.add.container(0, 0);
+    const style = getTeamKitStyle(flagCode);
+    const layout = buildTeamColorSwatches(style, {
+      swatchY: TEAM_COLORS_SWATCH_Y,
+      radius: TEAM_COLOR_SWATCH_RADIUS,
+      gap: TEAM_COLOR_SWATCH_GAP
+    });
+
+    if (layout.length === 0) {
+      return swatches;
+    }
+
+    for (const swatch of layout) {
+      const graphics = this.add.graphics();
+      graphics.setPosition(swatch.x, swatch.y);
+      graphics.setDepth(20);
+      graphics.lineStyle(2, swatch.strokeColor, 1);
+      graphics.fillStyle(swatch.fillColor, 1);
+      graphics.fillCircle(0, 0, swatch.radius);
+      graphics.strokeCircle(0, 0, swatch.radius);
+      swatches.add(graphics);
+    }
+
+    return swatches;
   }
 
   private createSectionTitle(x: number, y: number, text: string): Phaser.GameObjects.Text {

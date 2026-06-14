@@ -10,9 +10,12 @@ Field player kits use the `flagCode` from `src/data/nationalTeams.ts`:
 
 ```text
 public/kits/images/pl.webp
+public/kits/images/fr.webp
+public/kits/images/es.webp
 public/kits/images/ua.webp
 public/kits/images/br.webp
 public/kits/images/gb-eng.webp
+public/kits/images/gb-sct.webp
 public/kits/images/gb-wls.webp
 ```
 
@@ -52,6 +55,18 @@ Registered team kits are listed in `AVAILABLE_MANUAL_KIT_FLAG_CODES` in:
 ```text
 src/data/teamKits.ts
 ```
+
+Adding a new field kit is a two-step runtime contract:
+
+1. Put the file in `public/kits/images/<flagCode>.webp`.
+2. Add `<flagCode>` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`.
+3. Run `npm run validate:kits`.
+4. Run `npm test`.
+
+If a matching `<flagCode>.webp` exists for a national team but is not registered, `npm run validate:kits` fails.
+The game would otherwise keep showing `none.webp`.
+
+Do not add `none`, `gk1`, or `gk2` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`. They are handled as fallback and goalkeeper kits.
 
 The mandatory service files are not optional registry entries. The validator always requires:
 
