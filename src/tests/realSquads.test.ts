@@ -11,18 +11,18 @@ describe('real static squads', () => {
     const squadFlagCodes = REAL_SQUADS.map((squad) => squad.flagCode);
     const teamFlagCodes = NATIONAL_TEAMS.map((team) => team.flagCode);
 
-    expect(REAL_SQUADS).toHaveLength(64);
+    expect(REAL_SQUADS).toHaveLength(65);
     expect(squadFlagCodes).toHaveLength(new Set(squadFlagCodes).size);
     expect(new Set(squadFlagCodes)).toEqual(new Set(teamFlagCodes));
   });
 
-  it('contains exactly 960 static players across all squads', () => {
+  it('contains exactly 975 static players across all squads', () => {
     const playerCount = REAL_SQUADS.reduce(
       (total, squad) => total + Object.keys(squad.fieldPlayers).length + 1,
       0
     );
 
-    expect(playerCount).toBe(960);
+    expect(playerCount).toBe(975);
   });
 
   it('keeps every squad valid and aligned with the card ranks', () => {
@@ -66,5 +66,41 @@ describe('real static squads', () => {
     });
     expect(getRealSquad('missing')).toBeUndefined();
     expect(() => requireRealSquad('missing')).toThrow('Missing real squad for flagCode: missing');
+  });
+
+  it('provides the Northern Ireland real squad without conflicting with Ireland', () => {
+    const irelandSquad = requireRealSquad('ie');
+    const northernIrelandSquad = requireRealSquad('nir');
+    const northernIrelandPlayers = [
+      ...FIELD_SQUAD_RANKS.map((rank) => northernIrelandSquad.fieldPlayers[rank]),
+      northernIrelandSquad.goalkeeper
+    ];
+
+    expect(irelandSquad.flagCode).toBe('ie');
+    expect(northernIrelandSquad.flagCode).toBe('nir');
+    expect(validateSquad(northernIrelandSquad)).toEqual({ ok: true, issues: [] });
+    expect(Object.keys(northernIrelandSquad.fieldPlayers)).toHaveLength(14);
+    expect(northernIrelandSquad.goalkeeper).toEqual({
+      id: 'gk',
+      name: 'Bailey Peacock-Farrell',
+      shirtNumber: 1
+    });
+    expect(northernIrelandSquad.fieldPlayers.K).toMatchObject({
+      name: 'Trai Hume',
+      shirtNumber: 14
+    });
+    expect(northernIrelandSquad.fieldPlayers.A).toMatchObject({
+      name: 'Shea Charles',
+      shirtNumber: 15
+    });
+    expect(northernIrelandSquad.fieldPlayers.Q).toMatchObject({
+      name: 'Dion Charles',
+      shirtNumber: 12
+    });
+    expect(northernIrelandSquad.fieldPlayers.JOKER).toMatchObject({
+      name: 'Josh Magennis',
+      shirtNumber: 18
+    });
+    expect(northernIrelandPlayers.map((player) => player.name)).toContain('Bailey Peacock-Farrell');
   });
 });

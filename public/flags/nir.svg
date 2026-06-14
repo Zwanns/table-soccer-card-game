@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-icons-nir" viewBox="0 0 640 480">
+  <path fill="#fff" d="M0 0h640v480H0z"/>
+  <path fill="#c8102e" d="M281.6 0h76.8v480h-76.8z"/>
+  <path fill="#c8102e" d="M0 201.6h640v76.8H0z"/>
+  <path fill="#006a3a" d="M320 132l20.8 64h67.3l-54.5 39.6 20.8 64L320 260l-54.4 39.6 20.8-64-54.5-39.6h67.3z"/>
+</svg>

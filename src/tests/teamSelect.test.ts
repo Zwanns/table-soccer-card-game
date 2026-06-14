@@ -68,7 +68,7 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('checkbox.setSize(58, 28)');
   });
 
-  it('keeps the 8x8 country grid layout on one page', () => {
+  it('keeps the 8-column country grid layout on one page', () => {
     const source = readTeamSelectSource();
 
     expect(source).toContain('const TEAM_GRID_COLUMNS = 8');

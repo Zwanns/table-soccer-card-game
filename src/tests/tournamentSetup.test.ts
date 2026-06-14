@@ -16,6 +16,7 @@ import {
   shuffleTournamentSetupGroups,
   toggleTournamentSetupTeamControllerType
 } from '../scenes/tournamentSetupDraft';
+import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
 describe('tournament setup scene integration', () => {
   it('registers the tournament setup scene', () => {
@@ -122,6 +123,8 @@ describe('tournament setup draft helpers', () => {
 
     expect(draft.slots).toHaveLength(16);
     expect(new Set(draft.slots).size).toBe(16);
+    expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(NATIONAL_TEAMS.some((team) => team.flagCode === 'nir')).toBe(true);
     expect(isTournamentSetupComplete(draft)).toBe(true);
   });
 

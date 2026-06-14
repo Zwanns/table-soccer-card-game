@@ -159,11 +159,21 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('Воротарська колода звичайного матчу не використовується в пенальті.');
   });
 
-  it('provides 64 unique national teams for match setup', () => {
+  it('provides 65 unique national teams for match setup', () => {
     const teamNames = NATIONAL_TEAMS.map((team) => team.name);
 
-    expect(NATIONAL_TEAMS).toHaveLength(64);
-    expect(new Set(teamNames).size).toBe(64);
+    expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(new Set(teamNames).size).toBe(65);
+  });
+
+  it('keeps Northern Ireland separate from Ireland', () => {
+    const ireland = NATIONAL_TEAMS.find((team) => team.name === 'Ireland');
+    const northernIreland = NATIONAL_TEAMS.find((team) => team.name === 'Northern Ireland');
+
+    expect(ireland).toMatchObject({ flagCode: 'ie' });
+    expect(northernIreland).toMatchObject({ flagCode: 'nir' });
+    expect(ireland?.flagCode).not.toBe(northernIreland?.flagCode);
+    expect(northernIreland?.rank).toBe(38);
   });
 
   it('keeps national teams alphabetized with the selected replacements', () => {

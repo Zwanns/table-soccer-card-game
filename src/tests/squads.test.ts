@@ -14,7 +14,7 @@ describe('static national team squads', () => {
 
   it('keeps the compatibility exports wired to real squads', () => {
     expect(DEFAULT_SQUADS).toBe(REAL_SQUADS);
-    expect(DEFAULT_SQUADS).toHaveLength(64);
+    expect(DEFAULT_SQUADS).toHaveLength(65);
     expect(DEFAULT_SQUADS).toHaveLength(NATIONAL_TEAMS.length);
 
     for (const team of NATIONAL_TEAMS) {

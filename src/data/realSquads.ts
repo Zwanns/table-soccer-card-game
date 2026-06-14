@@ -43,6 +43,23 @@ const FIELD_NUMBERS = [
   18,
 ] as const;
 
+const NORTHERN_IRELAND_FIELD_NUMBERS = [
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  14,
+  15,
+  18,
+] as const;
+
 type FieldPlayerNames = readonly [
   string,
   string,
@@ -64,6 +81,7 @@ function createSquad(
   flagCode: string,
   goalkeeperName: string,
   names: FieldPlayerNames,
+  fieldNumbers: readonly number[] = FIELD_NUMBERS,
 ): NationalTeamSquad {
   const fieldPlayers = Object.fromEntries(
     FIELD_RANKS.map((rank, index) => [
@@ -71,7 +89,7 @@ function createSquad(
       {
         rank,
         name: names[index],
-        shirtNumber: FIELD_NUMBERS[index],
+        shirtNumber: fieldNumbers[index],
       },
     ]),
   ) as NationalTeamSquad['fieldPlayers'];
@@ -716,6 +734,23 @@ export const REAL_SQUADS: readonly NationalTeamSquad[] = [
     'Tella',
     'Onyeka',
   ]),
+
+  createSquad('nir', 'Bailey Peacock-Farrell', [
+    'Terry Devlin',
+    'Ruairi McConville',
+    'Brodie Spencer',
+    'Ciaron Brown',
+    'Eoin Toal',
+    'Ethan Galbraith',
+    'Justin Devenny',
+    'Jamie Donley',
+    'Isaac Price',
+    'Callum Marshall',
+    'Dion Charles',
+    'Trai Hume',
+    'Shea Charles',
+    'Josh Magennis',
+  ], NORTHERN_IRELAND_FIELD_NUMBERS),
 
   createSquad('no', 'Nyland', [
     'Ryerson',

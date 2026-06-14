@@ -18,7 +18,7 @@ describe('read-only squad scenes', () => {
   it('shows all national teams in the squad selector', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
-    expect(NATIONAL_TEAMS).toHaveLength(64);
+    expect(NATIONAL_TEAMS).toHaveLength(65);
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');

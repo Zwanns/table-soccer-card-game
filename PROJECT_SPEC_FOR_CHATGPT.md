@@ -64,7 +64,7 @@ src/scenes/
 - `BootScene.ts` - загрузка базовых ассетов, звуков, меню, флагов, экипировок и fallback/team-cover рубашек колод. Для меню загружает `menu-logo1.png` и `menu-logo2.png`, но не старый `menu-logo.png`.
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
 - `MenuScene.ts` - главное меню с фоновым изображением, кнопками режимов, отдельными разделами `Rules`/`About` и мигающим scoreboard-логотипом. Анимированный мяч и желтые декоративные треугольники в меню не используются.
-- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 64 команды отображаются на одной странице компактной сеткой 8x8 без пагинации.
+- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 65 команд отображаются на одной странице компактной сеткой с 8 колонками без пагинации.
 - `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа две preview-карты выбранной сборной: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
 - `ResultScene.ts` - финальный экран матча.
@@ -124,7 +124,7 @@ src/data/
 
 Данные:
 
-- `nationalTeams.ts` - 64 национальные сборные.
+- `nationalTeams.ts` - 65 национальных сборных.
 - `realSquads.ts` - единственный источник реальных статических составов.
 - `defaultSquads.ts` - адаптер/фасад для получения состава из `realSquads`.
 - `squadTypes.ts` и `squadValidation.ts` - типы и проверки составов.
@@ -192,7 +192,7 @@ public/menu/menu-flags.png
 
 ## 4. Национальные сборные и составы
 
-В проекте 64 сборные. Список команд находится в:
+В проекте 65 сборных. Список команд находится в:
 
 ```text
 src/data/nationalTeams.ts
@@ -211,6 +211,16 @@ src/data/realSquads.ts
 - goalkeeper не хранит личный rank, потому что rank берется из отдельной GK-карты.
 
 `defaultSquads.ts` сохраняет совместимость старого кода, но данные берет из `realSquads.ts`.
+
+Northern Ireland добавлена как отдельная команда в алфавитный список сборных:
+
+- `name: 'Northern Ireland'`
+- `flagCode: 'nir'`
+- Ireland / Republic of Ireland продолжает использовать `flagCode: 'ie'`
+- флаг команды загружается из `public/flags/nir.svg`
+- ручная форма зарегистрирована как `public/kits/images/nir.webp`
+- kit colors: primary `#006A3A`, secondary `#FFFFFF`, shirt number `#FFFFFF`, stroke `#111111`; красный акцент `#C8102E` используется в визуальном образе флага/формы.
+- реальный состав `nir` находится в `realSquads.ts`: goalkeeper Bailey Peacock-Farrell, 14 field players, включая Trai Hume, Shea Charles и Dion Charles.
 
 ## 5. Обычные карты и правила сравнения
 
@@ -1057,7 +1067,7 @@ src/tests/
 
 ```text
 30 test files
-410 tests
+412 tests
 ```
 
 Перед завершением значимых правок рекомендуется запускать:

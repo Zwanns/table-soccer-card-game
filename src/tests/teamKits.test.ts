@@ -61,15 +61,15 @@ describe('team kit data contract', () => {
     });
   });
 
-  it('defines exactly 64 team kit styles matching national teams', () => {
-    expect(TEAM_KIT_STYLES).toHaveLength(64);
-    expect(NATIONAL_TEAMS).toHaveLength(64);
+  it('defines exactly 65 team kit styles matching national teams', () => {
+    expect(TEAM_KIT_STYLES).toHaveLength(65);
+    expect(NATIONAL_TEAMS).toHaveLength(65);
 
     const styleFlagCodes = TEAM_KIT_STYLES.map((style) => style.flagCode).sort();
     const nationalFlagCodes = NATIONAL_TEAMS.map((team) => team.flagCode).sort();
 
     expect(styleFlagCodes).toEqual(nationalFlagCodes);
-    expect(new Set(styleFlagCodes).size).toBe(64);
+    expect(new Set(styleFlagCodes).size).toBe(65);
   });
 
   it('uses valid team kit colors, keys, and image paths', () => {
@@ -125,6 +125,15 @@ describe('team kit data contract', () => {
       assetKey: 'kit-gb-wls',
       path: 'kits/images/gb-wls.webp'
     });
+    expect(getTeamKitStyle('nir')).toMatchObject({
+      flagCode: 'nir',
+      assetKey: 'kit-nir',
+      path: 'kits/images/nir.webp',
+      primaryColor: '#006A3A',
+      secondaryColor: '#FFFFFF',
+      shirtNumberColor: '#FFFFFF',
+      shirtNumberStrokeColor: '#111111'
+    });
     expect(getTeamKitStyle('unknown')).toBeUndefined();
     expect(FALLBACK_TEAM_KIT_ASSET).toEqual({
       assetKey: 'kit-none',
@@ -170,9 +179,11 @@ describe('team kit data contract', () => {
 
   it('registers available WebP files and mandatory goalkeeper kits', () => {
     expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('pl')).toBe(true);
+    expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('nir')).toBe(true);
     expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gb-sct')).toBe(false);
     expect(AVAILABLE_GOALKEEPER_KIT_IDS).toEqual(new Set(['gk1', 'gk2']));
     expect(hasManualTeamKit('pl')).toBe(true);
+    expect(hasManualTeamKit('nir')).toBe(true);
     expect(hasManualGoalkeeperKit('gk1')).toBe(true);
   });
 

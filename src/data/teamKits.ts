@@ -91,6 +91,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['ma', '#C1272D', '#006233', '#FFFFFF', '#111111'],
   ['nl', '#F36C21', '#111111', '#111111', '#FFFFFF'],
   ['ng', '#008753', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['nir', '#006A3A', '#FFFFFF', '#FFFFFF', '#111111'],
   ['no', '#BA0C2F', '#00205B', '#FFFFFF', '#111111'],
   ['pa', '#DA121A', '#FFFFFF', '#FFFFFF', '#111111'],
   ['py', '#D52B1E', '#FFFFFF', '#0038A8', '#FFFFFF'],
@@ -179,6 +180,7 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>([
   'it',
   'mx',
   'ng',
+  'nir',
   'no',
   'pl',
   'ua',
@@ -218,12 +220,12 @@ export function validateTeamKitStylesAgainstNationalTeams(): void {
   const styleFlagCodes = TEAM_KIT_STYLES.map((style) => style.flagCode);
   const goalkeeperKitIds = GOALKEEPER_KIT_STYLES.map((style) => style.id);
 
-  if (TEAM_KIT_STYLES.length !== 64) {
-    errors.push(`TEAM_KIT_STYLES must contain 64 entries, got ${TEAM_KIT_STYLES.length}.`);
+  if (TEAM_KIT_STYLES.length !== 65) {
+    errors.push(`TEAM_KIT_STYLES must contain 65 entries, got ${TEAM_KIT_STYLES.length}.`);
   }
 
-  if (NATIONAL_TEAMS.length !== 64) {
-    errors.push(`NATIONAL_TEAMS must contain 64 entries, got ${NATIONAL_TEAMS.length}.`);
+  if (NATIONAL_TEAMS.length !== 65) {
+    errors.push(`NATIONAL_TEAMS must contain 65 entries, got ${NATIONAL_TEAMS.length}.`);
   }
 
   for (const flagCode of nationalFlagCodes) {
