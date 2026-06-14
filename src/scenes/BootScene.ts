@@ -29,7 +29,8 @@ export class BootScene extends Phaser.Scene {
 
   public preload(): void {
     this.load.image(MENU_ASSETS.background, MENU_ASSET_PATHS.background);
-    this.load.image(MENU_ASSETS.logo, MENU_ASSET_PATHS.logo);
+    this.load.image(MENU_ASSETS.logoOn, MENU_ASSET_PATHS.logoOn);
+    this.load.image(MENU_ASSETS.logoOff, MENU_ASSET_PATHS.logoOff);
     this.load.image('turn-ball', ASSET_PATHS.ball);
     this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath());
     for (const flagCode of AVAILABLE_TEAM_COVER_FLAG_CODES) {

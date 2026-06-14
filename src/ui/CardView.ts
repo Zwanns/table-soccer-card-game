@@ -16,7 +16,7 @@ export interface CardViewOptions {
   playerProfile?: CardPlayerProfile;
   kitTextureKey?: string;
   coverTextureKey?: string;
-  faceDownVariant?: 'deck' | 'preview';
+  faceDownVariant?: 'deck' | 'preview' | 'squad-preview';
   tooltipEnabled?: boolean;
   onClick?: () => void;
 }
@@ -120,19 +120,27 @@ export class CardView extends Phaser.GameObjects.Container {
   private addFaceDownCard(scene: Phaser.Scene, options: CardViewOptions): void {
     const faceDownVariant = options.faceDownVariant ?? 'deck';
     const isPreview = faceDownVariant === 'preview';
-    const strokeWidth = options.highlighted === true ? 5 : 2;
-    const strokeColor = options.highlighted === true ? 0xf0c95a : isPreview ? 0x1f2a2e : 0x7bb8d8;
+    const isSquadPreview = faceDownVariant === 'squad-preview';
+    const usesNeutralPreviewBorder = isPreview || isSquadPreview;
+    const isHighlighted = options.highlighted === true && !usesNeutralPreviewBorder;
+    const strokeWidth = isHighlighted ? 5 : 2;
+    const strokeColor = isHighlighted ? 0xf0c95a : usesNeutralPreviewBorder ? 0x1f2a2e : 0x7bb8d8;
     const fillColor = isPreview ? 0xffffff : 0x214f6b;
     const background = createRoundedCardBack(scene, fillColor, strokeColor, strokeWidth);
     const coverTextureKey = options.coverTextureKey ?? getFallbackCoverTextureKey();
+    const coverInset = isSquadPreview ? 0 : 8;
+
+    if (isSquadPreview) {
+      this.add(createRoundedCardBack(scene, 0x17384c, 0x1f2a2e, 2, -10, 10));
+    }
 
     this.add(background);
 
     if (scene.textures.exists(coverTextureKey)) {
       const cover = scene.add.image(0, 0, coverTextureKey);
       fitImageContain(cover, {
-        width: CARD_WIDTH - 8,
-        height: CARD_HEIGHT - 8
+        width: CARD_WIDTH - coverInset,
+        height: CARD_HEIGHT - coverInset
       });
       this.add(cover);
     }
@@ -145,22 +153,24 @@ function createRoundedCardBack(
   scene: Phaser.Scene,
   fillColor: number,
   strokeColor: number,
-  strokeWidth: number
+  strokeWidth: number,
+  x = 0,
+  y = 0
 ): Phaser.GameObjects.Graphics {
   const graphics = scene.add.graphics();
 
   graphics.fillStyle(fillColor, 1);
   graphics.fillRoundedRect(
-    -CARD_WIDTH / 2,
-    -CARD_HEIGHT / 2,
+    x - CARD_WIDTH / 2,
+    y - CARD_HEIGHT / 2,
     CARD_WIDTH,
     CARD_HEIGHT,
     KIT_CARD_LAYOUT.cardCornerRadius
   );
   graphics.lineStyle(strokeWidth, strokeColor, 1);
   graphics.strokeRoundedRect(
-    -CARD_WIDTH / 2,
-    -CARD_HEIGHT / 2,
+    x - CARD_WIDTH / 2,
+    y - CARD_HEIGHT / 2,
     CARD_WIDTH,
     CARD_HEIGHT,
     KIT_CARD_LAYOUT.cardCornerRadius

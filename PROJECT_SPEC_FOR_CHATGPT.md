@@ -1,6 +1,6 @@
 # Total Soccer: Mundial - описание и спецификация проекта
 
-Этот документ предназначен для переноса контекста проекта в отдельный чат GPT. Он описывает текущее состояние приложения после этапов с реальными составами, WebP-экипировками, новым layout открытых карт, локальными игровыми шрифтами, отдельной GK-колодой, подключением полузащитников к атаке, единой открытой зоной для контратаки, режимом игры против AI и обновленными строгими правилами подключенных полузащитников.
+Этот документ предназначен для переноса контекста проекта в отдельный чат GPT. Он описывает текущее состояние приложения после этапов с реальными составами, WebP-экипировками, командными рубашками колод, новым layout открытых карт, локальными игровыми шрифтами, отдельной GK-колодой, подключением полузащитников к атаке, единой открытой зоной для контратаки, режимом игры против AI, безопасным аудио, обновленной статистикой голов и строгими правилами подключенных полузащитников.
 
 ## 1. Краткое описание
 
@@ -8,7 +8,7 @@
 
 Игроки выбирают две национальные сборные и проводят матч карточными колодами. Каждая команда может управляться человеком или встроенным AI, поэтому поддерживаются матчи HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI. Поле каждой команды состоит из линии полузащиты, линии защиты и позиции вратаря. Атака проходит линии соперника строго по порядку: полузащита, защита, вратарь. Во время атаки на линию полузащиты игрок может вместо карты из колоды подключать собственных полузащитников строго по соответствующим коридорам. Подключенный полузащитник бьет только строго меньший rank, кроме специальных правил. При пробитии вратаря засчитывается гол.
 
-Текущая версия приложения в коде: `1.3.0`.
+Текущая версия приложения в коде: `1.3.1`.
 
 ## 2. Технологии и команды
 
@@ -38,7 +38,7 @@ src/config.ts
 Глобальная конфигурация:
 
 - `GAME_TITLE = 'Total Soccer: Mundial'`
-- `GAME_VERSION = '1.3.0'`
+- `GAME_VERSION = '1.3.1'`
 - `GAME_AUTHOR = 'Oleh Myronchuk'`
 - `SCENE_WIDTH = 1600`
 - `SCENE_HEIGHT = 720`
@@ -61,11 +61,11 @@ src/scenes/
 
 Основные сцены:
 
-- `BootScene.ts` - загрузка базовых ассетов, звуков, меню и экипировок.
+- `BootScene.ts` - загрузка базовых ассетов, звуков, меню, флагов, экипировок и fallback/team-cover рубашек колод. Для меню загружает `menu-logo1.png` и `menu-logo2.png`, но не старый `menu-logo.png`.
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
-- `MenuScene.ts` - главное меню.
+- `MenuScene.ts` - главное меню с фоновым изображением, кнопками режимов, отдельными разделами `Rules`/`About` и мигающим scoreboard-логотипом. Анимированный мяч и желтые декоративные треугольники в меню не используются.
 - `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 64 команды отображаются на одной странице компактной сеткой 8x8 без пагинации.
-- `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр/редактирование состава.
+- `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа две preview-карты выбранной сборной: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
 - `ResultScene.ts` - финальный экран матча.
 - `TournamentSetupScene.ts`, `TournamentHubScene.ts`, `TournamentPenaltyScene.ts`, `TournamentCompleteScene.ts` - турнирный контур и пенальти. В setup-экране слоты групп, AI-checkboxes и кнопки удаления используют интерактивные зоны, совпадающие с видимыми прямоугольниками строк.
@@ -86,7 +86,7 @@ src/game/
 - `MatchTeamSetup.ts` - snapshot выбранной сборной, состава, GK-комплекта и типа контроллера `HUMAN`/`AI`.
 - `kitAssetResolver.ts` - runtime resolver экипировок.
 - `squadResolver.ts` - связь карт с игроками состава.
-- `matchStats.ts` - статистика матча.
+- `matchStats.ts` - статистика матча, scorer snapshots и форматирование подписей авторов голов.
 - `advantage.ts` - шкала текущего преимущества.
 
 ```text
@@ -131,17 +131,64 @@ src/data/
 - `teamKits.ts` - registry цветов, путей и asset keys экипировок.
 
 ```text
+src/assets/
+```
+
+Runtime-ассеты:
+
+- `teamCover.ts` - registry/utility для рубашек командных колод, fallback `covers/none.webp`, ленивой догрузки cover-текстур и contain-fit масштабирования изображений.
+
+```text
+src/audio/
+```
+
+Аудио:
+
+- `playSoundSafe.ts` - безопасный helper проигрывания звука. Если audio asset не загружен, helper пишет warning и не вызывает `scene.sound.play()`.
+
+```text
 src/ui/
 ```
 
 Phaser UI:
 
-- `CardView.ts` - контейнер карты.
+- `CardView.ts` - контейнер карты. Поддерживает открытую карту с формой, обычную закрытую карту, нейтральную закрытую preview-карту и squad-preview рубашку с deck-layering без синей deck-обводки.
 - `KitCardFaceView.ts` - открытая лицевая сторона карты с формой, rank и номером.
 - `kitCardFaceModel.ts` - layout открытой карты.
 - `cardPlayerProfile.ts` - профиль игрока для карты и tooltip.
 - `CardTooltipView.ts` - tooltip.
 - `DeckView.ts`, `FieldView.ts`, `ScoreView.ts`, `TeamStatsView.ts`, `AdvantageView.ts`, `EventLogView.ts`.
+
+### Главное меню
+
+Главное меню использует ассеты:
+
+```text
+public/menu/menu-bg.webp
+public/menu/menu-logo1.png
+public/menu/menu-logo2.png
+public/menu/menu-flags.png
+```
+
+`menu-logo1.png` - включенное состояние табло, `menu-logo2.png` - выключенное состояние табло. `MENU_ASSETS` хранит ключи `logoOn` и `logoOff`, `MENU_ASSET_PATHS` указывает на `menu/menu-logo1.png` и `menu/menu-logo2.png`.
+
+Правила:
+
+- `menu-logo.png` не используется runtime-кодом;
+- `menu-ball` не используется в меню;
+- `turn-ball` продолжает загружаться для игровых UI-элементов, но не является fallback-декором главного меню;
+- логотип создается одним `Image` и мигает через переключение texture между `logoOn` и `logoOff`;
+- `fitImageWithin()` сохраняет aspect ratio логотипа через `setScale()`;
+- кнопки главного меню и меню режимов используют единый `buttonWidth`, рассчитанный через `getMenuButtonWidth()`;
+- если `logoImage.displayWidth` доступен, ширина кнопок равна фактической ширине масштабированного табло с clamp по ширине экрана;
+- если используется текстовый fallback без logo image, ширина кнопок берется из ограниченного fallback-расчета от `this.scale.width`;
+- главное меню содержит кнопки `Game modes`, `Teams`, `Rules`, `About` в этом порядке;
+- `About` содержит только короткое описание игры на EN/PL/UA, без правил;
+- `Rules` открывает отдельную модальную панель с правилами на EN/PL/UA и использует тот же language selector;
+- украинский `About` должен использовать украинский текст, а не английский fallback;
+- если `logoOn` не загружен, показывается текстовый fallback из `GAME_TITLE`;
+- если `logoOff` не загружен, логотип остается включенным и blink timer не запускается;
+- blink timer очищается на `SHUTDOWN`, `DESTROY` и при перестроении меню.
 
 ## 4. Национальные сборные и составы
 
@@ -634,6 +681,52 @@ Validator проверяет:
 - путь `kits/images/`;
 - расширение `.webp`.
 
+## 11.1 Рубашки командных колод
+
+Командные рубашки колод лежат в:
+
+```text
+public/covers/
+```
+
+Формат:
+
+```text
+public/covers/<flagCode>.webp
+public/covers/none.webp
+```
+
+Кодовый контракт:
+
+```text
+src/assets/teamCover.ts
+```
+
+Ключевые функции:
+
+```ts
+getTeamCoverFilename(flagFilename)
+getTeamCoverPath(flagFilename)
+getTeamCoverTextureKey(flagFilename)
+getFallbackCoverPath()
+getFallbackCoverTextureKey()
+queueTeamCoverLoad(scene, flagFilename)
+markTeamCoverLoadFailed(textureKey)
+resolveTeamCoverLoadResult(textures, flagFilename)
+fitImageContain(image, bounds)
+```
+
+Правила:
+
+- texture key строится как `cover-<flagCode>`;
+- fallback texture key - `cover-none`;
+- fallback path - `covers/none.webp`;
+- `AVAILABLE_TEAM_COVER_FLAG_CODES` содержит только реально доступные cover-ассеты;
+- если cover не загружен или загрузка помечена как failed, используется `cover-none`;
+- `GameScene` и `TournamentPenaltyScene` могут лениво ставить cover в очередь через `queueTeamCoverLoad()`;
+- `BootScene` всегда загружает `cover-none` и все cover-ассеты из `AVAILABLE_TEAM_COVER_FLAG_CODES`;
+- `DeckView` и closed `CardView` получают `coverTextureKey`, но сами не решают командную fallback-логику.
+
 ## 12. Загрузка и resolver экипировок
 
 BootScene всегда загружает:
@@ -642,9 +735,12 @@ BootScene всегда загружает:
 kit-none -> kits/images/none.webp
 kit-gk1  -> kits/images/gk1.webp
 kit-gk2  -> kits/images/gk2.webp
+cover-none -> covers/none.webp
 ```
 
 Дополнительно загружаются только зарегистрированные формы сборных из `AVAILABLE_MANUAL_KIT_FLAG_CODES`.
+
+Командные рубашки колод загружаются из `AVAILABLE_TEAM_COVER_FLAG_CODES`.
 
 Resolver:
 
@@ -670,7 +766,13 @@ src/game/kitAssetResolver.ts
 4. номер игрока поверх формы;
 5. интерактивные эффекты и tooltip.
 
-Закрытые карты не менялись.
+Закрытые карты:
+
+- стандартный face-down вариант по умолчанию остается deck-стилем с темной подложкой `0x214f6b` и синей обводкой `0x7bb8d8`;
+- `CardViewOptions.faceDownVariant?: 'deck' | 'preview' | 'squad-preview'` позволяет явно запросить preview-вариант;
+- `faceDownVariant: 'preview'` использует нейтральную одиночную карту с белой подложкой `0xffffff` и темной рамкой `0x1f2a2e`, без синей deck-обводки;
+- `faceDownVariant: 'squad-preview'` использует темную верхнюю подложку как у deck-стиля, добавляет смещенную заднюю карту `(-10, 10)` и нейтральную темную рамку `0x1f2a2e`, без active/highlight outline;
+- если `coverTextureKey` не передан, закрытая карта использует `getFallbackCoverTextureKey()`.
 
 Layout:
 
@@ -718,6 +820,21 @@ Tooltip:
 - показывает только фамилию игрока;
 - не показывает номер, rank, роль или команду.
 
+### Teams preview
+
+На экране `Teams` / `SquadSelectScene` справа от таблицы состава отображаются две карты выбранной команды:
+
+- сверху лицевая preview-карта через `CardView` с `rank: 'N'`, `kitTextureKey: getTeamKitAssetKey(team.flagCode)` и отключенным tooltip;
+- снизу face-down squad-preview карта через `CardView` с `coverTextureKey: resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey`, `faceDown: true`, `faceDownVariant: 'squad-preview'` и отключенным tooltip.
+
+Обе preview-карты используют один масштаб:
+
+```ts
+const TEAM_PREVIEW_CARD_SCALE = 1.45;
+```
+
+Это важно: preview-рубашка должна быть такого же размера, как лицевая preview-карта, но при этом не должна выглядеть как активная игровая колода.
+
 ## 14. UI матча
 
 Основная сцена:
@@ -730,7 +847,7 @@ src/scenes/GameScene.ts
 
 - футбольное поле;
 - карты обеих команд;
-- основные колоды;
+- основные колоды с командными рубашками;
 - GK-slot на поле;
 - кнопки меню/результата;
 - табло счета;
@@ -754,6 +871,8 @@ src/scenes/GameScene.ts
 
 Flying messages (`GOAL!!`, `Goalkeeper!!`, `Post!`, `Turnover...`) используют padding у текстового объекта, чтобы stroke и крайние символы не обрезались.
 
+Звуки в `GameScene`, `ResultScene` и `TournamentPenaltyScene` проигрываются через `playSoundSafe()`. Отсутствующий audio asset не должен ломать сцену: helper пишет warning и пропускает проигрывание.
+
 ## 15. Статистика и преимущество
 
 `matchStats.ts` считает:
@@ -762,8 +881,24 @@ Flying messages (`GOAL!!`, `Goalkeeper!!`, `Post!`, `Turnover...`) исполь�
 - удары;
 - сейвы GK;
 - реализацию;
-- scorer snapshots;
+- scorer snapshots с `turnNumber`;
 - possession.
+
+Форматирование авторов голов:
+
+```ts
+formatGoalScorerLabel(scorer)
+formatGoalScorerMatchLabel(scorer)
+```
+
+Правила label:
+
+- если есть номер и имя: `#<shirtNumber> <playerName>`;
+- если есть только номер: `#<shirtNumber>`;
+- если есть только имя: `<playerName>`;
+- fallback: `Rank <rank>`.
+
+В `GameScene` мини-статистика голов показывает список авторов через `TeamStatsView`; длинный список находится в masked viewport и прокручивается колесом. В `ResultScene` блок `Goalscorers` показывает общую хронологию голов по turnNumber в двух левых-выравненных колонках команд и тоже поддерживает прокрутку при переполнении.
 
 `advantage.ts` считает текущее преимущество по максимальной глубине атаки за последние 5 ходов:
 
@@ -897,10 +1032,16 @@ src/tests/
 - `aiDecision.test.ts` - чистые решения AI, честность, legal-only действия, special rules, gap priority и overpay filter.
 - `aiTurnController.test.ts` - таймеры AI, HUMAN/AI и AI/AI pipeline до `GAME_OVER`, блокировка ввода во время AI-хода.
 - `gameSceneEventEffects.test.ts` - общий GOAL sound и `GOAL!!` pipeline для HUMAN и AI.
-- `cardFace.test.ts` - layout карты, tooltip, шрифты, kit render contract.
+- `cardFace.test.ts` - layout карты, tooltip, шрифты, kit render contract, стандартный и preview face-down варианты.
+- `teamCover.test.ts` - пути, texture keys, fallback и failure-state для рубашек командных колод.
+- `teamStatsView.test.ts` - список авторов голов, fallback `-`, masked viewport и scrollbar.
 - `teamKits.test.ts` и `kitAssetResolver.test.ts` - registry и resolver экипировок.
 - `validateKits.test.ts` - validator WebP-ассетов.
 - `realSquads.test.ts` и `squads.test.ts` - составы.
+- `project.test.ts` - метаданные проекта, версия, автор, main menu asset contracts, blink-logo contracts, унификация ширины menu buttons, отдельные `Rules`/`About`, safe sound helper, scorer UI contracts.
+- `bootScene.test.ts` - обязательная загрузка kit-ассетов и текущих menu scoreboard ассетов без старого `menu-logo.png` / `menu-ball`.
+- `resultScene.test.ts` - выравнивание и прокручиваемая хронология авторов голов на финальном экране.
+- `squadEditor.test.ts` - read-only Teams/Squad screens и preview-карты выбранной сборной с одинаковым scale.
 - tournament tests - турнирная механика, статистика, AI-checkboxes, visual AI match setup, simulation, penalty routing и сохранение победителя серии пенальти с HUMAN/AI.
 - `penaltyAiDecision.test.ts` - чистая модель решений penalty AI, legal-only действия, отсутствие мутаций, отдельный random stream и запрет `Math.random()`.
 - `penaltyAiController.test.ts` - timers penalty AI, cleanup, общий pipeline действий, standalone HUMAN/AI комбинации и дополнительная серия после ничьей.
@@ -908,8 +1049,8 @@ src/tests/
 На момент обновления документа:
 
 ```text
-28 test files
-389 tests
+29 test files
+402 tests
 ```
 
 Перед завершением значимых правок рекомендуется запускать:
@@ -936,12 +1077,15 @@ npm run dev
 - wiki-importer;
 - исходные `.webp`-ассеты `130 x 150`;
 - формат экипировок `public/kits/images/*.webp`;
+- fallback-рубашку `public/covers/none.webp` и контракт `cover-<flagCode>` / `cover-none`;
 - локальные шрифты Anton, Oswald и Bangers;
 - tooltip: только фамилия;
 - отдельность GK-колоды от основной колоды;
 - запрет попадания GK-карты в `attackBank` и основную deck;
 - честность AI: не смотреть закрытые карты, не читать private-поля движка/колод, не использовать `Math.random()` в решениях;
 - отдельность tournament simulation и penalty shootout от AI обычного визуального матча.
+- стандартный deck-стиль настоящих игровых закрытых карт и колод при правках preview на `Teams`;
+- fallback-логику `resolveTeamCoverLoadResult()` при правках рубашек.
 
 Runtime не должен зависеть от Node API (`fs`, `sharp`) и не должен обращаться к Wikipedia/Commons.
 

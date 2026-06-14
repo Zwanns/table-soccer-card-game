@@ -15,16 +15,16 @@ Main menu background. Preferred size: `1600 x 720`.
 Use this for a night stadium, stylized pitch, or tournament atmosphere. Do not include embedded buttons, UI text, or the game logo in this image.
 
 ```text
-menu-logo.png
+menu-logo1.png
 ```
 
-Transparent PNG logo for the game. If this file is absent, `MenuScene` renders the title with Phaser text.
+Transparent PNG scoreboard logo with the title switched on. If this file is absent, `MenuScene` renders the title with Phaser text.
 
 ```text
-menu-ball.png
+menu-logo2.png
 ```
 
-Transparent PNG decorative football. If this file is absent, `MenuScene` uses the existing `turn-ball` texture as a subtle fallback decoration.
+Transparent PNG scoreboard logo with the title switched off. If this file is absent, `MenuScene` keeps `menu-logo1.png` visible and skips the blink effect.
 
 ```text
 menu-flags.png

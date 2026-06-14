@@ -87,4 +87,18 @@ describe('BootScene kit asset loading', () => {
     expect(source).not.toContain('fetch(');
     expect(source).not.toContain('XMLHttpRequest');
   });
+
+  it('loads the current menu scoreboard assets without the retired menu logo or decorative ball', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+    const configSource = readFileSync(join(process.cwd(), 'src', 'config.ts'), 'utf8');
+    const source = `${bootSceneSource}\n${configSource}`;
+
+    expect(source).toContain('logoOn');
+    expect(source).toContain('logoOff');
+    expect(source).toContain('menu/menu-logo1.png');
+    expect(source).toContain('menu/menu-logo2.png');
+    expect(source).not.toContain('menu/menu-logo.png');
+    expect(source).not.toContain('menu/menu-ball.png');
+    expect(source).not.toContain('menu-ball');
+  });
 });

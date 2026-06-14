@@ -213,7 +213,7 @@ export class SquadSelectScene extends Phaser.Scene {
       rank: TEAM_PREVIEW_DISPLAY_RANK,
       faceDown: true,
       coverTextureKey,
-      faceDownVariant: 'preview',
+      faceDownVariant: 'squad-preview',
       tooltipEnabled: false
     });
 

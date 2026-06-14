@@ -1,719 +1,463 @@
 ````md
 # Total Soccer: Mundial
-# Добавить AI в серию пенальти
+# Разделить About и Rules + исправить украинскую локализацию
 
 ## Цель
 
-Добавить управление AI в серии пенальти:
+Обновить информационные разделы главного меню:
 
-```text
-HUMAN vs HUMAN
-HUMAN vs AI
-AI vs HUMAN
-AI vs AI
-```
-
-AI пенальти должен:
-- использовать только легальные действия;
-- работать через публичный API `PenaltyShootoutEngine`;
-- не менять состояние напрямую;
-- не подсматривать будущие карты или скрытые данные;
-- иметь небольшую вариативность;
-- использовать отдельный seeded random stream;
-- работать в standalone-режиме пенальти;
-- работать в турнирной серии пенальти;
-- не смешиваться с AI обычного матча;
-- не использовать `AiTurnController` обычного матча;
-- не использовать GK-колоду обычного матча.
-
-Уровни сложности не добавлять.
-
-Работу выполнять строго по этапам.
-
-После каждого этапа запускать:
-
-```bash
-npm test
-npm run build
-```
-
-Если менялся UI или runtime:
-
-```bash
-npm run dev
-```
-
-После каждого этапа остановиться и вывести отчет.
-
-Не переходить к следующему этапу автоматически.
+1. Исправить украинскую версию раздела `About`: сейчас при выборе украинского языка показывается английский текст.
+2. Убрать правила игры из раздела `About`.
+3. Добавить новую кнопку `Rules` в главное меню.
+4. В новом разделе `Rules` показать актуальные правила игры.
+5. Раздел `Rules` должен иметь три языковые версии:
+   - English;
+   - Polski;
+   - Українська.
 
 ---
 
-# Этап PAI-0 — аудит механики пенальти
+## Ожидаемые файлы
 
-## Цель
-
-Изучить существующую реализацию серии пенальти до внесения изменений.
-
-## Проверить
+Проверить:
 
 ```text
-src/scenes/TournamentPenaltyScene.ts
-src/scenes/TeamSelectScene.ts
-src/game/PenaltyShootoutEngine.ts
-src/game/penalty/*
-src/scenes/*
-src/tests/*
+src/scenes/MenuScene.ts
+src/config.ts
+src/tests/project.test.ts
+src/tests/menuScene.test.ts
+PROJECT_SPEC_FOR_CHATGPT.md
+````
+
+Также найти фактическое место хранения текстов `About`:
+
+```text
+About
+ABOUT
+aboutText
+aboutContent
+language
+locale
+English
+Polski
+Українська
 ```
 
-Если пути отличаются, найти фактические файлы через поиск по:
+Если тексты вынесены в отдельный файл — изменить его.
+
+---
+
+# 1. Главное меню: добавить кнопку Rules
+
+В главном меню сейчас есть кнопки:
 
 ```text
+Game modes
+Teams
+About
+```
+
+Добавить новую кнопку:
+
+```text
+Rules
+```
+
+Рекомендуемый порядок:
+
+```text
+Game modes
+Teams
+Rules
+About
+```
+
+Требования:
+
+```text
+кнопка Rules использует тот же стиль, что и остальные кнопки;
+ширина кнопки Rules равна ширине остальных кнопок меню;
+кнопка Rules открывает отдельный экран/панель правил;
+кнопка Back возвращает в главное меню;
+кнопки не перекрывают друг друга;
+логотип-табло остается на месте;
+мигание логотипа не меняется.
+```
+
+Если после добавления четвертой кнопки вертикально становится тесно — немного уменьшить отступ между кнопками или опустить блок кнопок, но не менять общий стиль меню.
+
+---
+
+# 2. Раздел About: оставить только описание игры
+
+Из раздела `About` убрать правила игры.
+
+`About` должен быть коротким информационным разделом:
+
+```text
+что это за игра;
+что она вдохновлена футболом, карточными дуэлями и международными турнирами;
+что это ретро-аркадная карточная игра;
+можно упомянуть локальный матч, турнир, AI.
+```
+
+Не описывать в `About`:
+
+* как бить карты;
+* спецправила;
+* полузащитников;
+* вратарскую колоду;
+* пенальти;
+* турнирные правила.
+
+Эти тексты должны быть только в `Rules`.
+
+---
+
+# 3. Исправить украинскую версию About
+
+Сейчас украинская версия `About` почему-то показывает английский текст.
+
+Нужно:
+
+* найти ошибку в mapping/localization;
+* убедиться, что украинский язык использует украинский текст;
+* не дублировать английский текст в украинском ключе;
+* покрыть тестом.
+
+Пример украинского `About`:
+
+```text
+TOTAL SOCCER: MUNDIAL — це ретро-карткова футбольна гра про міжнародні матчі, турніри та драматичні серії пенальті.
+
+Обирай збірні, проводь атаки, захищайся, підключай півзахисників і змагайся проти людини або AI.
+
+Гра натхненна футбольними альбомами, аркадними іграми 80-х і атмосферою великих міжнародних турнірів.
+```
+
+---
+
+# 4. Добавить отдельный раздел Rules
+
+Раздел `Rules` должен открываться из главного меню.
+
+Варианты реализации:
+
+* отдельное состояние внутри `MenuScene`;
+* отдельная scene;
+* существующая modal/panel система, если она уже есть.
+
+Предпочтительно использовать существующий подход, которым сейчас открывается `About`.
+
+## UI требования
+
+В разделе `Rules` должны быть:
+
+```text
+заголовок Rules;
+текст правил;
+переключатель языка или существующий механизм выбора языка;
+кнопка Back.
+```
+
+Если в `About` уже есть переключение языка — использовать тот же механизм.
+
+Если текст длинный:
+
+* сделать прокрутку;
+* или разбить на страницы;
+* или сделать компактный текст с заголовками.
+
+Не допускать выхода текста за экран.
+
+---
+
+# 5. Тексты Rules
+
+Добавить три версии правил.
+
+## English
+
+```text
+TOTAL SOCCER: MUNDIAL — Rules
+
+Goal of the game
+Score more goals than your opponent before the match ends.
+
+Teams and cards
+Each team has field players linked to card ranks: 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A and JOKER.
+Each team also has a goalkeeper card drawn from a separate goalkeeper deck.
+
+Basic attack
+The attacking player draws or plays an attacking card and tries to beat a card in the current defensive line.
+A normal deck card beats a defender if its rank is equal or higher.
+
+Special rules
+Some lower cards can beat high cards:
+2 beats JOKER.
+6 beats A.
+7 beats K.
+8 beats Q.
+9 beats J.
+
+Defensive lines
+An attack moves through the opponent’s lines step by step.
+The attacker must choose legal targets from the current line.
+
+Midfield support
+While attacking through the midfield line, a player may use one of their own midfielders in the matching corridor.
+A committed midfielder must strictly beat the opposite midfielder, or use a special rule.
+Equal ranks do not work for committed midfielders.
+If the attack is lost after using midfielders, the opponent may receive one open midfield zone for the next counterattack.
+
+Open midfield zone
+An open midfield zone works like a weak rank-2 gap.
+It can be used only when the rules allow it.
+The AI should prefer beating a real defensive card before using an open zone.
+
+Goalkeeper
+The goalkeeper is resolved with a separate goalkeeper card.
+After a goal, the goalkeeper card returns to the bottom of the goalkeeper deck.
+The goalkeeper card is never captured by the attacker.
+
+Shot result
+A shot can end as:
+Goal.
+Goalkeeper save.
+Post.
+Turnover.
+
+Penalty shootout
+Penalty shootouts use a separate penalty system.
+Penalty AI is separate from normal match AI.
+The goalkeeper deck from the normal match is not used in penalties.
+
+Tournament
+Tournament mode supports group matches, knockout matches and penalty shootouts when needed.
+Teams may be controlled by a human player or AI.
+```
+
+---
+
+## Polski
+
+```text
+TOTAL SOCCER: MUNDIAL — Zasady
+
+Cel gry
+Zdobądź więcej bramek niż przeciwnik przed końcem meczu.
+
+Drużyny i karty
+Każda drużyna ma zawodników z pola przypisanych do rang kart: 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A oraz JOKER.
+Każda drużyna ma też bramkarza dobieranego z osobnej talii bramkarza.
+
+Podstawowy atak
+Gracz atakujący dobiera lub zagrywa kartę ataku i próbuje pokonać kartę w aktualnej linii obrony przeciwnika.
+Zwykła karta z talii pokonuje obrońcę, jeśli ma taką samą lub wyższą rangę.
+
+Zasady specjalne
+Niektóre niższe karty mogą pokonać wysokie karty:
+2 pokonuje JOKERA.
+6 pokonuje A.
+7 pokonuje K.
+8 pokonuje Q.
+9 pokonuje J.
+
+Linie obrony
+Atak przechodzi przez kolejne linie przeciwnika.
+Atakujący musi wybierać legalne cele z aktualnej linii.
+
+Wsparcie pomocnika
+Podczas ataku przez linię pomocy gracz może użyć jednego ze swoich pomocników w tym samym korytarzu.
+Podłączony pomocnik musi być wyraźnie silniejszy od przeciwnego pomocnika albo użyć zasady specjalnej.
+Równe rangi nie działają dla podłączonych pomocników.
+Jeśli atak zostanie stracony po użyciu pomocników, przeciwnik może otrzymać jedną otwartą strefę w środku pola do następnej kontry.
+
+Otwarta strefa w środku pola
+Otwarta strefa działa jak słaba luka o randze 2.
+Można jej użyć tylko wtedy, gdy pozwalają na to zasady.
+AI powinno najpierw próbować pokonać prawdziwą kartę obrony, a dopiero potem używać otwartej strefy.
+
+Bramkarz
+Bramkarz jest rozstrzygany osobną kartą bramkarza.
+Po golu karta bramkarza wraca na spód talii bramkarza.
+Karta bramkarza nigdy nie jest przejmowana przez atakującego.
+
+Wynik strzału
+Strzał może zakończyć się jako:
+Gol.
+Obrona bramkarza.
+Słupek.
+Strata piłki.
+
+Rzuty karne
+Serie rzutów karnych używają osobnego systemu.
+AI rzutów karnych jest oddzielne od AI zwykłego meczu.
+Talia bramkarza ze zwykłego meczu nie jest używana w rzutach karnych.
+
+Turniej
+Tryb turniejowy obsługuje mecze grupowe, fazę pucharową i serie rzutów karnych, gdy są potrzebne.
+Drużyny mogą być kontrolowane przez gracza lub AI.
+```
+
+---
+
+## Українська
+
+```text
+TOTAL SOCCER: MUNDIAL — Правила
+
+Мета гри
+Забий більше голів, ніж суперник, до завершення матчу.
+
+Команди і карти
+Кожна команда має польових гравців, прив’язаних до рангів карт: 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A та JOKER.
+Кожна команда також має воротаря, який бере карту з окремої воротарської колоди.
+
+Базова атака
+Гравець, який атакує, бере або розігрує атакувальну карту і намагається побити карту в поточній лінії захисту суперника.
+Звичайна карта з колоди б’є захисника, якщо її ранг дорівнює або вищий.
+
+Спеціальні правила
+Деякі нижчі карти можуть побити високі карти:
+2 б’є JOKER.
+6 б’є A.
+7 б’є K.
+8 б’є Q.
+9 б’є J.
+
+Лінії захисту
+Атака проходить через лінії суперника поетапно.
+Атакувальний гравець має вибирати легальні цілі з поточної лінії.
+
+Підключення півзахисника
+Під час атаки через лінію півзахисту гравець може використати одного зі своїх півзахисників у відповідному коридорі.
+Підключений півзахисник має бути строго сильнішим за карту навпроти або використати спеціальне правило.
+Рівні ранги для підключених півзахисників не працюють.
+Якщо після використання півзахисників атака завершується втратою м’яча, суперник може отримати одну відкриту зону в півзахисті для наступної контратаки.
+
+Відкрита зона в півзахисті
+Відкрита зона працює як слабка прогалина з рангом 2.
+Її можна використати лише тоді, коли це дозволено правилами.
+AI має спочатку намагатися побити справжню карту захисту, а вже потім використовувати відкриту зону.
+
+Воротар
+Дія воротаря розігрується окремою воротарською картою.
+Після гола карта воротаря повертається вниз воротарської колоди.
+Карта воротаря ніколи не захоплюється атакувальним гравцем.
+
+Результат удару
+Удар може завершитися як:
+Гол.
+Сейв воротаря.
+Штанга.
+Втрата м’яча.
+
+Серія пенальті
+Серії пенальті використовують окрему систему.
+AI для пенальті відокремлений від AI звичайного матчу.
+Воротарська колода звичайного матчу не використовується в пенальті.
+
+Турнір
+Турнірний режим підтримує групові матчі, плей-оф і серії пенальті, коли вони потрібні.
+Команди можуть керуватися гравцем або AI.
+```
+
+---
+
+# 6. Локализация названий кнопок
+
+Если сейчас кнопки меню локализованы, добавить перевод для `Rules`.
+
+```text
+English: Rules
+Polski: Zasady
+Українська: Правила
+```
+
+Если меню сейчас не локализовано и кнопки всегда английские — оставить `Rules`, чтобы не расширять задачу.
+
+---
+
+# 7. Не ломать ширину кнопок
+
+Новая кнопка `Rules` должна использовать существующий расчет ширины:
+
+```text
+getMenuButtonWidth()
+```
+
+Не добавлять отдельную ширину.
+
+Требования:
+
+```text
+Game modes, Teams, Rules, About имеют одинаковую ширину;
+меню режимов игры не меняется;
+логотип не растягивается;
+мигание логотипа не меняется.
+```
+
+---
+
+# 8. Не менять
+
+Не изменять:
+
+```text
+GameEngine
 PenaltyShootoutEngine
-TournamentPenaltyScene
-penalty
-shootout
+AI обычного матча
+Penalty AI
+TournamentEngine
+карты
+составы
+формы
+ассеты меню
+menu-logo1.png
+menu-logo2.png
+мигание логотипа
+ширину кнопок меню режимов игры
 ```
-
-## Выяснить
-
-```text
-1. Где находится PenaltyShootoutEngine.
-2. Как устроен penalty state.
-3. Какие фазы есть у серии пенальти.
-4. Какие действия выполняет бьющая команда.
-5. Какие действия выполняет защищающаяся команда.
-6. Какие действия выбирает пользователь вручную.
-7. Какие методы движка вызываются UI-сценой.
-8. Какие методы движка являются публичными.
-9. Как определяется результат удара.
-10. Используются ли карты, направления удара, кнопки или другие варианты выбора.
-11. Как запускаются:
-   - standalone-пенальти;
-   - турнирные пенальти.
-12. Как TeamSelectScene передает выбранные команды в standalone-пенальти.
-13. Передается ли controllerType в standalone-пенальти.
-14. Передается ли controllerType участников турнира в TournamentPenaltyScene.
-15. Какие анимации, sounds и flying messages используются.
-16. Какие Phaser timers существуют.
-17. Как очищаются timers при shutdown сцены.
-18. Какие тесты пенальти уже существуют.
-```
-
-## Не менять
-
-Не изменять файлы.
-
-## Отчет
-
-Вывести:
-
-```text
-Этап PAI-0 завершен.
-
-Созданные файлы:
-- нет
-
-Измененные файлы:
-- нет
-
-Фактические файлы пенальти:
-- ...
-
-Публичный API PenaltyShootoutEngine:
-- ...
-
-Penalty phases:
-- ...
-
-Действия атакующей стороны:
-- ...
-
-Действия защищающейся стороны:
-- ...
-
-Путь данных standalone-пенальти:
-- ...
-
-Путь данных турнирных пенальти:
-- ...
-
-Передается ли controllerType:
-- standalone:
-- tournament:
-
-Текущие timers:
-- ...
-
-Текущие sounds/messages:
-- ...
-
-Рекомендованный минимальный набор файлов для изменения:
-- ...
-```
-
-После отчета остановиться.
 
 ---
 
-# Этап PAI-1 — передать controllerType в серию пенальти
+# 9. Тесты
 
-## Цель
-
-Подготовить данные серий пенальти к HUMAN / AI управлению без автоматических действий.
-
-## Использовать существующий тип
-
-Использовать:
-
-```ts
-PlayerControllerType =
-  | 'HUMAN'
-  | 'AI';
-```
-
-Не создавать второй тип контроллера.
-
-## Standalone-пенальти
-
-Проверить путь:
-
-```text
-TeamSelectScene
-->
-penalty scene
-```
-
-Передавать для обеих команд:
-
-```ts
-player1ControllerType: PlayerControllerType;
-player2ControllerType: PlayerControllerType;
-```
-
-Использовать существующие AI-чекбоксы `TeamSelectScene`.
-
-Если TeamSelectScene работает в режиме standalone-пенальти:
-- показывать те же компактные checkbox `AI`;
-- по умолчанию оба выключены;
-- чекбоксы независимы;
-- передавать значения в penalty scene.
-
-## Турнирные пенальти
-
-При запуске турнирной серии передавать:
-
-```ts
-homeControllerType: PlayerControllerType;
-awayControllerType: PlayerControllerType;
-```
-
-или эквивалентные поля текущей архитектуры.
-
-Использовать уже сохраненный:
-
-```text
-controllerType
-```
-
-участника турнира.
-
-Не создавать отдельный AI-checkbox внутри `TournamentPenaltyScene`.
-
-## Значение по умолчанию
-
-Если controllerType отсутствует:
-
-```ts
-'HUMAN'
-```
-
-## Не делать
-
-На этом этапе:
-- не запускать AI;
-- не добавлять timers AI;
-- не менять PenaltyShootoutEngine;
-- не менять правила пенальти;
-- не менять обычный матч;
-- не менять AiTurnController обычного матча.
-
-## Тесты
+Обновить или добавить тесты.
 
 Проверить:
 
 ```text
-standalone penalties по умолчанию HUMAN vs HUMAN;
-standalone HUMAN vs AI передается корректно;
-standalone AI vs HUMAN передается корректно;
-standalone AI vs AI передается корректно;
-tournament penalties получают controllerType home-team;
-tournament penalties получают controllerType away-team;
-старые вызовы без controllerType нормализуются в HUMAN;
-обычные матчи не меняются.
+кнопка Rules есть в главном меню;
+Rules открывает отдельный раздел правил;
+Back из Rules возвращает в главное меню;
+About больше не содержит правил игры;
+About содержит украинский текст, а не английский;
+Rules содержит английскую версию;
+Rules содержит польскую версию;
+Rules содержит украинскую версию;
+Rules содержит актуальные special rules: 2 > JOKER, 6 > A, 7 > K, 8 > Q, 9 > J;
+Rules содержит strict-rule для подключенного полузащитника;
+Rules содержит информацию об open midfield zone;
+Rules содержит информацию о GK deck;
+Rules содержит информацию о penalty shootout;
+новая кнопка Rules использует общую ширину кнопок;
+старые кнопки Game modes, Teams, About работают;
+menu-logo.png не возвращается в runtime.
 ```
 
-## Проверка
+Если есть тесты локализации:
 
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
+* добавить проверку, что Ukrainian About не равен English About;
+* добавить проверку, что Ukrainian Rules не равен English Rules;
+* добавить проверку, что Polish Rules не равен English Rules.
 
 ---
 
-# Этап PAI-2 — чистая модель решений Penalty AI
+# 10. Проверка
 
-## Цель
-
-Создать отдельную чистую эвристику AI для пенальти без Phaser и timers.
-
-## Создать
-
-```text
-src/ai/penaltyAiTypes.ts
-src/ai/penaltyAiDecision.ts
-src/ai/penaltyAiRandom.ts
-src/tests/penaltyAiDecision.test.ts
-```
-
-Обновить:
-
-```text
-src/ai/index.ts
-```
-
-## Важно
-
-Не использовать:
-
-```text
-AiTurnController
-aiDecision.ts обычного матча
-aiHeuristics.ts обычного матча
-GK-колоду обычного матча
-```
-
-AI пенальти является отдельным модулем.
-
----
-
-## 1. Тип действия
-
-После аудита адаптировать тип действия к фактическому публичному API `PenaltyShootoutEngine`.
-
-Общий принцип:
-
-```ts
-export type PenaltyAiAction =
-  | {
-      type: 'SELECT_SHOT_ACTION';
-      actionId: string;
-    }
-  | {
-      type: 'SELECT_GOALKEEPER_ACTION';
-      actionId: string;
-    };
-```
-
-Если в текущем движке действия называются иначе:
-- использовать фактические названия;
-- не создавать лишний слой абстракции;
-- не менять механику.
-
-Примеры допустимой адаптации:
-
-```text
-SELECT_SHOT_CARD
-SELECT_GOALKEEPER_CARD
-SELECT_SHOT_DIRECTION
-SELECT_SAVE_DIRECTION
-CONFIRM_SHOT
-```
-
-Использовать только реально существующие варианты.
-
----
-
-## 2. Основной API
-
-Добавить:
-
-```ts
-export function choosePenaltyAiAction(
-  state: Readonly<PenaltyShootoutState>,
-  controllerSide: PenaltySide,
-  random: PenaltyAiRandomSource,
-): PenaltyAiAction | null;
-```
-
-Названия типов адаптировать к текущему движку.
-
-Функция должна:
-- быть чистой;
-- не мутировать state;
-- не мутировать карты;
-- не вызывать Phaser;
-- не использовать timers;
-- не использовать `Math.random()`;
-- не менять движок напрямую;
-- возвращать одно легальное действие;
-- возвращать `null`, если действие AI сейчас не требуется.
-
----
-
-## 3. Честность AI
-
-AI разрешено использовать только:
-
-```text
-текущую penalty phase;
-сторону, которая должна сделать выбор;
-легальные публичные действия;
-текущий счет серии;
-номер удара;
-историю уже выполненных ударов, если она видна пользователю;
-текущие открытые данные penalty state.
-```
-
-AI запрещено использовать:
-
-```text
-будущие карты;
-порядок скрытой penalty deck;
-неоткрытые действия HUMAN;
-приватные значения движка;
-seed другого игрока;
-seed shuffle;
-результат удара до подтверждения действия;
-Math.random().
-```
-
----
-
-## 4. Эвристика
-
-Использовать простую честную стратегию.
-
-### Базовое правило
-
-AI выбирает только среди:
-
-```text
-legal actions
-```
-
-### Вариативность
-
-Если доступны несколько легальных вариантов:
-- выбирать через отдельный seeded random;
-- не использовать один и тот же вариант постоянно;
-- избегать трех одинаковых действий подряд, если есть альтернативы;
-- не создавать идеальную стратегию;
-- не пытаться угадывать скрытый выбор HUMAN.
-
-### История
-
-Если penalty state содержит публичную историю:
-- разрешается слегка снижать вероятность немедленного повторения предыдущего действия;
-- нельзя гарантированно исключать повтор;
-- сохранять вариативность.
-
-Рекомендуемый принцип веса:
-
-```text
-базовый вес варианта = 1.0;
-если этот вариант использован два раза подряд -> вес = 0.45;
-если есть альтернативы.
-```
-
-Если текущая механика не использует направления или повторяемые варианты:
-- сохранить простой seeded-random выбор среди legal actions;
-- не придумывать новую механику.
-
----
-
-## 5. Отдельный random stream
-
-Добавить:
-
-```ts
-createPenaltyAiRandom(
-  matchSeed,
-  side,
-)
-```
-
-Использовать namespace:
-
-```text
-PENALTY_AI
-```
-
-Пример идеи:
-
-```ts
-`${matchSeed}:PENALTY_AI:${side}`
-```
-
-Адаптировать к существующему seeded random API.
-
-Требования:
-
-```text
-одинаковый seed -> одинаковые AI-решения;
-разные seed могут давать разные решения;
-решения penalty AI не меняют shuffle обычной deck;
-решения penalty AI не меняют shuffle goalkeeperDeck;
-решения penalty AI не меняют обычный AiTurnController random stream.
-```
-
----
-
-## 6. Тесты
-
-Проверить:
-
-```text
-choosePenaltyAiAction возвращает только legal action;
-choosePenaltyAiAction не мутирует state;
-AI не использует Math.random;
-AI не читает скрытые данные;
-AI возвращает null в неподходящей phase;
-AI возвращает null, если сейчас ход HUMAN;
-одинаковый seed дает одинаковое решение;
-разные seed могут выбрать разные равноценные варианты;
-AI избегает трех одинаковых действий подряд при наличии альтернатив;
-AI может повторить действие, если альтернатив нет;
-обычный AI матча не меняется.
-```
-
-## Проверка
-
-```bash
-npm test
-npm run build
-```
-
-После отчета остановиться.
-
----
-
-# Этап PAI-3 — PenaltyAiController и выполнение AI-действий
-
-## Цель
-
-Подключить penalty AI к визуальной сцене серии пенальти.
-
-## Создать
-
-```text
-src/ai/PenaltyAiController.ts
-src/tests/penaltyAiController.test.ts
-```
-
-Обновить:
-
-```text
-src/ai/index.ts
-фактическую penalty scene
-```
-
-Ожидаемо:
-
-```text
-src/scenes/TournamentPenaltyScene.ts
-```
-
-Если standalone и tournament используют разные сцены:
-- подключить общий `PenaltyAiController` к обеим;
-- не дублировать код.
-
----
-
-## 1. Обязанности PenaltyAiController
-
-Контроллер должен:
-- проверить, является ли текущая сторона AI;
-- дождаться стабильного UI-состояния;
-- поставить один timer;
-- вызвать `choosePenaltyAiAction()`;
-- передать одно действие в callback сцены;
-- не менять state напрямую;
-- не создавать два timers одновременно;
-- очищать timer при shutdown;
-- не действовать после завершения серии.
-
-## API
-
-Реализовать:
-
-```ts
-scheduleNextAction(): void;
-cancelPendingAction(): void;
-destroy(): void;
-isPending(): boolean;
-```
-
----
-
-## 2. Задержки
-
-Добавить:
-
-```ts
-export const PENALTY_AI_TIMING = {
-  beforeShotChoiceMs: 750,
-  beforeGoalkeeperChoiceMs: 750,
-  afterResultMs: 850,
-  jitterMs: 150,
-} as const;
-```
-
-Допускается корректировка после визуальной проверки.
-
-Требования:
-- не использовать `Math.random()`;
-- jitter через penalty AI random stream;
-- AI не должен действовать мгновенно;
-- AI не должен заметно тормозить серию.
-
----
-
-## 3. Общий UI pipeline HUMAN и AI
-
-В penalty scene вынести общие методы:
-
-```ts
-handleShotAction(actionId: string): void;
-handleGoalkeeperAction(actionId: string): void;
-```
-
-или эквивалентные методы текущей архитектуры.
-
-HUMAN:
-```text
-клик
-->
-общий handler
-```
-
-AI:
-```text
-PenaltyAiController
-->
-общий handler
-```
-
-Не дублировать:
-- правила;
-- анимации;
-- sound;
-- сообщения;
-- переходы фаз.
-
----
-
-## 4. Блокировка HUMAN-ввода
-
-Если текущую сторону контролирует AI:
-- отключить игровые клики HUMAN;
-- оставить служебные кнопки доступными, если это безопасно;
-- tooltip сохранить при наличии;
-- не блокировать сцену полностью.
-
-Если текущую сторону контролирует HUMAN:
-- поведение UI остается прежним.
-
----
-
-## 5. Cleanup
-
-При:
-
-```text
-SHUTDOWN
-DESTROY
-серия завершена
-переход на другую сцену
-```
-
-вызвать:
-
-```ts
-penaltyAiController.destroy()
-```
-
-Требования:
-- timer удаляется;
-- callback не выполняется после выхода;
-- повторное открытие сцены не создает старые timers;
-- нет двойных действий.
-
----
-
-## 6. AI vs AI
-
-Поддержать:
-
-```text
-AI vs AI
-```
-
-Серия должна:
-- идти автоматически;
-- сохранять анимации;
-- сохранять sounds;
-- сохранять сообщения;
-- корректно доходить до завершения;
-- поддерживать дополнительную серию после ничьей, если она существует;
-- не зависать.
-
----
-
-## 7. Не менять
-
-Не менять:
-
-```text
-правила PenaltyShootoutEngine;
-логику определения гола;
-логику определения сейва;
-обычный AiTurnController;
-обычный GameScene;
-обычный goalkeeperDeck;
-обычные cards;
-tournamentMatchSimulation;
-формы;
-шрифты;
-составы;
-```
-
----
-
-## 8. Тесты
-
-Проверить:
-
-```text
-PenaltyAiController не ставит timer для HUMAN;
-PenaltyAiController ставит один timer для AI;
-не создается второй timer;
-после timer выполняется одно действие;
-действие выполняется через общий UI handler;
-timer удаляется при destroy;
-после завершения серии AI не действует;
-после shutdown AI не действует;
-HUMAN-клик заблокирован во время AI-выбора;
-HUMAN-клик работает во время HUMAN-выбора;
-AI vs AI выполняет серию до конца;
-AI vs AI не зависает в дополнительной серии;
-sounds/messages не дублируются.
-```
-
-## Проверка
+Запустить:
 
 ```bash
 npm test
@@ -721,243 +465,29 @@ npm run build
 npm run dev
 ```
 
-После отчета остановиться.
+В браузере вручную проверить:
+
+```text
+1. Главное меню открывается.
+2. Появилась кнопка Rules.
+3. Кнопка Rules такой же ширины, как остальные.
+4. Rules открывает правила.
+5. Правила не вылезают за экран.
+6. Можно прочитать английскую, польскую и украинскую версии.
+7. Украинская версия действительно украинская.
+8. About больше не содержит правил.
+9. About на украинском больше не показывает английский текст.
+10. Back работает из About и Rules.
+```
 
 ---
 
-# Этап PAI-4 — standalone-пенальти с AI
+# 11. Формат отчета
 
-## Цель
-
-Проверить и завершить пользовательский путь standalone-пенальти.
-
-## Что изменить
-
-При необходимости обновить:
+После выполнения вывести:
 
 ```text
-src/scenes/TeamSelectScene.ts
-standalone penalty scene
-связанные тесты
-```
-
-## Требования
-
-При выборе standalone-пенальти:
-- показывать AI-checkbox для Team 1;
-- показывать AI-checkbox для Team 2;
-- оба по умолчанию выключены;
-- состояния независимы;
-- checkbox не меняет выбранную команду;
-- значения передаются в penalty scene;
-- HUMAN vs HUMAN работает;
-- HUMAN vs AI работает;
-- AI vs HUMAN работает;
-- AI vs AI работает.
-
-Не создавать отдельный экран настроек AI.
-
-## Тесты
-
-Проверить:
-
-```text
-standalone penalty checkbox Team 1 работает;
-standalone penalty checkbox Team 2 работает;
-checkbox по умолчанию выключены;
-controllerType передается в penalty scene;
-HUMAN vs AI серия завершается;
-AI vs HUMAN серия завершается;
-AI vs AI серия завершается;
-обычный быстрый матч не сломан.
-```
-
-## Проверка
-
-```bash
-npm test
-npm run build
-npm run dev
-```
-
-После отчета остановиться.
-
----
-
-# Этап PAI-5 — турнирные пенальти с AI
-
-## Цель
-
-Подключить AI к турнирной серии пенальти.
-
-## Что изменить
-
-При необходимости обновить:
-
-```text
-src/scenes/TournamentHubScene.ts
-src/scenes/TournamentPenaltyScene.ts
-tournament state types
-связанные тесты
-```
-
-## Требования
-
-При запуске турнирной серии:
-- использовать сохраненный `controllerType` home-team;
-- использовать сохраненный `controllerType` away-team;
-- не показывать дополнительные AI-checkbox внутри penalty scene;
-- не менять controllerType во время серии;
-- сохранять существующий переход:
-  ```text
-  tournament match
-  ->
-  penalty shootout
-  ->
-  tournament hub / next round
-  ```
-- победитель серии должен корректно попадать в турнирный state;
-- AI vs AI серия должна завершаться автоматически;
-- HUMAN vs AI должна позволять HUMAN делать только свои выборы;
-- tournamentMatchSimulation не менять без необходимости.
-
-## Тесты
-
-Проверить:
-
-```text
-турнирная серия получает home controllerType;
-турнирная серия получает away controllerType;
-HUMAN vs HUMAN турнирные пенальти работают;
-HUMAN vs AI турнирные пенальти работают;
-AI vs HUMAN турнирные пенальти работают;
-AI vs AI турнирные пенальти работают;
-AI vs AI серия завершается;
-победитель сохраняется;
-турнир продолжается;
-simulated tournament match не сломан.
-```
-
-## Проверка
-
-```bash
-npm test
-npm run build
-npm run dev
-```
-
-После отчета остановиться.
-
----
-
-# Этап PAI-6 — финальная регрессия AI пенальти
-
-## Цель
-
-Проверить совместимость нового penalty AI со всем проектом.
-
-## Запустить
-
-```bash
-npm run validate:kits
-npm test
-npm run build
-npm run dev
-```
-
-## Проверить standalone-пенальти
-
-```text
-HUMAN vs HUMAN
-HUMAN vs AI
-AI vs HUMAN
-AI vs AI
-```
-
-Проверить:
-- AI делает выбор автоматически;
-- HUMAN может делать только свои выборы;
-- AI не действует за HUMAN;
-- серия завершается;
-- дополнительная серия работает;
-- sounds работают;
-- animations работают;
-- messages работают;
-- timers очищаются.
-
-## Проверить турнирные пенальти
-
-```text
-HUMAN vs HUMAN
-HUMAN vs AI
-AI vs HUMAN
-AI vs AI
-```
-
-Проверить:
-- controllerType передается из tournament participant;
-- AI-checkbox турнира влияют на серию;
-- победитель корректно сохраняется;
-- турнир продолжается;
-- simulation не сломан.
-
-## Проверить изоляцию
-
-Убедиться, что penalty AI не использует:
-
-```text
-AiTurnController обычного матча;
-aiDecision.ts обычного матча;
-GK-колоду обычного матча;
-main deck обычного матча;
-midfielder logic;
-midfield gap;
-обычные match events.
-```
-
-## Проверить обычный матч
-
-```text
-HUMAN vs HUMAN
-HUMAN vs AI
-AI vs HUMAN
-AI vs AI
-```
-
-Убедиться, что режим обычного матча не сломан.
-
-## Критерии приемки
-
-Задача завершена, если:
-
-```text
-1. Добавлен отдельный penalty AI.
-2. Penalty AI использует только legal actions.
-3. Penalty AI не смотрит скрытые данные.
-4. Penalty AI не использует Math.random.
-5. Используется отдельный seeded random stream.
-6. HUMAN vs HUMAN пенальти работают.
-7. HUMAN vs AI пенальти работают.
-8. AI vs HUMAN пенальти работают.
-9. AI vs AI пенальти работают.
-10. Standalone-пенальти поддерживают AI.
-11. Турнирные пенальти поддерживают AI.
-12. HUMAN-ввод блокируется только во время AI-выбора.
-13. HUMAN и AI используют общий UI pipeline.
-14. Timers очищаются.
-15. Дополнительная серия не зависает.
-16. Обычный AiTurnController не изменен без необходимости.
-17. GK-колода обычного матча не используется.
-18. Tournament simulation не сломан.
-19. npm run validate:kits проходит.
-20. npm test проходит.
-21. npm run build проходит.
-```
-
-## Формат финального отчета
-
-```text
-Финальная регрессия AI пенальти завершена.
+Разделение About и Rules завершено.
 
 Созданные файлы:
 - ...
@@ -965,47 +495,29 @@ AI vs AI
 Измененные файлы:
 - ...
 
-Penalty AI module:
+Кнопка Rules:
+- добавлена / не добавлена
+
+Порядок кнопок главного меню:
 - ...
 
-Используется ли отдельный random stream:
+About:
+- правила удалены:
+- украинская версия исправлена:
+
+Rules:
+- English:
+- Polski:
+- Українська:
+
+Локализация кнопки Rules:
 - ...
 
-Использует ли penalty AI Math.random:
-- ...
+Использует ли Rules общую ширину кнопок:
+- да / нет
 
-Standalone penalties:
-- HUMAN vs HUMAN:
-- HUMAN vs AI:
-- AI vs HUMAN:
-- AI vs AI:
-
-Tournament penalties:
-- HUMAN vs HUMAN:
-- HUMAN vs AI:
-- AI vs HUMAN:
-- AI vs AI:
-
-Дополнительная серия:
-- ...
-
-Блокировка HUMAN-ввода:
-- ...
-
-Cleanup timers:
-- ...
-
-Изоляция от обычного AI:
-- ...
-
-Изоляция от goalkeeperDeck:
-- ...
-
-Tournament simulation:
-- ...
-
-Результат npm run validate:kits:
-- ...
+Изменялись ли GameEngine / AI / Penalty AI / TournamentEngine:
+- да / нет
 
 Результат npm test:
 - ...
@@ -1021,4 +533,6 @@ Tournament simulation:
 ```
 
 После отчета остановиться.
-````
+
+```
+```

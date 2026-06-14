@@ -79,7 +79,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
     expect(selectSource).toContain('faceDown: true');
-    expect(selectSource).toContain("faceDownVariant: 'preview'");
+    expect(selectSource).toContain("faceDownVariant: 'squad-preview'");
     expect(selectSource).toContain('resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey');
     expect(selectSource).toContain('SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X');
     expect(selectSource).toContain('faceCard.setScale(TEAM_PREVIEW_CARD_SCALE)');

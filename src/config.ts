@@ -7,14 +7,14 @@ export const SCENE_HEIGHT = 720;
 
 export const MENU_ASSETS = {
   background: 'menu-bg',
-  logo: 'menu-logo',
-  ball: 'menu-ball',
+  logoOn: 'menu-logo-on',
+  logoOff: 'menu-logo-off',
   flags: 'menu-flags'
 } as const;
 
 export const MENU_ASSET_PATHS = {
   background: 'menu/menu-bg.webp',
-  logo: 'menu/menu-logo.png',
-  ball: 'menu/menu-ball.png',
+  logoOn: 'menu/menu-logo1.png',
+  logoOff: 'menu/menu-logo2.png',
   flags: 'menu/menu-flags.png'
 } as const;
