@@ -28,4 +28,19 @@ describe('result scene score line layout', () => {
     expect(source).toContain('playerOneText.x - playerOneText.width - flagGap - flagWidth / 2');
     expect(source).toContain('playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2');
   });
+
+  it('left-aligns final match goal scorers inside both scorer columns', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('const scorerColumnWidth = 280');
+    expect(source).toContain('const playerOneScorerX = viewportLeft');
+    expect(source).toContain('const playerTwoScorerX = panelWidth / 2 - 56 - scorerColumnWidth');
+    expect(source).toContain("align: 'left'");
+    expect(source).toContain('.setOrigin(0, 0.5)');
+    expect(source).toContain('this.createScorersList(playerOneScorerX, y, row.playerOneText, scorerColumnWidth)');
+    expect(source).toContain('this.createScorersList(playerTwoScorerX, y, row.playerTwoText, scorerColumnWidth)');
+    expect(source).not.toContain("this.createScorersList(285, y, row.playerTwoText, 'right')");
+    expect(source).not.toContain("align: side");
+    expect(source).not.toContain("setOrigin(side === 'left' ? 0 : 1, 0.5)");
+  });
 });

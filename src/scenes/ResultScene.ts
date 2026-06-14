@@ -326,17 +326,17 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private createScorersList(x: number, y: number, text: string, side: 'left' | 'right'): Phaser.GameObjects.Text {
+  private createScorersList(x: number, y: number, text: string, width: number): Phaser.GameObjects.Text {
     return this.add
       .text(x, y, text, {
-        align: side,
+        align: 'left',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700',
-        wordWrap: { width: 280 }
+        wordWrap: { width }
       })
-      .setOrigin(side === 'left' ? 0 : 1, 0.5);
+      .setOrigin(0, 0.5);
   }
 
   private addScorerTimeline(
@@ -352,6 +352,9 @@ export class ResultScene extends Phaser.Scene {
     const viewportHeight = 72;
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
+    const scorerColumnWidth = 280;
+    const playerOneScorerX = viewportLeft;
+    const playerTwoScorerX = panelWidth / 2 - 56 - scorerColumnWidth;
     const rowHeight = 24;
     const contentHeight = rows.length * rowHeight;
     const maxScroll = Math.max(0, contentHeight - viewportHeight);
@@ -376,8 +379,8 @@ export class ResultScene extends Phaser.Scene {
     rows.forEach((row, index) => {
       const y = 12 + index * rowHeight;
 
-      timelineContent.add(this.createScorersList(-285, y, row.playerOneText, 'left'));
-      timelineContent.add(this.createScorersList(285, y, row.playerTwoText, 'right'));
+      timelineContent.add(this.createScorersList(playerOneScorerX, y, row.playerOneText, scorerColumnWidth));
+      timelineContent.add(this.createScorersList(playerTwoScorerX, y, row.playerTwoText, scorerColumnWidth));
     });
 
     if (maxScroll === 0) {
