@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 
+export const TEAM_STATS_VIEW_WIDTH = 200;
+export const TEAM_STATS_VIEW_HEIGHT = 288;
+
 export interface TeamStatsViewOptions {
   align: 'left' | 'right';
   scorers: readonly string[];
@@ -9,20 +12,18 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: TeamStatsViewOptions) {
     super(scene, x, y);
 
-    const width = 200;
-    const height = 126;
-    const viewportTop = -16;
-    const viewportHeight = 78;
+    const width = TEAM_STATS_VIEW_WIDTH;
+    const height = TEAM_STATS_VIEW_HEIGHT;
+    const viewportTop = -height / 2 + 44;
+    const viewportHeight = height - 56;
     const viewportWidth = width - 32;
     const textOriginX = options.align === 'left' ? 0 : 1;
     const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
     const textAlign = options.align;
     const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
 
-    const background = scene.add.rectangle(0, 0, width, height, 0x143f2d, 0.82);
-
     const title = scene.add
-      .text(textX, -42, 'Goals', {
+      .text(textX, -height / 2 + 18, 'Goals', {
         align: textAlign,
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -79,7 +80,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       });
     }
 
-    this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
+    this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
     scene.add.existing(this);
   }
 }

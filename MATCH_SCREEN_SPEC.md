@@ -38,10 +38,20 @@ SCENE_HEIGHT = 720
 
 ```text
 FIELD_WIDTH = 1120
+FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2
+FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH
 FIELD_TOP = 100
 FIELD_CENTER_Y = 400
 DECK_Y = 560
-OUT_BUTTON_Y = 673
+SCOREBOARD_CENTER_Y = 42
+SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2
+SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2
+ADVANTAGE_CENTER_Y = 94
+SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14
+SIDE_ACTION_BUTTON_WIDTH = 286
+MATCH_ACTION_BUTTON_HEIGHT = 38
+MATCH_ACTION_BUTTON_FONT_SIZE = 16px
+TEAM_STATS_VIEW_HEIGHT = 288
 ```
 
 Центр сцены:
@@ -56,6 +66,7 @@ centerY = 360
 ```text
 x = 800
 y = 400
+left = FIELD_LEFT = 240
 ```
 
 ## 3. Общая композиция экрана
@@ -63,9 +74,9 @@ y = 400
 Экран состоит из следующих зон:
 
 1. Верхняя панель:
-   - кнопка `В меню`;
+   - кнопки `Menu` и `Result` слева, над полем;
    - табло счета;
-   - кнопка `Результат`;
+   - кнопки `Rules` и `About` справа от табло;
    - шкала текущего превосходства под табло.
 
 2. Центральная зона:
@@ -80,11 +91,11 @@ y = 400
 
 4. Нижняя зона:
    - колода активного/неактивного игрока слева;
-   - колода активного/неактивного игрока справа;
-   - кнопка `OUT` около колоды активного игрока.
+   - колода активного/неактивного игрока справа.
 
 5. Временные оверлеи:
    - всплывающие ошибки;
+   - in-game окна `Rules`/`About`;
    - летящие сообщения `GOAL!!`, `Штанга!`, `Goalkeeper!!`, `Мяч потерян...`;
    - анимации движения карт.
 
@@ -107,19 +118,28 @@ this.dynamicLayer = this.add.container(0, 0);
 
 ## 5. Верхняя панель
 
-### 5.1 Кнопка `В меню`
+### 5.1 Кнопка `Menu`
 
 Расположение:
 
 ```text
-x = centerX - FIELD_WIDTH / 2 + 110
-y = 42
+x = LEFT_ACTION_BUTTON_X
+y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2
+left = FIELD_LEFT
+right = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP
 ```
 
-При нажатии:
+Размер:
+
+```text
+286 x 38
+fontSize = 16px
+```
+
+При нажатии открывает modal подтверждения выхода:
 
 ```ts
-this.scene.start('MenuScene')
+this.openExitConfirmModal()
 ```
 
 ### 5.2 Табло счета
@@ -141,7 +161,11 @@ y = 42
 
 ```text
 520 x 78
+background color = SCORE_VIEW_BACKGROUND_COLOR = 0x08120f
+background alpha = 0.92
 ```
+
+Ширина `ScoreView` берется из `ADVANTAGE_VIEW_WIDTH`, поэтому верхнее табло совпадает по ширине с нижним индикатором превосходства.
 
 Содержит:
 
@@ -162,8 +186,17 @@ DS-Digital
 Расположение:
 
 ```text
-x = centerX + FIELD_WIDTH / 2 - 110
-y = 42
+x = LEFT_ACTION_BUTTON_X
+y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2
+left = FIELD_LEFT
+right = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP
+```
+
+Размер:
+
+```text
+286 x 38
+fontSize = 16px
 ```
 
 При нажатии открывает `ResultScene` с текущим состоянием:
@@ -172,7 +205,45 @@ y = 42
 this.openResult(state)
 ```
 
-### 5.4 Шкала текущего превосходства
+### 5.4 Кнопки `Rules` и `About`
+
+Расположение:
+
+```text
+x = RIGHT_ACTION_BUTTON_X
+Rules y = Menu y
+About y = Result y
+left = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP
+right = FIELD_RIGHT
+```
+
+Размер совпадает с `Menu`/`Result`:
+
+```text
+286 x 38
+fontSize = 16px
+```
+
+Поведение:
+
+```text
+Rules -> openMatchInfoModal('rules')
+About -> openMatchInfoModal('about')
+```
+
+Кнопки открывают overlay поверх текущего матча, не стартуют `MenuScene`, не стартуют `ResultScene` и не пересоздают `GameEngine`.
+
+Overlay:
+
+- полупрозрачная интерактивная подложка блокирует клики по полю и кнопкам под окном;
+- центральная панель содержит title, `${GAME_TITLE} | v${GAME_VERSION}`, content viewport и кнопку `Back` снизу по центру;
+- фон центральной панели использует `SCORE_VIEW_BACKGROUND_COLOR` с alpha `0.98`;
+- переключатель языков использует `EN`, `PL`, `UA`;
+- контент берется из `ABOUT_CONTENT` / `RULES_CONTENT` главного меню;
+- длинные правила прокручиваются колесом;
+- после закрытия матч остается в текущем состоянии, AI-check возобновляется.
+
+### 5.5 Шкала текущего превосходства
 
 Компонент:
 
@@ -239,20 +310,26 @@ y = FIELD_CENTER_Y
 1120 x 600
 ```
 
-Цвет поля:
+Цвета поля:
 
 ```text
-0x0d6a42
+base grass = 0x157a43
+light stripe = 0x19864a
+dark stripe = 0x126d3c
+stripe count = 14
 ```
 
 Поле содержит:
 
+- мягкие вертикальные полосы газона;
 - внешний контур;
 - центральную линию;
 - центральный круг;
 - карты первой команды;
 - карты второй команды;
 - пустые слоты.
+
+Полосы рисуются внутри прямоугольника поля до разметки; белые линии и карточки остаются поверх газона.
 
 ## 7. Позиции карт на поле
 
@@ -344,6 +421,17 @@ src/ui/DeckView.ts
 - текущую карту атаки, если она уже взята;
 - анимированный маркер мяча над активной колодой.
 
+Маркер мяча использует bounce-анимацию:
+
+```text
+bounceHeight = 24
+up = 360 ms, Quad.easeOut
+down = 260 ms, Quad.easeIn
+squash/stretch = 64 ms
+```
+
+Для одного мяча создается один `TweenChain`; tween останавливается при destroy маркера или shutdown сцены.
+
 Колода кликабельна только если:
 
 ```text
@@ -360,43 +448,7 @@ drawAttackCard()
 
 ## 11. Кнопка OUT
 
-Кнопка создается возле активной колоды:
-
-```text
-x = getDeckX(state)
-y = OUT_BUTTON_Y
-```
-
-`getDeckX`:
-
-```text
-PLAYER_1 -> 115
-PLAYER_2 -> 1485
-```
-
-Кнопка отключена, если:
-
-```text
-interactive = false
-state.phase !== WAITING_FOR_TARGET
-текущая цель - только goalkeeper
-```
-
-Во время удара по вратарю `OUT` запрещен.
-
-При нажатии:
-
-```ts
-declareOut()
-```
-
-Результат:
-
-- атака завершается;
-- карта атаки уходит в `attackBank`;
-- карты возвращаются вниз колоды активного игрока;
-- ход переходит сопернику;
-- показывается сообщение `Мяч потерян...`.
+Кнопка `OUT` не рендерится на игровом экране.
 
 ## 12. Боковая статистика в матче
 
@@ -412,7 +464,8 @@ src/ui/TeamStatsView.ts
 
 ```text
 x = 115
-y = FIELD_TOP + 63
+y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2
+top = FIELD_TOP
 ```
 
 ### 12.2 Правая статистика
@@ -421,20 +474,30 @@ y = FIELD_TOP + 63
 
 ```text
 x = 1485
-y = FIELD_TOP + 63
+y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2
+top = FIELD_TOP
 ```
 
 Показывает:
 
-- `Статистика`;
-- `Удары: N`;
-- `Голы: список`.
+- заголовок `Goals`;
+- список авторов голов.
+
+Размер и фон:
+
+```text
+width = 200
+height = 288
+background = none
+```
 
 Если голов нет:
 
 ```text
-Голы: пока нет
+-
 ```
+
+Список находится в masked viewport увеличенной высоты; scrollbar остается fallback для очень длинных списков.
 
 ## 13. Всплывающие ошибки
 

@@ -12,6 +12,13 @@ import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 
+export const FIELD_VIEW_WIDTH = 1120;
+export const FIELD_VIEW_HEIGHT = 600;
+export const FIELD_GRASS_STRIPE_COUNT = 14;
+export const FIELD_GRASS_BASE_COLOR = 0x157a43;
+export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a;
+export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c;
+
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
 export type MidfielderCommitHandler = (positionId: MidfielderPositionId) => void;
 export type MidfieldGapSelectHandler = (positionId: MidfielderPositionId) => void;
@@ -63,19 +70,37 @@ export class FieldView extends Phaser.GameObjects.Container {
   ) {
     super(scene, x, y);
 
-    const pitch = scene.add.rectangle(0, 0, 1120, 600, 0x0d6a42, 1);
-    pitch.setStrokeStyle(3, 0xe2efe6);
-
     const centerLine = scene.add.rectangle(0, 0, 2, 580, 0xe2efe6, 0.42);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    this.add([pitch, this.createPitchMarkings(scene), centerLine, centerCircle]);
+    this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), centerLine, centerCircle]);
 
     this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
     this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
 
     scene.add.existing(this);
+  }
+
+  private createStripedPitch(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
+    const pitch = scene.add.graphics();
+    const pitchLeft = -FIELD_VIEW_WIDTH / 2;
+    const pitchTop = -FIELD_VIEW_HEIGHT / 2;
+    const stripeWidth = FIELD_VIEW_WIDTH / FIELD_GRASS_STRIPE_COUNT;
+
+    pitch.fillStyle(FIELD_GRASS_BASE_COLOR, 1);
+    pitch.fillRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT);
+
+    for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1) {
+      const stripeColor = stripeIndex % 2 === 0 ? FIELD_GRASS_LIGHT_STRIPE_COLOR : FIELD_GRASS_DARK_STRIPE_COLOR;
+      pitch.fillStyle(stripeColor, 0.28);
+      pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, pitchTop, stripeWidth, FIELD_VIEW_HEIGHT);
+    }
+
+    pitch.lineStyle(3, 0xe2efe6, 1);
+    pitch.strokeRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT);
+
+    return pitch;
   }
 
   private addPlayerCards(
@@ -176,11 +201,11 @@ export class FieldView extends Phaser.GameObjects.Container {
 
     markings.lineStyle(lineWidth, lineColor, lineAlpha);
 
-    markings.strokeRect(-560, -180, 150, 360);
-    markings.strokeRect(410, -180, 150, 360);
+    markings.strokeRect(-FIELD_VIEW_WIDTH / 2, -180, 150, 360);
+    markings.strokeRect(FIELD_VIEW_WIDTH / 2 - 150, -180, 150, 360);
 
-    markings.strokeRect(-560, -95, 70, 190);
-    markings.strokeRect(490, -95, 70, 190);
+    markings.strokeRect(-FIELD_VIEW_WIDTH / 2, -95, 70, 190);
+    markings.strokeRect(FIELD_VIEW_WIDTH / 2 - 70, -95, 70, 190);
 
     markings.strokeCircle(-450, 0, 4);
     markings.strokeCircle(450, 0, 4);

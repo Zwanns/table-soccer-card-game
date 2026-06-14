@@ -849,11 +849,15 @@ src/scenes/GameScene.ts
 - карты обеих команд;
 - основные колоды с командными рубашками;
 - GK-slot на поле;
-- кнопки меню/результата;
-- табло счета;
+- кнопки `Menu`/`Result` слева над полем и `Rules`/`About` справа от табло: все `286 x 38`, `fontSize = 16px`; боковые кнопки занимают пространство от края поля до табло с `14px` gap;
+- табло счета `520 x 78`, ширина берется из `ADVANTAGE_VIEW_WIDTH` и совпадает с нижней шкалой преимущества; фон вынесен в `SCORE_VIEW_BACKGROUND_COLOR = 0x08120f`;
 - мини-статистика;
 - шкала текущего преимущества;
 - лог событий.
+
+`Rules` и `About` в главном меню и в матче используют фон центральной панели из `SCORE_VIEW_BACKGROUND_COLOR` с alpha `0.98`, чтобы совпадать по базовому цвету с верхним табло. В матче они открывают in-game overlay поверх `GameScene`: полупрозрачная интерактивная подложка блокирует клики под окном, центральная панель содержит `Back` снизу по центру, title, `${GAME_TITLE} | v${GAME_VERSION}`, языки `EN/PL/UA` и scrollable viewport. Контент переиспользуется из экспортированных `ABOUT_CONTENT` / `RULES_CONTENT` главного меню; окно не стартует другую сцену, не пересоздает `GameEngine` и после закрытия возобновляет AI-check.
+
+`FieldView` рисует поле `1120 x 600` как аркадный полосатый газон: base `0x157a43`, 14 вертикальных полос с `0x19864a` / `0x126d3c` и alpha `0.28`. Разметка поля и карточки рисуются поверх полос.
 
 Карты поля получают профиль игрока через snapshot `state.matchSetups[player.id]`, а не через runtime-чтение localStorage.
 
@@ -868,6 +872,8 @@ src/scenes/GameScene.ts
 
 - `DECK`: карта летит от активной deck к цели;
 - `MIDFIELDER`: карта летит из собственного midfield-слота к противоположному midfield-слоту.
+
+Мяч-маркер над активной колодой использует bounce-анимацию в `DeckView`: `DECK_MARKER_BOUNCE_HEIGHT = 24`, подъем `360 ms` с `Quad.easeOut`, падение `260 ms` с `Quad.easeIn`, затем короткий squash/stretch `64 ms`. Для маркера создается один `TweenChain`, который останавливается при destroy маркера или shutdown сцены.
 
 Flying messages (`GOAL!!`, `Goalkeeper!!`, `Post!`, `Turnover...`) используют padding у текстового объекта, чтобы stroke и крайние символы не обрезались.
 
@@ -898,7 +904,7 @@ formatGoalScorerMatchLabel(scorer)
 - если есть только имя: `<playerName>`;
 - fallback: `Rank <rank>`.
 
-В `GameScene` мини-статистика голов показывает список авторов через `TeamStatsView`; длинный список находится в masked viewport и прокручивается колесом. В `ResultScene` блок `Goalscorers` показывает общую хронологию голов по turnNumber в двух левых-выравненных колонках команд и тоже поддерживает прокрутку при переполнении.
+В `GameScene` мини-статистика голов показывает список авторов через `TeamStatsView`: панели `200 x 288`, без темного фона, верх выровнен с `FIELD_TOP`, пустое состояние рендерится как `-`. Длинный список находится в masked viewport и прокручивается колесом как fallback. В `ResultScene` блок `Goalscorers` показывает общую хронологию голов по turnNumber в двух левых-выравненных колонках команд и тоже поддерживает прокрутку при переполнении.
 
 `advantage.ts` считает текущее преимущество по максимальной глубине атаки за последние 5 ходов:
 
@@ -1035,6 +1041,7 @@ src/tests/
 - `cardFace.test.ts` - layout карты, tooltip, шрифты, kit render contract, стандартный и preview face-down варианты.
 - `teamCover.test.ts` - пути, texture keys, fallback и failure-state для рубашек командных колод.
 - `teamStatsView.test.ts` - список авторов голов, fallback `-`, masked viewport и scrollbar.
+- `gameScene.test.ts` - визуальные контракты игрового экрана: bounce-мяч активной колоды, размер/позиция боковых кнопок `Menu`/`Result`/`Rules`/`About`, in-game info overlay, общий цвет фона табло/info-панелей, прозрачные и высокие Goals-панели, общая ширина табло и advantage indicator, полосатый газон поля.
 - `teamKits.test.ts` и `kitAssetResolver.test.ts` - registry и resolver экипировок.
 - `validateKits.test.ts` - validator WebP-ассетов.
 - `realSquads.test.ts` и `squads.test.ts` - составы.
@@ -1049,8 +1056,8 @@ src/tests/
 На момент обновления документа:
 
 ```text
-29 test files
-402 tests
+30 test files
+410 tests
 ```
 
 Перед завершением значимых правок рекомендуется запускать:

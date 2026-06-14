@@ -1,5 +1,11 @@
 import Phaser from 'phaser';
 import { getFlagAssetKey } from '../data/nationalTeams';
+import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView';
+
+export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH;
+export const SCORE_VIEW_HEIGHT = 78;
+export const SCORE_VIEW_BACKGROUND_COLOR = 0x08120f;
+const SCORE_VIEW_BACKGROUND_ALPHA = 0.92;
 
 export interface ScoreViewOptions {
   penaltyScore?: {
@@ -25,15 +31,15 @@ export class ScoreView extends Phaser.GameObjects.Container {
   ) {
     super(scene, x, y);
 
-    const background = scene.add.rectangle(0, 0, 620, 78, 0x08120f, 0.92);
+    const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
     background.setStrokeStyle(2, 0x436b58, 0.95);
 
-    const playerOneFlag = this.createFlag(scene, -190, playerOneFlagCode);
-    const playerTwoFlag = this.createFlag(scene, 190, playerTwoFlagCode);
-    const playerOneLabel = this.createPlayerLabel(scene, -190, 26, playerOneName);
-    const playerTwoLabel = this.createPlayerLabel(scene, 190, 26, playerTwoName);
-    const playerOneShotsText = this.createShotsLabel(scene, -270, playerOneShots);
-    const playerTwoShotsText = this.createShotsLabel(scene, 270, playerTwoShots);
+    const playerOneFlag = this.createFlag(scene, -158, playerOneFlagCode);
+    const playerTwoFlag = this.createFlag(scene, 158, playerTwoFlagCode);
+    const playerOneLabel = this.createPlayerLabel(scene, -158, 26, playerOneName);
+    const playerTwoLabel = this.createPlayerLabel(scene, 158, 26, playerTwoName);
+    const playerOneShotsText = this.createShotsLabel(scene, -226, playerOneShots);
+    const playerTwoShotsText = this.createShotsLabel(scene, 226, playerTwoShots);
 
     const label = scene.add
       .text(0, -1, `${playerOneGoals}:${playerTwoGoals}`, {

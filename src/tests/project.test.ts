@@ -103,11 +103,19 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
     expect(menuSceneSource).toContain('ABOUT_CONTENT');
     expect(menuSceneSource).toContain('RULES_CONTENT');
+    expect(menuSceneSource).toContain("import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView'");
+    expect(menuSceneSource).toContain(
+      'this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
+    );
     expect(menuSceneSource).toContain('openRulesModal');
     expect(menuSceneSource).toContain("return 'EN'");
     expect(menuSceneSource).toContain("return 'PL'");
     expect(menuSceneSource).toContain("return 'UA'");
-    expect(menuSceneSource).toContain('createAboutBackButton');
+    expect(menuSceneSource).toContain('createInfoBackButton');
+    expect(menuSceneSource).toContain('const INFO_BACK_BUTTON = {');
+    expect(menuSceneSource).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal()");
+    expect(menuSceneSource).toContain('height: 360');
+    expect(menuSceneSource).not.toContain("text(0, -1, '<'");
     expect(menuSceneSource).toContain('createAboutViewport');
     expect(menuSceneSource).toContain('createGeometryMask');
     expect(menuSceneSource).toContain("scrollZone.on('wheel'");

@@ -8,7 +8,7 @@ import {
 } from '../assets/teamCover';
 import { AiTurnController, type AiAction, type AiTurnCheckReason, type PlayerControllerType } from '../ai';
 import type { Card } from '../cards';
-import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_AUTHOR, GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
 import {
   GameEngine,
@@ -32,15 +32,53 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerPr
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
-import { ScoreView } from '../ui/ScoreView';
-import { TeamStatsView } from '../ui/TeamStatsView';
+import { SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
+import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
+import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
 import { getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
 
 const FIELD_WIDTH = 1120;
+const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
+const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH;
 const FIELD_TOP = 100;
 const FIELD_CENTER_Y = 400;
 const DECK_Y = 560;
+const SCOREBOARD_CENTER_Y = 42;
+const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2;
+const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2;
+const ADVANTAGE_CENTER_Y = 94;
+const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14;
+const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT;
+const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
+const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
+const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT;
+const LEFT_ACTION_BUTTONS_WIDTH = LEFT_ACTION_BUTTONS_RIGHT - LEFT_ACTION_BUTTONS_LEFT;
+const RIGHT_ACTION_BUTTONS_WIDTH = RIGHT_ACTION_BUTTONS_RIGHT - RIGHT_ACTION_BUTTONS_LEFT;
+const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH);
+const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2;
+const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2;
+const MATCH_ACTION_BUTTON_HEIGHT = 38;
+const MATCH_ACTION_BUTTON_FONT_SIZE = '16px';
+const MATCH_ACTION_BUTTON_GAP = 10;
+const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3;
+const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2;
+const INFO_MODAL = {
+  width: 960,
+  height: 600
+} as const;
+const INFO_VIEWPORT = {
+  x: -390,
+  y: -150,
+  width: 780,
+  height: 360
+} as const;
+const INFO_BACK_BUTTON = {
+  y: 258,
+  width: 190,
+  height: 42,
+  fontSize: '18px'
+} as const;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -73,6 +111,9 @@ export class GameScene extends Phaser.Scene {
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
   private exitConfirmModal: Phaser.GameObjects.Container | null = null;
+  private infoModal: Phaser.GameObjects.Container | null = null;
+  private activeInfoModal: InfoModalKind | null = null;
+  private infoLanguage: AboutLanguage = 'en';
   private animatedRestoreCount = 0;
   private startWhistlePlayed = false;
   private player1Name = 'France';
@@ -119,6 +160,9 @@ export class GameScene extends Phaser.Scene {
     this.startWhistlePlayed = false;
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
+    this.infoModal?.destroy();
+    this.infoModal = null;
+    this.activeInfoModal = null;
   }
 
   public preload(): void {
@@ -186,24 +230,52 @@ export class GameScene extends Phaser.Scene {
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
-      new Button(this, 120, 34, 'Menu', () => this.openExitConfirmModal(), {
-        fontSize: '20px',
-        height: 46,
-        width: 180
+      new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Menu', () => this.openExitConfirmModal(), {
+        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
+        height: MATCH_ACTION_BUTTON_HEIGHT,
+        width: SIDE_ACTION_BUTTON_WIDTH
       })
     );
     this.dynamicLayer.add(
-      new Button(this, 120, 90, 'Result', () => this.openResult(state), {
-        fontSize: '20px',
-        height: 46,
-        width: 180
+      new Button(
+        this,
+        LEFT_ACTION_BUTTON_X,
+        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
+        'Result',
+        () => this.openResult(state),
+        {
+          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
+          height: MATCH_ACTION_BUTTON_HEIGHT,
+          width: SIDE_ACTION_BUTTON_WIDTH
+        }
+      )
+    );
+    this.dynamicLayer.add(
+      new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Rules', () => this.openMatchInfoModal('rules'), {
+        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
+        height: MATCH_ACTION_BUTTON_HEIGHT,
+        width: SIDE_ACTION_BUTTON_WIDTH
       })
+    );
+    this.dynamicLayer.add(
+      new Button(
+        this,
+        RIGHT_ACTION_BUTTON_X,
+        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
+        'About',
+        () => this.openMatchInfoModal('about'),
+        {
+          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
+          height: MATCH_ACTION_BUTTON_HEIGHT,
+          width: SIDE_ACTION_BUTTON_WIDTH
+        }
+      )
     );
     this.dynamicLayer.add(
       new ScoreView(
         this,
         centerX,
-        42,
+        SCOREBOARD_CENTER_Y,
         state.players[0].name,
         state.players[1].name,
         state.players[0].flagCode,
@@ -249,7 +321,7 @@ export class GameScene extends Phaser.Scene {
       })
     );
     this.dynamicLayer.add(
-      new AdvantageView(this, centerX, 94, {
+      new AdvantageView(this, centerX, ADVANTAGE_CENTER_Y, {
         advantage: getTeamAdvantage(state)
       })
     );
@@ -402,13 +474,13 @@ export class GameScene extends Phaser.Scene {
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
 
     this.dynamicLayer.add(
-      new TeamStatsView(this, 120, 232, {
+      new TeamStatsView(this, 120, TEAM_STATS_CENTER_Y, {
         align: 'left',
         scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
       })
     );
     this.dynamicLayer.add(
-      new TeamStatsView(this, 1485, 232, {
+      new TeamStatsView(this, 1485, TEAM_STATS_CENTER_Y, {
         align: 'right',
         scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
       })
@@ -486,6 +558,257 @@ export class GameScene extends Phaser.Scene {
   private closeExitConfirmModal(): void {
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
+  }
+
+  private openMatchInfoModal(kind: InfoModalKind): void {
+    if (this.infoModal !== null) {
+      return;
+    }
+
+    this.activeInfoModal = kind;
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+    const aboutContent = ABOUT_CONTENT[this.infoLanguage];
+    const rulesContent = RULES_CONTENT[this.infoLanguage];
+    const titleText = kind === 'about' ? aboutContent.title : rulesContent.title;
+    const modal = this.add.container(0, 0).setDepth(1000);
+    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
+    overlay.setInteractive();
+
+    const panel = this.add.container(centerX, centerY);
+    const background = this.add.rectangle(0, 0, INFO_MODAL.width, INFO_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
+    background.setStrokeStyle(2, 0x9dd2a7);
+
+    const backButton = this.createMatchInfoBackButton();
+    const languageSelector = this.createMatchInfoLanguageSelector(336, -258);
+    const title = this.add
+      .text(0, -252, titleText, {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '34px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const subtitle = this.add
+      .text(0, -214, `${GAME_TITLE} | v${GAME_VERSION}`, {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '20px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const author = this.add
+      .text(0, -184, `${aboutContent.authorLabel}: ${GAME_AUTHOR}`, {
+        align: 'center',
+        color: '#8fd4ff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const viewport =
+      kind === 'about' ? this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent);
+
+    panel.add(
+      kind === 'about'
+        ? [background, backButton, languageSelector, title, subtitle, author, viewport]
+        : [background, backButton, languageSelector, title, subtitle, viewport]
+    );
+    modal.add([overlay, panel]);
+    this.infoModal = modal;
+  }
+
+  private closeMatchInfoModal(): void {
+    this.infoModal?.destroy();
+    this.infoModal = null;
+    this.activeInfoModal = null;
+
+    if (this.engine !== null && this.isSceneStableForAi()) {
+      this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
+    }
+  }
+
+  private createMatchInfoBackButton(): Phaser.GameObjects.Container {
+    return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal(), {
+      fontSize: INFO_BACK_BUTTON.fontSize,
+      height: INFO_BACK_BUTTON.height,
+      width: INFO_BACK_BUTTON.width
+    });
+  }
+
+  private createMatchInfoLanguageSelector(x: number, y: number): Phaser.GameObjects.Container {
+    const selector = this.add.container(x, y);
+    const startX = -62;
+
+    ABOUT_LANGUAGES.forEach((language, index) => {
+      const isActive = language === this.infoLanguage;
+      const label = this.add
+        .text(startX + index * 54, 0, getInfoLanguageCode(language), {
+          align: 'center',
+          color: isActive ? '#f0c95a' : '#d9eadf',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '18px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+
+      if (!isActive) {
+        label.setInteractive({ useHandCursor: true });
+        label.on('pointerover', () => label.setColor('#ffffff'));
+        label.on('pointerout', () => label.setColor('#d9eadf'));
+        label.on('pointerdown', () => this.switchMatchInfoLanguage(language));
+      }
+
+      selector.add(label);
+
+      if (index < ABOUT_LANGUAGES.length - 1) {
+        selector.add(
+          this.add
+            .text(startX + index * 54 + 27, 0, '|', {
+              color: '#5f9572',
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '18px',
+              fontStyle: '700'
+            })
+            .setOrigin(0.5)
+        );
+      }
+    });
+
+    return selector;
+  }
+
+  private createMatchAboutViewport(content: (typeof ABOUT_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+    const wrapper = this.add.container(0, 0);
+    const scrollContent = this.add.container(0, INFO_VIEWPORT.y);
+    let contentHeight = 0;
+
+    content.paragraphs.forEach((paragraph) => {
+      const text = this.add
+        .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+          align: 'left',
+          color: '#d9eadf',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '20px',
+          lineSpacing: 12,
+          wordWrap: { width: INFO_VIEWPORT.width }
+        })
+        .setOrigin(0, 0);
+
+      scrollContent.add(text);
+      contentHeight += text.height + 28;
+    });
+
+    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
+
+    return wrapper;
+  }
+
+  private createMatchRulesViewport(content: (typeof RULES_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+    const wrapper = this.add.container(0, 0);
+    const scrollContent = this.add.container(0, INFO_VIEWPORT.y);
+    let contentHeight = 0;
+
+    content.sections.forEach((section, index) => {
+      const heading = this.add
+        .text(INFO_VIEWPORT.x, contentHeight, section.heading, {
+          align: 'left',
+          color: index === 0 ? '#f0c95a' : '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: index === 0 ? '22px' : '19px',
+          fontStyle: '700',
+          wordWrap: { width: INFO_VIEWPORT.width }
+        })
+        .setOrigin(0, 0);
+
+      scrollContent.add(heading);
+      contentHeight += heading.height + 8;
+
+      section.body.forEach((paragraph) => {
+        const body = this.add
+          .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+            align: 'left',
+            color: '#d9eadf',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineSpacing: 8,
+            wordWrap: { width: INFO_VIEWPORT.width }
+          })
+          .setOrigin(0, 0);
+
+        scrollContent.add(body);
+        contentHeight += body.height + 6;
+      });
+
+      contentHeight += 12;
+    });
+
+    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
+
+    return wrapper;
+  }
+
+  private applyMatchInfoScrollableViewport(
+    wrapper: Phaser.GameObjects.Container,
+    scrollContent: Phaser.GameObjects.Container,
+    contentHeight: number
+  ): void {
+    const maxScroll = Math.max(0, contentHeight - INFO_VIEWPORT.height);
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(
+        SCENE_WIDTH / 2 + INFO_VIEWPORT.x,
+        SCENE_HEIGHT / 2 + INFO_VIEWPORT.y,
+        INFO_VIEWPORT.width,
+        INFO_VIEWPORT.height
+      )
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    scrollContent.setMask(mask);
+    wrapper.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
+
+    const scrollZone = this.add
+      .zone(0, INFO_VIEWPORT.y + INFO_VIEWPORT.height / 2, INFO_VIEWPORT.width, INFO_VIEWPORT.height)
+      .setInteractive();
+
+    wrapper.add([scrollContent, scrollZone]);
+
+    if (maxScroll <= 0) {
+      return;
+    }
+
+    const trackX = INFO_VIEWPORT.x + INFO_VIEWPORT.width + 16;
+    const track = this.add.rectangle(trackX, INFO_VIEWPORT.y + INFO_VIEWPORT.height / 2, 4, INFO_VIEWPORT.height, 0x5f9572, 0.28);
+    const thumbHeight = Math.max(28, (INFO_VIEWPORT.height / contentHeight) * INFO_VIEWPORT.height);
+    const thumb = this.add.rectangle(trackX, INFO_VIEWPORT.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    let scrollY = 0;
+
+    const setScroll = (value: number): void => {
+      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      scrollContent.y = INFO_VIEWPORT.y - scrollY;
+      thumb.y = INFO_VIEWPORT.y + thumbHeight / 2 + (scrollY / maxScroll) * (INFO_VIEWPORT.height - thumbHeight);
+    };
+
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(scrollY + deltaY * 0.35);
+    });
+    wrapper.add([track, thumb]);
+  }
+
+  private switchMatchInfoLanguage(language: AboutLanguage): void {
+    const activeInfoModal = this.activeInfoModal;
+    this.infoLanguage = language;
+    this.closeMatchInfoModal();
+
+    if (activeInfoModal !== null) {
+      this.openMatchInfoModal(activeInfoModal);
+    }
   }
 
   private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save', onComplete?: () => void): void {
@@ -806,6 +1129,7 @@ export class GameScene extends Phaser.Scene {
   private isSceneStableForAi(): boolean {
     return (
       this.input.enabled &&
+      this.infoModal === null &&
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
       !this.isMatchEffectInProgress
@@ -834,6 +1158,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleSceneShutdown(): void {
+    this.infoModal?.destroy();
+    this.infoModal = null;
+    this.activeInfoModal = null;
     this.aiTurnController?.dispose();
     this.aiTurnController = null;
   }
@@ -942,4 +1269,15 @@ function createAiMatchSeed(
       : 'quick-match';
 
   return `${contextSeed}:${player1FlagCode}:${player2FlagCode}:${player1ControllerType}:${player2ControllerType}`;
+}
+
+function getInfoLanguageCode(language: AboutLanguage): string {
+  switch (language) {
+    case 'en':
+      return 'EN';
+    case 'pl':
+      return 'PL';
+    case 'uk':
+      return 'UA';
+  }
 }

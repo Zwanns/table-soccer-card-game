@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
+import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView';
 
 const MENU_LAYOUT = {
   centerX: SCENE_WIDTH / 2,
@@ -28,13 +29,20 @@ const ABOUT_VIEWPORT = {
   x: -390,
   y: -150,
   width: 780,
-  height: 382
+  height: 360
+} as const;
+
+const INFO_BACK_BUTTON = {
+  y: 258,
+  width: 190,
+  height: 42,
+  fontSize: '18px'
 } as const;
 
 type MenuAnimatedObject = Phaser.GameObjects.Container | Phaser.GameObjects.Image | Phaser.GameObjects.Text;
 type MenuView = 'main' | 'modes';
-type AboutLanguage = 'en' | 'pl' | 'uk';
-type InfoModalKind = 'about' | 'rules';
+export type AboutLanguage = 'en' | 'pl' | 'uk';
+export type InfoModalKind = 'about' | 'rules';
 
 const LOGO_BLINK_INITIAL_DELAY_MS = 1800;
 const LOGO_BLINK_PATTERN: ReadonlyArray<{ textureKey: string; delay: number }> = [
@@ -44,8 +52,8 @@ const LOGO_BLINK_PATTERN: ReadonlyArray<{ textureKey: string; delay: number }> =
   { textureKey: MENU_ASSETS.logoOn, delay: 2600 }
 ];
 
-const ABOUT_LANGUAGES: readonly AboutLanguage[] = ['en', 'pl', 'uk'];
-const ABOUT_CONTENT: Record<
+export const ABOUT_LANGUAGES: readonly AboutLanguage[] = ['en', 'pl', 'uk'];
+export const ABOUT_CONTENT: Record<
   AboutLanguage,
   {
     title: string;
@@ -82,7 +90,7 @@ const ABOUT_CONTENT: Record<
   }
 };
 
-const RULES_CONTENT: Record<AboutLanguage, { title: string; sections: readonly { heading: string; body: readonly string[] }[] }> = {
+export const RULES_CONTENT: Record<AboutLanguage, { title: string; sections: readonly { heading: string; body: readonly string[] }[] }> = {
   en: {
     title: 'Rules',
     sections: [
@@ -696,10 +704,10 @@ export class MenuScene extends Phaser.Scene {
     overlay.setInteractive();
 
     const panel = this.add.container(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY);
-    const background = this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, 0x0b2118, 0.98);
+    const background = this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
     background.setStrokeStyle(2, 0x9dd2a7);
 
-    const backButton = this.createAboutBackButton(-420, -258);
+    const backButton = this.createInfoBackButton();
     const languageSelector = this.createAboutLanguageSelector(336, -258);
     const title = this.add
       .text(0, -252, titleText, {
@@ -749,27 +757,12 @@ export class MenuScene extends Phaser.Scene {
     this.activeInfoModal = null;
   }
 
-  private createAboutBackButton(x: number, y: number): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 44, 38, 0xf0c95a, 1);
-    background.setStrokeStyle(2, 0x2d382f);
-    const arrow = this.add
-      .text(0, -1, '<', {
-        align: 'center',
-        color: '#1f2a2e',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
-    button.add([background, arrow]);
-    button.setSize(44, 38);
-    button.setInteractive({ useHandCursor: true });
-    button.on('pointerover', () => background.setFillStyle(0xffd978));
-    button.on('pointerout', () => background.setFillStyle(0xf0c95a));
-    button.on('pointerdown', () => this.closeAboutModal());
-    return button;
+  private createInfoBackButton(): Phaser.GameObjects.Container {
+    return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal(), {
+      fontSize: INFO_BACK_BUTTON.fontSize,
+      height: INFO_BACK_BUTTON.height,
+      width: INFO_BACK_BUTTON.width
+    });
   }
 
   private createAboutLanguageSelector(x: number, y: number): Phaser.GameObjects.Container {

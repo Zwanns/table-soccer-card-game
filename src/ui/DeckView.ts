@@ -7,6 +7,11 @@ import { KIT_CARD_LAYOUT } from './kitCardFaceModel';
 
 const DECK_WIDTH = CARD_WIDTH;
 const DECK_HEIGHT = CARD_HEIGHT;
+const DECK_MARKER_SIZE = 34;
+export const DECK_MARKER_BOUNCE_HEIGHT = 24;
+const DECK_MARKER_BOUNCE_UP_MS = 360;
+const DECK_MARKER_BOUNCE_DOWN_MS = 260;
+const DECK_MARKER_SQUASH_MS = 64;
 
 export interface DeckViewOptions {
   active?: boolean;
@@ -58,16 +63,48 @@ export class DeckView extends Phaser.GameObjects.Container {
 
     if (options.active === true) {
       const marker = scene.add.image(0, -DECK_HEIGHT / 2 - 30, 'turn-ball');
-      marker.setDisplaySize(34, 34);
+      marker.setDisplaySize(DECK_MARKER_SIZE, DECK_MARKER_SIZE);
+      const baseY = marker.y;
+      const baseScaleX = marker.scaleX;
+      const baseScaleY = marker.scaleY;
 
-      scene.tweens.add({
+      const bounceTween = scene.tweens.chain({
         targets: marker,
-        y: marker.y - 6,
-        duration: 720,
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1
+        loop: -1,
+        tweens: [
+          {
+            y: baseY - DECK_MARKER_BOUNCE_HEIGHT,
+            duration: DECK_MARKER_BOUNCE_UP_MS,
+            ease: 'Quad.easeOut'
+          },
+          {
+            y: baseY,
+            duration: DECK_MARKER_BOUNCE_DOWN_MS,
+            ease: 'Quad.easeIn'
+          },
+          {
+            scaleX: baseScaleX * 1.08,
+            scaleY: baseScaleY * 0.92,
+            duration: DECK_MARKER_SQUASH_MS,
+            yoyo: true,
+            ease: 'Sine.easeOut'
+          }
+        ]
       });
+      let bounceTweenStopped = false;
+      const stopBounceTween = (): void => {
+        if (bounceTweenStopped) {
+          return;
+        }
+
+        bounceTweenStopped = true;
+        scene.events.off(Phaser.Scenes.Events.SHUTDOWN, stopBounceTween);
+        marker.off(Phaser.GameObjects.Events.DESTROY, stopBounceTween);
+        bounceTween.stop();
+      };
+
+      marker.once(Phaser.GameObjects.Events.DESTROY, stopBounceTween);
+      scene.events.once(Phaser.Scenes.Events.SHUTDOWN, stopBounceTween);
 
       this.add(marker);
     }
