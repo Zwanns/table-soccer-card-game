@@ -45,6 +45,12 @@ export function formatGoalScorerLabel(scorer: Pick<GoalScorerStat, 'playerName' 
   return `Rank ${scorer.rank}`;
 }
 
+export function formatGoalScorerMatchLabel(
+  scorer: Pick<GoalScorerStat, 'playerName' | 'shirtNumber' | 'rank' | 'turnNumber'>
+): string {
+  return `${formatGoalScorerLabel(scorer)} (${scorer.turnNumber})`;
+}
+
 export function getMatchStats(state: Readonly<GameState>): [PlayerMatchStats, PlayerMatchStats] {
   const [playerOne, playerTwo] = state.players;
   const [playerOnePossession, playerTwoPossession] = getMatchPossession(state);

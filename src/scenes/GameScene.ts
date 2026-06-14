@@ -13,7 +13,7 @@ import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
 import {
   GameEngine,
   getFieldPlayerForCard,
-  formatGoalScorerLabel,
+  formatGoalScorerMatchLabel,
   getMatchStats,
   getStartingGoalkeeper,
   getTeamAdvantage,
@@ -404,13 +404,13 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       new TeamStatsView(this, 120, 232, {
         align: 'left',
-        scorers: playerOneStats.scorers.map(formatGoalScorerLabel)
+        scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
       })
     );
     this.dynamicLayer.add(
       new TeamStatsView(this, 1485, 232, {
         align: 'right',
-        scorers: playerTwoStats.scorers.map(formatGoalScorerLabel)
+        scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
       })
     );
   }

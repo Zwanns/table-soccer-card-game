@@ -17,7 +17,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const textOriginX = options.align === 'left' ? 0 : 1;
     const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
     const textAlign = options.align;
-    const scorersText = options.scorers.length === 0 ? 'No goals yet' : options.scorers.join('\n');
+    const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
 
     const background = scene.add.rectangle(0, 0, width, height, 0x143f2d, 0.82);
 

@@ -10,7 +10,8 @@ describe('TeamStatsView scorer list', () => {
   it('renders a visible empty state and scorer entries', () => {
     const source = readTeamStatsViewSource();
 
-    expect(source).toContain("options.scorers.length === 0 ? 'No goals yet' : options.scorers.join('\\n')");
+    expect(source).toContain("options.scorers.length === 0 ? '-' : options.scorers.join('\\n')");
+    expect(source).not.toContain('No goals yet');
   });
 
   it('builds the scorer viewport mask in scene coordinates', () => {

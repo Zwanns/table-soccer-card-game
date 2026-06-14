@@ -10,7 +10,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.3.0');
+    expect(GAME_VERSION).toBe('1.3.1');
   });
 
   it('uses the configured game author', () => {
@@ -131,9 +131,10 @@ describe('project scaffold', () => {
 
     expect(resultSceneSource).toContain("'Goalscorers'");
     expect(resultSceneSource).toContain('formatGoalScorerLabel(scorer)');
-    expect(gameSceneSource).toContain('formatGoalScorerLabel');
+    expect(gameSceneSource).toContain('formatGoalScorerMatchLabel');
     expect(teamStatsViewSource).toContain("options.scorers.join('\\n')");
-    expect(teamStatsViewSource).toContain('No goals yet');
+    expect(teamStatsViewSource).toContain("options.scorers.length === 0 ? '-'");
+    expect(teamStatsViewSource).not.toContain('No goals yet');
     expect(teamStatsViewSource).toContain('x + maskLeft');
     expect(teamStatsViewSource).toContain('y + maskTop');
     expect(teamStatsViewSource).toContain('createGeometryMask');

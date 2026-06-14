@@ -4,6 +4,7 @@ import {
   createMatchTeamSetup,
   createEmptyField,
   formatGoalScorerLabel,
+  formatGoalScorerMatchLabel,
   GameEngine,
   getMatchStats,
   getTeamAdvantage,
@@ -1013,6 +1014,11 @@ describe('game engine attacks', () => {
     expect(formatGoalScorerLabel({ playerName: 'Mbappe', shirtNumber: 17, rank: 'A' })).toBe('#17 Mbappe');
     expect(formatGoalScorerLabel({ shirtNumber: 14, rank: 'Q' })).toBe('#14');
     expect(formatGoalScorerLabel({ rank: 'Q' })).toBe('Rank Q');
+    expect(formatGoalScorerMatchLabel({ playerName: 'Doue', shirtNumber: 15, rank: 'K', turnNumber: 7 })).toBe(
+      '#15 Doue (7)'
+    );
+    expect(formatGoalScorerMatchLabel({ shirtNumber: 15, rank: 'K', turnNumber: 7 })).toBe('#15 (7)');
+    expect(formatGoalScorerMatchLabel({ rank: 'Q', turnNumber: 7 })).toBe('Rank Q (7)');
   });
 
   it('summarizes whole-match possession from max attack depth per turn', () => {
