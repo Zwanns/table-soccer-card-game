@@ -20,6 +20,10 @@ const MENU_LAYOUT = {
   footerMargin: 24
 } as const;
 
+export const LEGAL_DISCLAIMER_TEXT =
+  '© 2026 Total Soccer: Mundial. All rights reserved.\n' +
+  'This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players. All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.';
+
 const ABOUT_MODAL = {
   width: 960,
   height: 600
@@ -59,6 +63,7 @@ export const ABOUT_CONTENT: Record<
     title: string;
     authorLabel: string;
     paragraphs: readonly string[];
+    sections: readonly { heading: string; body: readonly string[] }[];
   }
 > = {
   en: {
@@ -68,6 +73,16 @@ export const ABOUT_CONTENT: Record<
       'TOTAL SOCCER: MUNDIAL is a retro card-football game about international matches, tournaments, and dramatic penalty shootouts.',
       'Choose national teams, build attacks, defend your goal, support moves with midfielders, and play against another human or AI.',
       'The game is inspired by football albums, arcade games of the 80s, and the atmosphere of major international tournaments.'
+    ],
+    sections: [
+      {
+        heading: 'Legal / Disclaimer',
+        body: [
+          '© 2026 Total Soccer: Mundial. All rights reserved.',
+          'This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players.',
+          'All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.'
+        ]
+      }
     ]
   },
   pl: {
@@ -77,6 +92,16 @@ export const ABOUT_CONTENT: Record<
       'TOTAL SOCCER: MUNDIAL to retro kartkowa gra piłkarska o meczach międzynarodowych, turniejach i dramatycznych seriach rzutów karnych.',
       'Wybieraj reprezentacje, buduj ataki, broń bramki, wspieraj akcje pomocnikami i graj przeciwko drugiemu graczowi albo AI.',
       'Gra jest inspirowana albumami piłkarskimi, automatowymi grami z lat 80. i atmosferą wielkich turniejów międzynarodowych.'
+    ],
+    sections: [
+      {
+        heading: 'Informacje prawne / Zastrzezenie',
+        body: [
+          '© 2026 Total Soccer: Mundial. Wszelkie prawa zastrzezone.',
+          'To jest nieoficjalna pilkarska gra karciana. Gra nie jest powiazana z FIFA, UEFA, krajowymi federacjami pilkarskimi, klubami, ligami ani pilkarzami.',
+          'Wszystkie nazwy druzyn, nazwiska zawodnikow, stroje, rewersy kart oraz elementy wizualne uzyte w grze sa fikcyjne lub stylizowane, chyba ze zaznaczono inaczej.'
+        ]
+      }
     ]
   },
   uk: {
@@ -86,6 +111,16 @@ export const ABOUT_CONTENT: Record<
       'TOTAL SOCCER: MUNDIAL — це ретро-карткова футбольна гра про міжнародні матчі, турніри та драматичні серії пенальті.',
       'Обирай збірні, проводь атаки, захищайся, підключай півзахисників і змагайся проти людини або AI.',
       'Гра натхненна футбольними альбомами, аркадними іграми 80-х і атмосферою великих міжнародних турнірів.'
+    ],
+    sections: [
+      {
+        heading: 'Правова інформація / Дисклеймер',
+        body: [
+          '© 2026 Total Soccer: Mundial. Усі права захищено.',
+          "Це неофіційна футбольна карткова гра. Вона не пов'язана з FIFA, UEFA, національними футбольними асоціаціями, клубами, лігами або футболістами.",
+          'Усі назви команд, прізвища гравців, форми, сорочки карт і візуальні елементи, використані в грі, є вигаданими або стилізованими, якщо не зазначено інше.'
+        ]
+      }
     ]
   }
 };
@@ -617,6 +652,17 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createFooter(): void {
+    const disclaimer = this.add
+      .text(MENU_LAYOUT.centerX, SCENE_HEIGHT - 18, LEGAL_DISCLAIMER_TEXT, {
+        align: 'center',
+        color: '#c4d6cc',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        lineSpacing: 3,
+        wordWrap: { width: 1040 }
+      })
+      .setOrigin(0.5, 1)
+      .setAlpha(0.82);
     const version = this.add
       .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `v${GAME_VERSION}`, {
         align: 'right',
@@ -627,7 +673,7 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(1, 1);
 
-    this.introTargets.push(version);
+    this.introTargets.push(disclaimer, version);
   }
 
   private playIntroAnimation(): void {
@@ -826,6 +872,40 @@ export class MenuScene extends Phaser.Scene {
 
       scrollContent.add(text);
       contentHeight += text.height + 28;
+    });
+
+    content.sections.forEach((section) => {
+      const heading = this.add
+        .text(ABOUT_VIEWPORT.x, contentHeight + 4, section.heading, {
+          align: 'left',
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '19px',
+          fontStyle: '700',
+          wordWrap: { width: ABOUT_VIEWPORT.width }
+        })
+        .setOrigin(0, 0);
+
+      scrollContent.add(heading);
+      contentHeight += heading.height + 18;
+
+      section.body.forEach((paragraph) => {
+        const text = this.add
+          .text(ABOUT_VIEWPORT.x, contentHeight, paragraph, {
+            align: 'left',
+            color: '#d9eadf',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineSpacing: 8,
+            wordWrap: { width: ABOUT_VIEWPORT.width }
+          })
+          .setOrigin(0, 0);
+
+        scrollContent.add(text);
+        contentHeight += text.height + 10;
+      });
+
+      contentHeight += 12;
     });
 
     this.applyScrollableViewport(wrapper, scrollContent, contentHeight);

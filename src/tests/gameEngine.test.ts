@@ -640,7 +640,7 @@ describe('game engine attacks', () => {
       turnNumber: 1,
       attackerCard: { rank: 'A' },
       scorer: {
-        playerName: 'Mbappe',
+        playerName: 'Montclair',
         shirtNumber: 17,
         rank: 'A',
         teamId: 'fr'

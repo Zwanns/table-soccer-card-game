@@ -5,6 +5,19 @@ import { getRealSquad, REAL_SQUADS, requireRealSquad } from '../data/realSquads'
 import { validateSquad } from '../data/squadValidation';
 
 const PLACEHOLDER_NAME_PATTERN = /^(?:Player|Field Player|Goalkeeper|Игрок|Вратарь)(?:\s|$)/u;
+const FICTIONAL_SURNAME_PATTERN = /^[A-Za-z][A-Za-z '\-]*$/;
+const REMOVED_REAL_PLAYER_NAMES = [
+  'Messi',
+  'Neymar',
+  'Cristiano Ronaldo',
+  'Skorupski',
+  'Buksa',
+  'Bailey Peacock-Farrell',
+  'Dion Charles',
+  'Trai Hume',
+  'Shea Charles',
+  'Josh Magennis'
+];
 
 describe('real static squads', () => {
   it('provides exactly one real squad for every national team', () => {
@@ -23,6 +36,22 @@ describe('real static squads', () => {
     );
 
     expect(playerCount).toBe(975);
+  });
+
+  it('uses globally unique fictional latin surnames for every player slot', () => {
+    const playerNames = REAL_SQUADS.flatMap((squad) => [
+      squad.goalkeeper.name,
+      ...FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].name)
+    ]);
+
+    expect(playerNames).toHaveLength(975);
+    expect(new Set(playerNames).size).toBe(playerNames.length);
+
+    for (const name of playerNames) {
+      expect(name.trim()).toBe(name);
+      expect(name).toMatch(FICTIONAL_SURNAME_PATTERN);
+      expect(REMOVED_REAL_PLAYER_NAMES).not.toContain(name);
+    }
   });
 
   it('keeps every squad valid and aligned with the card ranks', () => {
@@ -60,7 +89,7 @@ describe('real static squads', () => {
       flagCode: 'pl',
       goalkeeper: {
         id: 'gk',
-        name: 'Skorupski',
+        name: 'Kowalski',
         shirtNumber: 1
       }
     });
@@ -82,25 +111,25 @@ describe('real static squads', () => {
     expect(Object.keys(northernIrelandSquad.fieldPlayers)).toHaveLength(14);
     expect(northernIrelandSquad.goalkeeper).toEqual({
       id: 'gk',
-      name: 'Bailey Peacock-Farrell',
+      name: 'McKeown',
       shirtNumber: 1
     });
     expect(northernIrelandSquad.fieldPlayers.K).toMatchObject({
-      name: 'Trai Hume',
+      name: 'Colerain',
       shirtNumber: 14
     });
     expect(northernIrelandSquad.fieldPlayers.A).toMatchObject({
-      name: 'Shea Charles',
+      name: 'Antrimor',
       shirtNumber: 15
     });
     expect(northernIrelandSquad.fieldPlayers.Q).toMatchObject({
-      name: 'Dion Charles',
+      name: 'Magherin',
       shirtNumber: 12
     });
     expect(northernIrelandSquad.fieldPlayers.JOKER).toMatchObject({
-      name: 'Josh Magennis',
+      name: 'Ulsterry',
       shirtNumber: 18
     });
-    expect(northernIrelandPlayers.map((player) => player.name)).toContain('Bailey Peacock-Farrell');
+    expect(northernIrelandPlayers.map((player) => player.name)).toContain('McKeown');
   });
 });

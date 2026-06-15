@@ -10,7 +10,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.3.1');
+    expect(GAME_VERSION).toBe('1.3.2');
   });
 
   it('uses the configured game author', () => {
@@ -102,6 +102,8 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('GAME_AUTHOR_URL');
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
     expect(menuSceneSource).toContain('ABOUT_CONTENT');
+    expect(menuSceneSource).toContain('LEGAL_DISCLAIMER_TEXT');
+    expect(menuSceneSource).toContain('This is an unofficial football card game.');
     expect(menuSceneSource).toContain('RULES_CONTENT');
     expect(menuSceneSource).toContain("import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView'");
     expect(menuSceneSource).toContain(
@@ -129,6 +131,10 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('TOTAL SOCCER: MUNDIAL is a retro card-football game');
     expect(menuSceneSource).toContain('TOTAL SOCCER: MUNDIAL to retro kartkowa gra');
     expect(menuSceneSource).toContain('TOTAL SOCCER: MUNDIAL — це ретро-карткова футбольна гра');
+    expect(menuSceneSource).toContain('Legal / Disclaimer');
+    expect(menuSceneSource).toContain('Informacje prawne / Zastrzezenie');
+    expect(menuSceneSource).toContain('Правова інформація / Дисклеймер');
+    expect(menuSceneSource).toContain('All team names, player names, kits, card backs, and visual elements used in the game are fictional');
     expect(menuSceneSource).toContain("title: 'Про гру'");
     expect(menuSceneSource).toContain("authorLabel: 'Автор'");
     expect(menuSceneSource).toContain('createAboutViewport(aboutContent)');

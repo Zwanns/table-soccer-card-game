@@ -8,7 +8,7 @@
 
 Игроки выбирают две национальные сборные и проводят матч карточными колодами. Каждая команда может управляться человеком или встроенным AI, поэтому поддерживаются матчи HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI. Поле каждой команды состоит из линии полузащиты, линии защиты и позиции вратаря. Атака проходит линии соперника строго по порядку: полузащита, защита, вратарь. Во время атаки на линию полузащиты игрок может вместо карты из колоды подключать собственных полузащитников строго по соответствующим коридорам. Подключенный полузащитник бьет только строго меньший rank, кроме специальных правил. При пробитии вратаря засчитывается гол.
 
-Текущая версия приложения в коде: `1.3.1`.
+Текущая версия приложения в коде: `1.3.2`.
 
 ## 2. Технологии и команды
 
@@ -39,7 +39,7 @@ src/config.ts
 Глобальная конфигурация:
 
 - `GAME_TITLE = 'Total Soccer: Mundial'`
-- `GAME_VERSION = '1.3.1'`
+- `GAME_VERSION = '1.3.2'`
 - `GAME_AUTHOR = 'Oleh Myronchuk'`
 - `SCENE_WIDTH = 1600`
 - `SCENE_HEIGHT = 720`
@@ -126,7 +126,7 @@ src/data/
 Данные:
 
 - `nationalTeams.ts` - 65 национальных сборных.
-- `realSquads.ts` - единственный источник реальных статических составов.
+- `realSquads.ts` - единственный источник статических составов с вымышленными фамилиями игроков.
 - `defaultSquads.ts` - адаптер/фасад для получения состава из `realSquads`.
 - `squadTypes.ts` и `squadValidation.ts` - типы и проверки составов.
 - `teamKits.ts` - registry цветов, путей и asset keys экипировок.
@@ -185,7 +185,8 @@ public/menu/menu-flags.png
 - если `logoImage.displayWidth` доступен, ширина кнопок равна фактической ширине масштабированного табло с clamp по ширине экрана;
 - если используется текстовый fallback без logo image, ширина кнопок берется из ограниченного fallback-расчета от `this.scale.width`;
 - главное меню содержит кнопки `Game modes`, `Teams`, `Rules`, `About` в этом порядке;
-- `About` содержит только короткое описание игры на EN/PL/UA, без правил;
+- `About` содержит короткое описание игры и отдельный legal/disclaimer-раздел на EN/PL/UA, без правил;
+- footer главного меню содержит legal disclaimer: игра неофициальная, не связана с FIFA, UEFA, футбольными федерациями, клубами, лигами или игроками; названия команд, имена игроков, формы, рубашки карт и визуальные элементы являются вымышленными или стилизованными, если не указано иное;
 - `Rules` открывает отдельную модальную панель с правилами на EN/PL/UA и использует тот же language selector;
 - украинский `About` должен использовать украинский текст, а не английский fallback;
 - если `logoOn` не загружен, показывается текстовый fallback из `GAME_TITLE`;
@@ -200,13 +201,13 @@ public/menu/menu-flags.png
 src/data/nationalTeams.ts
 ```
 
-Реальные статические составы находятся в:
+Статические составы с вымышленными фамилиями игроков находятся в:
 
 ```text
 src/data/realSquads.ts
 ```
 
-Это единственный источник фамилий, номеров и распределения rank для состава. Структура состава:
+Это единственный источник вымышленных фамилий, номеров и распределения rank для состава. Игра не использует реальные имена футболистов. Структура состава:
 
 - 14 полевых игроков, привязанных к rank обычных карт;
 - 1 goalkeeper с `id: 'gk'`;
@@ -222,7 +223,7 @@ Northern Ireland добавлена как отдельная команда в 
 - флаг команды загружается из `public/flags/nir.svg`
 - ручная форма зарегистрирована как `public/kits/images/nir.webp`
 - kit colors: primary `#006A3A`, secondary `#FFFFFF`, shirt number `#FFFFFF`, stroke `#111111`; красный акцент `#C8102E` используется в визуальном образе флага/формы.
-- реальный состав `nir` находится в `realSquads.ts`: goalkeeper Bailey Peacock-Farrell, 14 field players, включая Trai Hume, Shea Charles и Dion Charles.
+- вымышленный состав `nir` находится в `realSquads.ts`: goalkeeper McKeown, 14 field players, включая Colerain, Antrimor и Magherin.
 
 ## 5. Обычные карты и правила сравнения
 
@@ -1106,8 +1107,8 @@ src/tests/
 - `teamKits.test.ts` и `kitAssetResolver.test.ts` - registry и resolver экипировок.
 - `validateKits.test.ts` - validator WebP-ассетов.
 - `validateCovers.test.ts` - validator WebP-рубашек колод.
-- `realSquads.test.ts` и `squads.test.ts` - составы.
-- `project.test.ts` - метаданные проекта, версия, автор, main menu asset contracts, blink-logo contracts, унификация ширины menu buttons, отдельные `Rules`/`About`, safe sound helper, scorer UI contracts.
+- `realSquads.test.ts` и `squads.test.ts` - составы, вымышленные фамилии, глобальная уникальность фамилий и латиница.
+- `project.test.ts` - метаданные проекта, версия, автор, main menu asset contracts, blink-logo contracts, унификация ширины menu buttons, отдельные `Rules`/`About`, legal disclaimer, safe sound helper, scorer UI contracts.
 - `bootScene.test.ts` - обязательная загрузка kit-ассетов и текущих menu scoreboard ассетов без старого `menu-logo.png` / `menu-ball`.
 - `resultScene.test.ts` - выравнивание и прокручиваемая хронология авторов голов на финальном экране.
 - `squadEditor.test.ts` - read-only Teams/Squad screens и preview-карты выбранной сборной с одинаковым scale.

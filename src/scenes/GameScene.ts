@@ -704,6 +704,40 @@ export class GameScene extends Phaser.Scene {
       contentHeight += text.height + 28;
     });
 
+    content.sections.forEach((section) => {
+      const heading = this.add
+        .text(INFO_VIEWPORT.x, contentHeight + 4, section.heading, {
+          align: 'left',
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '19px',
+          fontStyle: '700',
+          wordWrap: { width: INFO_VIEWPORT.width }
+        })
+        .setOrigin(0, 0);
+
+      scrollContent.add(heading);
+      contentHeight += heading.height + 18;
+
+      section.body.forEach((paragraph) => {
+        const text = this.add
+          .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+            align: 'left',
+            color: '#d9eadf',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineSpacing: 8,
+            wordWrap: { width: INFO_VIEWPORT.width }
+          })
+          .setOrigin(0, 0);
+
+        scrollContent.add(text);
+        contentHeight += text.height + 10;
+      });
+
+      contentHeight += 12;
+    });
+
     this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
 
     return wrapper;

@@ -32,8 +32,8 @@ describe('static national team squads', () => {
     squad.fieldPlayers.A.name = 'Mutated';
     squad.goalkeeper.name = 'Mutated';
 
-    expect(requireRealSquad('pl').fieldPlayers.A.name).toBe('Buksa');
-    expect(requireRealSquad('pl').goalkeeper.name).toBe('Skorupski');
+    expect(requireRealSquad('pl').fieldPlayers.A.name).toBe('Krakowski');
+    expect(requireRealSquad('pl').goalkeeper.name).toBe('Kowalski');
   });
 
   it('creates 14 field players and one goalkeeper for every squad', () => {
@@ -81,6 +81,42 @@ describe('static national team squads', () => {
       expect(squad.fieldPlayers.JOKER.shirtNumber).toBe(18);
       expect(getSquadNumbers(squad)).not.toContain(99);
     }
+  });
+
+  it('assigns the fictional surname list in goalkeeper then rank order', () => {
+    const squad = createDefaultSquad('pl');
+
+    expect([
+      squad.goalkeeper.name,
+      ...FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].name)
+    ]).toEqual([
+      'Kowalski',
+      'Nowaczyk',
+      'Wisniewski',
+      'Zielinowski',
+      'Kaminski',
+      'Wojcikowski',
+      'Lewicki',
+      'Mazurski',
+      'Kaczmarek',
+      'Szymanowicz',
+      'Pawlak',
+      'Gorski',
+      'Dabrowski',
+      'Krakowski',
+      'Warszawski'
+    ]);
+  });
+
+  it('keeps all fictional surnames globally unique and latin-only', () => {
+    const names = DEFAULT_SQUADS.flatMap((squad) => [
+      squad.goalkeeper.name,
+      ...FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].name)
+    ]);
+
+    expect(names).toHaveLength(975);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names.every((name) => /^[A-Za-z][A-Za-z '\-]*$/.test(name))).toBe(true);
   });
 
   it('uses valid and unique shirt numbers in every real squad', () => {
@@ -184,7 +220,7 @@ describe('squad validation', () => {
   it('allows real squads to use a unique JOKER number 18', () => {
     const squad = cloneSquad(createDefaultSquad('pl'));
 
-    expect(squad.fieldPlayers.JOKER.name).toBe('Kozlowski');
+    expect(squad.fieldPlayers.JOKER.name).toBe('Warszawski');
     expect(squad.fieldPlayers.JOKER.shirtNumber).toBe(18);
     expect(validateSquad(squad)).toEqual({ ok: true, issues: [] });
   });

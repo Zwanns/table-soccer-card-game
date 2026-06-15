@@ -30,7 +30,7 @@ describe('read-only squad adapter', () => {
     });
   });
 
-  it('loads real static squads without reading localStorage', () => {
+  it('loads static squads without reading localStorage', () => {
     expect(loadSquad('pl')).toEqual(requireRealSquad('pl'));
     expect(globalThis.localStorage.getItem).not.toHaveBeenCalled();
   });
@@ -50,13 +50,13 @@ describe('read-only squad adapter', () => {
     firstLoad.fieldPlayers['9'].name = 'Mutated load';
     firstLoad.goalkeeper.name = 'Mutated keeper';
 
-    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Urbanski');
-    expect(loadSquad('pl').goalkeeper.name).toBe('Skorupski');
+    expect(loadSquad('pl').fieldPlayers['9'].name).toBe('Kaczmarek');
+    expect(loadSquad('pl').goalkeeper.name).toBe('Kowalski');
 
     const allSquads = loadAllSquads();
     allSquads[0].fieldPlayers['9'].name = 'Mutated all squads';
 
-    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Laci');
+    expect(loadAllSquads()[0].fieldPlayers['9'].name).toBe('Gjonmira');
   });
 
   it('throws for unknown squads instead of generating placeholders', () => {

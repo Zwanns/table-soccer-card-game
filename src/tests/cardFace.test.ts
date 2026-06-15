@@ -32,7 +32,7 @@ describe('card face profile resolver', () => {
     expect(getFieldCardPlayerProfile('pl', '9')).toEqual({
       teamId: 'pl',
       rank: '9',
-      playerName: 'Urbanski',
+      playerName: 'Kaczmarek',
       shirtNumber: 9
     });
   });
@@ -41,13 +41,13 @@ describe('card face profile resolver', () => {
     expect(getFieldCardPlayerProfile('pl', 'JOKER')).toEqual({
       teamId: 'pl',
       rank: 'JOKER',
-      playerName: 'Kozlowski',
+      playerName: 'Warszawski',
       shirtNumber: 18
     });
   });
 
   it('formats tooltip text without exposing data on closed cards', () => {
-    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Buksa');
+    expect(getCardTooltipText(getFieldCardPlayerProfile('pl', 'A'))).toBe('Krakowski');
   });
 });
 

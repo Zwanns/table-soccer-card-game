@@ -39,7 +39,7 @@ describe('match team setup snapshot', () => {
     expect(setup).not.toHaveProperty('fieldKit');
     expect(setup).not.toHaveProperty('startingGoalkeeperId');
     expect(getFieldPlayerForCard(setup, card('Q'))).toMatchObject({
-      name: 'Olise',
+      name: 'Briandot',
       shirtNumber: 14
     });
   });
@@ -126,7 +126,7 @@ describe('match team setup snapshot', () => {
 
     expect(getStartingGoalkeeper(setup)).toEqual({
       id: 'gk',
-      name: 'Maignan',
+      name: 'Beaumont',
       shirtNumber: 1
     });
     expect(setup.squad).not.toHaveProperty('goalkeepers');
