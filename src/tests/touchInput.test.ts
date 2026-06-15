@@ -25,7 +25,7 @@ describe('touch-friendly input contract', () => {
     expect(menuSource).toContain('setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1))');
     expect(gameSource).toContain('setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1))');
     expect(teamSelectSource).toContain('setTouchFriendlyInteractive(checkbox, 58, 28)');
-    expect(squadSelectSource).toContain('setTouchFriendlyInteractive(option, CARD_WIDTH, CARD_HEIGHT)');
+    expect(squadSelectSource).toContain('setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight)');
     expect(tournamentSetupSource).toContain('createTouchHitArea(this, 188, SLOT_HEIGHT / 2, 22, 26)');
     expect(tournamentSetupSource).toContain('createTouchHitArea(this, 0, 0, 42, 24)');
     expect(tournamentHubSource).toContain('setTouchFriendlyInteractive(button, tabWidth, 46)');

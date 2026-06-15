@@ -31,9 +31,9 @@ describe('read-only squad scenes', () => {
   it('uses a Back text button on the Teams screen without the old arrow label', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
-    expect(selectSource).toContain("this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'))");
+    expect(selectSource).toContain("this.createBackButton(layout.backButton.x, layout.backButton.y, layout, () => this.scene.start('MenuScene'))");
     expect(selectSource).toContain(".text(0, -1, 'Back'");
-    expect(selectSource).toContain('button.setSize(132, 38)');
+    expect(selectSource).toContain('button.setSize(layout.backButton.width, layout.backButton.height)');
     expect(selectSource).toContain("button.on('pointerdown', onClick)");
     expect(selectSource).not.toContain(".text(0, -1, '<'");
   });
@@ -78,27 +78,29 @@ describe('read-only squad scenes', () => {
   it('shows selected team preview cards beside a compact borderless squad card', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
-    expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
-    expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
-    expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
-    expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
-    expect(selectSource).toContain('const TEAM_COLORS_SWATCH_Y = 62');
-    expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');
-    expect(selectSource).toContain('const TEAM_PREVIEW_CARD_SCALE = 1.45');
+    expect(selectSource).toContain("import { createTeamsLayout, type TeamsLayout } from '../ui/teamScreenLayout'");
+    expect(selectSource).toContain('private getTeamsLayout(): TeamsLayout');
+    expect(selectSource).toContain('layout.squadPanel.cardWidth');
+    expect(selectSource).toContain('layout.squadPanel.height');
+    expect(selectSource).toContain('layout.squadPanel.tableY');
+    expect(selectSource).toContain('layout.preview.offsetX');
+    expect(selectSource).toContain('layout.preview.colorsY');
+    expect(selectSource).toContain('layout.preview.colorRadius');
+    expect(selectSource).toContain('layout.preview.cardScale');
     expect(selectSource).toContain("const TEAM_PREVIEW_DISPLAY_RANK = 'N'");
     expect(selectSource).toContain('createTeamCardPreview');
-    expect(selectSource).toContain('this.createTeamColorSwatches(team.flagCode)');
-    expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_FACE_Y');
+    expect(selectSource).toContain('this.createTeamColorSwatches(team.flagCode, layout)');
+    expect(selectSource).toContain('new CardView(this, 0, layout.preview.faceY');
     expect(selectSource).toContain('rank: TEAM_PREVIEW_DISPLAY_RANK');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
-    expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
+    expect(selectSource).toContain('new CardView(this, 0, layout.preview.backY');
     expect(selectSource).toContain('faceDown: true');
     expect(selectSource).toContain("faceDownVariant: 'squad-preview'");
     expect(selectSource).toContain('resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey');
-    expect(selectSource).toContain('SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X');
-    expect(selectSource).toContain('faceCard.setScale(TEAM_PREVIEW_CARD_SCALE)');
-    expect(selectSource).toContain('deckBack.setScale(TEAM_PREVIEW_CARD_SCALE)');
-    expect(selectSource).toContain('preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode)])');
+    expect(selectSource).toContain('layout.squadPanel.cardWidth + layout.preview.offsetX');
+    expect(selectSource).toContain('faceCard.setScale(layout.preview.cardScale)');
+    expect(selectSource).toContain('deckBack.setScale(layout.preview.cardScale)');
+    expect(selectSource).toContain('preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode, layout)])');
     expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
     expect(selectSource).not.toContain('createTeamKitPreview');
     expect(selectSource).not.toContain('kit.setDisplaySize');
@@ -125,7 +127,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain("import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits'");
     expect(selectSource).toContain("import { buildTeamColorSwatches } from '../ui/teamColorSwatches'");
     expect(selectSource).toContain('const style = getTeamKitStyle(flagCode)');
-    expect(selectSource).toContain('const layout = buildTeamColorSwatches(style');
+    expect(selectSource).toContain('const swatchLayout = buildTeamColorSwatches(style');
     expect(selectSource).toContain('graphics.setPosition(swatch.x, swatch.y)');
     expect(selectSource).toContain('graphics.setDepth(20)');
     expect(selectSource).toContain('graphics.lineStyle(2, swatch.strokeColor, 1)');
@@ -143,7 +145,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('this.squad = loadSquad(this.selectedTeamId)');
     expect(selectSource).toContain('this.render()');
     expect(selectSource).toContain('const team = getTeam(this.selectedTeamId)');
-    expect(selectSource).toContain('const teamPreview = this.createTeamCardPreview(team)');
+    expect(selectSource).toContain('const teamPreview = this.createTeamCardPreview(team, layout)');
     expect(selectSource).toContain('panel.add([background, header, squadTable, teamPreview])');
   });
 });

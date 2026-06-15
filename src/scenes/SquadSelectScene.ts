@@ -8,29 +8,10 @@ import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { CardView } from '../ui/CardView';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
+import { createTeamsLayout, type TeamsLayout } from '../ui/teamScreenLayout';
 import { setTouchFriendlyInteractive } from '../ui/touchInput';
 
-const GRID_COLUMNS = 4;
-const CARD_WIDTH = 171;
-const CARD_HEIGHT = 30;
-const GRID_GAP_X = 18;
-const GRID_GAP_Y = 6;
-const GRID_START_Y = 112;
-const LEFT_PANEL_X = 80;
-const RIGHT_PANEL_X = 840;
-const RIGHT_PANEL_WIDTH = 760;
-const RIGHT_PANEL_HEIGHT = 571;
-const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2;
-const SQUAD_TABLE_Y = 94;
-const TEAM_PREVIEW_OFFSET_X = 190;
-const TEAM_COLORS_SWATCH_Y = 62;
-const TEAM_COLOR_SWATCH_RADIUS = 10;
-const TEAM_COLOR_SWATCH_GAP = 10;
-const TEAM_PREVIEW_FACE_Y = 190;
-const TEAM_PREVIEW_BACK_Y = 432;
-const TEAM_PREVIEW_CARD_SCALE = 1.45;
 const TEAM_PREVIEW_DISPLAY_RANK = 'N';
-const SQUAD_SECTION_ROW_GAP = 28;
 
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
@@ -47,34 +28,40 @@ export class SquadSelectScene extends Phaser.Scene {
   private render(): void {
     this.children.removeAll(true);
 
-    const centerX = SCENE_WIDTH / 2;
-    this.add.rectangle(centerX, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
+    const layout = this.getTeamsLayout();
+    this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
     this.add
-      .text(centerX, 34, GAME_TITLE, {
+      .text(layout.scene.centerX, layout.title.y, GAME_TITLE, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
+        fontSize: layout.title.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
     this.add
-      .text(centerX, 74, 'Teams', {
+      .text(layout.scene.centerX, layout.subtitle.y, 'Teams', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '26px',
+        fontSize: layout.subtitle.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    const leftGridX = LEFT_PANEL_X;
-    this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'));
-    this.createTeamGrid(leftGridX);
-    this.createSquadPanel(RIGHT_PANEL_X, 96);
+    this.createBackButton(layout.backButton.x, layout.backButton.y, layout, () => this.scene.start('MenuScene'));
+    this.createTeamGrid(layout);
+    this.createSquadPanel(layout);
   }
 
-  private createBackButton(x: number, y: number, onClick: () => void): void {
+  private getTeamsLayout(): TeamsLayout {
+    return createTeamsLayout({
+      width: this.scale.displaySize.width || this.scale.width,
+      height: this.scale.displaySize.height || this.scale.height
+    });
+  }
+
+  private createBackButton(x: number, y: number, layout: TeamsLayout, onClick: () => void): void {
     const button = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 132, 38, 0xf0c95a, 1);
+    const background = this.add.rectangle(0, 0, layout.backButton.width, layout.backButton.height, 0xf0c95a, 1);
     background.setStrokeStyle(2, 0x2d382f);
     const label = this.add
       .text(0, -1, 'Back', {
@@ -87,55 +74,147 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     button.add([background, label]);
-    button.setSize(132, 38);
-    setTouchFriendlyInteractive(button, 132, 38);
+    button.setSize(layout.backButton.width, layout.backButton.height);
+    setTouchFriendlyInteractive(button, layout.backButton.width, layout.backButton.height);
     button.on('pointerover', () => background.setFillStyle(0xffd978));
     button.on('pointerout', () => background.setFillStyle(0xf0c95a));
     button.on('pointerdown', onClick);
   }
 
-  private createTeamGrid(leftGridX: number): void {
-    const startX = leftGridX + CARD_WIDTH / 2;
+  private createTeamGrid(layout: TeamsLayout): void {
+    const { teamList } = layout;
+    const content = this.add.container(0, 0);
+    const startX = teamList.x + teamList.cardWidth / 2;
+    const rowCount = Math.ceil(NATIONAL_TEAMS.length / teamList.columns);
+    const contentBottom = teamList.startY + (rowCount - 1) * (teamList.cardHeight + teamList.gapY) + teamList.cardHeight / 2;
+    const maxScroll = Math.max(0, contentBottom - (teamList.viewport.y + teamList.viewport.height));
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(teamList.viewport.x, teamList.viewport.y, teamList.viewport.width, teamList.viewport.height)
+      .createGeometryMask();
+    let scrollY = 0;
+    let dragPointerId: number | null = null;
+    let lastDragY = 0;
+    let dragDistance = 0;
+
+    const setScroll = (value: number): void => {
+      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      content.y = -scrollY;
+    };
+    const beginDrag = (pointer: Phaser.Input.Pointer): void => {
+      dragPointerId = pointer.id;
+      lastDragY = pointer.y;
+      dragDistance = 0;
+    };
+    const updateDrag = (pointer: Phaser.Input.Pointer): void => {
+      if (dragPointerId !== pointer.id || !pointer.isDown || maxScroll <= 0) {
+        return;
+      }
+
+      const deltaY = lastDragY - pointer.y;
+      dragDistance += Math.abs(deltaY);
+      setScroll(scrollY + deltaY);
+      lastDragY = pointer.y;
+    };
+    const finishDrag = (pointer: Phaser.Input.Pointer, onTap?: () => void): void => {
+      if (dragPointerId !== pointer.id) {
+        return;
+      }
+
+      const shouldTap = dragDistance < 8;
+      dragPointerId = null;
+      dragDistance = 0;
+
+      if (shouldTap) {
+        onTap?.();
+      }
+    };
+
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+    content.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
 
     NATIONAL_TEAMS.forEach((team, index) => {
-      const column = index % GRID_COLUMNS;
-      const row = Math.floor(index / GRID_COLUMNS);
-      this.createTeamOption(
-        startX + column * (CARD_WIDTH + GRID_GAP_X),
-        GRID_START_Y + row * (CARD_HEIGHT + GRID_GAP_Y),
-        team
+      const column = index % teamList.columns;
+      const row = Math.floor(index / teamList.columns);
+      content.add(
+        this.createTeamOption(
+          startX + column * (teamList.cardWidth + teamList.gapX),
+          teamList.startY + row * (teamList.cardHeight + teamList.gapY),
+          team,
+          layout,
+          {
+            onPointerDown: beginDrag,
+            onPointerMove: updateDrag,
+            onPointerUp: (pointer) =>
+              finishDrag(pointer, () => {
+                this.selectedTeamId = team.flagCode;
+                this.squad = loadSquad(this.selectedTeamId);
+                this.render();
+              }),
+            onWheel: (deltaY) => setScroll(scrollY + deltaY * 0.35)
+          }
+        )
       );
     });
+
+    const scrollZone = this.add
+      .zone(
+        teamList.viewport.x + teamList.viewport.width / 2,
+        teamList.viewport.y + teamList.viewport.height / 2,
+        teamList.viewport.width,
+        teamList.viewport.height
+      )
+      .setInteractive();
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => setScroll(scrollY + deltaY * 0.35));
+    scrollZone.on('pointerdown', beginDrag);
+    scrollZone.on('pointermove', updateDrag);
+    scrollZone.on('pointerup', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
+    scrollZone.on('pointerout', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
+    scrollZone.setDepth(-1);
   }
 
-  private createTeamOption(x: number, y: number, team: NationalTeam): void {
+  private createTeamOption(
+    x: number,
+    y: number,
+    team: NationalTeam,
+    layout: TeamsLayout,
+    handlers: {
+      onPointerDown: (pointer: Phaser.Input.Pointer) => void;
+      onPointerMove: (pointer: Phaser.Input.Pointer) => void;
+      onPointerUp: (pointer: Phaser.Input.Pointer) => void;
+      onWheel: (deltaY: number) => void;
+    }
+  ): Phaser.GameObjects.Container {
     const isSelected = team.flagCode === this.selectedTeamId;
+    const { teamList } = layout;
     const option = this.add.container(x, y);
     const background = this.add.rectangle(
       0,
       0,
-      CARD_WIDTH,
-      CARD_HEIGHT,
+      teamList.cardWidth,
+      teamList.cardHeight,
       isSelected ? 0x1d5b3f : 0x143f2c,
       0.92
     );
     background.setStrokeStyle(2, isSelected ? 0xf0c95a : 0x5f9572, 0.95);
 
-    const flag = this.add.image(-CARD_WIDTH / 2 + 20, 0, getFlagAssetKey(team.flagCode));
+    const flag = this.add.image(-teamList.cardWidth / 2 + 20, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(28, 20);
     const nameText = this.add
-      .text(-CARD_WIDTH / 2 + 44, 0, team.name, {
+      .text(-teamList.cardWidth / 2 + 44, 0, team.name, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         fontStyle: '700',
-        wordWrap: { width: 110 }
+        wordWrap: { width: teamList.cardWidth - 58 }
       })
       .setOrigin(0, 0.5);
 
     option.add([background, flag, nameText]);
-    option.setSize(CARD_WIDTH, CARD_HEIGHT);
-    setTouchFriendlyInteractive(option, CARD_WIDTH, CARD_HEIGHT);
+    option.setSize(teamList.cardWidth, teamList.cardHeight);
+    setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight);
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);
@@ -146,16 +225,17 @@ export class SquadSelectScene extends Phaser.Scene {
         background.setFillStyle(0x143f2c, 0.92);
       }
     });
-    option.on('pointerdown', () => {
-      this.selectedTeamId = team.flagCode;
-      this.squad = loadSquad(this.selectedTeamId);
-      this.render();
-    });
+    option.on('pointerdown', (pointer: Phaser.Input.Pointer) => handlers.onPointerDown(pointer));
+    option.on('pointermove', (pointer: Phaser.Input.Pointer) => handlers.onPointerMove(pointer));
+    option.on('pointerup', (pointer: Phaser.Input.Pointer) => handlers.onPointerUp(pointer));
+    option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => handlers.onWheel(deltaY));
+
+    return option;
   }
 
-  private createSquadPanel(panelX: number, panelY: number): void {
-    const panel = this.add.container(panelX, panelY);
-    const background = this.add.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, 0x143f2c, 0.92).setOrigin(0);
+  private createSquadPanel(layout: TeamsLayout): void {
+    const panel = this.add.container(layout.squadPanel.x, layout.squadPanel.y);
+    const background = this.add.rectangle(0, 0, layout.squadPanel.cardWidth, layout.squadPanel.height, 0x143f2c, 0.92).setOrigin(0);
 
     const team = getTeam(this.selectedTeamId);
     const header = this.add.container(28, 32);
@@ -168,7 +248,7 @@ export class SquadSelectScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
         fontStyle: '700',
-        wordWrap: { width: SQUAD_CARD_WIDTH - 120 }
+        wordWrap: { width: layout.squadPanel.cardWidth - 120 }
       })
       .setOrigin(0, 0.5);
     const subtitle = this.add
@@ -181,40 +261,40 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
     header.add([flag, title, subtitle]);
 
-    const squadTable = this.add.container(28, SQUAD_TABLE_Y);
+    const squadTable = this.add.container(28, layout.squadPanel.tableY);
     squadTable.add(this.createHeaderText(0, 0, 'Rank', 'left'));
     squadTable.add(this.createHeaderText(92, 0, 'Player', 'left'));
-    squadTable.add(this.createHeaderText(SQUAD_CARD_WIDTH - 84, 0, 'Number', 'right'));
-    squadTable.add(this.add.rectangle(0, 24, SQUAD_CARD_WIDTH - 56, 2, 0x5f9572, 0.9).setOrigin(0, 0));
+    squadTable.add(this.createHeaderText(layout.squadPanel.cardWidth - 84, 0, 'Number', 'right'));
+    squadTable.add(this.add.rectangle(0, 24, layout.squadPanel.cardWidth - 56, 2, 0x5f9572, 0.9).setOrigin(0, 0));
 
     const goalkeeperY = 48;
     squadTable.add(this.createCellText(0, goalkeeperY, 'GK', 'left', '#f0c95a'));
     squadTable.add(this.createCellText(92, goalkeeperY, this.squad.goalkeeper.name, 'left', '#ffffff'));
-    squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', '#d9eadf'));
+    squadTable.add(this.createCellText(layout.squadPanel.cardWidth - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', '#d9eadf'));
 
     FIELD_SQUAD_RANKS.forEach((rank, index) => {
       const player = this.squad.fieldPlayers[rank];
-      const y = 84 + index * SQUAD_SECTION_ROW_GAP;
+      const y = 84 + index * layout.squadPanel.sectionRowGap;
       squadTable.add(this.createCellText(0, y, rank, 'left', '#f0c95a'));
       squadTable.add(this.createCellText(92, y, player.name, 'left', '#ffffff'));
-      squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
+      squadTable.add(this.createCellText(layout.squadPanel.cardWidth - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
     });
 
-    const teamPreview = this.createTeamCardPreview(team);
+    const teamPreview = this.createTeamCardPreview(team, layout);
 
     panel.add([background, header, squadTable, teamPreview]);
   }
 
-  private createTeamCardPreview(team: NationalTeam): Phaser.GameObjects.Container {
-    const preview = this.add.container(SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X, 0);
+  private createTeamCardPreview(team: NationalTeam, layout: TeamsLayout): Phaser.GameObjects.Container {
+    const preview = this.add.container(layout.squadPanel.cardWidth + layout.preview.offsetX, 0);
     const teamKitAssetKey = getTeamKitAssetKey(team.flagCode);
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
-    const faceCard = new CardView(this, 0, TEAM_PREVIEW_FACE_Y, {
+    const faceCard = new CardView(this, 0, layout.preview.faceY, {
       rank: TEAM_PREVIEW_DISPLAY_RANK,
       kitTextureKey: teamKitAssetKey,
       tooltipEnabled: false
     });
-    const deckBack = new CardView(this, 0, TEAM_PREVIEW_BACK_Y, {
+    const deckBack = new CardView(this, 0, layout.preview.backY, {
       rank: TEAM_PREVIEW_DISPLAY_RANK,
       faceDown: true,
       coverTextureKey,
@@ -222,27 +302,27 @@ export class SquadSelectScene extends Phaser.Scene {
       tooltipEnabled: false
     });
 
-    faceCard.setScale(TEAM_PREVIEW_CARD_SCALE);
-    deckBack.setScale(TEAM_PREVIEW_CARD_SCALE);
-    preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode)]);
+    faceCard.setScale(layout.preview.cardScale);
+    deckBack.setScale(layout.preview.cardScale);
+    preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode, layout)]);
 
     return preview;
   }
 
-  private createTeamColorSwatches(flagCode: string): Phaser.GameObjects.Container {
+  private createTeamColorSwatches(flagCode: string, layout: TeamsLayout): Phaser.GameObjects.Container {
     const swatches = this.add.container(0, 0);
     const style = getTeamKitStyle(flagCode);
-    const layout = buildTeamColorSwatches(style, {
-      swatchY: TEAM_COLORS_SWATCH_Y,
-      radius: TEAM_COLOR_SWATCH_RADIUS,
-      gap: TEAM_COLOR_SWATCH_GAP
+    const swatchLayout = buildTeamColorSwatches(style, {
+      swatchY: layout.preview.colorsY,
+      radius: layout.preview.colorRadius,
+      gap: layout.preview.colorGap
     });
 
-    if (layout.length === 0) {
+    if (swatchLayout.length === 0) {
       return swatches;
     }
 
-    for (const swatch of layout) {
+    for (const swatch of swatchLayout) {
       const graphics = this.add.graphics();
       graphics.setPosition(swatch.x, swatch.y);
       graphics.setDepth(20);
