@@ -656,13 +656,15 @@ public/kits/images/gk2.webp
 Размер каждого исходного файла:
 
 ```text
-130 x 150 px
+702 x 900 px
 ```
 
 Контракт в коде:
 
 ```ts
-KIT_IMAGE_SIZE = { width: 130, height: 150 }
+TEAM_KIT_IMAGE_WIDTH = 702
+TEAM_KIT_IMAGE_HEIGHT = 900
+KIT_IMAGE_SIZE = { width: TEAM_KIT_IMAGE_WIDTH, height: TEAM_KIT_IMAGE_HEIGHT }
 ```
 
 Fallback:
@@ -689,7 +691,7 @@ Validator проверяет:
 
 - обязательное наличие `none.webp`, `gk1.webp`, `gk2.webp`;
 - WebP-сигнатуру и WebP metadata;
-- размер `130 x 150`;
+- размер `702 x 900`;
 - читаемость файла;
 - путь `kits/images/`;
 - расширение `.webp`.
@@ -1145,7 +1147,7 @@ npm run dev
 - механику обычных карт;
 - текущий контракт отсутствия кнопки `OUT` на экране матча;
 - wiki-importer;
-- исходные `.webp`-ассеты `130 x 150`;
+- исходные `.webp`-ассеты экипировок `702 x 900`;
 - формат экипировок `public/kits/images/*.webp`;
 - fallback-рубашку `public/covers/none.webp` и контракт `cover-<flagCode>` / `cover-none`;
 - локальные шрифты Anton, Oswald и Bangers;

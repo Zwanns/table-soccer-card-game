@@ -227,7 +227,8 @@ export function getFieldCardPosition(
   centerY: number,
   state: Readonly<GameState>,
   playerId: Player['id'],
-  positionId: FieldPositionId
+  positionId: FieldPositionId,
+  scale = 1
 ): { x: number; y: number } {
   const playerIndex = state.players.findIndex((player) => player.id === playerId);
   const positions = playerIndex === 0 ? PLAYER_ONE_POSITIONS : PLAYER_TWO_POSITIONS;
@@ -238,8 +239,8 @@ export function getFieldCardPosition(
   }
 
   return {
-    x: centerX + position.x,
-    y: centerY + position.y
+    x: centerX + position.x * scale,
+    y: centerY + position.y * scale
   };
 }
 

@@ -8,6 +8,7 @@ import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { CardView } from '../ui/CardView';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
+import { setTouchFriendlyInteractive } from '../ui/touchInput';
 
 const GRID_COLUMNS = 4;
 const CARD_WIDTH = 171;
@@ -87,7 +88,7 @@ export class SquadSelectScene extends Phaser.Scene {
 
     button.add([background, label]);
     button.setSize(132, 38);
-    button.setInteractive({ useHandCursor: true });
+    setTouchFriendlyInteractive(button, 132, 38);
     button.on('pointerover', () => background.setFillStyle(0xffd978));
     button.on('pointerout', () => background.setFillStyle(0xf0c95a));
     button.on('pointerdown', onClick);
@@ -134,7 +135,7 @@ export class SquadSelectScene extends Phaser.Scene {
 
     option.add([background, flag, nameText]);
     option.setSize(CARD_WIDTH, CARD_HEIGHT);
-    option.setInteractive({ useHandCursor: true });
+    setTouchFriendlyInteractive(option, CARD_WIDTH, CARD_HEIGHT);
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);

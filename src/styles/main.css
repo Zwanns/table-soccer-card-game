@@ -7,17 +7,69 @@
 html,
 body,
 #app {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
 }
 
 body {
-  overflow: hidden;
-  background: #101418;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 #game-container {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+#game-container canvas {
+  display: block;
+  touch-action: none;
+}
+
+#rotate-device-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #000;
+  color: #fff;
+  text-align: center;
+  touch-action: none;
+  user-select: none;
+}
+
+#rotate-device-overlay[hidden] {
+  display: none;
+}
+
+.rotate-device-overlay__content {
+  max-width: 360px;
+}
+
+.rotate-device-overlay__title,
+.rotate-device-overlay__subtitle {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+}
+
+.rotate-device-overlay__title {
+  color: #f0c95a;
+  font-size: 28px;
+}
+
+.rotate-device-overlay__subtitle {
+  margin-top: 12px;
+  color: #d9eadf;
+  font-size: 20px;
 }

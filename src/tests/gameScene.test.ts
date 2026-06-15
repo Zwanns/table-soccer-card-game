@@ -24,28 +24,18 @@ describe('GameScene visual layout contracts', () => {
 
   it('stretches Menu and Result from the field edge toward the scoreboard', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const layoutSource = readSource('src/ui/matchLayout.ts');
 
-    expect(source).toContain('const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2');
-    expect(source).toContain('const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH');
-    expect(source).toContain('const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2');
-    expect(source).toContain('const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2');
-    expect(source).toContain("const MATCH_ACTION_BUTTON_FONT_SIZE = '16px'");
-    expect(source).toContain('const MATCH_ACTION_BUTTON_HEIGHT = 38');
-    expect(source).toContain('const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14');
-    expect(source).toContain('const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT');
-    expect(source).toContain('const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT');
-    expect(source).toContain('const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH)');
-    expect(source).toContain('const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2');
-    expect(source).toContain('const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3');
-    expect(source).toContain('MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2');
-    expect(source).toContain(
-      'MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2'
-    );
-    expect(source).toContain('height: MATCH_ACTION_BUTTON_HEIGHT');
-    expect(source).toContain('fontSize: MATCH_ACTION_BUTTON_FONT_SIZE');
-    expect(source).toContain('width: SIDE_ACTION_BUTTON_WIDTH');
+    expect(source).toContain("import { createMatchLayout, type MatchLayout } from '../ui/matchLayout'");
+    expect(source).toContain('const firstActionButtonY = layout.actionButtons.top + layout.actionButtons.height / 2');
+    expect(source).toContain('const secondActionButtonY = firstActionButtonY + layout.actionButtons.height + layout.actionButtons.gap');
+    expect(source).toContain('height: layout.actionButtons.height');
+    expect(source).toContain('fontSize: layout.actionButtons.fontSize');
+    expect(source).toContain('width: layout.actionButtons.width');
+    expect(layoutSource).toContain('const DESKTOP_SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14');
+    expect(layoutSource).toContain("fontSize: '16px'");
+    expect(layoutSource).toContain('height: DESKTOP_MATCH_ACTION_BUTTON_HEIGHT');
+    expect(layoutSource).toContain('width: sideActionButtonWidth');
     expect(source).not.toContain("new Button(this, 120, 34, 'Menu'");
     expect(source).not.toContain("new Button(this, 120, 90, 'Result'");
   });
@@ -53,13 +43,12 @@ describe('GameScene visual layout contracts', () => {
   it('adds matching Rules and About buttons that open in-game overlays', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain('const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2');
     expect(source).toContain("'Rules', () => this.openMatchInfoModal('rules')");
     expect(source).toContain("'About',");
     expect(source).toContain("() => this.openMatchInfoModal('about')");
-    expect(source.match(/width: SIDE_ACTION_BUTTON_WIDTH/g)?.length).toBeGreaterThanOrEqual(4);
-    expect(source.match(/height: MATCH_ACTION_BUTTON_HEIGHT/g)?.length).toBeGreaterThanOrEqual(4);
-    expect(source.match(/fontSize: MATCH_ACTION_BUTTON_FONT_SIZE/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(source.match(/width: layout\.actionButtons\.width/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(source.match(/height: layout\.actionButtons\.height/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(source.match(/fontSize: layout\.actionButtons\.fontSize/g)?.length).toBeGreaterThanOrEqual(4);
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'rules' })");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
@@ -77,12 +66,12 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("private infoLanguage: AboutLanguage = 'en'");
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
     expect(source).toContain('overlay.setInteractive()');
-    expect(source).toContain('const INFO_BACK_BUTTON = {');
-    expect(source).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal()");
-    expect(source).toContain('height: 360');
+    expect(source).toContain('private createMatchInfoBackButton(info: MatchInfoLayout)');
+    expect(source).toContain("return new Button(this, 0, info.backButton.y, 'Back', () => this.closeMatchInfoModal()");
+    expect(source).toContain('wordWrap: { width: viewport.width }');
     expect(source).not.toContain("'Close'");
     expect(source).not.toContain("text(0, -1, '<'");
-    expect(source).toContain('this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent)');
+    expect(source).toContain('this.createMatchAboutViewport(aboutContent, info) : this.createMatchRulesViewport(rulesContent, info)');
     expect(source).toContain("scrollZone.on('wheel'");
     expect(source).toContain('this.infoModal === null');
     expect(source).toContain("this.aiTurnController?.requestTurnCheck('STATE_RENDERED')");
@@ -108,11 +97,13 @@ describe('GameScene visual layout contracts', () => {
 
   it('aligns transparent taller Goals panels with the field top', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const layoutSource = readSource('src/ui/matchLayout.ts');
     const statsSource = readSource('src/ui/TeamStatsView.ts');
 
-    expect(gameSceneSource).toContain('const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2');
-    expect(gameSceneSource).toContain('new TeamStatsView(this, 120, TEAM_STATS_CENTER_Y');
-    expect(gameSceneSource).toContain('new TeamStatsView(this, 1485, TEAM_STATS_CENTER_Y');
+    expect(layoutSource).toContain('y: DESKTOP_FIELD_TOP + MATCH_TEAM_STATS_HEIGHT / 2');
+    expect(gameSceneSource).toContain('new TeamStatsView(this, layout.teamStats.playerOneX, layout.teamStats.y');
+    expect(gameSceneSource).toContain('new TeamStatsView(this, layout.teamStats.playerTwoX, layout.teamStats.y');
+    expect(gameSceneSource).toContain('playerOneStatsView.setScale(layout.teamStats.scale)');
     expect(statsSource).toContain('export const TEAM_STATS_VIEW_HEIGHT = 288');
     expect(statsSource).toContain('const viewportHeight = height - 56');
     expect(statsSource).toContain('this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb])');
@@ -137,9 +128,9 @@ describe('GameScene visual layout contracts', () => {
   it('uses the scoreboard background color for in-game info panels', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain("import { SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView'");
+    expect(source).toContain("import { SCORE_VIEW_BACKGROUND_COLOR, ScoreView } from '../ui/ScoreView'");
     expect(source).toContain(
-      'this.add.rectangle(0, 0, INFO_MODAL.width, INFO_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
+      'this.add.rectangle(0, 0, info.modal.width, info.modal.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
     );
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
   });

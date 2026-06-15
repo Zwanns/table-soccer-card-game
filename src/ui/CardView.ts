@@ -98,6 +98,7 @@ export class CardView extends Phaser.GameObjects.Container {
     this.raiseAboveSiblingCards();
     const tooltipPosition = this.getTooltipPosition();
     this.tooltip = new CardTooltipView(scene, tooltipPosition.x, tooltipPosition.y, profile);
+    this.keepTooltipInsideScene(scene, this.tooltip);
   }
 
   private hideTooltip(): void {
@@ -115,6 +116,29 @@ export class CardView extends Phaser.GameObjects.Container {
 
     this.getWorldTransformMatrix().transformPoint(CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, position);
     return position;
+  }
+
+  private keepTooltipInsideScene(scene: Phaser.Scene, tooltip: CardTooltipView): void {
+    const margin = 8;
+    const bounds = tooltip.getBounds();
+    const sceneWidth = scene.scale.width;
+    const sceneHeight = scene.scale.height;
+
+    if (bounds.right > sceneWidth - margin) {
+      tooltip.x -= bounds.right - sceneWidth + margin;
+    }
+
+    if (bounds.left < margin) {
+      tooltip.x += margin - bounds.left;
+    }
+
+    if (bounds.bottom > sceneHeight - margin) {
+      tooltip.y -= bounds.bottom - sceneHeight + margin;
+    }
+
+    if (bounds.top < margin) {
+      tooltip.y += margin - bounds.top;
+    }
   }
 
   private addFaceDownCard(scene: Phaser.Scene, options: CardViewOptions): void {

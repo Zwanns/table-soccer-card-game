@@ -32,53 +32,15 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerPr
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
-import { SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
-import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
+import { createMatchLayout, type MatchLayout } from '../ui/matchLayout';
+import { SCORE_VIEW_BACKGROUND_COLOR, ScoreView } from '../ui/ScoreView';
+import { TeamStatsView } from '../ui/TeamStatsView';
+import { setTouchFriendlyInteractive } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
 import { getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
 
-const FIELD_WIDTH = 1120;
-const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
-const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH;
-const FIELD_TOP = 100;
-const FIELD_CENTER_Y = 400;
-const DECK_Y = 560;
-const SCOREBOARD_CENTER_Y = 42;
-const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2;
-const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2;
-const ADVANTAGE_CENTER_Y = 94;
-const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14;
-const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT;
-const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
-const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
-const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT;
-const LEFT_ACTION_BUTTONS_WIDTH = LEFT_ACTION_BUTTONS_RIGHT - LEFT_ACTION_BUTTONS_LEFT;
-const RIGHT_ACTION_BUTTONS_WIDTH = RIGHT_ACTION_BUTTONS_RIGHT - RIGHT_ACTION_BUTTONS_LEFT;
-const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH);
-const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2;
-const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2;
-const MATCH_ACTION_BUTTON_HEIGHT = 38;
-const MATCH_ACTION_BUTTON_FONT_SIZE = '16px';
-const MATCH_ACTION_BUTTON_GAP = 10;
-const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3;
-const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2;
-const INFO_MODAL = {
-  width: 960,
-  height: 600
-} as const;
-const INFO_VIEWPORT = {
-  x: -390,
-  y: -150,
-  width: 780,
-  height: 360
-} as const;
-const INFO_BACK_BUTTON = {
-  y: 258,
-  width: 190,
-  height: 42,
-  fontSize: '18px'
-} as const;
+type MatchInfoLayout = MatchLayout['info'];
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -220,62 +182,63 @@ export class GameScene extends Phaser.Scene {
   }
 
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
-    const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
+    const layout = this.getMatchLayout();
     const interactive = options.interactive !== false;
     const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
+    const firstActionButtonY = layout.actionButtons.top + layout.actionButtons.height / 2;
+    const secondActionButtonY = firstActionButtonY + layout.actionButtons.height + layout.actionButtons.gap;
 
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
 
-    this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
+    this.dynamicLayer.add(this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
-      new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Menu', () => this.openExitConfirmModal(), {
-        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_HEIGHT,
-        width: SIDE_ACTION_BUTTON_WIDTH
+      new Button(this, layout.actionButtons.leftX, firstActionButtonY, 'Menu', () => this.openExitConfirmModal(), {
+        fontSize: layout.actionButtons.fontSize,
+        height: layout.actionButtons.height,
+        width: layout.actionButtons.width
       })
     );
     this.dynamicLayer.add(
       new Button(
         this,
-        LEFT_ACTION_BUTTON_X,
-        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
+        layout.actionButtons.leftX,
+        secondActionButtonY,
         'Result',
         () => this.openResult(state),
         {
-          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-          height: MATCH_ACTION_BUTTON_HEIGHT,
-          width: SIDE_ACTION_BUTTON_WIDTH
+          fontSize: layout.actionButtons.fontSize,
+          height: layout.actionButtons.height,
+          width: layout.actionButtons.width
         }
       )
     );
     this.dynamicLayer.add(
-      new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Rules', () => this.openMatchInfoModal('rules'), {
-        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_HEIGHT,
-        width: SIDE_ACTION_BUTTON_WIDTH
+      new Button(this, layout.actionButtons.rightX, firstActionButtonY, 'Rules', () => this.openMatchInfoModal('rules'), {
+        fontSize: layout.actionButtons.fontSize,
+        height: layout.actionButtons.height,
+        width: layout.actionButtons.width
       })
     );
     this.dynamicLayer.add(
       new Button(
         this,
-        RIGHT_ACTION_BUTTON_X,
-        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
+        layout.actionButtons.rightX,
+        secondActionButtonY,
         'About',
         () => this.openMatchInfoModal('about'),
         {
-          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-          height: MATCH_ACTION_BUTTON_HEIGHT,
-          width: SIDE_ACTION_BUTTON_WIDTH
+          fontSize: layout.actionButtons.fontSize,
+          height: layout.actionButtons.height,
+          width: layout.actionButtons.width
         }
       )
     );
     this.dynamicLayer.add(
       new ScoreView(
         this,
-        centerX,
-        SCOREBOARD_CENTER_Y,
+        layout.scoreboard.x,
+        layout.scoreboard.y,
         state.players[0].name,
         state.players[1].name,
         state.players[0].flagCode,
@@ -289,43 +252,45 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       createPlayerDeck(
         this,
-        115,
-        DECK_Y,
+        layout.decks.playerOneX,
+        layout.decks.y,
         state,
         state.players[0],
         'right',
         this.player1CoverTextureKey,
         gameInteractive,
-        () => this.drawAttackCard()
+        () => this.drawAttackCard(),
+        layout.decks.scale
       )
     );
     this.dynamicLayer.add(
       createPlayerDeck(
         this,
-        1485,
-        DECK_Y,
+        layout.decks.playerTwoX,
+        layout.decks.y,
         state,
         state.players[1],
         'left',
         this.player2CoverTextureKey,
         gameInteractive,
-        () => this.drawAttackCard()
+        () => this.drawAttackCard(),
+        layout.decks.scale
       )
     );
+    const fieldView = new FieldView(this, layout.field.x, layout.field.y, state, (positionId) => this.selectTarget(positionId), {
+      hiddenCards: options.hiddenRestoredCards,
+      interactive: gameInteractive,
+      onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
+      onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
+    });
+    fieldView.setScale(layout.field.scale);
+    this.dynamicLayer.add(fieldView);
     this.dynamicLayer.add(
-      new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
-        hiddenCards: options.hiddenRestoredCards,
-        interactive: gameInteractive,
-        onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
-        onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
-      })
-    );
-    this.dynamicLayer.add(
-      new AdvantageView(this, centerX, ADVANTAGE_CENTER_Y, {
+      new AdvantageView(this, layout.advantage.x, layout.advantage.y, {
         advantage: getTeamAdvantage(state)
       })
     );
-    this.addTeamStats(state);
+    this.addTeamStats(state, layout);
 
     const pendingRestores = getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
 
@@ -343,6 +308,13 @@ export class GameScene extends Phaser.Scene {
       this.playStartWhistleIfReady(state);
       this.aiTurnController?.requestTurnCheck(options.aiCheckReason);
     }
+  }
+
+  private getMatchLayout(): MatchLayout {
+    return createMatchLayout({
+      width: this.scale.displaySize.width || this.scale.width,
+      height: this.scale.displaySize.height || this.scale.height
+    });
   }
 
   private drawAttackCard(): void {
@@ -466,25 +438,26 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private addTeamStats(state: Readonly<GameState>): void {
+  private addTeamStats(state: Readonly<GameState>, layout: MatchLayout): void {
     if (this.dynamicLayer === null) {
       return;
     }
 
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
+    const playerOneStatsView = new TeamStatsView(this, layout.teamStats.playerOneX, layout.teamStats.y, {
+      align: 'left',
+      scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
+    });
+    const playerTwoStatsView = new TeamStatsView(this, layout.teamStats.playerTwoX, layout.teamStats.y, {
+      align: 'right',
+      scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
+    });
 
-    this.dynamicLayer.add(
-      new TeamStatsView(this, 120, TEAM_STATS_CENTER_Y, {
-        align: 'left',
-        scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
-      })
-    );
-    this.dynamicLayer.add(
-      new TeamStatsView(this, 1485, TEAM_STATS_CENTER_Y, {
-        align: 'right',
-        scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
-      })
-    );
+    playerOneStatsView.setScale(layout.teamStats.scale);
+    playerTwoStatsView.setScale(layout.teamStats.scale);
+
+    this.dynamicLayer.add(playerOneStatsView);
+    this.dynamicLayer.add(playerTwoStatsView);
   }
 
   private showTemporaryMessage(message: string): void {
@@ -566,8 +539,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.activeInfoModal = kind;
-    const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
+    const layout = this.getMatchLayout();
+    const centerX = layout.scene.centerX;
+    const centerY = layout.scene.centerY;
+    const info = layout.info;
     const aboutContent = ABOUT_CONTENT[this.infoLanguage];
     const rulesContent = RULES_CONTENT[this.infoLanguage];
     const titleText = kind === 'about' ? aboutContent.title : rulesContent.title;
@@ -576,13 +551,13 @@ export class GameScene extends Phaser.Scene {
     overlay.setInteractive();
 
     const panel = this.add.container(centerX, centerY);
-    const background = this.add.rectangle(0, 0, INFO_MODAL.width, INFO_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
+    const background = this.add.rectangle(0, 0, info.modal.width, info.modal.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
     background.setStrokeStyle(2, 0x9dd2a7);
 
-    const backButton = this.createMatchInfoBackButton();
-    const languageSelector = this.createMatchInfoLanguageSelector(336, -258);
+    const backButton = this.createMatchInfoBackButton(info);
+    const languageSelector = this.createMatchInfoLanguageSelector(info.languageSelector.x, info.languageSelector.y);
     const title = this.add
-      .text(0, -252, titleText, {
+      .text(0, info.titleY, titleText, {
         align: 'center',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -592,7 +567,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subtitle = this.add
-      .text(0, -214, `${GAME_TITLE} | v${GAME_VERSION}`, {
+      .text(0, info.subtitleY, `${GAME_TITLE} | v${GAME_VERSION}`, {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
@@ -602,7 +577,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const author = this.add
-      .text(0, -184, `${aboutContent.authorLabel}: ${GAME_AUTHOR}`, {
+      .text(0, info.authorY, `${aboutContent.authorLabel}: ${GAME_AUTHOR}`, {
         align: 'center',
         color: '#8fd4ff',
         fontFamily: 'Arial, sans-serif',
@@ -612,7 +587,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const viewport =
-      kind === 'about' ? this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent);
+      kind === 'about' ? this.createMatchAboutViewport(aboutContent, info) : this.createMatchRulesViewport(rulesContent, info);
 
     panel.add(
       kind === 'about'
@@ -633,11 +608,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private createMatchInfoBackButton(): Phaser.GameObjects.Container {
-    return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal(), {
-      fontSize: INFO_BACK_BUTTON.fontSize,
-      height: INFO_BACK_BUTTON.height,
-      width: INFO_BACK_BUTTON.width
+  private createMatchInfoBackButton(info: MatchInfoLayout): Phaser.GameObjects.Container {
+    return new Button(this, 0, info.backButton.y, 'Back', () => this.closeMatchInfoModal(), {
+      fontSize: info.backButton.fontSize,
+      height: info.backButton.height,
+      width: info.backButton.width
     });
   }
 
@@ -658,7 +633,7 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        label.setInteractive({ useHandCursor: true });
+        setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1));
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchMatchInfoLanguage(language));
@@ -683,20 +658,24 @@ export class GameScene extends Phaser.Scene {
     return selector;
   }
 
-  private createMatchAboutViewport(content: (typeof ABOUT_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+  private createMatchAboutViewport(
+    content: (typeof ABOUT_CONTENT)[AboutLanguage],
+    info: MatchInfoLayout
+  ): Phaser.GameObjects.Container {
     const wrapper = this.add.container(0, 0);
-    const scrollContent = this.add.container(0, INFO_VIEWPORT.y);
+    const viewport = info.viewport;
+    const scrollContent = this.add.container(0, viewport.y);
     let contentHeight = 0;
 
     content.paragraphs.forEach((paragraph) => {
       const text = this.add
-        .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+        .text(viewport.x, contentHeight, paragraph, {
           align: 'left',
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
           fontSize: '20px',
           lineSpacing: 12,
-          wordWrap: { width: INFO_VIEWPORT.width }
+          wordWrap: { width: viewport.width }
         })
         .setOrigin(0, 0);
 
@@ -706,13 +685,13 @@ export class GameScene extends Phaser.Scene {
 
     content.sections.forEach((section) => {
       const heading = this.add
-        .text(INFO_VIEWPORT.x, contentHeight + 4, section.heading, {
+        .text(viewport.x, contentHeight + 4, section.heading, {
           align: 'left',
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
           fontSize: '19px',
           fontStyle: '700',
-          wordWrap: { width: INFO_VIEWPORT.width }
+          wordWrap: { width: viewport.width }
         })
         .setOrigin(0, 0);
 
@@ -721,13 +700,13 @@ export class GameScene extends Phaser.Scene {
 
       section.body.forEach((paragraph) => {
         const text = this.add
-          .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+          .text(viewport.x, contentHeight, paragraph, {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',
             lineSpacing: 8,
-            wordWrap: { width: INFO_VIEWPORT.width }
+            wordWrap: { width: viewport.width }
           })
           .setOrigin(0, 0);
 
@@ -738,25 +717,29 @@ export class GameScene extends Phaser.Scene {
       contentHeight += 12;
     });
 
-    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
+    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight, info);
 
     return wrapper;
   }
 
-  private createMatchRulesViewport(content: (typeof RULES_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+  private createMatchRulesViewport(
+    content: (typeof RULES_CONTENT)[AboutLanguage],
+    info: MatchInfoLayout
+  ): Phaser.GameObjects.Container {
     const wrapper = this.add.container(0, 0);
-    const scrollContent = this.add.container(0, INFO_VIEWPORT.y);
+    const viewport = info.viewport;
+    const scrollContent = this.add.container(0, viewport.y);
     let contentHeight = 0;
 
     content.sections.forEach((section, index) => {
       const heading = this.add
-        .text(INFO_VIEWPORT.x, contentHeight, section.heading, {
+        .text(viewport.x, contentHeight, section.heading, {
           align: 'left',
           color: index === 0 ? '#f0c95a' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: index === 0 ? '22px' : '19px',
           fontStyle: '700',
-          wordWrap: { width: INFO_VIEWPORT.width }
+          wordWrap: { width: viewport.width }
         })
         .setOrigin(0, 0);
 
@@ -765,13 +748,13 @@ export class GameScene extends Phaser.Scene {
 
       section.body.forEach((paragraph) => {
         const body = this.add
-          .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
+          .text(viewport.x, contentHeight, paragraph, {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',
             lineSpacing: 8,
-            wordWrap: { width: INFO_VIEWPORT.width }
+            wordWrap: { width: viewport.width }
           })
           .setOrigin(0, 0);
 
@@ -782,7 +765,7 @@ export class GameScene extends Phaser.Scene {
       contentHeight += 12;
     });
 
-    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
+    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight, info);
 
     return wrapper;
   }
@@ -790,17 +773,19 @@ export class GameScene extends Phaser.Scene {
   private applyMatchInfoScrollableViewport(
     wrapper: Phaser.GameObjects.Container,
     scrollContent: Phaser.GameObjects.Container,
-    contentHeight: number
+    contentHeight: number,
+    info: MatchInfoLayout
   ): void {
-    const maxScroll = Math.max(0, contentHeight - INFO_VIEWPORT.height);
+    const viewport = info.viewport;
+    const maxScroll = Math.max(0, contentHeight - viewport.height);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
       .fillRect(
-        SCENE_WIDTH / 2 + INFO_VIEWPORT.x,
-        SCENE_HEIGHT / 2 + INFO_VIEWPORT.y,
-        INFO_VIEWPORT.width,
-        INFO_VIEWPORT.height
+        SCENE_WIDTH / 2 + viewport.x,
+        SCENE_HEIGHT / 2 + viewport.y,
+        viewport.width,
+        viewport.height
       )
       .createGeometryMask();
     maskGraphics.setVisible(false);
@@ -808,7 +793,7 @@ export class GameScene extends Phaser.Scene {
     wrapper.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
 
     const scrollZone = this.add
-      .zone(0, INFO_VIEWPORT.y + INFO_VIEWPORT.height / 2, INFO_VIEWPORT.width, INFO_VIEWPORT.height)
+      .zone(0, viewport.y + viewport.height / 2, viewport.width, viewport.height)
       .setInteractive();
 
     wrapper.add([scrollContent, scrollZone]);
@@ -817,16 +802,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const trackX = INFO_VIEWPORT.x + INFO_VIEWPORT.width + 16;
-    const track = this.add.rectangle(trackX, INFO_VIEWPORT.y + INFO_VIEWPORT.height / 2, 4, INFO_VIEWPORT.height, 0x5f9572, 0.28);
-    const thumbHeight = Math.max(28, (INFO_VIEWPORT.height / contentHeight) * INFO_VIEWPORT.height);
-    const thumb = this.add.rectangle(trackX, INFO_VIEWPORT.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    const trackX = viewport.x + viewport.width + 16;
+    const track = this.add.rectangle(trackX, viewport.y + viewport.height / 2, 4, viewport.height, 0x5f9572, 0.28);
+    const thumbHeight = Math.max(28, (viewport.height / contentHeight) * viewport.height);
+    const thumb = this.add.rectangle(trackX, viewport.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
     let scrollY = 0;
 
     const setScroll = (value: number): void => {
       scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
-      scrollContent.y = INFO_VIEWPORT.y - scrollY;
-      thumb.y = INFO_VIEWPORT.y + thumbHeight / 2 + (scrollY / maxScroll) * (INFO_VIEWPORT.height - thumbHeight);
+      scrollContent.y = viewport.y - scrollY;
+      thumb.y = viewport.y + thumbHeight / 2 + (scrollY / maxScroll) * (viewport.height - thumbHeight);
     };
 
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
@@ -915,7 +900,8 @@ export class GameScene extends Phaser.Scene {
       return null;
     }
 
-    const start = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, attacker.id, positionId);
+    const layout = this.getMatchLayout();
+    const start = getFieldCardPosition(layout.field.x, layout.field.y, state, attacker.id, positionId, layout.field.scale);
 
     return {
       attackerId: attacker.id,
@@ -957,23 +943,31 @@ export class GameScene extends Phaser.Scene {
     this.isAttackAnimationInProgress = true;
     this.input.enabled = false;
 
-    const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
-    const startX = context.startX ?? getPlayerDeckX(state, context.attackerId);
-    const startY = context.startY ?? DECK_Y;
+    const layout = this.getMatchLayout();
+    const target = getFieldCardPosition(
+      layout.field.x,
+      layout.field.y,
+      state,
+      context.defenderId,
+      context.positionId,
+      layout.field.scale
+    );
+    const startX = context.startX ?? getPlayerDeckX(layout, state, context.attackerId);
+    const startY = context.startY ?? layout.decks.y;
     const card = new CardView(this, startX, startY, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
       kitTextureKey: context.attackerKitTextureKey,
       playerProfile: context.attackerProfile
     });
-    card.setScale(0.92);
+    card.setScale(layout.decks.scale * 0.92);
     card.setRotation(context.attackerId === state.players[0].id ? -0.1 : 0.1);
 
     this.tweens.add({
       targets: card,
       x: target.x,
       y: target.y,
-      scale: 1.04,
+      scale: layout.field.scale * 1.04,
       rotation: 0,
       duration: 340,
       ease: 'Cubic.easeIn',
@@ -994,8 +988,9 @@ export class GameScene extends Phaser.Scene {
 
     if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
       const activeOnLeft = context.attackerId === state.players[0].id;
-      const reboundX = target.x + (activeOnLeft ? -180 : 180);
-      const reboundY = outcome === 'post' ? target.y - 145 : target.y + 84;
+      const layout = this.getMatchLayout();
+      const reboundX = target.x + (activeOnLeft ? -180 : 180) * layout.field.scale;
+      const reboundY = outcome === 'post' ? target.y - 145 * layout.field.scale : target.y + 84 * layout.field.scale;
 
       this.tweens.add({
         targets: card,
@@ -1102,8 +1097,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, entry.playerId, entry.positionId);
-    const startX = getPlayerDeckX(state, entry.playerId);
+    const layout = this.getMatchLayout();
+    const target = getFieldCardPosition(layout.field.x, layout.field.y, state, entry.playerId, entry.positionId, layout.field.scale);
+    const startX = getPlayerDeckX(layout, state, entry.playerId);
     const player = state.players.find((candidate) => candidate.id === entry.playerId);
     const isGoalkeeper = entry.positionId === 'goalkeeper';
     const profile =
@@ -1115,7 +1111,7 @@ export class GameScene extends Phaser.Scene {
       isGoalkeeper && setup !== undefined
         ? createGoalkeeperCardProfile(setup.flagCode, getStartingGoalkeeper(setup), (entry.card as GoalkeeperCard).rank)
         : undefined;
-    const card = new CardView(this, startX, DECK_Y, {
+    const card = new CardView(this, startX, layout.decks.y, {
       rank: entry.card.rank,
       color: isGoalkeeper || player === undefined ? player?.teamColor ?? 'BLACK' : (entry.card as Card).color,
       playerProfile: isGoalkeeper ? goalkeeperProfile : profile,
@@ -1126,7 +1122,7 @@ export class GameScene extends Phaser.Scene {
             ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
             : getTeamKitAssetKey(setup.flagCode)
     });
-    card.setScale(0.92);
+    card.setScale(layout.decks.scale * 0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
 
@@ -1134,7 +1130,7 @@ export class GameScene extends Phaser.Scene {
       targets: card,
       x: target.x,
       y: target.y,
-      scale: 1,
+      scale: layout.field.scale,
       alpha: 1,
       rotation: 0,
       duration: 420,
@@ -1217,11 +1213,12 @@ function createPlayerDeck(
   countSide: 'left' | 'right',
   coverTextureKey: string,
   interactive: boolean,
-  onDeckClick: () => void
+  onDeckClick: () => void,
+  scale = 1
 ): DeckView {
   const isActive = state.activePlayerId === player.id;
 
-  return new DeckView(scene, x, y, player.deck.cards.length, {
+  const deckView = new DeckView(scene, x, y, player.deck.cards.length, {
     active: isActive,
     attackCardRank: isActive ? state.attackCard?.rank : undefined,
     attackCardColor: isActive ? state.attackCard?.color : undefined,
@@ -1232,10 +1229,14 @@ function createPlayerDeck(
     countSide,
     onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
+
+  deckView.setScale(scale);
+
+  return deckView;
 }
 
-function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
-  return playerId === state.players[0].id ? 115 : 1485;
+function getPlayerDeckX(layout: MatchLayout, state: Readonly<GameState>, playerId: Player['id']): number {
+  return playerId === state.players[0].id ? layout.decks.playerOneX : layout.decks.playerTwoX;
 }
 
 function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, card: Card): CardPlayerProfile | undefined {

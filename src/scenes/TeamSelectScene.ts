@@ -4,6 +4,7 @@ import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
+import { setTouchFriendlyInteractive } from '../ui/touchInput';
 
 type TeamSlot = 1 | 2;
 
@@ -136,7 +137,7 @@ export class TeamSelectScene extends Phaser.Scene {
     panel.add([background, flag, titleText, teamText]);
     this.addAiCheckbox(panel, 156, -20, slot);
     panel.setSize(440, 82);
-    panel.setInteractive({ useHandCursor: true });
+    setTouchFriendlyInteractive(panel, 440, 82);
     panel.on('pointerdown', () => {
       this.activeSlot = slot;
       this.render();
@@ -186,7 +187,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
     option.add([background, flag, teamText]);
     option.setSize(width, height);
-    option.setInteractive({ useHandCursor: true });
+    setTouchFriendlyInteractive(option, width, height);
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);
@@ -249,7 +250,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
     checkbox.add([box, check, label]);
     checkbox.setSize(58, 28);
-    checkbox.setInteractive({ useHandCursor: true });
+    setTouchFriendlyInteractive(checkbox, 58, 28);
     checkbox.on(
       'pointerdown',
       (

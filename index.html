@@ -10,6 +10,48 @@
     <main id="app">
       <div id="game-container"></div>
     </main>
+    <div id="rotate-device-overlay" aria-hidden="true" hidden>
+      <div class="rotate-device-overlay__content">
+        <p class="rotate-device-overlay__title">Please rotate your device</p>
+        <p class="rotate-device-overlay__subtitle">Use landscape mode</p>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const overlayId = 'rotate-device-overlay';
+
+        const isMobileLikeViewport = () => {
+          const smallViewport = Math.min(window.innerWidth, window.innerHeight) < 700;
+          const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches === true;
+          const touchDevice = navigator.maxTouchPoints > 0;
+
+          return smallViewport && (coarsePointer || touchDevice);
+        };
+
+        const updateRotateOverlay = () => {
+          const overlay = document.getElementById(overlayId);
+
+          if (overlay === null) {
+            return;
+          }
+
+          const isPortrait = window.innerHeight > window.innerWidth;
+          const shouldShow = isMobileLikeViewport() && isPortrait;
+
+          overlay.hidden = !shouldShow;
+          overlay.setAttribute('aria-hidden', String(!shouldShow));
+        };
+
+        window.addEventListener('resize', updateRotateOverlay, { passive: true });
+        window.addEventListener('orientationchange', updateRotateOverlay, { passive: true });
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateRotateOverlay, { once: true });
+        } else {
+          updateRotateOverlay();
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
