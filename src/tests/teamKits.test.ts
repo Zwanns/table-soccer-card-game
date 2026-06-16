@@ -27,6 +27,7 @@ import {
 
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
+const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([['ar', '#111111']]);
 
 describe('team kit data contract', () => {
   it('defines the Stage 1 kit types and shared constants', () => {
@@ -96,7 +97,9 @@ describe('team kit data contract', () => {
       }
       expect(style.shirtNumberColor).toMatch(HEX_COLOR_PATTERN);
       expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
-      expect(style.shirtNumberColor).toBe(style.secondaryColor);
+      expect(style.shirtNumberColor).toBe(
+        EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES.get(style.flagCode) ?? style.secondaryColor
+      );
       expect(assetKeys.has(style.assetKey)).toBe(false);
       expect(paths.has(style.path)).toBe(false);
 
@@ -128,6 +131,14 @@ describe('team kit data contract', () => {
       secondaryColor: '#009C3B',
       accentColor: '#002776',
       shirtNumberColor: '#009C3B'
+    });
+    expect(getTeamKitStyle('ar')).toMatchObject({
+      flagCode: 'ar',
+      assetKey: 'kit-ar',
+      path: 'kits/images/ar.webp',
+      primaryColor: '#75AADB',
+      secondaryColor: '#FFFFFF',
+      shirtNumberColor: '#111111'
     });
     expect(getTeamKitStyle('gb-eng')).toMatchObject({
       flagCode: 'gb-eng',

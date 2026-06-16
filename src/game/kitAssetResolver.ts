@@ -42,17 +42,17 @@ export function resolveGoalkeeperKitAsset(goalkeeperKitId: GoalkeeperKitId): Res
 }
 
 function createImageAsset(
-  style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'secondaryColor'>
+  style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'shirtNumberColor'>
 ): ResolvedKitAsset {
   return {
     assetKey: style.assetKey,
-    numberColor: style.secondaryColor
+    numberColor: style.shirtNumberColor
   };
 }
 
-function createFallbackTeamAsset(colors: Pick<TeamKitStyle, 'secondaryColor'> | typeof FALLBACK_NUMBER_COLORS): ResolvedKitAsset {
+function createFallbackTeamAsset(colors: Pick<TeamKitStyle, 'shirtNumberColor'> | typeof FALLBACK_NUMBER_COLORS): ResolvedKitAsset {
   return {
     assetKey: FALLBACK_TEAM_KIT_ASSET.assetKey,
-    numberColor: 'secondaryColor' in colors ? colors.secondaryColor : colors.numberColor
+    numberColor: 'shirtNumberColor' in colors ? colors.shirtNumberColor : colors.numberColor
   };
 }

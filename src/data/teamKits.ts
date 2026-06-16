@@ -61,7 +61,7 @@ export const DEFAULT_SHIRT_NUMBER_STYLE = {
 const TEAM_KIT_STYLE_ROWS = [
   ['al', '#D71920', '#111111', '#FFFFFF', '#111111'],
   ['dz', '#FFFFFF', '#00843D', '#00843D', '#FFFFFF'],
-  ['ar', '#75AADB', '#FFFFFF', '#111111', '#FFFFFF'],
+  ['ar', '#75AADB', '#FFFFFF', '#111111', '#FFFFFF', '#111111'],
   ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111'],
   ['au', '#FFCD00', '#00843D', '#006747', '#FFFFFF'],
   ['at', '#ED2939', '#FFFFFF', '#FFFFFF', '#111111'],
@@ -124,7 +124,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['uz', '#FFFFFF', '#0099B5', '#006B8F', '#FFFFFF'],
   ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
   ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', '#111111']
-] as const satisfies readonly (readonly [string, string, string, string, string])[];
+] as const satisfies readonly (readonly [string, string, string, string, string, string?])[];
 
 export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
   ([
@@ -132,7 +132,8 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
     primaryColor,
     secondaryColor,
     accentColorCandidate,
-    shirtNumberStrokeColor
+    shirtNumberStrokeColor,
+    shirtNumberColor = secondaryColor
   ]) => ({
     flagCode,
     assetKey: `kit-${flagCode}`,
@@ -140,7 +141,7 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
     primaryColor,
     secondaryColor,
     accentColor: resolveAccentColor(primaryColor, secondaryColor, accentColorCandidate),
-    shirtNumberColor: secondaryColor,
+    shirtNumberColor,
     shirtNumberStrokeColor
   })
 );

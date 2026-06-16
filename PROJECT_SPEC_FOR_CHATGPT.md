@@ -225,7 +225,7 @@ Northern Ireland добавлена как отдельная команда в 
 - Ireland / Republic of Ireland продолжает использовать `flagCode: 'ie'`
 - флаг команды загружается из `public/flags/nir.svg`
 - ручная форма зарегистрирована как `public/kits/images/nir.webp`
-- kit colors: primary `#006A3A`, secondary `#FFFFFF`; `secondaryColor` также является цветом номера на форме, номера рендерятся без stroke.
+- kit colors: primary `#006A3A`, secondary `#FFFFFF`; `shirtNumberColor` по умолчанию совпадает с `secondaryColor`, номера рендерятся без stroke.
 - вымышленный состав `nir` находится в `realSquads.ts`: goalkeeper McKeown, 14 field players, включая Colerain, Antrimor и Magherin.
 
 ## 5. Обычные карты и правила сравнения
@@ -809,7 +809,7 @@ src/game/kitAssetResolver.ts
 - зарегистрированная команда -> `kit-<flagCode>`;
 - незарегистрированная или неизвестная команда -> `kit-none`;
 - GK -> `kit-gk1` или `kit-gk2`;
-- resolver возвращает `assetKey`, `numberColor`; для field kits `numberColor` берется из `secondaryColor`;
+- resolver возвращает `assetKey`, `numberColor`; для field kits `numberColor` берется из `shirtNumberColor`, который по умолчанию равен `secondaryColor` и может быть задан отдельно;
 - graphics fallback убран из resolver-модели.
 
 ## 13. Открытая карта и layout

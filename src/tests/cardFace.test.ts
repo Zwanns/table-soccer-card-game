@@ -189,7 +189,7 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).not.toContain('options.suit');
   });
 
-  it('uses secondary-based number colors without strokes and keeps closed cards unchanged', () => {
+  it('uses resolver number colors without strokes and keeps closed cards unchanged', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
     const deckViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'DeckView.ts'), 'utf8');

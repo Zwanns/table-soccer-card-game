@@ -28,6 +28,15 @@ describe('kit asset resolver', () => {
     });
   });
 
+  it('uses explicit shirt number colors instead of always using secondary colors', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('ar');
+
+    expect(resolveTeamKitAsset('ar')).toEqual({
+      assetKey: 'kit-ar',
+      numberColor: '#111111'
+    });
+  });
+
   it('resolves newly registered team WebP assets by flagCode', () => {
     for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
@@ -40,6 +49,10 @@ describe('kit asset resolver', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
       numberColor: '#009C3B'
+    });
+    expect(resolveTeamKitAsset('ar')).toEqual({
+      assetKey: 'kit-none',
+      numberColor: '#111111'
     });
   });
 
