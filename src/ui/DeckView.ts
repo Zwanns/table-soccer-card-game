@@ -7,6 +7,8 @@ import { KIT_CARD_LAYOUT } from './kitCardFaceModel';
 
 const DECK_WIDTH = CARD_WIDTH;
 const DECK_HEIGHT = CARD_HEIGHT;
+const DECK_STACK_SCALE = 1.12;
+const DECK_COUNT_OFFSET_Y = DECK_HEIGHT * DECK_STACK_SCALE / 2 + 32;
 const DECK_MARKER_SIZE = 34;
 export const DECK_MARKER_BOUNCE_HEIGHT = 24;
 const DECK_MARKER_BOUNCE_UP_MS = 360;
@@ -28,6 +30,7 @@ export class DeckView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, count: number, options: DeckViewOptions = {}) {
     super(scene, x, y);
 
+    const deckStack = scene.add.container(0, 0);
     const back = createRoundedDeckCard(scene, -10, 10, 0x17384c, 0x85bfd5);
 
     const frontBackground = createRoundedDeckCard(scene, 0, 0, 0x214f6b, 0x9ed0e0);
@@ -38,9 +41,8 @@ export class DeckView extends Phaser.GameObjects.Container {
     });
     const frontBorder = createRoundedDeckBorder(scene, 0, 0, 0x9ed0e0);
 
-    const countOffsetX = options.countSide === 'left' ? -84 : 84;
     const countText = scene.add
-      .text(countOffsetX, 0, `${count}`, {
+      .text(0, DECK_COUNT_OFFSET_Y, `${count}`, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
@@ -48,10 +50,10 @@ export class DeckView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([back, frontBackground, cover, frontBorder, countText]);
+    deckStack.add([back, frontBackground, cover, frontBorder]);
 
     if (options.attackCardRank !== undefined) {
-      this.add(
+      deckStack.add(
         new CardView(scene, 0, 0, {
           rank: options.attackCardRank,
           color: options.attackCardColor,
@@ -61,8 +63,11 @@ export class DeckView extends Phaser.GameObjects.Container {
       );
     }
 
+    deckStack.setScale(DECK_STACK_SCALE);
+    this.add([deckStack, countText]);
+
     if (options.active === true) {
-      const marker = scene.add.image(0, -DECK_HEIGHT / 2 - 30, 'turn-ball');
+      const marker = scene.add.image(0, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, 'turn-ball');
       marker.setDisplaySize(DECK_MARKER_SIZE, DECK_MARKER_SIZE);
       const baseY = marker.y;
       const baseScaleX = marker.scaleX;
@@ -110,7 +115,14 @@ export class DeckView extends Phaser.GameObjects.Container {
     }
 
     if (options.onClick !== undefined) {
-      const clickTarget = scene.add.rectangle(0, 0, DECK_WIDTH + 24, DECK_HEIGHT + 24, 0xffffff, 0.01);
+      const clickTarget = scene.add.rectangle(
+        0,
+        0,
+        DECK_WIDTH * DECK_STACK_SCALE + 24,
+        DECK_HEIGHT * DECK_STACK_SCALE + 24,
+        0xffffff,
+        0.01
+      );
       clickTarget.setInteractive({ useHandCursor: true });
       clickTarget.on('pointerdown', options.onClick);
       this.add(clickTarget);

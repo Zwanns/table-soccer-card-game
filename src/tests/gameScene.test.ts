@@ -22,6 +22,20 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('repeat: -1');
   });
 
+  it('shows the deck count below a slightly enlarged deck stack', () => {
+    const source = readSource('src/ui/DeckView.ts');
+
+    expect(source).toContain('const DECK_STACK_SCALE = 1.12');
+    expect(source).toContain('const DECK_COUNT_OFFSET_Y = DECK_HEIGHT * DECK_STACK_SCALE / 2 + 32');
+    expect(source).toContain('const deckStack = scene.add.container(0, 0)');
+    expect(source).toContain('deckStack.add([back, frontBackground, cover, frontBorder])');
+    expect(source).toContain('.text(0, DECK_COUNT_OFFSET_Y, `${count}`');
+    expect(source).toContain('deckStack.setScale(DECK_STACK_SCALE)');
+    expect(source).toContain('this.add([deckStack, countText])');
+    expect(source).toContain('DECK_WIDTH * DECK_STACK_SCALE + 24');
+    expect(source).not.toContain("options.countSide === 'left' ? -84 : 84");
+  });
+
   it('stretches Menu and Result from the field edge toward the scoreboard', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
