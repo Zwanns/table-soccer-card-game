@@ -34,9 +34,10 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain('const flagGap = 18');
-    expect(source).toContain('const flagWidth = 88');
-    expect(source).toContain('const flagHeight = 60');
+    expect(source).toContain('const flagWidth = 104');
+    expect(source).toContain('const flagHeight = 70');
     expect(source).toContain("fontSize: '48px'");
+    expect(source).toContain("fontSize: '46px'");
     expect(source).toContain('playerOneText.x - playerOneText.width - flagGap - flagWidth / 2');
     expect(source).toContain('playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2');
   });
@@ -44,16 +45,16 @@ describe('result scene score line layout', () => {
   it('raises and enlarges the final result statistics panel', () => {
     const source = readResultSceneSource();
 
-    expect(source).toContain('this.createScoreLine(\n      centerX,\n      116,');
-    expect(source).toContain('this.createMatchStatsPanel(centerX, 372, this.state)');
-    expect(source).toContain('const height = 384');
-    expect(source).toContain('const viewportHeight = 112');
+    expect(source).toContain('this.createScoreLine(\n      centerX,\n      92,');
+    expect(source).toContain('this.createMatchStatsPanel(centerX, 378, this.state)');
+    expect(source).toContain('const height = 420');
+    expect(source).toContain('const viewportHeight = 128');
   });
 
   it('uses a translucent black final statistics card with gold frame and white section labels', () => {
     const source = readResultSceneSource();
 
-    expect(source).toContain('this.add.rectangle(0, 0, width, height, 0x000000, 0.68)');
+    expect(source).toContain('this.add.rectangle(0, 0, width, height, 0x000000, 0.76)');
     expect(source).toContain('background.setStrokeStyle(2, 0xf0c95a, 0.95)');
     expect(source).toContain("color: '#ffffff'");
     expect(source).not.toContain('const background = this.add.rectangle(0, 0, width, height, 0x0b2118, 0.88)');

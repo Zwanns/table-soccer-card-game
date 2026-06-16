@@ -97,7 +97,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['nl', '#F36C21', '#111111', '#111111', '#FFFFFF'],
   ['ng', '#008753', '#FFFFFF', '#FFFFFF', '#111111'],
   ['nir', '#006A3A', '#FFFFFF', '#FFFFFF', '#111111'],
-  ['no', '#BA0C2F', '#00205B', '#FFFFFF', '#111111'],
+  ['no', '#BA0C2F', '#00205B', '#FFFFFF', '#111111', '#FFFFFF'],
   ['pa', '#DA121A', '#FFFFFF', '#FFFFFF', '#111111'],
   ['py', '#D52B1E', '#FFFFFF', '#0038A8', '#FFFFFF'],
   ['pe', '#FFFFFF', '#D91023', '#D91023', '#FFFFFF'],

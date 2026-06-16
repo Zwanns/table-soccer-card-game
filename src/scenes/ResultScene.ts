@@ -50,7 +50,7 @@ export class ResultScene extends Phaser.Scene {
 
     this.createScoreLine(
       centerX,
-      116,
+      92,
       playerOne?.name ?? 'France',
       playerTwo?.name ?? 'Spain',
       playerOne?.flagCode ?? 'fr',
@@ -60,7 +60,7 @@ export class ResultScene extends Phaser.Scene {
     );
 
     if (this.state !== null) {
-      this.createMatchStatsPanel(centerX, 372, this.state);
+      this.createMatchStatsPanel(centerX, 378, this.state);
     }
 
     this.createActions(centerX);
@@ -201,9 +201,9 @@ export class ResultScene extends Phaser.Scene {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = 840;
-    const height = 384;
+    const height = 420;
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, height, 0x000000, 0.68);
+    const background = this.add.rectangle(0, 0, width, height, 0x000000, 0.76);
     background.setStrokeStyle(2, 0xf0c95a, 0.95);
 
     const title = this.add
@@ -250,8 +250,8 @@ export class ResultScene extends Phaser.Scene {
     const teamNameInnerGap = 96;
     const teamNameWidth = 260;
     const flagGap = 18;
-    const flagWidth = 88;
-    const flagHeight = 60;
+    const flagWidth = 104;
+    const flagHeight = 70;
     const scoreLine = this.add.container(x, y);
     const playerOneNameX = -teamNameInnerGap;
     const playerTwoNameX = teamNameInnerGap;
@@ -261,7 +261,7 @@ export class ResultScene extends Phaser.Scene {
         align: 'right',
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
+        fontSize: '46px',
         fontStyle: '700',
         wordWrap: { width: teamNameWidth }
       })
@@ -281,7 +281,7 @@ export class ResultScene extends Phaser.Scene {
         align: 'left',
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
+        fontSize: '46px',
         fontStyle: '700',
         wordWrap: { width: teamNameWidth }
       })
@@ -357,7 +357,7 @@ export class ResultScene extends Phaser.Scene {
   ): void {
     const rows = createScorerTimeline(playerOneStats, playerTwoStats);
     const viewportTop = 78;
-    const viewportHeight = 112;
+    const viewportHeight = 128;
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
     const scorerColumnWidth = 280;

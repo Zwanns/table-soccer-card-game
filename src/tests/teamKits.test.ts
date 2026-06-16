@@ -27,7 +27,10 @@ import {
 
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
-const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([['ar', '#111111']]);
+const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
+  ['ar', '#111111'],
+  ['no', '#FFFFFF']
+]);
 
 describe('team kit data contract', () => {
   it('defines the Stage 1 kit types and shared constants', () => {
@@ -161,6 +164,15 @@ describe('team kit data contract', () => {
       path: 'kits/images/nir.webp',
       primaryColor: '#006A3A',
       secondaryColor: '#FFFFFF',
+      shirtNumberColor: '#FFFFFF',
+      shirtNumberStrokeColor: '#111111'
+    });
+    expect(getTeamKitStyle('no')).toMatchObject({
+      flagCode: 'no',
+      assetKey: 'kit-no',
+      path: 'kits/images/no.webp',
+      primaryColor: '#BA0C2F',
+      secondaryColor: '#00205B',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: '#111111'
     });
