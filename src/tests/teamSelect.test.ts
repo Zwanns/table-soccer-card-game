@@ -104,11 +104,14 @@ describe('quick match team selection AI controls', () => {
 
   it('draws a football field background without global scale or input changes', () => {
     const source = readTeamSelectSource();
+    const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'teamFieldBackground.ts'), 'utf8');
 
+    expect(source).toContain("import { createTeamFieldBackground } from '../ui/teamFieldBackground'");
     expect(source).toContain('private createTeamSelectFieldBackground');
-    expect(source).toContain('const stripeCount = 14');
-    expect(source).toContain('graphics.lineBetween(SCENE_WIDTH / 2');
-    expect(source).toContain('graphics.strokeCircle(SCENE_WIDTH / 2');
-    expect(source).toContain('graphics.setDepth(-20)');
+    expect(source).toContain('createTeamFieldBackground(this)');
+    expect(backgroundSource).toContain('const stripeCount = 14');
+    expect(backgroundSource).toContain('graphics.lineBetween(SCENE_WIDTH / 2');
+    expect(backgroundSource).toContain('graphics.strokeCircle(SCENE_WIDTH / 2');
+    expect(backgroundSource).toContain('graphics.setDepth(-20)');
   });
 });

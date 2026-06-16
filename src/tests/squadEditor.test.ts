@@ -21,6 +21,9 @@ describe('read-only squad scenes', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(selectSource).toContain("import { createTeamFieldBackground } from '../ui/teamFieldBackground'");
+    expect(selectSource).toContain('createTeamFieldBackground(this)');
+    expect(selectSource).not.toContain('GAME_TITLE');
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');
@@ -76,12 +79,18 @@ describe('read-only squad scenes', () => {
     expect(FIELD_SQUAD_RANKS).toContain('JOKER');
   });
 
-  it('shows selected team preview cards beside a compact borderless squad card', () => {
+  it('shows selected team preview cards beside a compact translucent squad card', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
+    expect(selectSource).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
+    expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = 0.36');
+    expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52');
+    expect(selectSource).toContain('const SQUAD_PANEL_BACKGROUND_ALPHA = 0.42');
+    expect(selectSource).toContain('TRANSLUCENT_CARD_BACKGROUND');
+    expect(selectSource).toContain('background.setStrokeStyle(2, 0xf0c95a, 0.95)');
     expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
     expect(selectSource).toContain('const TEAM_COLORS_SWATCH_Y = 62');
     expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');
@@ -103,7 +112,6 @@ describe('read-only squad scenes', () => {
     expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
     expect(selectSource).not.toContain('createTeamKitPreview');
     expect(selectSource).not.toContain('kit.setDisplaySize');
-    expect(selectSource).not.toContain('background.setStrokeStyle(2, 0x5f9572, 0.95);');
   });
 
   it('shows selected team colors from teamKits above the squad preview cards', () => {
