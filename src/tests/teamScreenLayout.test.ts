@@ -100,8 +100,8 @@ describe('team screen layout helper', () => {
 
     expectInsideCanvas(boundsFromCenter(layout.selectedPanels.playerOneX, layout.selectedPanels.y, layout.selectedPanels.width, layout.selectedPanels.height));
     expectInsideCanvas(boundsFromCenter(layout.selectedPanels.playerTwoX, layout.selectedPanels.y, layout.selectedPanels.width, layout.selectedPanels.height));
-    expectInsideCanvas(boundsFromCenter(layout.actions.backX, layout.actions.y, 220, 54));
-    expectInsideCanvas(boundsFromCenter(layout.actions.startX, layout.actions.y, 220, 54));
+    expectInsideCanvas(boundsFromCenter(layout.actions.backX, layout.actions.y, layout.actions.buttonWidth, layout.actions.buttonHeight));
+    expectInsideCanvas(boundsFromCenter(layout.actions.startX, layout.actions.y, layout.actions.buttonWidth, layout.actions.buttonHeight));
     expectInsideCanvas(viewportBounds(layout.grid.viewport));
     expect(layout.grid.buttonHeight).toBeGreaterThanOrEqual(42);
   });
@@ -127,7 +127,11 @@ describe('team screen layout helper', () => {
     expect(teamSelectMobile.grid.columns).toBeLessThan(teamSelectDesktop.grid.columns);
     expect(teamSelectMobile.grid.buttonWidth).toBeGreaterThan(teamSelectDesktop.grid.buttonWidth);
     expect(teamSelectMobile.grid.buttonHeight).toBeGreaterThan(teamSelectDesktop.grid.buttonHeight);
-    expect(teamSelectMobile.grid.touchHeight).toBeGreaterThan(teamSelectMobile.grid.buttonHeight);
+    expect(teamSelectMobile.grid.touchWidth).toBe(teamSelectMobile.grid.buttonWidth);
+    expect(teamSelectMobile.grid.touchHeight).toBe(teamSelectMobile.grid.buttonHeight);
+    expect(teamSelectGridHorizontalBounds(teamSelectMobile)).toEqual(selectedPanelSpanHorizontalBounds(teamSelectMobile));
+    expect(teamSelectMobile.actions.touchWidth).toBe(teamSelectMobile.actions.buttonWidth);
+    expect(teamSelectMobile.actions.touchHeight).toBe(teamSelectMobile.actions.buttonHeight);
     expect(teamSelectMobile.grid.viewport.y + teamSelectMobile.grid.viewport.height).toBeLessThan(
       teamSelectMobile.actions.y - teamSelectMobile.actions.buttonHeight / 2
     );
@@ -135,9 +139,11 @@ describe('team screen layout helper', () => {
     expect(teamsMobile.mode).toBe('mobile-landscape');
     expect(teamsMobile.teamList.columns).toBeLessThan(teamsDesktop.teamList.columns);
     expect(teamsMobile.teamList.cardHeight).toBeGreaterThan(teamsDesktop.teamList.cardHeight);
-    expect(teamsMobile.teamList.touchHeight).toBeGreaterThan(teamsMobile.teamList.cardHeight);
+    expect(teamsMobile.teamList.touchWidth).toBe(teamsMobile.teamList.cardWidth);
+    expect(teamsMobile.teamList.touchHeight).toBe(teamsMobile.teamList.cardHeight);
     expect(teamsMobile.teamList.viewport.y + teamsMobile.teamList.viewport.height).toBeLessThanOrEqual(SCENE_HEIGHT - 72);
-    expect(teamsMobile.backButton.touchHeight).toBeGreaterThan(teamsMobile.backButton.height);
+    expect(teamsMobile.backButton.touchWidth).toBe(teamsMobile.backButton.width);
+    expect(teamsMobile.backButton.touchHeight).toBe(teamsMobile.backButton.height);
     expect(teamsMobile.preview.cardScale).toBeLessThan(teamsDesktop.preview.cardScale);
   });
 });
@@ -156,6 +162,22 @@ function previewCardBounds(layout: TeamsLayout, card: 'face' | 'back'): Bounds {
 
 function viewportBounds(viewport: TeamSelectLayout['grid']['viewport']): Bounds {
   return boundsFromOrigin(viewport.x, viewport.y, viewport.width, viewport.height);
+}
+
+function teamSelectGridHorizontalBounds(layout: TeamSelectLayout): Pick<Bounds, 'left' | 'right'> {
+  const width = layout.grid.columns * layout.grid.buttonWidth + (layout.grid.columns - 1) * layout.grid.gapX;
+
+  return {
+    left: (SCENE_WIDTH - width) / 2,
+    right: (SCENE_WIDTH + width) / 2
+  };
+}
+
+function selectedPanelSpanHorizontalBounds(layout: TeamSelectLayout): Pick<Bounds, 'left' | 'right'> {
+  return {
+    left: layout.selectedPanels.playerOneX - layout.selectedPanels.width / 2,
+    right: layout.selectedPanels.playerTwoX + layout.selectedPanels.width / 2
+  };
 }
 
 function boundsFromOrigin(x: number, y: number, width: number, height: number): Bounds {

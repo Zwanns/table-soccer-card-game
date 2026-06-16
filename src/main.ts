@@ -44,4 +44,18 @@ const config: Phaser.Types.Core.GameConfig = {
   }
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+const refreshScale = (): void => {
+  game.scale.refresh();
+};
+
+const scheduleScaleRefresh = (): void => {
+  refreshScale();
+  window.setTimeout(refreshScale, 80);
+  window.setTimeout(refreshScale, 240);
+};
+
+window.addEventListener('resize', scheduleScaleRefresh, { passive: true });
+window.addEventListener('orientationchange', scheduleScaleRefresh, { passive: true });
+window.visualViewport?.addEventListener('resize', scheduleScaleRefresh, { passive: true });

@@ -227,27 +227,27 @@ function createMobileTeamSelectLayout(gameSize: TeamScreenViewportSize): TeamSel
     versus: { x: centerX, y: 124 },
     grid: {
       columns: 5,
-      buttonWidth: 220,
-      buttonHeight: 68,
-      gapX: 14,
-      gapY: 12,
-      startY: 210,
-      touchWidth: 230,
+      buttonWidth: 252,
+      buttonHeight: 78,
+      gapX: 21,
+      gapY: 10,
+      startY: 212,
+      touchWidth: 252,
       touchHeight: 78,
       viewport: {
-        x: 210,
+        x: 128,
         y: 178,
-        width: 1180,
+        width: 1344,
         height: 338
       }
     },
     actions: {
       backX: 258,
       startX: 1342,
-      y: 612,
+      y: 604,
       buttonWidth: 260,
-      buttonHeight: 72,
-      touchWidth: 280,
+      buttonHeight: 82,
+      touchWidth: 260,
       touchHeight: 82
     },
     message: {
@@ -328,25 +328,25 @@ function createMobileTeamsLayout(gameSize: TeamScreenViewportSize): TeamsLayout 
       x: leftPanelX + 66,
       y: 60,
       width: 150,
-      height: 58,
-      touchWidth: 172,
+      height: 78,
+      touchWidth: 150,
       touchHeight: 78
     },
     teamList: {
       x: leftPanelX,
       columns: 3,
       cardWidth: 196,
-      cardHeight: 56,
+      cardHeight: 72,
       gapX: 12,
       gapY: 8,
-      startY: 122,
-      touchWidth: 208,
+      startY: 150,
+      touchWidth: 196,
       touchHeight: 72,
       viewport: {
         x: leftPanelX,
-        y: 94,
+        y: 110,
         width: 612,
-        height: 548
+        height: 532
       }
     },
     squadPanel: {

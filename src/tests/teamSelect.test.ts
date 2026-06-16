@@ -81,4 +81,13 @@ describe('quick match team selection AI controls', () => {
     expect(source).not.toContain('page + 1');
     expect(source).not.toContain('1 / 2');
   });
+
+  it('keeps masked scrolled rows from intercepting mobile taps', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain('const updateOptionInput = (): void =>');
+    expect(source).toContain('optionY + grid.touchHeight / 2 >= viewportTop');
+    expect(source).toContain('entry.option.input.enabled = isTouchable');
+    expect(source).toContain('const shouldTap = dragDistance < 8');
+  });
 });

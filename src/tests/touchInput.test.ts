@@ -46,4 +46,19 @@ describe('touch-friendly input contract', () => {
     expect(cssSource).toContain('z-index: 10000');
     expect(cssSource).toContain('touch-action: none');
   });
+
+  it('keeps Phaser canvas sizing stable for mobile Chrome input alignment', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+    const indexSource = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
+    const cssSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
+
+    expect(indexSource).toContain('maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    expect(mainSource).toContain('game.scale.refresh()');
+    expect(mainSource).toContain("window.visualViewport?.addEventListener('resize', scheduleScaleRefresh");
+    expect(cssSource).toContain('width: 100%');
+    expect(cssSource).toContain('min-width: 100vw');
+    expect(cssSource).toContain('min-height: 100dvh');
+    expect(cssSource).not.toContain('100dvw');
+    expect(cssSource).not.toContain('transform: scale');
+  });
 });

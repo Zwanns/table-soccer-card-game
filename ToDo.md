@@ -923,6 +923,312 @@ Kits/covers:
 
 ---
 
+# M-6.2 — исправить mobile input offset и ширину TeamSelect grid
+
+## Контекст
+
+После проверки на телефоне в Android Chrome landscape обнаружены проблемы:
+
+1. Нажатия по кнопкам/командам регистрируются со смещением: фактическая зона клика находится левее визуального элемента.
+2. В TeamSelect список команд по ширине уже, чем верхние карточки выбранных команд.
+3. На скриншоте видно, что team grid занимает слишком узкую центральную область, хотя сверху выбранные Team 1 / Team 2 карточки шире и выглядят корректнее.
+
+Целевая платформа:
+- Pixel 10
+- Android Chrome
+- landscape only
+
+---
+
+## Главная цель
+
+Исправить:
+- соответствие визуальных элементов и Phaser input/hit areas;
+- ширину team grid в TeamSelect;
+- видимость и удобство выбора команд на телефоне.
+
+---
+
+## Проверить файлы
+
+```text
+src/main.ts
+src/config.ts
+src/styles/main.css
+src/ui/teamScreenLayout.ts
+src/ui/touchInput.ts
+src/scenes/TeamSelectScene.ts
+src/scenes/SquadSelectScene.ts
+src/tests/teamScreenLayout.test.ts
+src/tests/teamSelect.test.ts
+src/tests/touchInput.test.ts
+1. Исправить смещение input относительно визуального canvas
+Проблема
+
+На мобильном устройстве tap по визуальной кнопке срабатывает так, будто hitArea находится левее кнопки.
+
+Это может быть связано с:
+
+CSS 100dvw/100dvh;
+canvas centering;
+Phaser.Scale.FIT;
+разницей между visual viewport и layout viewport;
+черными боковыми полями;
+неправильным boundingClientRect;
+ручным CSS sizing canvas;
+safe-area / browser chrome;
+Что проверить
+
+Проверить, нет ли конфликта между:
+
+Phaser.Scale.FIT + CENTER_BOTH
+и
+CSS width/height на canvas или game-container
+
+Особенно проверить:
+
+#game-container canvas
+canvas
+
+Если canvas получает ручные CSS width/height, которые конфликтуют с Phaser scale manager, убрать или скорректировать.
+
+Требования
+визуальная кнопка и ее hitArea должны совпадать;
+tap по центру кнопки должен срабатывать;
+tap левее кнопки не должен срабатывать как кнопка;
+проблема должна быть исправлена для TeamSelect, Teams и Menu;
+desktop не должен сломаться.
+Рекомендуемая диагностика
+
+Добавить временный debug только локально или через тестируемый helper:
+
+canvas.getBoundingClientRect()
+game.scale.displaySize
+game.scale.gameSize
+game.scale.canvasBounds
+
+Проверить, что Phaser input manager использует актуальные bounds после resize/orientation.
+
+Если нужно, после resize/orientation вызвать:
+
+this.scale.refresh();
+
+или аналогичный безопасный Phaser Scale refresh, если он есть в текущей версии Phaser.
+
+Важно: не оставлять debug UI в финальном коде.
+
+2. Проверить CSS после добавления 100dvw / 100dvh
+
+В M-6.1 были добавлены:
+
+100dvw / 100dvh
+
+Нужно проверить, не это ли вызвало input offset.
+
+Рекомендуемый подход:
+
+html,
+body,
+#app,
+#game-container {
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+}
+
+Или использовать 100dvh аккуратно только там, где это не ломает Phaser input.
+
+Если 100dvw/100dvh вызывает offset на Android Chrome, заменить на более стабильную схему:
+
+width: 100vw;
+height: 100vh;
+height: 100dvh;
+
+но не задавать transform/scale вручную.
+
+Запрещено:
+
+CSS transform: scale(...)
+ручное позиционирование canvas, которое не знает Phaser input
+3. Расширить TeamSelect grid
+Проблема
+
+На скриншоте team grid визуально уже, чем верхние карточки Team 1 / Team 2.
+
+Нужно расширить область списка команд.
+
+Требования
+team grid должен быть шире;
+grid должен визуально соответствовать ширине верхней зоны выбора команд;
+использовать доступную ширину между левым и правым safe margin;
+не выходить за canvas;
+не перекрывать нижние Menu / Start penalties;
+scroll должен сохраниться;
+drag-scroll должен сохраниться;
+tap по команде должен работать.
+Рекомендуемое решение
+
+В teamScreenLayout.ts для mobile TeamSelect:
+
+уменьшить боковые отступы;
+увеличить gridRect.width;
+пересчитать columnWidth;
+возможно уменьшить gap между колонками;
+оставить 5 колонок, если помещается;
+если 5 колонок слишком тесно — использовать 4 более широкие колонки.
+
+На скриншоте сейчас 5 колонок есть, но сами карточки/колонки выглядят слишком узкими. Лучше:
+
+сохранить 5 колонок;
+расширить общий grid;
+увеличить ширину team row/card;
+
+Проверить, чтобы:
+
+левая граница grid была примерно на уровне левой верхней карточки Team 1;
+правая граница grid была примерно на уровне правой верхней карточки Team 2;
+4. Исправить hitArea после scroll/mask
+
+Уже было сделано отключение input у элементов вне viewport. Проверить, что после расширения grid:
+
+masked hidden elements не перехватывают tap;
+tap по видимой команде срабатывает;
+drag не вызывает случайный select;
+после scroll позиции hitArea соответствуют новым визуальным позициям.
+
+Если input offset связан с container scroll, проверить, что hitArea задана в локальных координатах объекта, а не в старых глобальных координатах.
+
+5. Проверить TeamSelect нижние кнопки
+
+После расширения grid убедиться:
+
+Menu виден;
+Start penalties виден;
+нижние кнопки не перекрываются grid;
+нижние кнопки имеют нормальную touch-зону;
+tap по центру Menu / Start срабатывает.
+6. Проверить Teams screen
+
+Такой же input offset может быть и в Teams.
+
+Проверить:
+
+Back нажимается там, где визуально находится;
+tap по команде в списке работает по визуальной строке;
+Colors / kit / cover не затронуты;
+scroll list не перехватывает Back.
+7. Тесты
+
+Обновить тесты:
+
+teamScreenLayout mobile grid width больше прежнего и находится внутри canvas;
+grid left/right соответствуют safe area;
+grid не пересекает action bar;
+Back/Start внутри canvas;
+touch hit areas считаются от актуальных визуальных rect;
+hidden masked rows не интерактивны;
+desktop baseline не изменен критично.
+
+Если возможно, добавить smoke test в mobile viewport:
+
+tap по центру Start penalties срабатывает;
+tap по центру team row выбирает команду;
+tap немного левее row не выбирает, если находится вне row.
+8. Не менять
+
+Не менять:
+
+GameEngine
+AI
+Penalty AI
+TournamentEngine
+PenaltyShootoutEngine
+правила игры
+составы
+assets registry
+kits/covers validation
+GameScene layout
+MenuScene layout, кроме CSS/input offset фикса если он общий
+9. Проверка
+
+Запустить:
+
+npm run validate:kits
+npm run validate:covers
+npm test
+npm run build
+npm run dev
+10. Ручная проверка на телефоне
+
+После deploy проверить на Pixel 10 / Android Chrome landscape:
+
+1. Открыть Penalty teams / TeamSelect.
+2. Проверить, что tap по центру Menu срабатывает.
+3. Проверить, что tap по центру Start penalties срабатывает.
+4. Проверить, что tap по команде срабатывает именно по визуальной карточке.
+5. Проверить, что tap левее карточки не выбирает ее.
+6. Проскроллить team grid.
+7. Выбрать команду после scroll.
+8. Открыть Teams.
+9. Проверить Back.
+10. Проверить выбор команды в списке.
+11. Формат отчета
+
+После выполнения вывести:
+
+Этап M-6.2 завершен.
+
+Созданные файлы:
+- ...
+
+Измененные файлы:
+- ...
+
+Причина input offset:
+- ...
+
+CSS / Phaser scale:
+- ...
+
+TeamSelect grid width:
+- ...
+
+Нижние кнопки:
+- ...
+
+Touch alignment:
+- ...
+
+Scroll/mask input:
+- ...
+
+Teams:
+- ...
+
+Проверенные размеры:
+- ...
+
+Изменялись ли GameEngine / AI / Penalty AI / TournamentEngine:
+- да / нет
+
+Результат validate:kits:
+- ...
+
+Результат validate:covers:
+- ...
+
+Результат npm test:
+- ...
+
+Результат npm run build:
+- ...
+
+Результат npm run dev:
+- ...
+
+---
+
 # Этап M-7 — мобильная адаптация турниров и пенальти
 
 ## Цель
