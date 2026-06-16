@@ -118,8 +118,7 @@ describe('kit card face rendering contracts', () => {
       shirtNumber: 9,
       kitAsset: {
         assetKey: 'kit-none',
-        shirtNumberColor: '#DC143C',
-        shirtNumberStrokeColor: '#FFFFFF'
+        numberColor: '#DC143C'
       }
     });
 
@@ -130,8 +129,7 @@ describe('kit card face rendering contracts', () => {
       shirtNumber: 9,
       kitAsset: {
         assetKey: 'kit-pl',
-        shirtNumberColor: '#DC143C',
-        shirtNumberStrokeColor: '#FFFFFF'
+        numberColor: '#DC143C'
       }
     });
   });
@@ -191,19 +189,21 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).not.toContain('options.suit');
   });
 
-  it('uses resolver number colors and keeps closed cards unchanged', () => {
+  it('uses secondary-based number colors without strokes and keeps closed cards unchanged', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
     const deckViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'DeckView.ts'), 'utf8');
 
-    expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberColor');
-    expect(kitFaceSource).toContain('options.kitAsset?.shirtNumberStrokeColor');
+    expect(kitFaceSource).toContain('options.kitAsset?.numberColor');
+    expect(kitFaceSource).not.toContain('options.kitAsset?.shirtNumberColor');
+    expect(kitFaceSource).not.toContain('options.kitAsset?.shirtNumberStrokeColor');
     expect(kitFaceSource).toContain('getGoalkeeperNumberColor(options.kitTextureKey)');
     expect(kitFaceSource).toContain("kitTextureKey === 'kit-gk1' || kitTextureKey === 'kit-gk2'");
     expect(kitFaceSource).toContain("'#FFFFFF'");
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.shirtNumberFontFamily');
     expect(kitFaceSource).toContain("fontStyle: '600'");
-    expect(kitFaceSource).toContain('strokeThickness: 2');
+    expect(kitFaceSource).not.toContain('strokeThickness');
+    expect(kitFaceSource).not.toContain('stroke,');
     expect(deckViewSource).toContain('createRoundedDeckCard');
     expect(deckViewSource).toContain('createRoundedDeckBorder');
     expect(deckViewSource).toContain('KIT_CARD_LAYOUT.deckCornerRadius');

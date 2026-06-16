@@ -72,13 +72,9 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     }
 
     const color =
-      options.kitAsset?.shirtNumberColor ??
+      options.kitAsset?.numberColor ??
       getGoalkeeperNumberColor(options.kitTextureKey) ??
       getFallbackKitColors(options.teamColor).number;
-    const stroke =
-      options.kitAsset?.shirtNumberStrokeColor ??
-      getGoalkeeperNumberStrokeColor(options.kitTextureKey) ??
-      '#000000';
     const position = getShirtNumberLayout();
     const number = scene.add
       .text(position.x, position.y, String(options.shirtNumber), {
@@ -86,9 +82,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         color,
         fontFamily: KIT_CARD_LAYOUT.shirtNumberFontFamily,
         fontSize: '18px',
-        fontStyle: '600',
-        stroke,
-        strokeThickness: 2
+        fontStyle: '600'
       })
       .setOrigin(0.5);
 
@@ -116,10 +110,6 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
 function getGoalkeeperNumberColor(kitTextureKey?: string): string | undefined {
   return isGoalkeeperKitTexture(kitTextureKey) ? '#FFFFFF' : undefined;
-}
-
-function getGoalkeeperNumberStrokeColor(kitTextureKey?: string): string | undefined {
-  return isGoalkeeperKitTexture(kitTextureKey) ? '#111111' : undefined;
 }
 
 function isGoalkeeperKitTexture(kitTextureKey?: string): boolean {

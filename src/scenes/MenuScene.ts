@@ -513,6 +513,18 @@ export class MenuScene extends Phaser.Scene {
     const buttons: MenuAnimatedObject[] = [title];
     let buttonIndex = 0;
 
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Quick match',
+        () => this.scene.start('TeamSelectScene'),
+        { width: buttonWidth }
+      )
+    );
+    buttonIndex += 1;
+
     if (hasTournamentSave) {
       buttons.push(
         new Button(
@@ -534,18 +546,6 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
-        { width: buttonWidth }
-      )
-    );
-    buttonIndex += 1;
-
-    buttons.push(
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Quick match',
-        () => this.scene.start('TeamSelectScene'),
         { width: buttonWidth }
       )
     );

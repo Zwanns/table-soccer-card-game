@@ -1,327 +1,398 @@
 ````md
 # Total Soccer: Mundial
-# Замена реальных фамилий игроков на вымышленные + Legal disclaimer
+# Доработать меню выбора команд
 
 ## Цель
 
-Снизить юридические риски перед публичным продвижением игры.
+Доработать экран выбора команд перед матчем / пенальти:
 
-Нужно:
-
-1. Заменить реальные фамилии игроков во всех 65 сборных на вымышленные.
-2. Фамилии должны быть уникальными во всей игре.
-3. Фамилии должны быть написаны латиницей.
-4. Фамилии должны сохранять национальный характер конкретной сборной.
-5. Добавить legal/disclaimer текст в нижнюю часть главного меню.
-6. Добавить отдельный legal/disclaimer пункт в About во все три языковые версии: EN, PL, UA.
+1. Выровнять верхние карточки выбранных команд и нижние кнопки по краям блока списка команд.
+2. Вместо флага в карточке выбранной команды показывать несколько карт рубашкой вверх, разложенных веером.
+3. Между карточкой выбранной команды и `VS` показывать экипировку выбранной команды.
+4. Заменить однотонный фон на футбольное поле с разметкой и полосатым газоном.
 
 ---
 
-## Ожидаемые файлы
-
-Проверить и изменить при необходимости:
+## Проверить файлы
 
 ```text
-src/data/realSquads.ts
-src/data/defaultSquads.ts
-src/data/squadTypes.ts
-src/scenes/MenuScene.ts
-src/scenes/SquadSelectScene.ts
-src/scenes/GameScene.ts
-src/scenes/ResultScene.ts
-src/tests/squads.test.ts
-src/tests/squadEditor.test.ts
+src/scenes/TeamSelectScene.ts
+src/ui/teamScreenLayout.ts
+src/assets/teamCover.ts
+src/data/teamKits.ts
+src/game/kitAssetResolver.ts
+src/ui/CardView.ts
+src/ui/DeckView.ts
+src/ui/KitCardFaceView.ts
 src/tests/teamSelect.test.ts
-src/tests/menuScene.test.ts
-src/tests/project.test.ts
+src/tests/teamScreenLayout.test.ts
 PROJECT_SPEC_FOR_CHATGPT.md
-```
+````
 
-Если фактические названия отличаются — найти по поиску:
-
-```text
-realSquads
-squad
-players
-shirtNumber
-goalkeeper
-ABOUT_CONTENT
-About
-© 2026
-All rights reserved
-```
-
----
-
-# 1. Замена фамилий игроков
-
-## Требования
-
-Для каждой сборной заменить фамилии игроков на вымышленные.
-
-Сохранять:
+Если часть логики находится в других файлах — найти по поиску:
 
 ```text
-flagCode
-rank
-shirtNumber
-position / role
-goalkeeper status
-starting goalkeeper
-структуру состава
+Team selection
+Penalty teams
+Team 1
+Team 2
+VS
+Start penalties
+Start
+teamCover
+cover
+kit
+getTeamKitAssetKey
+resolveTeamCoverLoadResult
 ```
-
-Менять только имя/фамилию игрока.
-
-Если структура игрока имеет поле:
-
-```ts
-name
-```
-
-то в него записать только фамилию.
-
-Если структура имеет:
-
-```ts
-firstName
-lastName
-```
-
-то:
-
-```ts
-firstName = ''
-lastName = '<fictionalSurname>'
-```
-
-или адаптировать под текущую модель проекта.
-
-В UI должно отображаться именно вымышленное имя/фамилия.
 
 ---
 
-# 2. Порядок назначения фамилий
+# 1. Выровнять карточки выбранных команд и нижние кнопки по ширине списка команд
 
-Для каждой команды использовать 15 фамилий в таком порядке:
+## Текущее состояние
+
+На экране выбора команд список команд занимает широкий центральный блок, но:
 
 ```text
-1. goalkeeper
-2. rank 2
-3. rank 3
-4. rank 4
-5. rank 5
-6. rank 6
-7. rank 7
-8. rank 8
-9. rank 9
-10. rank 10
-11. rank J
-12. rank Q
-13. rank K
-14. rank A
-15. rank JOKER
+верхние карточки Team 1 / Team 2
+и нижние кнопки Menu / Start
+не выровнены по краям этого блока.
 ```
 
-Если в конкретном файле порядок другой — сопоставить по роли/rank, но сохранить этот принцип.
+## Новое поведение
 
----
+Использовать общий layout anchor:
 
-# 3. Список вымышленных фамилий
-
-Использовать этот список.
-
-```ts
-export const FICTIONAL_TEAM_SURNAMES: Record<string, string[]> = {
-  al: ['Bardhani', 'Kelmendi', 'Dushku', 'Arlindi', 'Shkodrani', 'Berishaq', 'Vokshi', 'Lleshani', 'Gjonmira', 'Kastratiq', 'Drenova', 'Zogjani', 'Malajdin', 'Rugovani', 'Pashkolli'],
-  am: ['Vardanyan', 'Arzumanyan', 'Petrosyan', 'Sahakyan', 'Melikyan', 'Grigoryan', 'Tigranyan', 'Avedisyan', 'Karapetyan', 'Baghdasaryan', 'Hovsepyan', 'Minasyan', 'Nersisyan', 'Sargsyanik', 'Harutyunyan'],
-  ar: ['Valderos', 'Riquelmar', 'Sotelino', 'Benavidez', 'Maldorri', 'Castellano', 'Ferreyo', 'Lujanero', 'Alvariza', 'Montieles', 'Paredino', 'Rosalesi', 'Villagra', 'Dominguezal', 'Carranzio'],
-  at: ['Gruberwald', 'Steinacher', 'Kronberger', 'Hoffleiner', 'Wiesenthal', 'Brandstatter', 'Falkenried', 'Mairhofer', 'Leitnerbach', 'Schoberling', 'Auerstein', 'Reisingerhof', 'Kaltenbrunn', 'Winklhofer', 'Edelweissner'],
-  au: ['Braddock', 'McAllister', 'Whitmore', 'Hawthorn', 'Kendrick', 'Sullivanridge', 'Brockley', 'Ashford', 'Callahan', 'Redmond', 'Fairbairn', 'Kingswell', 'Darlington', 'Rutherford', 'Westbrook'],
-  be: ['Verhaegen', 'De Smette', 'Vandervael', 'Lambrechtsen', 'Claessens', 'Dewaer', 'Van Riel', 'Moreauvin', 'Lefevrain', 'Hendrickxen', 'Vercauter', 'Delcroix', 'Vandenbosch', 'Maesbrugge', 'De Witteval'],
-  br: ['Silveirao', 'Costalves', 'Ferreirinho', 'Santoroza', 'Oliveirado', 'Pereirinha', 'Barbosal', 'Nascimentoa', 'Ribeirinho', 'Carvalhao', 'Almeidoro', 'Moreirinha', 'Teixeiral', 'Limeiro', 'Dourado'],
-  by: ['Kravtsov', 'Hrybouski', 'Navumchyk', 'Lukashevich', 'Baranouski', 'Matskevich', 'Rudavets', 'Zalesski', 'Paliakou', 'Siarheichyk', 'Vasilevich', 'Karpovich', 'Bialkevich', 'Dubrovski', 'Minskievich'],
-  ca: ['MacKenzie', 'Bouchardet', 'Tremblayne', 'Whitfield', 'Beaumont', 'Lachance', 'Hargrove', 'Sinclairson', 'Morrissey', 'Fontaineau', 'Ellsworth', 'Mercierlane', 'Caldwell', 'Desrosiers', 'Northwood'],
-  ch: ['Freiwald', 'Zimmerli', 'Bachmannet', 'Meierhof', 'Rothen', 'Kellerlin', 'Schmidiger', 'Favretto', 'Morellin', 'Bernasconi', 'Luganofer', 'Aebischerin', 'Stauffacher', 'Wyssental', 'Albricht'],
-  ci: ['Kouadiole', 'Bakanoko', 'Diarassou', 'Yalouba', 'Koffiran', 'Soroani', 'Akessan', 'Nguessari', 'Toureba', 'Koneval', 'Bambari', 'Gbagoro', 'Zokouma', 'Djedjen', 'Abidjani'],
-  cl: ['Valenzora', 'Arayano', 'Contreral', 'Mardonesi', 'Sepulveda', 'Fuenzalida', 'Rojasmar', 'Quinteros', 'Vidalero', 'Bustamantez', 'Pizarroso', 'Carrascor', 'Latorrino', 'Montenegra', 'Aconcagua'],
-  cm: ['Mbokani', 'Nguemalo', 'Ekondor', 'Tchamadeu', 'Moukokoan', 'Biyemla', 'Fotsoari', 'Njikamou', 'Abessolo', 'Mangafo', 'Ndongala', 'Simekane', 'Essombey', 'Kamtchou', 'Doualari'],
-  co: ['Castañol', 'Quinteral', 'Renterizo', 'Vallejor', 'Arboleda', 'Montoyes', 'Cardenalo', 'Zuluagano', 'Ospinal', 'Barranquero', 'Medellano', 'Cafetero', 'Palenquez', 'Cordobero', 'Santanderi'],
-  cr: ['Morenaza', 'Quesadillo', 'Alvaradoz', 'Solanero', 'Vargasol', 'Urenata', 'Brenesal', 'Gamboari', 'Cartagino', 'Herediar', 'Ticoflor', 'Madrigal', 'Chaconero', 'Sanabria', 'Puntareno'],
-  cz: ['Novakovic', 'Svobodin', 'Dvoracek', 'Prochazka', 'Cernovsky', 'Kralicek', 'Horaklin', 'Veselyan', 'Kadlecik', 'Sramek', 'Blazekor', 'Koubekar', 'Zemanek', 'Moravec', 'Plzenik'],
-  de: ['Schneiderfeld', 'Mullerhain', 'Bergmann', 'Krausser', 'Hoffstadt', 'Weberling', 'Fischerwald', 'Kellerhoff', 'Brandwein', 'Richtertal', 'Neumannhof', 'Vogelstein', 'Hartmann', 'Bruckner', 'Eisenbach'],
-  dk: ['Jorgensen', 'Nielsenborg', 'Sorensen', 'Larsenby', 'Kristiansen', 'Mikkelsen', 'Rasmussen', 'Hansenfjord', 'Pedersenholm', 'Frederiksen', 'Bjerregaard', 'Skovlund', 'Dahlgaard', 'Aalborgsen', 'Kolding'],
-  dz: ['Benkhelif', 'Mansouri', 'Belhaddad', 'Zerouali', 'Boudjema', 'Draouani', 'Kacemri', 'Hammouchi', 'Tlemcani', 'Aitmalek', 'Bensalah', 'Ouargli', 'Meziani', 'Cherifane', 'Kabylani'],
-  ec: ['Andrango', 'Quishpero', 'Zambranal', 'Cevalloro', 'Ibarrazo', 'Guamandino', 'Pichinchal', 'Montalvar', 'Cuencano', 'Ordonezal', 'Vallejoa', 'Ambatena', 'Loayzaro', 'Esmeraldi', 'Quitumbe'],
-  eg: ['El Masrani', 'Hassanour', 'Fahmidi', 'Abdelrahim', 'Zamaleki', 'Nileddin', 'Mahfouzi', 'Saidani', 'Iskandari', 'Ghazaly', 'Tantawi', 'Faragoun', 'Badrawi', 'Helwany', 'Qahirani'],
-  es: ['Valderama', 'Castellon', 'Serranoz', 'Montesino', 'Arandilla', 'Navarros', 'Iberico', 'Villalba', 'Herreral', 'Llorentez', 'Cordero', 'Alcazaro', 'Marbella', 'Segoviano', 'Riberos'],
-  fr: ['Beaumont', 'Lefranc', 'Morellet', 'Duchamp', 'Garnierot', 'Chevalin', 'Marchande', 'Laurentis', 'Rousselet', 'Fontaine', 'Delacroixan', 'Briandot', 'Charpentel', 'Montclair', 'Bellerive'],
-  'gb-eng': ['Ashworth', 'Bradleyton', 'Crawford', 'Ellington', 'Harrington', 'Kingsley', 'Wexford', 'Chesterfield', 'Bromley', 'Fairhurst', 'Lockwood', 'Redgrave', 'Whitaker', 'Huxley', 'Northgate'],
-  'gb-sct': ['MacAlpin', 'McBraid', 'Campbellson', 'Abernethy', 'Drummond', 'Falkirk', 'Inverley', 'MacCrae', 'Strathmore', 'Glenwood', 'McTavish', 'Kirkcaldy', 'Dunbarry', 'MacNairn', 'Highland'],
-  'gb-wls': ['Aberdare', 'Llewelyn', 'Caradog', 'Brynmore', 'Gwynedd', 'Pritchard', 'Meredith', 'Powellyn', 'Ceredig', 'Rhondale', 'Taliesin', 'Owainson', 'Cardiffan', 'Pembroke', 'Maelor'],
-  ge: ['Kvariani', 'Beridzev', 'Tsiklauri', 'Mchedlidze', 'Gogolauri', 'Abashidze', 'Lomidzeni', 'Kiknadze', 'Tsereteli', 'Javakhish', 'Gurieli', 'Dadianuri', 'Kartveli', 'Rustaveli', 'Chkheidzari'],
-  gr: ['Papadakis', 'Nikolaidis', 'Georgiou', 'Kostakis', 'Anastasiou', 'Dimitriou', 'Makridis', 'Stavropoulos', 'Theodorou', 'Karagiannis', 'Pappasios', 'Athenakis', 'Pelopidas', 'Kritikos', 'Hellasios'],
-  hr: ['Kovacic', 'Horvatin', 'Marinic', 'Vukovic', 'Bjelic', 'Dubravic', 'Zagorec', 'Perkovic', 'Kresimir', 'Radosevic', 'Slavonic', 'Dalmatin', 'Jadranic', 'Lovrenic', 'Modrinic'],
-  hu: ['Nagyfalvi', 'Kovacsor', 'Szabados', 'Tothvar', 'Vargahegy', 'Baloghan', 'Farkasdi', 'Molnari', 'Kissfalud', 'Horvathos', 'Puskari', 'Debreczeni', 'Budavari', 'Szegedyn', 'Aranyosi'],
-  ie: ['O Callaghan', 'Fitzroyan', 'Kelleher', 'Doylewick', 'Brennan', 'Flanagan', 'O Driscoll', 'Mahoney', 'Gallagher', 'Sullivan', 'Clonmore', 'Dublinley', 'Kildare', 'Shamrocke', 'Connolly'],
-  iq: ['Al Basri', 'Al Karimi', 'Baghdadi', 'Mosuli', 'Najafi', 'Tikriti', 'Haddadi', 'Rasheedi', 'Younisi', 'Qasimani', 'Al Zubair', 'Karbali', 'Samarrai', 'Furatani', 'Kadhimi'],
-  ir: ['Farahani', 'Tehrani', 'Kermani', 'Shirazian', 'Mazandar', 'Rezavand', 'Daryoushi', 'Mehrabi', 'Pahlavani', 'Zandipour', 'Ardestani', 'Kashanian', 'Tabrizi', 'Nourbakhsh', 'Sepahani'],
-  it: ['Rinaldini', 'Bellavita', 'Montanari', 'Ferrantino', 'Graziano', 'Lombardelli', 'Romagnoli', 'Veneziano', 'Belliniro', 'Contarini', 'Sorrentino', 'Capellini', 'Fioravanti', 'Marchetti', 'Palermino'],
-  jp: ['Takashiro', 'Morikawa', 'Fujimoto', 'Nakamori', 'Hasegai', 'Kobayato', 'Sakuragi', 'Yamashiro', 'Ishikawa', 'Tanemura', 'Kurosawa', 'Akitomo', 'Harukaze', 'Matsudai', 'Kawazaki'],
-  kr: ['Kimdaro', 'Parkjin', 'Leehwan', 'Choisung', 'Jungmin', 'Kanghoon', 'Yoonseok', 'Hanbit', 'Baekjun', 'Seohae', 'Limchan', 'Ohkyu', 'Moonjae', 'Shinwoo', 'Namguk'],
-  kz: ['Akhmetov', 'Nurgali', 'Sadykov', 'Bektasov', 'Tulegen', 'Karimov', 'Altynbek', 'Kairatov', 'Zhanibek', 'Sarsenov', 'Temirlan', 'Orazbay', 'Kenesary', 'Astanaev', 'Stepanbek'],
-  ma: ['Benaziz', 'El Fassi', 'Marrakchi', 'Tangeri', 'Boussaid', 'Zerhouni', 'Aitnouri', 'Rabatani', 'Chraibi', 'Belkacem', 'Oudghiri', 'Taziani', 'Soussani', 'Maghrebi', 'Idrissi'],
-  ml: ['Diarrawo', 'Traoreba', 'Keitara', 'Sissokani', 'Coulibaro', 'Kouyate', 'Bamakofo', 'Samakele', 'Tourema', 'Sangare', 'Konateo', 'Bagayoko', 'Dembeleko', 'Fofanal', 'Mandingo'],
-  mx: ['Hernandero', 'Ramirezal', 'Guerreron', 'Zapatillo', 'Monterano', 'Oaxacano', 'Castillero', 'Valadez', 'Rangelito', 'Pueblano', 'Navarrox', 'Tapatio', 'Chihuaro', 'Meridano', 'Cruzado'],
-  ng: ['Okaforo', 'Adebayo', 'Chukwudi', 'Baloguno', 'Ezeani', 'Nwankaro', 'Ibrahimko', 'Oladipo', 'Ucheoma', 'Kanuari', 'Onyekachi', 'Ajibola', 'Musafo', 'Enyimba', 'Lagosian'],
-  nir: ['McKeown', 'Belford', 'Craigavon', 'O Neillan', 'Derryhill', 'Lisburne', 'McIlroy', 'Armaghan', 'Fermanagh', 'Downpatrick', 'Tyronewell', 'Magherin', 'Colerain', 'Antrimor', 'Ulsterry'],
-  nl: ['Van Dalen', 'De Vriesor', 'Bakkerdam', 'Janssenveld', 'Koopman', 'Vermeeran', 'Hendriks', 'Rotterveen', 'Aalsmeer', 'Vanderplas', 'Schaafman', 'Willemsen', 'Noordwijk', 'Kuyper', 'Dijkgraaf'],
-  no: ['Nordvik', 'Haalandor', 'Bergheim', 'Solbakken', 'Lundgaard', 'Olsenfjord', 'Eriksen', 'Tromsdal', 'Stavanger', 'Haugenvik', 'Bjornstad', 'Skarsgard', 'Moldegaard', 'Aasland', 'Vikingstad'],
-  pa: ['Balboza', 'Herreralis', 'Quinteron', 'Canalero', 'Penedoza', 'Sanmiguel', 'Arosemen', 'Chorrerano', 'Colonero', 'Darieni', 'Valderas', 'Coclesi', 'Panamero', 'Santanero', 'Molinarez'],
-  pe: ['Quispero', 'Huamanis', 'Ccalluchi', 'Incanari', 'Cusqueno', 'Arequipar', 'Pizarron', 'Chavarry', 'Condorcan', 'Mochica', 'Limezano', 'Cajamarco', 'Ayacuchan', 'Villanuev', 'Rimacero'],
-  pl: ['Kowalski', 'Nowaczyk', 'Wisniewski', 'Zielinski', 'Kaminski', 'Wojcikowski', 'Lewicki', 'Mazurski', 'Kaczmarek', 'Szymanski', 'Pawlak', 'Gorski', 'Dabrowski', 'Krakowski', 'Warszawski'],
-  pt: ['Ferreirado', 'Oliveirinho', 'Coimbrano', 'Lisboeta', 'Braganca', 'Carvalhal', 'Moreirado', 'Pereirinho', 'Teixeirado', 'Azevedos', 'Salgueiro', 'Figueiredo', 'Madeirense', 'Portuense', 'Algarvio'],
-  py: ['Benitezal', 'Gamarro', 'Aguayo', 'Villalbino', 'Itapua', 'Guaranero', 'Encarnacion', 'Asunceno', 'Cacerizo', 'Riverolo', 'Sanabrio', 'Cabanero', 'Piribebuy', 'Canindeyu', 'Ypacarai'],
-  qa: ['Al Thaniq', 'Al Marriq', 'Al Kuwariq', 'Al Naimiq', 'Al Suwaidiq', 'Dohaani', 'Al Jassimq', 'Al Mansouriq', 'Al Rayyani', 'Al Wakraqi', 'Al Duhaili', 'Al Saadiq', 'Al Qatari', 'Al Khaldiq', 'Al Zubari'],
-  ro: ['Popescanu', 'Ionescu', 'Dumitrescu', 'Stanescu', 'Marinescu', 'Georgescu', 'Constantin', 'Vasilescu', 'Munteanu', 'Radulescu', 'Bucurestean', 'Ardeleanu', 'Moldoveanu', 'Petrescu', 'Dragomir'],
-  rs: ['Petrovic', 'Jovanovic', 'Nikolic', 'Stojanovic', 'Milosevic', 'Radovanic', 'Djordjevic', 'Savicevic', 'Kragujevic', 'Belgradic', 'Moravski', 'Vojvodic', 'Zlatiborac', 'Lazarevic', 'Obrenovic'],
-  sa: ['Al Harbi', 'Al Qahtani', 'Al Dosari', 'Al Shammari', 'Al Mutairi', 'Al Riyadhi', 'Al Najdi', 'Al Hilali', 'Al Tamimi', 'Al Jeddawi', 'Al Fahdi', 'Al Salehi', 'Al Rashidi', 'Al Yamami', 'Al Madani'],
-  se: ['Anderssonvik', 'Karlssonberg', 'Nilssonholm', 'Larssonby', 'Ekstrom', 'Svenssondal', 'Bergqvist', 'Lindgren', 'Osterlund', 'Uppsala', 'Malmstrom', 'Hedlund', 'Norrstrom', 'Bjorkman', 'Vastervik'],
-  si: ['Novakic', 'Kranjcic', 'Horvatnik', 'Zupancic', 'Potochnik', 'Mlakar', 'Kosirnik', 'Vidmaric', 'Oblakov', 'Ljubljanec', 'Triglavic', 'Mariboric', 'Dolenc', 'Kovacnik', 'Rozmanec'],
-  sk: ['Novaksky', 'Horvathik', 'Kovacik', 'Vargovsky', 'Tothik', 'Durisec', 'Hamsikor', 'Bratislavik', 'Presovsky', 'Zilinsky', 'Mikulas', 'Sokolik', 'Oravec', 'Tatranec', 'Liptovsky'],
-  sn: ['Diopara', 'Ndiayal', 'Sarriko', 'Gueyane', 'Fayemba', 'Baobab', 'Dakarou', 'Cissokho', 'Mbacke', 'Thiamoro', 'Senghoran', 'Kaolack', 'Toubani', 'Fallouma', 'Wolofane'],
-  tn: ['Ben Salem', 'Trabelsian', 'Sfaxiani', 'Tunisari', 'Hammameti', 'Jaziri', 'Bouzidi', 'Mestiri', 'Kairouani', 'Gabesli', 'Mahdoui', 'Djerbani', 'Monastiri', 'Sahelani', 'Zitouni'],
-  tr: ['Yildirim', 'Demirhan', 'Karakaya', 'Ozdemir', 'Aydogan', 'Kilicsoy', 'Ankarali', 'Istanbey', 'Altintas', 'Sahinoglu', 'Kaplaner', 'Erdoganli', 'Yilmazer', 'Toprakci', 'Bozkurtan'],
-  ua: ['Kovalchuk', 'Shevchenko', 'Bondarenko', 'Melnyk', 'Tkachenko', 'Kravchenko', 'Hrytsenko', 'Petryuk', 'Savchuk', 'Romaniuk', 'Zakharchuk', 'Polishchuk', 'Vasylyn', 'Bilyi', 'Lysenko'],
-  us: ['Jefferson', 'Carterfield', 'Madison', 'Hamilton', 'Brooksman', 'Washingtoner', 'Kennedywell', 'Harrison', 'Cooperstown', 'Franklin', 'Lincolnwood', 'Marshall', 'Prescott', 'Sheridan', 'Arlington'],
-  uy: ['Bentancor', 'Monteverdi', 'Canelones', 'Riveratto', 'Suarezino', 'Lugarez', 'Coloniaro', 'Artigano', 'Maldonado', 'Salteno', 'Tacuarembo', 'Duraznero', 'Rochano', 'Paysandu', 'Charruano'],
-  uz: ['Karimov', 'Tashkentov', 'Nazarov', 'Rustamov', 'Bekmurod', 'Samarkandi', 'Bukhariy', 'Yuldashev', 'Tursunov', 'Khodjaev', 'Navoiyev', 'Fergani', 'Qodirov', 'Ergashev', 'Temurov'],
-  ve: ['Maracayo', 'Orinoco', 'Valerano', 'Caraceno', 'Bolivaro', 'Margarito', 'Zuliano', 'Andradez', 'Rondonal', 'Llanero', 'Guayanes', 'Barquero', 'Tachirano', 'Meridanoz', 'Cumana'],
-  za: ['Mkhize', 'Dlaminor', 'Nkosiwe', 'Molefe', 'Khumalani', 'Mbekazi', 'Sibanyoni', 'Pretoriano', 'Capeton', 'Zuluwayo', 'Sowetano', 'Ndlovini', 'Mabizela', 'Johannes', 'Bothaville'],
-};
+```text
+teamGridLeft
+teamGridRight
+teamGridWidth
 ```
 
----
-
-# 4. Проверка уникальности фамилий
-
-Добавить тест или validator.
+Верхние карточки и нижние кнопки должны быть выровнены по этим же краям.
 
 Требования:
 
 ```text
-все фамилии уникальны глобально;
-нет пустых фамилий;
-все фамилии написаны латиницей;
-нет настоящих известных фамилий из старого realSquads;
-количество фамилий на команду равно количеству игроков в составе;
-каждый игрок получил новую фамилию.
+левая карточка Team 1 начинается по левому краю блока команд;
+правая карточка Team 2 заканчивается по правому краю блока команд;
+кнопка Menu начинается по левому краю блока команд;
+кнопка Start / Start penalties заканчивается по правому краю блока команд;
+VS остается по центру между карточками;
+desktop baseline должен остаться аккуратным.
 ```
 
-Допустимый regex:
+Если текущий grid имеет:
+
+```text
+x = 132
+width = 1336
+```
+
+то:
+
+```text
+Team 1 card left = grid.x
+Team 2 card right = grid.x + grid.width
+Menu button left = grid.x
+Start button right = grid.x + grid.width
+```
+
+Не использовать случайные ручные координаты, если можно брать их из layout helper.
+
+---
+
+# 2. В карточке выбранной команды вместо флага показывать веер карт рубашкой вверх
+
+## Текущее состояние
+
+В карточке выбранной команды слева показывается флаг команды.
+
+## Новое состояние
+
+Вместо флага показывать 3–4 карты с рубашкой колоды выбранной команды.
+
+Карты должны быть:
+
+```text
+рубашкой вверх;
+разложены небольшим веером;
+частично перекрывать друг друга;
+могут немного выходить за пределы карточки выбранной команды;
+использовать индивидуальную рубашку команды;
+если рубашки нет — использовать cover-none.
+```
+
+## Требования
+
+Для Team 1 использовать cover выбранной Team 1.
+Для Team 2 использовать cover выбранной Team 2.
+
+Пример визуальной идеи:
+
+```text
+[  /// cards fan  ] Team 1 France
+```
+
+или:
+
+```text
+несколько маленьких карт, слегка повернутых:
+-8°, 0°, +8°
+```
+
+## Реализация
+
+Использовать текущую систему covers:
+
+```text
+resolveTeamCoverLoadResult
+getTeamCoverAssetKey
+cover-<flagCode>
+cover-none
+```
+
+Не создавать новый asset pipeline.
+
+Можно сделать helper внутри `TeamSelectScene`, например:
 
 ```ts
-/^[A-Za-z][A-Za-z '\-]*$/
+createSelectedTeamCoverFan(...)
 ```
 
-Если проект не использует пробелы/апострофы в фамилиях, можно упростить и заменить фамилии с `Al ...`, `Van ...`, `O ...`, `De ...` на слитное написание.
-
----
-
-# 5. Добавить disclaimer в нижнюю часть главного меню
-
-В нижней части главного меню добавить текст:
-
-```text
-© 2026 Total Soccer: Mundial. All rights reserved.
-This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players. All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.
-```
-
-## Требования к отображению
-
-```text
-текст небольшой;
-цвет не должен спорить с меню;
-расположить внизу экрана;
-не перекрывать кнопки;
-должен помещаться на ширине экрана;
-можно использовать wordWrap;
-можно разбить на 2 строки;
-не должен мигать вместе с логотипом;
-не должен быть кнопкой.
-```
-
-Рекомендуемый стиль:
+Параметры:
 
 ```ts
-fontSize: 12 или 13
-align: 'center'
-wordWrap width: 900-1100
-alpha: 0.82
+scene
+x
+y
+coverTextureKey
+scale
+depth
+```
+
+Веер:
+
+```text
+3 карты — достаточно;
+4 карты — если визуально помещается.
+```
+
+Рекомендуемо начать с 3 карт.
+
+Карты могут быть нарисованы как Phaser Image с одной текстурой cover:
+
+```ts
+scene.add.image(x, y, coverKey)
+  .setDisplaySize(cardW, cardH)
+  .setAngle(...)
+```
+
+Если нужен контур, использовать существующий card frame helper или graphics rectangle под картой.
+
+---
+
+# 3. Между карточкой выбранной команды и VS показывать экипировку команды
+
+## Цель
+
+Добавить рядом с `VS` маленький preview экипировки выбранных команд.
+
+Для Team 1:
+
+```text
+между Team 1 card и VS
+```
+
+Для Team 2:
+
+```text
+между VS и Team 2 card
+```
+
+## Что показывать
+
+Использовать kit image выбранной команды:
+
+```text
+public/kits/images/<flagCode>.webp
+```
+
+Через текущий resolver:
+
+```text
+getTeamKitAssetKey(team.flagCode)
+```
+
+или аналог.
+
+## Внешний вид
+
+Экипировка должна быть:
+
+```text
+не слишком крупной;
+без номера;
+на белом фоне, как asset;
+визуально вписана в верхнюю зону;
+не перекрывать VS;
+не перекрывать карточку выбранной команды.
+```
+
+Рекомендуемый размер:
+
+```text
+примерно 70–90 px по высоте на desktop;
+меньше, если не помещается.
+```
+
+Можно использовать `setDisplaySize(...)`.
+
+## Fallback
+
+Если kit не найден:
+
+```text
+использовать kit-none;
+экран не должен падать.
 ```
 
 ---
 
-# 6. Добавить отдельный пункт Legal / Disclaimer в About
+# 4. Фон меню выбора команд: футбольное поле
 
-В About добавить отдельный раздел после основного описания.
+## Текущее состояние
 
-## EN
+Фон однотонный темно-зеленый.
+
+## Новое состояние
+
+Фон должен выглядеть как футбольное поле:
 
 ```text
-Legal / Disclaimer
-
-© 2026 Total Soccer: Mundial. All rights reserved.
-
-This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players.
-
-All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.
+полосатый газон;
+разметка поля;
+центральная линия;
+центральный круг;
+штрафные зоны по краям, если помещаются;
+тонкие белые/полупрозрачные линии.
 ```
 
-## PL
+## Требования
 
 ```text
-Informacje prawne / Zastrzezenie
-
-© 2026 Total Soccer: Mundial. Wszelkie prawa zastrzezone.
-
-To jest nieoficjalna pilkarska gra karciana. Gra nie jest powiazana z FIFA, UEFA, krajowymi federacjami pilkarskimi, klubami, ligami ani pilkarzami.
-
-Wszystkie nazwy druzyn, nazwiska zawodnikow, stroje, rewersy kart oraz elementy wizualne uzyte w grze sa fikcyjne lub stylizowane, chyba ze zaznaczono inaczej.
+фон не должен мешать читаемости кнопок и списка команд;
+цвета должны быть темные/приглушенные;
+разметка поля должна быть декоративной;
+не использовать новые изображения;
+рисовать через Phaser Graphics;
+фон должен работать и для Team selection, и для Penalty teams, если это та же сцена.
 ```
 
-## UA
+## Реализация
+
+Сделать helper, например:
+
+```ts
+createTeamSelectFieldBackground(scene)
+```
+
+или общий:
+
+```ts
+drawFootballFieldBackground(scene, width, height)
+```
+
+Рекомендуемо:
 
 ```text
-Правова інформація / Дисклеймер
+1. залить фон темно-зеленым;
+2. нарисовать 12–14 вертикальных или горизонтальных полос газона;
+3. поверх — линии поля с alpha 0.22–0.35;
+4. центральный круг вокруг VS-зоны;
+5. центральная линия через VS.
+```
 
-© 2026 Total Soccer: Mundial. Усі права захищено.
+Важно:
 
-Це неофіційна футбольна карткова гра. Вона не пов'язана з FIFA, UEFA, національними футбольними асоціаціями, клубами, лігами або футболістами.
-
-Усі назви команд, прізвища гравців, форми, сорочки карт і візуальні елементи, використані в грі, є вигаданими або стилізованими, якщо не зазначено інше.
+```text
+фон должен быть на depth ниже всех UI-элементов.
 ```
 
 ---
 
-# 7. About UI
+# 5. Сохранить поддержку Team selection и Penalty teams
 
-Если текущий About уже имеет языковые версии EN / PL / UA, добавить новый пункт в каждую версию.
-
-Не удалять существующее описание игры.
-
-Если текст не помещается:
+На скриншоте есть обычный экран:
 
 ```text
-увеличить высоту текстовой области;
-уменьшить fontSize;
-добавить/сохранить scroll;
-сохранить Back button внизу.
+Team selection
+Start
+```
+
+Ранее был также экран:
+
+```text
+Penalty teams
+Start penalties
+```
+
+Нужно убедиться, что правки работают в обоих вариантах, если они используют одну сцену.
+
+Требования:
+
+```text
+в обычном выборе команд кнопка Start;
+в выборе команд для пенальти кнопка Start penalties;
+оба варианта используют новый фон;
+оба варианта используют cover fan;
+оба варианта используют kit preview.
 ```
 
 ---
 
-# 8. Не менять
+# 6. Layout helper
+
+Обновить `teamScreenLayout.ts`.
+
+Добавить/проверить в layout:
+
+```ts
+teamGridRect
+team1SelectedCardRect
+team2SelectedCardRect
+menuButtonRect
+startButtonRect
+team1CoverFanRect
+team2CoverFanRect
+team1KitPreviewRect
+team2KitPreviewRect
+vsPosition
+```
+
+Требования:
+
+```text
+selected cards and bottom buttons align with teamGridRect edges;
+kit preview rects are between selected cards and VS;
+all rects stay inside canvas;
+desktop layout remains clean;
+mobile-related broken input changes should not be reintroduced.
+```
+
+Важно: после отката мобильной адаптации не возвращать проблемные изменения:
+
+```text
+не менять main.ts scale/input;
+не менять index.html viewport/input;
+не менять CSS canvas scale;
+не делать mobile refresh/updateBounds;
+```
+
+---
+
+# 7. Не менять
 
 Не менять:
 
@@ -332,99 +403,84 @@ Penalty AI
 TournamentEngine
 PenaltyShootoutEngine
 правила игры
-механику карт
-формы
-рубашки колод
-флаги
-турнирные сетки
-layout игрового поля
+составы игроков
+регистрацию kits/covers
+размер team kit contract 702×900
+main.ts scale/input
+index.html viewport
+глобальный CSS canvas/input
 ```
 
-Задача касается только:
-
-```text
-данных составов;
-тестов/валидаторов;
-главного меню;
-About content;
-документации.
-```
+Эта задача только про визуальный UI `TeamSelectScene` и связанные layout-тесты.
 
 ---
 
-# 9. Тесты
+# 8. Тесты
 
 Обновить или добавить тесты.
 
 Проверить:
 
 ```text
-все игроки имеют вымышленные фамилии;
-все фамилии уникальны глобально;
-фамилии написаны латиницей;
-количество игроков в каждой сборной не изменилось;
-shirtNumber не изменился;
-rank не изменился;
-goalkeeper не исчез;
-JOKER остался;
-MenuScene содержит disclaimer в footer;
-About EN содержит Legal / Disclaimer;
-About PL содержит Informacje prawne / Zastrzezenie;
-About UA содержит Правова інформація / Дисклеймер;
-Rules не сломались;
-Back button в About работает.
+Team 1 selected card left aligns with team grid left;
+Team 2 selected card right aligns with team grid right;
+Menu button left aligns with team grid left;
+Start button right aligns with team grid right;
+VS remains centered;
+cover fan uses team cover key;
+kit preview uses team kit key;
+fallback cover/kit не ломает сцену;
+field background создается;
+desktop layout не выходит за canvas;
+Penalty teams mode keeps Start penalties button.
 ```
+
+Если трудно тестировать Phaser images напрямую, тестировать layout helper и smoke create scene.
 
 ---
 
-# 10. Документация
-
-Обновить:
-
-```text
-PROJECT_SPEC_FOR_CHATGPT.md
-README.md при необходимости
-```
-
-Добавить:
-
-```text
-Составы используют вымышленные фамилии игроков.
-Игра не использует реальные имена футболистов.
-Игра не связана с FIFA, UEFA, федерациями, клубами, лигами или игроками.
-Флаги используются как идентификаторы стран.
-Формы, рубашки и визуальные элементы являются стилизованными.
-```
-
----
-
-# 11. Проверка
+# 9. Проверка
 
 Запустить:
 
 ```bash
+npm run validate:kits
+npm run validate:covers
 npm test
 npm run build
 npm run dev
 ```
 
-Если есть отдельные валидаторы:
+---
 
-```bash
-npm run validate:kits
-npm run validate:covers
+# 10. Ручная проверка
+
+В браузере проверить:
+
+```text
+1. Открыть Team selection.
+2. Убедиться, что Team 1 card слева выровнена с краем списка команд.
+3. Убедиться, что Team 2 card справа выровнена с краем списка команд.
+4. Убедиться, что Menu слева выровнена с краем списка команд.
+5. Убедиться, что Start справа выровнена с краем списка команд.
+6. Проверить, что вместо флагов в selected cards виден веер карт с рубашками команд.
+7. Проверить France / Spain.
+8. Проверить Ukraine / Brazil.
+9. Проверить, что между Team 1 и VS видна экипировка Team 1.
+10. Проверить, что между VS и Team 2 видна экипировка Team 2.
+11. Проверить фон футбольного поля.
+12. Проверить Penalty teams, если он открывается отдельно.
+13. Проверить, что кнопки нажимаются нормально после отката мобильных правок.
 ```
-
-тоже запустить.
 
 ---
 
-# 12. Формат отчета
+# 11. Формат отчета
 
 После выполнения вывести:
 
 ```text
-Замена фамилий и добавление legal disclaimer завершены.
+Доработка Team selection завершена.
 
 Созданные файлы:
 - ...
@@ -432,33 +488,40 @@ npm run validate:covers
 Измененные файлы:
 - ...
 
-Фамилии игроков:
-- реальные фамилии заменены:
-- всего сборных:
-- всего игроков:
-- все фамилии уникальны:
-- все фамилии латиницей:
+Alignment:
+- Team 1 card:
+- Team 2 card:
+- Menu:
+- Start:
 
-Disclaimer в главном меню:
-- добавлен:
-- расположение:
-- перенос строк:
+Selected team cards:
+- flag removed:
+- cover fan added:
+- cards count:
+- cover source:
 
-About:
-- EN legal section:
-- PL legal section:
-- UA legal section:
+Kit previews:
+- Team 1:
+- Team 2:
+- kit source:
 
-Сохранены ли ranks / shirtNumbers / goalkeeper / JOKER:
+Field background:
+- striped grass:
+- field markings:
+
+Penalty teams mode:
 - ...
+
+Изменялись ли main.ts / index.html / global CSS scale/input:
+- да / нет
 
 Изменялись ли GameEngine / AI / Penalty AI / TournamentEngine:
 - да / нет
 
-Результат npm run validate:kits:
+Результат validate:kits:
 - ...
 
-Результат npm run validate:covers:
+Результат validate:covers:
 - ...
 
 Результат npm test:
@@ -469,10 +532,13 @@ About:
 
 Результат npm run dev:
 - ...
+```
 
 После отчета остановиться.
 
 ```
+```
+
 
 ---
 

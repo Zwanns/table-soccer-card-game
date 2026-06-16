@@ -47,6 +47,7 @@ public/kits/images/gk2.webp
 - Do not include a human figure or face.
 
 The player number is added programmatically. Its position is controlled by `SHIRT_NUMBER_ANCHOR` from `src/data/teamKits.ts`.
+The number color is always the team's `secondaryColor`, and shirt numbers are rendered without stroke.
 
 ## Registry
 

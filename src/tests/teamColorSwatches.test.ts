@@ -10,12 +10,12 @@ const LAYOUT_OPTIONS = {
 const PREVIEW_FACE_TOP_Y = 82;
 
 describe('team color swatches', () => {
-  it('builds four visible swatches from team kit colors', () => {
+  it('builds visible swatches from primary, secondary, and optional accent colors', () => {
     const swatches = buildTeamColorSwatches(getTeamKitStyle('ua'), LAYOUT_OPTIONS);
 
-    expect(swatches).toHaveLength(4);
-    expect(swatches.map((swatch) => swatch.role)).toEqual(['primary', 'secondary', 'number', 'stroke']);
-    expect(swatches.map((swatch) => swatch.color)).toEqual(['#FFD700', '#0057B8', '#0057B8', '#FFFFFF']);
+    expect(swatches).toHaveLength(2);
+    expect(swatches.map((swatch) => swatch.role)).toEqual(['primary', 'secondary']);
+    expect(swatches.map((swatch) => swatch.color)).toEqual(['#FFD700', '#0057B8']);
 
     for (const swatch of swatches) {
       expect(swatch.radius).toBeGreaterThan(0);
@@ -24,6 +24,14 @@ describe('team color swatches', () => {
       expect(swatch.y + swatch.radius).toBeLessThan(PREVIEW_FACE_TOP_Y);
       expect(swatch.fillColor).toBe(parseHexColor(swatch.color));
     }
+  });
+
+  it('places accentColor third only when the team defines one', () => {
+    const swatches = buildTeamColorSwatches(getTeamKitStyle('br'), LAYOUT_OPTIONS);
+
+    expect(swatches).toHaveLength(3);
+    expect(swatches.map((swatch) => swatch.role)).toEqual(['primary', 'secondary', 'accent']);
+    expect(swatches.map((swatch) => swatch.color)).toEqual(['#FFDF00', '#009C3B', '#002776']);
   });
 
   it('keeps light and white swatches visible with a dark stroke', () => {
@@ -41,13 +49,14 @@ describe('team color swatches', () => {
       path: 'kits/images/test.webp',
       primaryColor: '#112233',
       secondaryColor: 'bad',
+      accentColor: '#FFFFFF',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: '#000000'
     };
     const swatches = buildTeamColorSwatches(style, LAYOUT_OPTIONS);
 
-    expect(swatches).toHaveLength(3);
-    expect(swatches.map((swatch) => swatch.color)).toEqual(['#112233', '#FFFFFF', '#000000']);
+    expect(swatches).toHaveLength(2);
+    expect(swatches.map((swatch) => swatch.color)).toEqual(['#112233', '#FFFFFF']);
   });
 
   it('parses only #RRGGBB colors for Phaser numeric fillStyle', () => {

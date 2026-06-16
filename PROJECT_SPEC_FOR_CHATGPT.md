@@ -66,6 +66,9 @@ src/scenes/
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
 - `MenuScene.ts` - главное меню с фоновым изображением, кнопками режимов, отдельными разделами `Rules`/`About` и мигающим scoreboard-логотипом. Анимированный мяч и желтые декоративные треугольники в меню не используются.
 - `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 65 команд отображаются на одной странице компактной сеткой с 8 колонками без пагинации.
+- Team selection layout uses `createTeamScreenLayout()` from `src/ui/teamScreenLayout.ts`: selected Team 1 card and Menu button align to `teamGridRect.x`, selected Team 2 card and Start/Start penalties align to the right edge of `teamGridRect`, and `VS` remains centered between selected cards.
+- Team selection selected cards show a 3-card face-down cover fan from `resolveTeamCoverLoadResult()` instead of the team flag. Between each selected card and `VS`, the screen shows a small kit preview using `getTeamKitAssetKey()` with `kit-none` fallback.
+- Team selection background is drawn with Phaser Graphics as a muted striped football field with field markings; no main.ts, index.html, global CSS scale/input, GameEngine, AI, Penalty AI, TournamentEngine, or asset registration changes are part of this screen layout contract.
 - `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа цвета выбранной сборной и две preview-карты: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
 - `ResultScene.ts` - финальный экран матча.
@@ -222,7 +225,7 @@ Northern Ireland добавлена как отдельная команда в 
 - Ireland / Republic of Ireland продолжает использовать `flagCode: 'ie'`
 - флаг команды загружается из `public/flags/nir.svg`
 - ручная форма зарегистрирована как `public/kits/images/nir.webp`
-- kit colors: primary `#006A3A`, secondary `#FFFFFF`, shirt number `#FFFFFF`, stroke `#111111`; красный акцент `#C8102E` используется в визуальном образе флага/формы.
+- kit colors: primary `#006A3A`, secondary `#FFFFFF`; `secondaryColor` также является цветом номера на форме, номера рендерятся без stroke.
 - вымышленный состав `nir` находится в `realSquads.ts`: goalkeeper McKeown, 14 field players, включая Colerain, Antrimor и Magherin.
 
 ## 5. Обычные карты и правила сравнения
@@ -806,7 +809,7 @@ src/game/kitAssetResolver.ts
 - зарегистрированная команда -> `kit-<flagCode>`;
 - незарегистрированная или неизвестная команда -> `kit-none`;
 - GK -> `kit-gk1` или `kit-gk2`;
-- resolver возвращает `assetKey`, `shirtNumberColor`, `shirtNumberStrokeColor`;
+- resolver возвращает `assetKey`, `numberColor`; для field kits `numberColor` берется из `secondaryColor`;
 - graphics fallback убран из resolver-модели.
 
 ## 13. Открытая карта и layout
@@ -882,7 +885,7 @@ Tooltip:
 - над preview-картами есть ряд color swatches без текстового заголовка;
 - swatches берутся из `getTeamKitStyle(team.flagCode)`, без отдельного списка цветов для UI;
 - layout строится через `buildTeamColorSwatches()` из `src/ui/teamColorSwatches.ts`;
-- отображаются `primaryColor`, `secondaryColor`, `shirtNumberColor`, `shirtNumberStrokeColor`, если значения валидные;
+- отображаются `primaryColor`, `secondaryColor`, optional `accentColor`, если значения валидные;
 - HEX-строки преобразуются в числовые цвета для Phaser `fillStyle`;
 - swatches рисуются отдельными `Graphics` с явной позицией над верхней preview-картой и добавляются в preview container после карт, чтобы не быть перекрытыми;
 - белый/светлый swatch получает темный контур `0x1f2a2e`, остальные - светлый контур;

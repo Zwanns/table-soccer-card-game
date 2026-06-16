@@ -24,8 +24,7 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('pl')).toEqual({
       assetKey: 'kit-pl',
-      shirtNumberColor: '#DC143C',
-      shirtNumberStrokeColor: '#FFFFFF'
+      numberColor: '#DC143C'
     });
   });
 
@@ -40,16 +39,14 @@ describe('kit asset resolver', () => {
   it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
-      shirtNumberColor: '#002776',
-      shirtNumberStrokeColor: '#FFFFFF'
+      numberColor: '#009C3B'
     });
   });
 
   it('resolves an unknown flagCode to none.webp with safe number colors', () => {
     expect(resolveTeamKitAsset('unknown')).toEqual({
       assetKey: 'kit-none',
-      shirtNumberColor: '#111111',
-      shirtNumberStrokeColor: '#FFFFFF'
+      numberColor: '#111111'
     });
   });
 
@@ -59,18 +56,15 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('gk1')).toEqual({
       assetKey: 'kit-none',
-      shirtNumberColor: '#111111',
-      shirtNumberStrokeColor: '#FFFFFF'
+      numberColor: '#111111'
     });
     expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
       assetKey: 'kit-gk1',
-      shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#111111'
+      numberColor: '#3A3A3A'
     });
     expect(resolveGoalkeeperKitAsset('gk2')).toEqual({
       assetKey: 'kit-gk2',
-      shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#111111'
+      numberColor: '#111111'
     });
   });
 

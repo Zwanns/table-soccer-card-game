@@ -13,6 +13,7 @@ export type TeamKitStyle = {
 
   primaryColor: string;
   secondaryColor: string;
+  accentColor?: string;
 
   shirtNumberColor: string;
   shirtNumberStrokeColor: string;
@@ -30,6 +31,7 @@ export type GoalkeeperKitStyle = {
 
   primaryColor: string;
   secondaryColor: string;
+  accentColor?: string;
 
   shirtNumberColor: string;
   shirtNumberStrokeColor: string;
@@ -53,7 +55,7 @@ export const DEFAULT_KIT_IMAGE_SCALE = 1;
 export const DEFAULT_SHIRT_NUMBER_STYLE = {
   fontFamily: 'Arial Black',
   fontSize: 17,
-  strokeThickness: 2
+  strokeThickness: 0
 } as const;
 
 const TEAM_KIT_STYLE_ROWS = [
@@ -129,7 +131,7 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
     flagCode,
     primaryColor,
     secondaryColor,
-    shirtNumberColor,
+    accentColorCandidate,
     shirtNumberStrokeColor
   ]) => ({
     flagCode,
@@ -137,7 +139,8 @@ export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
     path: `kits/images/${flagCode}.webp`,
     primaryColor,
     secondaryColor,
-    shirtNumberColor,
+    accentColor: resolveAccentColor(primaryColor, secondaryColor, accentColorCandidate),
+    shirtNumberColor: secondaryColor,
     shirtNumberStrokeColor
   })
 );
@@ -151,7 +154,7 @@ export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
     primaryColor: '#111111',
     secondaryColor: '#3A3A3A',
 
-    shirtNumberColor: '#FFFFFF',
+    shirtNumberColor: '#3A3A3A',
     shirtNumberStrokeColor: '#111111'
   },
   {
@@ -162,7 +165,7 @@ export const GOALKEEPER_KIT_STYLES: readonly GoalkeeperKitStyle[] = [
     primaryColor: '#FFB81C',
     secondaryColor: '#111111',
 
-    shirtNumberColor: '#FFFFFF',
+    shirtNumberColor: '#111111',
     shirtNumberStrokeColor: '#111111'
   }
 ] as const;
@@ -318,6 +321,7 @@ function validateKitStyleShape(
     path: string;
     primaryColor: string;
     secondaryColor: string;
+    accentColor?: string;
     shirtNumberColor: string;
     shirtNumberStrokeColor: string;
   },
@@ -332,6 +336,10 @@ function validateKitStyleShape(
     if (!isHexColor(value)) {
       errors.push(`${label} ${field} must be #RRGGBB, got "${value}".`);
     }
+  }
+
+  if (style.accentColor !== undefined && !isHexColor(style.accentColor)) {
+    errors.push(`${label} accentColor must be #RRGGBB, got "${style.accentColor}".`);
   }
 
   if (!style.path.startsWith('kits/images/')) {
@@ -366,6 +374,23 @@ function pushDuplicateErrors(errors: string[], values: readonly string[], label:
 
 function isHexColor(value: string): boolean {
   return /^#[0-9A-F]{6}$/.test(value);
+}
+
+function resolveAccentColor(
+  primaryColor: string,
+  secondaryColor: string,
+  accentColorCandidate: string
+): string | undefined {
+  if (
+    accentColorCandidate === primaryColor ||
+    accentColorCandidate === secondaryColor ||
+    accentColorCandidate === '#FFFFFF' ||
+    accentColorCandidate === '#111111'
+  ) {
+    return undefined;
+  }
+
+  return accentColorCandidate;
 }
 
 // Compatibility exports for existing scenes. The Stage 1 contract above is the source of truth.

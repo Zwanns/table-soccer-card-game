@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import { getTeamKitStyle } from '../data/teamKits';
+import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 
 describe('read-only squad scenes', () => {
   it('registers squad scenes and keeps the menu button for squads', () => {
@@ -115,7 +116,7 @@ describe('read-only squad scenes', () => {
     expect(armeniaStyle).toMatchObject({
       primaryColor: '#D90012',
       secondaryColor: '#0033A0',
-      shirtNumberColor: '#FFFFFF',
+      shirtNumberColor: '#0033A0',
       shirtNumberStrokeColor: '#111111'
     });
     expect(northernIrelandStyle?.primaryColor).toBe('#006A3A');
@@ -133,7 +134,16 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('graphics.fillCircle(0, 0, swatch.radius)');
     expect(selectSource).toContain('graphics.strokeCircle(0, 0, swatch.radius)');
     expect(selectSource).not.toContain("'Colors'");
-    expect(selectSource).not.toContain('accentColor');
+    expect(buildTeamColorSwatches(getTeamKitStyle('ua'), {
+      swatchY: 62,
+      radius: 10,
+      gap: 10
+    }).map((swatch) => swatch.color)).toEqual(['#FFD700', '#0057B8']);
+    expect(buildTeamColorSwatches(getTeamKitStyle('br'), {
+      swatchY: 62,
+      radius: 10,
+      gap: 10
+    }).map((swatch) => swatch.role)).toEqual(['primary', 'secondary', 'accent']);
   });
 
   it('refreshes team preview cards when the selected squad changes', () => {

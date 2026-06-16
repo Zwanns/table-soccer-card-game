@@ -3,8 +3,7 @@ import type { TeamKitStyle } from '../data/teamKits';
 export type TeamColorSwatchRole =
   | 'primary'
   | 'secondary'
-  | 'number'
-  | 'stroke';
+  | 'accent';
 
 export interface TeamColorSwatch {
   role: TeamColorSwatchRole;
@@ -37,13 +36,12 @@ export function buildTeamColorSwatches(
   const colors = [
     ['primary', style.primaryColor],
     ['secondary', style.secondaryColor],
-    ['number', style.shirtNumberColor],
-    ['stroke', style.shirtNumberStrokeColor]
+    ['accent', style.accentColor]
   ] as const;
   const validColors = colors
     .map(([role, color]) => ({ role, color, fillColor: parseHexColor(color) }))
     .filter((swatch): swatch is { role: TeamColorSwatchRole; color: string; fillColor: number } => (
-      swatch.fillColor !== null
+      swatch.color !== undefined && swatch.fillColor !== null
     ));
   const diameter = options.radius * 2;
   const totalWidth = validColors.length * diameter + Math.max(0, validColors.length - 1) * options.gap;
@@ -58,7 +56,11 @@ export function buildTeamColorSwatches(
   }));
 }
 
-export function parseHexColor(hex: string): number | null {
+export function parseHexColor(hex: string | undefined): number | null {
+  if (hex === undefined) {
+    return null;
+  }
+
   if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
     return null;
   }

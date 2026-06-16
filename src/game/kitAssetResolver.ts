@@ -10,13 +10,11 @@ import {
 
 export type ResolvedKitAsset = {
   assetKey: string;
-  shirtNumberColor: string;
-  shirtNumberStrokeColor: string;
+  numberColor: string;
 };
 
 const FALLBACK_NUMBER_COLORS = {
-  shirtNumberColor: '#111111',
-  shirtNumberStrokeColor: '#FFFFFF'
+  numberColor: '#111111'
 } as const;
 
 export function resolveTeamKitAsset(flagCode: string): ResolvedKitAsset {
@@ -44,21 +42,17 @@ export function resolveGoalkeeperKitAsset(goalkeeperKitId: GoalkeeperKitId): Res
 }
 
 function createImageAsset(
-  style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'shirtNumberColor' | 'shirtNumberStrokeColor'>
+  style: Pick<TeamKitStyle | GoalkeeperKitStyle, 'assetKey' | 'secondaryColor'>
 ): ResolvedKitAsset {
   return {
     assetKey: style.assetKey,
-    shirtNumberColor: style.shirtNumberColor,
-    shirtNumberStrokeColor: style.shirtNumberStrokeColor
+    numberColor: style.secondaryColor
   };
 }
 
-function createFallbackTeamAsset(
-  colors: Pick<TeamKitStyle, 'shirtNumberColor' | 'shirtNumberStrokeColor'>
-): ResolvedKitAsset {
+function createFallbackTeamAsset(colors: Pick<TeamKitStyle, 'secondaryColor'> | typeof FALLBACK_NUMBER_COLORS): ResolvedKitAsset {
   return {
     assetKey: FALLBACK_TEAM_KIT_ASSET.assetKey,
-    shirtNumberColor: colors.shirtNumberColor,
-    shirtNumberStrokeColor: colors.shirtNumberStrokeColor
+    numberColor: 'secondaryColor' in colors ? colors.secondaryColor : colors.numberColor
   };
 }

@@ -40,6 +40,7 @@ describe('team kit data contract', () => {
       path: string;
       primaryColor: string;
       secondaryColor: string;
+      accentColor?: string;
       shirtNumberColor: string;
       shirtNumberStrokeColor: string;
     }>();
@@ -50,6 +51,7 @@ describe('team kit data contract', () => {
       path: string;
       primaryColor: string;
       secondaryColor: string;
+      accentColor?: string;
       shirtNumberColor: string;
       shirtNumberStrokeColor: string;
     }>();
@@ -62,7 +64,7 @@ describe('team kit data contract', () => {
     expect(DEFAULT_SHIRT_NUMBER_STYLE).toEqual({
       fontFamily: 'Arial Black',
       fontSize: 17,
-      strokeThickness: 2
+      strokeThickness: 0
     });
   });
 
@@ -89,8 +91,12 @@ describe('team kit data contract', () => {
       expect(style.path.endsWith('.webp')).toBe(true);
       expect(style.primaryColor).toMatch(HEX_COLOR_PATTERN);
       expect(style.secondaryColor).toMatch(HEX_COLOR_PATTERN);
+      if (style.accentColor !== undefined) {
+        expect(style.accentColor).toMatch(HEX_COLOR_PATTERN);
+      }
       expect(style.shirtNumberColor).toMatch(HEX_COLOR_PATTERN);
       expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
+      expect(style.shirtNumberColor).toBe(style.secondaryColor);
       expect(assetKeys.has(style.assetKey)).toBe(false);
       expect(paths.has(style.path)).toBe(false);
 
@@ -108,12 +114,20 @@ describe('team kit data contract', () => {
     expect(getTeamKitStyle('ua')).toMatchObject({
       flagCode: 'ua',
       assetKey: 'kit-ua',
-      path: 'kits/images/ua.webp'
+      path: 'kits/images/ua.webp',
+      primaryColor: '#FFD700',
+      secondaryColor: '#0057B8',
+      accentColor: undefined,
+      shirtNumberColor: '#0057B8'
     });
     expect(getTeamKitStyle('br')).toMatchObject({
       flagCode: 'br',
       assetKey: 'kit-br',
-      path: 'kits/images/br.webp'
+      path: 'kits/images/br.webp',
+      primaryColor: '#FFDF00',
+      secondaryColor: '#009C3B',
+      accentColor: '#002776',
+      shirtNumberColor: '#009C3B'
     });
     expect(getTeamKitStyle('gb-eng')).toMatchObject({
       flagCode: 'gb-eng',
@@ -154,7 +168,7 @@ describe('team kit data contract', () => {
         path: 'kits/images/gk1.webp',
         primaryColor: '#111111',
         secondaryColor: '#3A3A3A',
-        shirtNumberColor: '#FFFFFF',
+        shirtNumberColor: '#3A3A3A',
         shirtNumberStrokeColor: '#111111'
       },
       {
@@ -163,7 +177,7 @@ describe('team kit data contract', () => {
         path: 'kits/images/gk2.webp',
         primaryColor: '#FFB81C',
         secondaryColor: '#111111',
-        shirtNumberColor: '#FFFFFF',
+        shirtNumberColor: '#111111',
         shirtNumberStrokeColor: '#111111'
       }
     ]);
