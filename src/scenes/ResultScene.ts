@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
-import { GAME_TITLE, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
@@ -48,18 +48,9 @@ export class ResultScene extends Phaser.Scene {
 
     this.createResultBackground(centerX, centerY, playerOneGoals, playerTwoGoals);
 
-    this.add
-      .text(centerX, 112, GAME_TITLE, {
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '48px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
     this.createScoreLine(
       centerX,
-      186,
+      116,
       playerOne?.name ?? 'France',
       playerTwo?.name ?? 'Spain',
       playerOne?.flagCode ?? 'fr',
@@ -69,7 +60,7 @@ export class ResultScene extends Phaser.Scene {
     );
 
     if (this.state !== null) {
-      this.createMatchStatsPanel(centerX, 398, this.state);
+      this.createMatchStatsPanel(centerX, 372, this.state);
     }
 
     this.createActions(centerX);
@@ -210,10 +201,10 @@ export class ResultScene extends Phaser.Scene {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = 840;
-    const height = 320;
+    const height = 384;
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, height, 0x0b2118, 0.88);
-    background.setStrokeStyle(2, 0x5f9572, 0.95);
+    const background = this.add.rectangle(0, 0, width, height, 0x000000, 0.68);
+    background.setStrokeStyle(2, 0xf0c95a, 0.95);
 
     const title = this.add
       .text(0, -height / 2 + 28, 'Match statistics', {
@@ -259,8 +250,8 @@ export class ResultScene extends Phaser.Scene {
     const teamNameInnerGap = 96;
     const teamNameWidth = 260;
     const flagGap = 18;
-    const flagWidth = 64;
-    const flagHeight = 44;
+    const flagWidth = 88;
+    const flagHeight = 60;
     const scoreLine = this.add.container(x, y);
     const playerOneNameX = -teamNameInnerGap;
     const playerTwoNameX = teamNameInnerGap;
@@ -270,7 +261,7 @@ export class ResultScene extends Phaser.Scene {
         align: 'right',
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: '40px',
         fontStyle: '700',
         wordWrap: { width: teamNameWidth }
       })
@@ -280,7 +271,7 @@ export class ResultScene extends Phaser.Scene {
       .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '36px',
+        fontSize: '48px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -290,7 +281,7 @@ export class ResultScene extends Phaser.Scene {
         align: 'left',
         color: '#dfeaf2',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: '40px',
         fontStyle: '700',
         wordWrap: { width: teamNameWidth }
       })
@@ -323,7 +314,7 @@ export class ResultScene extends Phaser.Scene {
     return this.add
       .text(0, y, text, {
         align: 'center',
-        color: '#a9c7b3',
+        color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700'
@@ -366,7 +357,7 @@ export class ResultScene extends Phaser.Scene {
   ): void {
     const rows = createScorerTimeline(playerOneStats, playerTwoStats);
     const viewportTop = 78;
-    const viewportHeight = 72;
+    const viewportHeight = 112;
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
     const scorerColumnWidth = 280;

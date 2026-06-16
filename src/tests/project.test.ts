@@ -10,7 +10,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.3.2');
+    expect(GAME_VERSION).toBe('1.3.3');
   });
 
   it('uses the configured game author', () => {
@@ -107,6 +107,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
     expect(menuSceneSource).toContain('ABOUT_CONTENT');
     expect(menuSceneSource).toContain('LEGAL_DISCLAIMER_TEXT');
+    expect(menuSceneSource).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
     expect(menuSceneSource).toContain('This is an unofficial football card game.');
     expect(menuSceneSource).toContain('RULES_CONTENT');
     expect(menuSceneSource).toContain("import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView'");

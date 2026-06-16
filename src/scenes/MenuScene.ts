@@ -664,7 +664,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setAlpha(0.82);
     const version = this.add
-      .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `v${GAME_VERSION}`, {
+      .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `${GAME_TITLE} | v${GAME_VERSION}`, {
         align: 'right',
         color: '#b8d2c1',
         fontFamily: 'Arial, sans-serif',
