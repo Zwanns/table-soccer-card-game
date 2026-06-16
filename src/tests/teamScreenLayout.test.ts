@@ -129,6 +129,7 @@ describe('team screen layout helper', () => {
     expect(teamSelectMobile.grid.buttonHeight).toBeGreaterThan(teamSelectDesktop.grid.buttonHeight);
     expect(teamSelectMobile.grid.touchWidth).toBe(teamSelectMobile.grid.buttonWidth);
     expect(teamSelectMobile.grid.touchHeight).toBe(teamSelectMobile.grid.buttonHeight);
+    expect(teamSelectMobile.grid.gapX).toBeGreaterThanOrEqual(16);
     expect(teamSelectGridHorizontalBounds(teamSelectMobile)).toEqual(selectedPanelSpanHorizontalBounds(teamSelectMobile));
     expect(teamSelectMobile.actions.touchWidth).toBe(teamSelectMobile.actions.buttonWidth);
     expect(teamSelectMobile.actions.touchHeight).toBe(teamSelectMobile.actions.buttonHeight);

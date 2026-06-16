@@ -52,13 +52,40 @@ describe('touch-friendly input contract', () => {
     const indexSource = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
     const cssSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
 
-    expect(indexSource).toContain('maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-    expect(mainSource).toContain('game.scale.refresh()');
-    expect(mainSource).toContain("window.visualViewport?.addEventListener('resize', scheduleScaleRefresh");
+    expect(indexSource).toContain('width=device-width, initial-scale=1, viewport-fit=cover');
+    expect(indexSource).not.toContain('maximum-scale');
+    expect(indexSource).not.toContain('user-scalable=no');
+    expect(mainSource).toContain('let resizeTimers: number[] = []');
+    expect(mainSource).toContain('function refreshScaleAndInputBounds(refreshGame: Phaser.Game): void');
+    expect(mainSource).toContain('refreshGame.scale.refresh()');
+    expect(mainSource).toContain('refreshGame.scale.updateBounds()');
+    expect(mainSource).toContain('const delays = isMobileLikeInputViewport() ? [50, 250, 600] : [250]');
+    expect(mainSource).toContain('resizeTimers = delays.map((delay) => window.setTimeout(() => refreshScaleAndInputBounds(game), delay))');
+    expect(mainSource).not.toContain('visualViewport');
     expect(cssSource).toContain('width: 100%');
     expect(cssSource).toContain('min-width: 100vw');
     expect(cssSource).toContain('min-height: 100dvh');
     expect(cssSource).not.toContain('100dvw');
     expect(cssSource).not.toContain('transform: scale');
+  });
+
+  it('provides an opt-in input alignment debug mode', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain("get('debugInput') === '1'");
+    expect(mainSource).toContain('function enableInputDebug(debugGame: Phaser.Game): void');
+    expect(mainSource).toContain('debugGame.canvas.getBoundingClientRect()');
+    expect(mainSource).toContain('debugGame.scale.canvasBounds');
+    expect(mainSource).toContain('debugGame.scale.displaySize');
+    expect(mainSource).toContain('debugGame.scale.gameSize');
+    expect(mainSource).toContain('pointer client:');
+    expect(mainSource).toContain('pointer game:');
+    expect(mainSource).toContain('pointer world:');
+    expect(mainSource).toContain('manual game:');
+    expect(mainSource).toContain('delta game:');
+    expect(mainSource).toContain('function mapClientToGame(debugGame: Phaser.Game, event: PointerEvent | MouseEvent)');
+    expect(mainSource).toContain('((event.clientX - rect.left) / rect.width) * debugGame.scale.gameSize.width');
+    expect(mainSource).toContain('marker.strokeCircle(manual.x, manual.y');
+    expect(mainSource).toContain('marker.lineBetween(pointer.x - 18');
   });
 });

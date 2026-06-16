@@ -1226,7 +1226,786 @@ Teams:
 
 Результат npm run dev:
 - ...
+```
+---
 
+# M-6.3 — исправить системное смещение Phaser input на мобильном Chrome
+
+## Проблема
+
+На Pixel 10 / Android Chrome landscape все кнопки и карточки реагируют на нажатие со смещением влево.
+
+Симптомы:
+
+```text
+1. Правая сторона кнопки не реагирует.
+2. Нажатие по правой части карточки команды может выбирать карточку справа.
+3. Проблема есть не только в TeamSelect, а во всех кнопках.
+
+Это значит, что проблема системная: координаты Phaser input не совпадают с визуальным положением canvas.
+
+Главная цель
+
+Исправить соответствие:
+
+visual canvas position/size
+=
+Phaser input coordinates
+
+Нельзя пытаться чинить это расширением hitArea отдельных кнопок.
+
+Проверить файлы
+index.html
+src/main.ts
+src/styles/main.css
+src/ui/touchInput.ts
+src/ui/Button.ts
+src/scenes/TeamSelectScene.ts
+src/scenes/SquadSelectScene.ts
+src/ui/teamScreenLayout.ts
+src/tests/touchInput.test.ts
+src/tests/teamSelect.test.ts
+src/tests/teamScreenLayout.test.ts
+1. Временно отключить recent risky changes
+
+Проверить изменения из M-6.2:
+
+viewport meta maximum-scale=1.0, user-scalable=no, viewport-fit=cover
+game.scale.refresh() на resize/orientationchange/visualViewport.resize
+100dvw removal
+visual-aligned hitArea
+
+Нужно выяснить, что именно вызывает смещение.
+
+Особенно подозрительно:
+
+visualViewport.resize + game.scale.refresh()
+
+Если refresh() вызывается в момент, когда Android Chrome toolbar еще анимируется, Phaser может запомнить неправильные bounds.
+
+2. Убрать ручное вмешательство в Phaser Scale, если оно ломает input
+
+Нужно проверить: не ухудшил ли ситуацию добавленный game.scale.refresh().
+
+Сделать безопасный вариант:
+
+не вызывать scale.refresh() напрямую на каждый resize/visualViewport.resize;
+если refresh нужен — делать debounced refresh через setTimeout/requestAnimationFrame после стабилизации viewport;
+или убрать refresh полностью, если Phaser.Scale.FIT сам корректно обновляет bounds.
+
+Рекомендуемый вариант:
+
+let resizeTimer: number | undefined;
+
+function scheduleScaleRefresh(game: Phaser.Game) {
+  window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(() => {
+    game.scale.refresh();
+  }, 250);
+}
+
+Но если даже это дает offset — убрать custom refresh.
+
+3. Проверить CSS canvas/container
+
+Убедиться, что нет CSS, который визуально меняет canvas отдельно от Phaser:
+
+Запрещено / подозрительно:
+
+canvas {
+  width: 100%;
+  height: 100%;
+  transform: ...
+  scale: ...
+  position with manual offsets
+}
+
+Для Phaser.Scale.FIT лучше не задавать canvas width/height вручную.
+
+Рекомендуемо:
+
+html,
+body,
+#app,
+#game-container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+
+#game-container canvas {
+  display: block;
+  touch-action: none;
+}
+
+Не задавать canvas:
+
+width: 100vw;
+height: 100vh;
+width: 100%;
+height: 100%;
+
+если Phaser сам управляет размером canvas.
+
+4. Убрать viewport meta, если он влияет на layout viewport
+
+Если после M-6.2 был добавлен:
+
+maximum-scale=1.0, user-scalable=no, viewport-fit=cover
+
+проверить вариант без maximum-scale и user-scalable=no.
+
+Более безопасный вариант:
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+Не блокировать масштабирование, если это вызывает странности Android Chrome.
+
+5. Добавить debug-режим для проверки input alignment
+
+Добавить временный debug helper, который можно включить через query param:
+
+?debugInput=1
+
+В debug mode показывать:
+
+1. canvas.getBoundingClientRect()
+2. game.scale.displaySize
+3. game.scale.gameSize
+4. pointer screen/client coordinates
+5. pointer world/game coordinates
+6. marker circle в точке Phaser pointer
+
+При tap по экрану рисовать маленький крестик именно в координате, которую видит Phaser.
+
+Это позволит понять:
+
+Phaser pointer оказывается левее реального пальца?
+на сколько px?
+смещение постоянное?
+смещение растет к правому краю?
+
+Если смещение растет к правому краю, это проблема scale factor.
+Если смещение постоянное, это проблема left offset / canvas bounds.
+
+Debug mode не должен быть включен по умолчанию.
+
+6. Проверить Phaser input scale
+
+Проверить, обновляется ли input manager после resize.
+
+В Phaser может быть проблема, если canvas bounds stale. Найти безопасный способ обновления bounds:
+
+game.scale.refresh()
+game.input.manager.updateInputPlugins()
+canvasBounds refresh
+
+Использовать только подтвержденный метод из текущей версии Phaser.
+
+Не использовать приватные поля без необходимости.
+
+7. После исправления вернуть правильные hitArea
+
+Когда systemic input offset исправлен:
+
+hitArea кнопок должна совпадать с визуалом или быть симметрично расширена;
+нельзя оставлять перекошенные или компенсирующие hitArea;
+TeamSelect карточки не должны выбирать соседнюю карточку.
+8. TeamSelect grid
+
+Ширина grid из M-6.2 может остаться:
+
+x=128, width=1344
+
+Но проверить, что:
+
+card visual rect = input rect;
+нажатие по правой части карточки выбирает эту же карточку;
+нажатие в gap между карточками ничего не выбирает;
+нажатие по соседней карточке выбирает соседнюю.
+9. Smoke test на реальном mobile viewport
+
+Нужен smoke test, который кликает не только по центру, но и по правой стороне.
+
+Добавить проверки:
+
+tap 80% width внутри TeamSelect card -> выбирает эту же команду;
+tap 95% width внутри button -> срабатывает эта же button;
+tap в gap между двумя cards -> не выбирает соседнюю;
+tap на правой стороне Start/Menu -> срабатывает Start/Menu.
+
+Если headless не ловит Android Chrome issue, все равно добавить тест layout/hitArea consistency.
+
+10. Не менять
+
+Не менять:
+
+GameEngine
+AI
+Penalty AI
+TournamentEngine
+PenaltyShootoutEngine
+правила игры
+составы
+assets registry
+kits/covers validation
+11. Проверка
+
+Запустить:
+
+npm run validate:kits
+npm run validate:covers
+npm test
+npm run build
+npm run dev
+
+После push обязательно проверить на Pixel 10 / Android Chrome.
+
+12. Отчет
+
+После выполнения вывести:
+
+Этап M-6.3 завершен.
+
+Созданные файлы:
+- ...
+
+Измененные файлы:
+- ...
+
+Реальная причина input offset:
+- ...
+
+Что было убрано/изменено из M-6.2:
+- ...
+
+CSS canvas/container:
+- ...
+
+Viewport meta:
+- ...
+
+Scale refresh:
+- ...
+
+Debug input mode:
+- добавлен / не добавлен
+- как включить:
+
+TeamSelect:
+- ...
+
+Menu/buttons:
+- ...
+
+Проверки правой стороны кнопок:
+- ...
+
+Изменялись ли GameEngine / AI / Penalty AI / TournamentEngine:
+- да / нет
+
+Результат validate:kits:
+- ...
+
+Результат validate:covers:
+- ...
+
+Результат npm test:
+- ...
+
+Результат npm run build:
+- ...
+
+Что проверить на Pixel 10:
+- tap по левой/центральной/правой части кнопки
+- tap по правой части карточки команды
+- tap в gap между карточками
+- Teams Back
+- Menu buttons
+```
+---
+````md
+# Total Soccer: Mundial
+# M-6.4 — окончательно исправить системное смещение Phaser input на mobile
+
+## Проблема
+
+На мобильной версии Android Chrome / Pixel 10 input сильно смещен.
+
+По скриншоту главного меню видно:
+
+- визуально кнопка `Rules` находится правее;
+- если нажать левее кнопки, в темной зоне, срабатывает `Rules`;
+- правая часть реальной кнопки плохо реагирует;
+- такая же проблема есть у всех кнопок и карточек команд.
+
+Это значит, что проблема НЕ в отдельных hitArea и НЕ в TeamSelect layout.
+
+Проблема системная:
+
+```text
+Phaser pointer coordinates не совпадают с визуально отображенным canvas.
+````
+
+---
+
+## Главная цель
+
+Добиться полного совпадения:
+
+```text
+место касания пальцем
+=
+Phaser pointer position
+=
+визуальная позиция элемента на canvas
+```
+
+Нельзя чинить это расширением hitArea.
+
+---
+
+## Проверить файлы
+
+```text
+index.html
+src/main.ts
+src/styles/main.css
+src/ui/touchInput.ts
+src/ui/Button.ts
+src/scenes/MenuScene.ts
+src/scenes/TeamSelectScene.ts
+src/scenes/SquadSelectScene.ts
+src/tests/touchInput.test.ts
+src/tests/project.test.ts
+```
+
+---
+
+# 1. Не принимать текущий M-6.3 как исправление
+
+Текущий M-6.3 добавил:
+
+```text
+debounced scale.refresh()
+debugInput mode
+viewport meta cleanup
+```
+
+Но реальная проблема осталась.
+
+Нужно продолжить диагностику и найти настоящий источник.
+
+---
+
+# 2. Проверить CSS canvas и parent
+
+Нужно убедиться, что Phaser canvas НЕ масштабируется CSS-ом отдельно от Phaser Scale Manager.
+
+Проверить `main.css`.
+
+Запрещено для canvas:
+
+```css
+canvas {
+  width: 100%;
+  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  transform: ...;
+  scale: ...;
+  object-fit: ...;
+}
+```
+
+Для `#game-container canvas` оставить максимум:
+
+```css
+#game-container canvas {
+  display: block;
+  touch-action: none;
+}
+```
+
+Если canvas получает CSS width/height — убрать.
+
+Phaser.Scale.FIT должен сам выставлять canvas display size.
+
+---
+
+# 3. Проверить parent container
+
+`#game-container` должен занимать viewport, но не должен центрировать canvas через CSS transform.
+
+Допустимо:
+
+```css
+html,
+body,
+#app,
+#game-container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+}
+```
+
+Не использовать для canvas/parent:
+
+```css
+transform
+zoom
+scale
+translate
+```
+
+Если есть flex/grid centering, проверить, не конфликтует ли он с Phaser `autoCenter`.
+
+Если Phaser уже использует:
+
+```ts
+autoCenter: Phaser.Scale.CENTER_BOTH
+```
+
+то CSS не должен дополнительно центрировать canvas через transform.
+
+---
+
+# 4. Проверить viewport meta
+
+Оставить безопасный вариант:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+```
+
+Не использовать:
+
+```html
+maximum-scale=1.0
+user-scalable=no
+```
+
+---
+
+# 5. Проверить Phaser input manager bounds
+
+В debugInput нужно вывести реальные значения:
+
+```text
+canvas.getBoundingClientRect().left
+canvas.getBoundingClientRect().top
+canvas.getBoundingClientRect().width
+canvas.getBoundingClientRect().height
+
+game.scale.displaySize.width
+game.scale.displaySize.height
+
+game.scale.gameSize.width
+game.scale.gameSize.height
+
+game.scale.canvasBounds.left
+game.scale.canvasBounds.top
+game.scale.canvasBounds.width
+game.scale.canvasBounds.height
+
+pointer.event.clientX
+pointer.event.clientY
+pointer.x
+pointer.y
+```
+
+Главное сравнить:
+
+```text
+canvas.getBoundingClientRect()
+vs
+game.scale.canvasBounds
+```
+
+Если они отличаются — это и есть причина offset.
+
+---
+
+# 6. Принудительно обновлять canvas bounds корректным способом
+
+Найти в текущей версии Phaser правильный публичный способ обновить bounds.
+
+Проверить варианты:
+
+```ts
+game.scale.refresh()
+game.input.manager.updateBounds()
+```
+
+Если доступен публичный метод:
+
+```ts
+game.input.manager.updateBounds()
+```
+
+использовать его после resize/orientation.
+
+Рекомендуемая логика:
+
+```ts
+function refreshScaleAndInputBounds(game: Phaser.Game) {
+  game.scale.refresh();
+
+  if (game.input?.manager && 'updateBounds' in game.input.manager) {
+    game.input.manager.updateBounds();
+  }
+}
+```
+
+Если TypeScript ругается — сделать безопасный type guard.
+
+Важно:
+
+```text
+scale.refresh() без input bounds refresh может быть недостаточно.
+```
+
+---
+
+# 7. Проверить порядок refresh
+
+На Android Chrome toolbar/viewport может меняться постепенно.
+
+Использовать несколько отложенных refresh:
+
+```ts
+function scheduleMobileScaleRefresh(game: Phaser.Game) {
+  window.setTimeout(() => refreshScaleAndInputBounds(game), 50);
+  window.setTimeout(() => refreshScaleAndInputBounds(game), 250);
+  window.setTimeout(() => refreshScaleAndInputBounds(game), 600);
+}
+```
+
+Только на mobile/coarse pointer.
+
+Для desktop можно оставить один обычный refresh или вообще не трогать.
+
+---
+
+# 8. Проверить, не блокирует ли debug marker реальный input
+
+Debug marker должен быть чисто визуальным.
+
+Он не должен:
+
+```text
+иметь interactive;
+перехватывать pointer events;
+лежать поверх кнопок как input target.
+```
+
+---
+
+# 9. Добавить визуальный debug crosshair
+
+В `?debugInput=1` при tap рисовать:
+
+```text
+красный крестик — где Phaser считает pointer.x/y;
+синий кружок — где был clientX/clientY пересчитанный вручную через getBoundingClientRect.
+```
+
+Ручной пересчет:
+
+```ts
+const rect = canvas.getBoundingClientRect();
+
+const manualX =
+  ((event.clientX - rect.left) / rect.width) * game.scale.gameSize.width;
+
+const manualY =
+  ((event.clientY - rect.top) / rect.height) * game.scale.gameSize.height;
+```
+
+Если красный и синий расходятся — Phaser input bounds stale.
+
+Если синий совпадает с пальцем, а красный нет — нужно обновлять Phaser input bounds.
+
+---
+
+# 10. Если Phaser input bounds невозможно стабилизировать
+
+Как fallback, можно перехватывать pointer координаты и корректировать через manual mapping.
+
+Но это только если публичный `updateBounds()` не помогает.
+
+Предпочтение:
+
+```text
+1. убрать CSS-конфликт;
+2. обновить Phaser input bounds;
+3. только потом manual fallback.
+```
+
+---
+
+# 11. Тест на right-side clicks
+
+Добавить smoke/logic tests:
+
+```text
+Menu button Rules:
+- tap по 20% ширины кнопки;
+- tap по 50%;
+- tap по 80%;
+все должны попадать в Rules.
+
+TeamSelect card:
+- tap по 20%;
+- tap по 50%;
+- tap по 80%;
+все должны выбирать эту же команду.
+
+Gap between cards:
+- tap в gap не выбирает соседнюю карточку.
+```
+
+Даже если headless не воспроизводит mobile bug, тесты должны закрепить layout/hitArea consistency.
+
+---
+
+# 12. Не менять
+
+Не менять:
+
+```text
+GameEngine
+AI
+Penalty AI
+TournamentEngine
+PenaltyShootoutEngine
+правила игры
+составы
+assets registry
+kits/covers validation
+TeamSelect visual layout
+Menu visual layout
+```
+
+Можно менять только:
+
+```text
+CSS canvas/container
+Phaser bootstrap scale/input refresh
+debugInput
+tests
+```
+
+---
+
+# 13. Проверка
+
+Запустить:
+
+```bash
+npm run validate:kits
+npm run validate:covers
+npm test
+npm run build
+npm run dev
+```
+
+---
+
+# 14. Обязательная проверка на Pixel 10
+
+После deploy открыть:
+
+```text
+https://total-soccer-mundial.vercel.app/?debugInput=1
+```
+
+Проверить:
+
+```text
+1. Нажать левее Rules — Rules НЕ должен срабатывать.
+2. Нажать по левой части Rules — должен сработать Rules.
+3. Нажать по центру Rules — должен сработать Rules.
+4. Нажать по правой части Rules — должен сработать Rules.
+5. Красный и синий debug markers должны совпадать или почти совпадать.
+6. TeamSelect: правая часть карточки выбирает эту же карточку, не соседнюю.
+7. Gap между карточками не выбирает соседнюю.
+```
+
+---
+
+# 15. Формат отчета
+
+После выполнения вывести:
+
+```text
+Этап M-6.4 завершен.
+
+Созданные файлы:
+- ...
+
+Измененные файлы:
+- ...
+
+Настоящая причина offset:
+- ...
+
+CSS canvas/container:
+- ...
+
+Phaser scale/input bounds:
+- ...
+
+updateBounds:
+- использован / недоступен / не нужен
+
+Refresh strategy:
+- ...
+
+Debug markers:
+- ...
+
+Menu buttons:
+- ...
+
+TeamSelect cards:
+- ...
+
+Right-side click behavior:
+- ...
+
+Изменялись ли GameEngine / AI / Penalty AI / TournamentEngine:
+- да / нет
+
+Результат validate:kits:
+- ...
+
+Результат validate:covers:
+- ...
+
+Результат npm test:
+- ...
+
+Результат npm run build:
+- ...
+
+Что проверить на Pixel 10:
+- ...
+```
+
+После отчета остановиться.
+
+```
+```
 ---
 
 # Этап M-7 — мобильная адаптация турниров и пенальти

@@ -257,6 +257,19 @@ describe('project scaffold', () => {
     expect(cssSource).toContain('#rotate-device-overlay[hidden]');
   });
 
+  it('does not resize or transform the Phaser canvas with CSS', () => {
+    const cssSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
+    const canvasRule = cssSource.match(/#game-container canvas\s*\{(?<body>[^}]*)\}/)?.groups?.body ?? '';
+
+    expect(canvasRule).toContain('display: block');
+    expect(canvasRule).toContain('touch-action: none');
+    expect(canvasRule).not.toMatch(/\bwidth\s*:/);
+    expect(canvasRule).not.toMatch(/\bheight\s*:/);
+    expect(canvasRule).not.toMatch(/\btransform\s*:/);
+    expect(canvasRule).not.toMatch(/\bscale\s*:/);
+    expect(canvasRule).not.toMatch(/\bobject-fit\s*:/);
+  });
+
   it('keeps final match statistics labels readable', () => {
     const resultSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
     const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
