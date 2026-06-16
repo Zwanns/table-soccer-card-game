@@ -23,9 +23,12 @@ export function setTouchFriendlyInteractive<T extends InteractiveGameObject>(
   target: T,
   width: number,
   height: number,
-  options: { useHandCursor?: boolean } = {}
+  options: { minWidth?: number; minHeight?: number; useHandCursor?: boolean } = {}
 ): T {
-  const hitArea = getTouchTargetSize(width, height);
+  const hitArea = {
+    width: Math.max(width, options.minWidth ?? MIN_TOUCH_TARGET_SIZE),
+    height: Math.max(height, options.minHeight ?? MIN_TOUCH_TARGET_SIZE)
+  };
 
   target.setInteractive(
     new Phaser.Geom.Rectangle(-hitArea.width / 2, -hitArea.height / 2, hitArea.width, hitArea.height),

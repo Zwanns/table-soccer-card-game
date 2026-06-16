@@ -21,11 +21,15 @@ describe('touch-friendly input contract', () => {
     const tournamentSetupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
     const tournamentHubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
 
-    expect(buttonSource).toContain('setTouchFriendlyInteractive(this, width, height)');
+    expect(buttonSource).toContain('setTouchFriendlyInteractive(this, width, height, {');
+    expect(buttonSource).toContain('minWidth: options.touchWidth');
+    expect(buttonSource).toContain('minHeight: options.touchHeight');
     expect(menuSource).toContain('setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1))');
     expect(gameSource).toContain('setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1))');
-    expect(teamSelectSource).toContain('setTouchFriendlyInteractive(checkbox, 58, 28)');
-    expect(squadSelectSource).toContain('setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight)');
+    expect(teamSelectSource).toContain('setTouchFriendlyInteractive(checkbox, 58, 28, {');
+    expect(teamSelectSource).toContain('minHeight: layout.selectedPanels.aiTouchHeight');
+    expect(squadSelectSource).toContain('setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight, {');
+    expect(squadSelectSource).toContain('minHeight: teamList.touchHeight');
     expect(tournamentSetupSource).toContain('createTouchHitArea(this, 188, SLOT_HEIGHT / 2, 22, 26)');
     expect(tournamentSetupSource).toContain('createTouchHitArea(this, 0, 0, 42, 24)');
     expect(tournamentHubSource).toContain('setTouchFriendlyInteractive(button, tabWidth, 46)');

@@ -38,6 +38,8 @@ export interface TeamSelectLayout {
     height: number;
     aiCheckboxX: number;
     aiCheckboxY: number;
+    aiTouchWidth: number;
+    aiTouchHeight: number;
   };
   versus: {
     x: number;
@@ -50,12 +52,18 @@ export interface TeamSelectLayout {
     gapX: number;
     gapY: number;
     startY: number;
+    touchWidth: number;
+    touchHeight: number;
     viewport: ScrollViewportLayout;
   };
   actions: {
     backX: number;
     startX: number;
     y: number;
+    buttonWidth: number;
+    buttonHeight: number;
+    touchWidth: number;
+    touchHeight: number;
   };
   message: {
     y: number;
@@ -83,6 +91,8 @@ export interface TeamsLayout {
     y: number;
     width: number;
     height: number;
+    touchWidth: number;
+    touchHeight: number;
   };
   teamList: {
     x: number;
@@ -92,6 +102,8 @@ export interface TeamsLayout {
     gapX: number;
     gapY: number;
     startY: number;
+    touchWidth: number;
+    touchHeight: number;
     viewport: ScrollViewportLayout;
   };
   squadPanel: {
@@ -156,7 +168,9 @@ function createDesktopTeamSelectLayout(gameSize: TeamScreenViewportSize): TeamSe
       width: 440,
       height: 82,
       aiCheckboxX: 156,
-      aiCheckboxY: -20
+      aiCheckboxY: -20,
+      aiTouchWidth: 72,
+      aiTouchHeight: 44
     },
     versus: { x: centerX, y: 126 },
     grid: {
@@ -166,6 +180,8 @@ function createDesktopTeamSelectLayout(gameSize: TeamScreenViewportSize): TeamSe
       gapX: 12,
       gapY: 8,
       startY: 206,
+      touchWidth: 156,
+      touchHeight: 44,
       viewport: {
         x: 120,
         y: 184,
@@ -176,7 +192,11 @@ function createDesktopTeamSelectLayout(gameSize: TeamScreenViewportSize): TeamSe
     actions: {
       backX: 258,
       startX: 1342,
-      y: 666
+      y: 666,
+      buttonWidth: 220,
+      buttonHeight: 54,
+      touchWidth: 220,
+      touchHeight: 54
     },
     message: {
       y: 602
@@ -200,30 +220,38 @@ function createMobileTeamSelectLayout(gameSize: TeamScreenViewportSize): TeamSel
       width: 440,
       height: 82,
       aiCheckboxX: 156,
-      aiCheckboxY: -20
+      aiCheckboxY: -20,
+      aiTouchWidth: 100,
+      aiTouchHeight: 72
     },
     versus: { x: centerX, y: 124 },
     grid: {
       columns: 5,
       buttonWidth: 220,
-      buttonHeight: 48,
+      buttonHeight: 68,
       gapX: 14,
-      gapY: 10,
-      startY: 220,
+      gapY: 12,
+      startY: 210,
+      touchWidth: 230,
+      touchHeight: 78,
       viewport: {
         x: 210,
-        y: 190,
+        y: 178,
         width: 1180,
-        height: 392
+        height: 338
       }
     },
     actions: {
       backX: 258,
       startX: 1342,
-      y: 666
+      y: 612,
+      buttonWidth: 260,
+      buttonHeight: 72,
+      touchWidth: 280,
+      touchHeight: 82
     },
     message: {
-      y: 604
+      y: 552
     }
   };
 }
@@ -243,7 +271,9 @@ function createDesktopTeamsLayout(gameSize: TeamScreenViewportSize): TeamsLayout
       x: leftPanelX + 66,
       y: 60,
       width: 132,
-      height: 38
+      height: 38,
+      touchWidth: 132,
+      touchHeight: 44
     },
     teamList: {
       x: leftPanelX,
@@ -253,6 +283,8 @@ function createDesktopTeamsLayout(gameSize: TeamScreenViewportSize): TeamsLayout
       gapX: 18,
       gapY: 6,
       startY: 112,
+      touchWidth: 171,
+      touchHeight: 44,
       viewport: {
         x: leftPanelX,
         y: 96,
@@ -295,41 +327,45 @@ function createMobileTeamsLayout(gameSize: TeamScreenViewportSize): TeamsLayout 
     backButton: {
       x: leftPanelX + 66,
       y: 60,
-      width: 132,
-      height: 38
+      width: 150,
+      height: 58,
+      touchWidth: 172,
+      touchHeight: 78
     },
     teamList: {
       x: leftPanelX,
       columns: 3,
       cardWidth: 196,
-      cardHeight: 38,
+      cardHeight: 56,
       gapX: 12,
       gapY: 8,
-      startY: 112,
+      startY: 122,
+      touchWidth: 208,
+      touchHeight: 72,
       viewport: {
         x: leftPanelX,
         y: 94,
         width: 612,
-        height: 596
+        height: 548
       }
     },
     squadPanel: {
       x: 690,
       y: 96,
       width: rightPanelWidth,
-      height: 560,
+      height: 532,
       cardWidth: 430,
       tableY: 92,
-      sectionRowGap: 27
+      sectionRowGap: 25
     },
     preview: {
       offsetX: 252,
       colorsY: 56,
       colorRadius: 10,
       colorGap: 10,
-      faceY: 180,
-      backY: 410,
-      cardScale: 1.36
+      faceY: 174,
+      backY: 388,
+      cardScale: 1.22
     }
   };
 }

@@ -127,9 +127,17 @@ describe('team screen layout helper', () => {
     expect(teamSelectMobile.grid.columns).toBeLessThan(teamSelectDesktop.grid.columns);
     expect(teamSelectMobile.grid.buttonWidth).toBeGreaterThan(teamSelectDesktop.grid.buttonWidth);
     expect(teamSelectMobile.grid.buttonHeight).toBeGreaterThan(teamSelectDesktop.grid.buttonHeight);
+    expect(teamSelectMobile.grid.touchHeight).toBeGreaterThan(teamSelectMobile.grid.buttonHeight);
+    expect(teamSelectMobile.grid.viewport.y + teamSelectMobile.grid.viewport.height).toBeLessThan(
+      teamSelectMobile.actions.y - teamSelectMobile.actions.buttonHeight / 2
+    );
+    expect(teamSelectMobile.actions.y + teamSelectMobile.actions.buttonHeight / 2).toBeLessThanOrEqual(SCENE_HEIGHT - 72);
     expect(teamsMobile.mode).toBe('mobile-landscape');
     expect(teamsMobile.teamList.columns).toBeLessThan(teamsDesktop.teamList.columns);
     expect(teamsMobile.teamList.cardHeight).toBeGreaterThan(teamsDesktop.teamList.cardHeight);
+    expect(teamsMobile.teamList.touchHeight).toBeGreaterThan(teamsMobile.teamList.cardHeight);
+    expect(teamsMobile.teamList.viewport.y + teamsMobile.teamList.viewport.height).toBeLessThanOrEqual(SCENE_HEIGHT - 72);
+    expect(teamsMobile.backButton.touchHeight).toBeGreaterThan(teamsMobile.backButton.height);
     expect(teamsMobile.preview.cardScale).toBeLessThan(teamsDesktop.preview.cardScale);
   });
 });

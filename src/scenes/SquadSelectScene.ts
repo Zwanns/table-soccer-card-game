@@ -75,7 +75,10 @@ export class SquadSelectScene extends Phaser.Scene {
 
     button.add([background, label]);
     button.setSize(layout.backButton.width, layout.backButton.height);
-    setTouchFriendlyInteractive(button, layout.backButton.width, layout.backButton.height);
+    setTouchFriendlyInteractive(button, layout.backButton.width, layout.backButton.height, {
+      minHeight: layout.backButton.touchHeight,
+      minWidth: layout.backButton.touchWidth
+    });
     button.on('pointerover', () => background.setFillStyle(0xffd978));
     button.on('pointerout', () => background.setFillStyle(0xf0c95a));
     button.on('pointerdown', onClick);
@@ -93,6 +96,7 @@ export class SquadSelectScene extends Phaser.Scene {
       .fillStyle(0xffffff)
       .fillRect(teamList.viewport.x, teamList.viewport.y, teamList.viewport.width, teamList.viewport.height)
       .createGeometryMask();
+    const options: Array<{ baseY: number; option: Phaser.GameObjects.Container }> = [];
     let scrollY = 0;
     let dragPointerId: number | null = null;
     let lastDragY = 0;
@@ -101,6 +105,21 @@ export class SquadSelectScene extends Phaser.Scene {
     const setScroll = (value: number): void => {
       scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
       content.y = -scrollY;
+      updateOptionInput();
+    };
+    const updateOptionInput = (): void => {
+      const viewportTop = teamList.viewport.y;
+      const viewportBottom = teamList.viewport.y + teamList.viewport.height;
+
+      for (const entry of options) {
+        const optionY = entry.baseY - scrollY;
+        const isTouchable =
+          optionY + teamList.touchHeight / 2 >= viewportTop && optionY - teamList.touchHeight / 2 <= viewportBottom;
+
+        if (entry.option.input != null) {
+          entry.option.input.enabled = isTouchable;
+        }
+      }
     };
     const beginDrag = (pointer: Phaser.Input.Pointer): void => {
       dragPointerId = pointer.id;
@@ -138,25 +157,21 @@ export class SquadSelectScene extends Phaser.Scene {
     NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % teamList.columns;
       const row = Math.floor(index / teamList.columns);
-      content.add(
-        this.createTeamOption(
-          startX + column * (teamList.cardWidth + teamList.gapX),
-          teamList.startY + row * (teamList.cardHeight + teamList.gapY),
-          team,
-          layout,
-          {
-            onPointerDown: beginDrag,
-            onPointerMove: updateDrag,
-            onPointerUp: (pointer) =>
-              finishDrag(pointer, () => {
-                this.selectedTeamId = team.flagCode;
-                this.squad = loadSquad(this.selectedTeamId);
-                this.render();
-              }),
-            onWheel: (deltaY) => setScroll(scrollY + deltaY * 0.35)
-          }
-        )
-      );
+      const y = teamList.startY + row * (teamList.cardHeight + teamList.gapY);
+      const option = this.createTeamOption(startX + column * (teamList.cardWidth + teamList.gapX), y, team, layout, {
+        onPointerDown: beginDrag,
+        onPointerMove: updateDrag,
+        onPointerUp: (pointer) =>
+          finishDrag(pointer, () => {
+            this.selectedTeamId = team.flagCode;
+            this.squad = loadSquad(this.selectedTeamId);
+            this.render();
+          }),
+        onWheel: (deltaY) => setScroll(scrollY + deltaY * 0.35)
+      });
+
+      options.push({ baseY: y, option });
+      content.add(option);
     });
 
     const scrollZone = this.add
@@ -173,6 +188,7 @@ export class SquadSelectScene extends Phaser.Scene {
     scrollZone.on('pointerup', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
     scrollZone.on('pointerout', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
     scrollZone.setDepth(-1);
+    updateOptionInput();
   }
 
   private createTeamOption(
@@ -214,7 +230,10 @@ export class SquadSelectScene extends Phaser.Scene {
 
     option.add([background, flag, nameText]);
     option.setSize(teamList.cardWidth, teamList.cardHeight);
-    setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight);
+    setTouchFriendlyInteractive(option, teamList.cardWidth, teamList.cardHeight, {
+      minHeight: teamList.touchHeight,
+      minWidth: teamList.touchWidth
+    });
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);

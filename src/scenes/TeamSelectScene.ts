@@ -95,9 +95,18 @@ export class TeamSelectScene extends Phaser.Scene {
 
     this.createCountryGrid(layout);
 
-    new Button(this, layout.actions.backX, layout.actions.y, 'Menu', () => this.scene.start('MenuScene'));
+    new Button(this, layout.actions.backX, layout.actions.y, 'Menu', () => this.scene.start('MenuScene'), {
+      height: layout.actions.buttonHeight,
+      touchHeight: layout.actions.touchHeight,
+      touchWidth: layout.actions.touchWidth,
+      width: layout.actions.buttonWidth
+    });
     new Button(this, layout.actions.startX, layout.actions.y, this.mode === 'penalty' ? 'Start penalties' : 'Start', () => this.startMatch(), {
-      disabled: this.selectedTeamOne === this.selectedTeamTwo
+      disabled: this.selectedTeamOne === this.selectedTeamTwo,
+      height: layout.actions.buttonHeight,
+      touchHeight: layout.actions.touchHeight,
+      touchWidth: layout.actions.touchWidth,
+      width: layout.actions.buttonWidth
     });
   }
 
@@ -166,6 +175,7 @@ export class TeamSelectScene extends Phaser.Scene {
       .fillStyle(0xffffff)
       .fillRect(grid.viewport.x, grid.viewport.y, grid.viewport.width, grid.viewport.height)
       .createGeometryMask();
+    const options: Array<{ baseY: number; option: Phaser.GameObjects.Container }> = [];
     let scrollY = 0;
     let dragPointerId: number | null = null;
     let lastDragY = 0;
@@ -174,6 +184,21 @@ export class TeamSelectScene extends Phaser.Scene {
     const setScroll = (value: number): void => {
       scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
       content.y = -scrollY;
+      updateOptionInput();
+    };
+    const updateOptionInput = (): void => {
+      const viewportTop = grid.viewport.y;
+      const viewportBottom = grid.viewport.y + grid.viewport.height;
+
+      for (const entry of options) {
+        const optionY = entry.baseY - scrollY;
+        const isTouchable =
+          optionY + grid.touchHeight / 2 >= viewportTop && optionY - grid.touchHeight / 2 <= viewportBottom;
+
+        if (entry.option.input != null) {
+          entry.option.input.enabled = isTouchable;
+        }
+      }
     };
     const beginDrag = (pointer: Phaser.Input.Pointer): void => {
       dragPointerId = pointer.id;
@@ -211,21 +236,23 @@ export class TeamSelectScene extends Phaser.Scene {
     NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % grid.columns;
       const row = Math.floor(index / grid.columns);
-      content.add(
-        this.createCountryOption(
-          startX + column * (grid.buttonWidth + grid.gapX),
-          grid.startY + row * (grid.buttonHeight + grid.gapY),
+      const y = grid.startY + row * (grid.buttonHeight + grid.gapY);
+      const option = this.createCountryOption(
+        startX + column * (grid.buttonWidth + grid.gapX),
+        y,
           grid.buttonWidth,
           grid.buttonHeight,
           team,
+        layout,
           {
             onPointerDown: beginDrag,
             onPointerMove: updateDrag,
             onPointerUp: (pointer) => finishDrag(pointer, () => this.selectTeam(team.name)),
             onWheel: (deltaY) => setScroll(scrollY + deltaY * 0.35)
           }
-        )
       );
+      options.push({ baseY: y, option });
+      content.add(option);
     });
 
     const scrollZone = this.add
@@ -242,6 +269,7 @@ export class TeamSelectScene extends Phaser.Scene {
     scrollZone.on('pointerup', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
     scrollZone.on('pointerout', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
     scrollZone.setDepth(-1);
+    updateOptionInput();
   }
 
   private createCountryOption(
@@ -250,6 +278,7 @@ export class TeamSelectScene extends Phaser.Scene {
     width: number,
     height: number,
     team: NationalTeam,
+    layout: TeamSelectLayout,
     handlers: {
       onPointerDown: (pointer: Phaser.Input.Pointer) => void;
       onPointerMove: (pointer: Phaser.Input.Pointer) => void;
@@ -281,7 +310,10 @@ export class TeamSelectScene extends Phaser.Scene {
 
     option.add([background, flag, teamText]);
     option.setSize(width, height);
-    setTouchFriendlyInteractive(option, width, height);
+    setTouchFriendlyInteractive(option, width, height, {
+      minHeight: layout.grid.touchHeight,
+      minWidth: layout.grid.touchWidth
+    });
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);
@@ -349,7 +381,11 @@ export class TeamSelectScene extends Phaser.Scene {
 
     checkbox.add([box, check, label]);
     checkbox.setSize(58, 28);
-    setTouchFriendlyInteractive(checkbox, 58, 28);
+    const layout = this.getTeamSelectLayout();
+    setTouchFriendlyInteractive(checkbox, 58, 28, {
+      minHeight: layout.selectedPanels.aiTouchHeight,
+      minWidth: layout.selectedPanels.aiTouchWidth
+    });
     checkbox.on(
       'pointerdown',
       (
