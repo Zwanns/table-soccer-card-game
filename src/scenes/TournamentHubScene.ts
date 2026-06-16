@@ -20,7 +20,6 @@ import {
   type TournamentTeamStatsRankingKey
 } from '../tournament';
 import { Button } from '../ui/Button';
-import { setTouchFriendlyInteractive } from '../ui/touchInput';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
@@ -233,7 +232,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
       button.add([background, label]);
       button.setSize(tabWidth, 46);
-      setTouchFriendlyInteractive(button, tabWidth, 46);
+      button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
           background.setFillStyle(0x1d5b3f, 0.96);
@@ -616,7 +615,7 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private addStatsHeaderTooltip(header: Phaser.GameObjects.Text, tooltipText: string): void {
-    setTouchFriendlyInteractive(header, Math.max(header.width, 1), Math.max(header.height, 1));
+    header.setInteractive({ useHandCursor: true });
     header.on('pointerover', () => this.showStatsTooltip(header, tooltipText));
     header.on('pointerout', () => this.hideStatsTooltip());
   }

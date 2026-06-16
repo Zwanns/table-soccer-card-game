@@ -52,9 +52,9 @@ describe('quick match team selection AI controls', () => {
 
     expect(source).toContain("this.mode === 'penalty' ? 'Penalty teams' : 'Team selection'");
     expect(source).toContain("this.mode === 'penalty' ? 'Start penalties' : 'Start'");
-    expect(source).toContain('this.createSelectedPanel(layout.selectedPanels.playerOneX');
-    expect(source).toContain('this.createSelectedPanel(layout.selectedPanels.playerTwoX');
-    expect(source).toContain('this.addAiCheckbox(panel, layout.selectedPanels.aiCheckboxX, layout.selectedPanels.aiCheckboxY, slot)');
+    expect(source).toContain('this.createSelectedPanel(370, 126');
+    expect(source).toContain('this.createSelectedPanel(1230, 126');
+    expect(source).toContain('this.addAiCheckbox(panel, 156, -20, slot)');
     expect(source).toContain("export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN'");
     expect(source).not.toContain('PenaltyAiSettings');
     expect(source).not.toContain('AI settings');
@@ -63,31 +63,16 @@ describe('quick match team selection AI controls', () => {
   it('keeps the AI checkbox hit area separate from the selected team panel', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('this.addAiCheckbox(panel, layout.selectedPanels.aiCheckboxX, layout.selectedPanels.aiCheckboxY, slot)');
+    expect(source).toContain('this.addAiCheckbox(panel, 156, -20, slot)');
     expect(source).toContain('event.stopPropagation()');
     expect(source).toContain('checkbox.setSize(58, 28)');
   });
 
-  it('uses the team selection layout helper for desktop and mobile grids', () => {
+  it('keeps the 8-column country grid layout on one page', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain("import { createTeamSelectLayout, type TeamSelectLayout } from '../ui/teamScreenLayout'");
-    expect(source).toContain('private getTeamSelectLayout(): TeamSelectLayout');
-    expect(source).toContain('const { grid } = layout');
-    expect(source).toContain('grid.columns');
-    expect(source).toContain('grid.buttonWidth');
-    expect(source).toContain("option.on('wheel'");
-    expect(source).toContain("option.on('pointermove'");
+    expect(source).toContain('const TEAM_GRID_COLUMNS = 8');
     expect(source).not.toContain('page + 1');
     expect(source).not.toContain('1 / 2');
-  });
-
-  it('keeps masked scrolled rows from intercepting mobile taps', () => {
-    const source = readTeamSelectSource();
-
-    expect(source).toContain('const updateOptionInput = (): void =>');
-    expect(source).toContain('optionY + grid.touchHeight / 2 >= viewportTop');
-    expect(source).toContain('entry.option.input.enabled = isTouchable');
-    expect(source).toContain('const shouldTap = dragDistance < 8');
   });
 });

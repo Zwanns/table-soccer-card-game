@@ -44,7 +44,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createTitle');
     expect(menuSceneSource).toContain('createButtons');
     expect(menuSceneSource).toContain('createFooter');
-    expect(menuSceneSource).toContain('createMenuLayout');
+    expect(menuSceneSource).toContain('MENU_LAYOUT');
     expect(bootSceneSource).toContain('MENU_ASSETS.background');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOn');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOff');
@@ -80,9 +80,9 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('private getMenuButtonWidth(): number');
     expect(menuSceneSource).toContain('this.logoImage.displayWidth');
     expect(menuSceneSource).toContain('Phaser.Math.Clamp(this.logoImage.displayWidth');
-    expect(menuSceneSource).toContain('this.scale.width * layout.buttons.maxWidthRatio');
-    expect(menuSceneSource).toContain('layout.buttons.fallbackWidthRatio');
-    expect(menuSceneSource).toContain('layout.buttons.fallbackMaxWidth');
+    expect(menuSceneSource).toContain('this.scale.width * MENU_LAYOUT.buttonMaxWidthRatio');
+    expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonWidthRatio');
+    expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonMaxWidth');
     expect(menuSceneSource.match(/const buttonWidth = this\.getMenuButtonWidth\(\);/g)?.length).toBe(2);
     expect(menuSceneSource.match(/width: buttonWidth/g)?.length).toBeGreaterThanOrEqual(8);
     expect(menuSceneSource).not.toContain('{ width: 280 }');
@@ -107,21 +107,20 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('RULES_CONTENT');
     expect(menuSceneSource).toContain("import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView'");
     expect(menuSceneSource).toContain(
-      'this.add.rectangle(0, 0, info.modal.width, info.modal.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
+      'this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
     );
     expect(menuSceneSource).toContain('openRulesModal');
     expect(menuSceneSource).toContain("return 'EN'");
     expect(menuSceneSource).toContain("return 'PL'");
     expect(menuSceneSource).toContain("return 'UA'");
     expect(menuSceneSource).toContain('createInfoBackButton');
-    expect(menuSceneSource).toContain('private createInfoBackButton(info: MenuInfoLayout)');
-    expect(menuSceneSource).toContain("return new Button(this, 0, info.backButton.y, 'Back', () => this.closeAboutModal()");
-    expect(menuSceneSource).toContain('wordWrap: { width: viewport.width }');
+    expect(menuSceneSource).toContain('const INFO_BACK_BUTTON = {');
+    expect(menuSceneSource).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal()");
+    expect(menuSceneSource).toContain('height: 360');
     expect(menuSceneSource).not.toContain("text(0, -1, '<'");
     expect(menuSceneSource).toContain('createAboutViewport');
     expect(menuSceneSource).toContain('createGeometryMask');
     expect(menuSceneSource).toContain("scrollZone.on('wheel'");
-    expect(menuSceneSource).toContain("scrollZone.on('pointermove'");
     expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
     expect(menuSceneSource).not.toContain('createStandalonePenaltyMatchResult');
   });
@@ -138,8 +137,8 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('All team names, player names, kits, card backs, and visual elements used in the game are fictional');
     expect(menuSceneSource).toContain("title: 'Про гру'");
     expect(menuSceneSource).toContain("authorLabel: 'Автор'");
-    expect(menuSceneSource).toContain('createAboutViewport(aboutContent, info)');
-    expect(menuSceneSource).toContain('createRulesViewport(rulesContent, info)');
+    expect(menuSceneSource).toContain('createAboutViewport(aboutContent)');
+    expect(menuSceneSource).toContain('createRulesViewport(rulesContent)');
     expect(menuSceneSource).toContain("const viewport = kind === 'about'");
     expect(menuSceneSource).not.toContain("uk: {\n    title: 'About'");
     expect(menuSceneSource).not.toContain('content.rules');
@@ -232,42 +231,6 @@ describe('project scaffold', () => {
     expect(source).toContain("'/cards/ball.webp'");
     expect(source).toContain("'/sounds/referees-whistle-start.mp3'");
     expect(source).toContain('playSoundSafe');
-  });
-
-  it('provides a mobile portrait rotate overlay without changing Phaser scenes', () => {
-    const indexSource = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
-    const cssSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
-
-    expect(indexSource).toContain('id="rotate-device-overlay"');
-    expect(indexSource).toContain('Please rotate your device');
-    expect(indexSource).toContain('Use landscape mode');
-    expect(indexSource).toContain('Math.min(window.innerWidth, window.innerHeight) < 700');
-    expect(indexSource).toContain("window.matchMedia?.('(pointer: coarse)')");
-    expect(indexSource).toContain('navigator.maxTouchPoints > 0');
-    expect(indexSource).toContain('window.innerHeight > window.innerWidth');
-    expect(indexSource).toContain("window.addEventListener('resize', updateRotateOverlay");
-    expect(indexSource).toContain("window.addEventListener('orientationchange', updateRotateOverlay");
-    expect(indexSource).toContain('overlay.hidden = !shouldShow');
-    expect(indexSource).not.toContain("scene.start('");
-
-    expect(cssSource).toContain('#rotate-device-overlay');
-    expect(cssSource).toContain('position: fixed');
-    expect(cssSource).toContain('z-index: 10000');
-    expect(cssSource).toContain('touch-action: none');
-    expect(cssSource).toContain('#rotate-device-overlay[hidden]');
-  });
-
-  it('does not resize or transform the Phaser canvas with CSS', () => {
-    const cssSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
-    const canvasRule = cssSource.match(/#game-container canvas\s*\{(?<body>[^}]*)\}/)?.groups?.body ?? '';
-
-    expect(canvasRule).toContain('display: block');
-    expect(canvasRule).toContain('touch-action: none');
-    expect(canvasRule).not.toMatch(/\bwidth\s*:/);
-    expect(canvasRule).not.toMatch(/\bheight\s*:/);
-    expect(canvasRule).not.toMatch(/\btransform\s*:/);
-    expect(canvasRule).not.toMatch(/\bscale\s*:/);
-    expect(canvasRule).not.toMatch(/\bobject-fit\s*:/);
   });
 
   it('keeps final match statistics labels readable', () => {

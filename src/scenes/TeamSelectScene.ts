@@ -4,13 +4,17 @@ import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
-import { createTeamSelectLayout, type TeamSelectLayout } from '../ui/teamScreenLayout';
-import { setTouchFriendlyInteractive } from '../ui/touchInput';
 
 type TeamSlot = 1 | 2;
 
 const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
+const TEAM_GRID_COLUMNS = 8;
+const TEAM_BUTTON_WIDTH = 156;
+const TEAM_BUTTON_HEIGHT = 42;
+const TEAM_GRID_GAP_X = 12;
+const TEAM_GRID_GAP_Y = 8;
+const TEAM_GRID_START_Y = 206;
 export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN';
 
 export function toggleQuickMatchControllerType(controllerType: PlayerControllerType): PlayerControllerType {
@@ -60,32 +64,32 @@ export class TeamSelectScene extends Phaser.Scene {
   private render(): void {
     this.children.removeAll(true);
 
-    const layout = this.getTeamSelectLayout();
+    const centerX = SCENE_WIDTH / 2;
 
-    this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
+    this.add.rectangle(centerX, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
     this.add
-      .text(layout.scene.centerX, layout.title.y, GAME_TITLE, {
+      .text(centerX, 34, GAME_TITLE, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.title.fontSize,
+        fontSize: '34px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
     this.add
-      .text(layout.scene.centerX, layout.subtitle.y, this.mode === 'penalty' ? 'Penalty teams' : 'Team selection', {
+      .text(centerX, 72, this.mode === 'penalty' ? 'Penalty teams' : 'Team selection', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.subtitle.fontSize,
+        fontSize: '24px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    this.createSelectedPanel(layout.selectedPanels.playerOneX, layout.selectedPanels.y, 'Team 1', this.getSelectedTeam(1), 1, layout);
-    this.createSelectedPanel(layout.selectedPanels.playerTwoX, layout.selectedPanels.y, 'Team 2', this.getSelectedTeam(2), 2, layout);
+    this.createSelectedPanel(370, 126, 'Team 1', this.getSelectedTeam(1), 1);
+    this.createSelectedPanel(1230, 126, 'Team 2', this.getSelectedTeam(2), 2);
 
     this.add
-      .text(layout.versus.x, layout.versus.y, 'VS', {
+      .text(centerX, 126, 'VS', {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '34px',
@@ -93,41 +97,18 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createCountryGrid(layout);
+    this.createCountryGrid();
 
-    new Button(this, layout.actions.backX, layout.actions.y, 'Menu', () => this.scene.start('MenuScene'), {
-      height: layout.actions.buttonHeight,
-      touchHeight: layout.actions.touchHeight,
-      touchWidth: layout.actions.touchWidth,
-      width: layout.actions.buttonWidth
-    });
-    new Button(this, layout.actions.startX, layout.actions.y, this.mode === 'penalty' ? 'Start penalties' : 'Start', () => this.startMatch(), {
-      disabled: this.selectedTeamOne === this.selectedTeamTwo,
-      height: layout.actions.buttonHeight,
-      touchHeight: layout.actions.touchHeight,
-      touchWidth: layout.actions.touchWidth,
-      width: layout.actions.buttonWidth
+    new Button(this, 258, 666, 'Menu', () => this.scene.start('MenuScene'));
+    new Button(this, 1342, 666, this.mode === 'penalty' ? 'Start penalties' : 'Start', () => this.startMatch(), {
+      disabled: this.selectedTeamOne === this.selectedTeamTwo
     });
   }
 
-  private getTeamSelectLayout(): TeamSelectLayout {
-    return createTeamSelectLayout({
-      width: this.scale.displaySize.width || this.scale.width,
-      height: this.scale.displaySize.height || this.scale.height
-    });
-  }
-
-  private createSelectedPanel(
-    x: number,
-    y: number,
-    title: string,
-    team: NationalTeam,
-    slot: TeamSlot,
-    layout: TeamSelectLayout
-  ): void {
+  private createSelectedPanel(x: number, y: number, title: string, team: NationalTeam, slot: TeamSlot): void {
     const isActive = this.activeSlot === slot;
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, layout.selectedPanels.width, layout.selectedPanels.height, 0x0b2118, 0.82);
+    const background = this.add.rectangle(0, 0, 440, 82, 0x0b2118, 0.82);
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
       const flag = this.add.image(-164, 0, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(64, 46);
@@ -153,139 +134,34 @@ export class TeamSelectScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
     panel.add([background, flag, titleText, teamText]);
-    this.addAiCheckbox(panel, layout.selectedPanels.aiCheckboxX, layout.selectedPanels.aiCheckboxY, slot);
-    panel.setSize(layout.selectedPanels.width, layout.selectedPanels.height);
-    setTouchFriendlyInteractive(panel, layout.selectedPanels.width, layout.selectedPanels.height);
+    this.addAiCheckbox(panel, 156, -20, slot);
+    panel.setSize(440, 82);
+    panel.setInteractive({ useHandCursor: true });
     panel.on('pointerdown', () => {
       this.activeSlot = slot;
       this.render();
     });
   }
 
-  private createCountryGrid(layout: TeamSelectLayout): void {
-    const { grid } = layout;
-    const content = this.add.container(0, 0);
-    const contentWidth = grid.columns * grid.buttonWidth + (grid.columns - 1) * grid.gapX;
-    const startX = (SCENE_WIDTH - contentWidth) / 2 + grid.buttonWidth / 2;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / grid.columns);
-    const contentBottom = grid.startY + (rowCount - 1) * (grid.buttonHeight + grid.gapY) + grid.buttonHeight / 2;
-    const maxScroll = Math.max(0, contentBottom - (grid.viewport.y + grid.viewport.height));
-    const maskGraphics = this.make.graphics();
-    const mask = maskGraphics
-      .fillStyle(0xffffff)
-      .fillRect(grid.viewport.x, grid.viewport.y, grid.viewport.width, grid.viewport.height)
-      .createGeometryMask();
-    const options: Array<{ baseY: number; option: Phaser.GameObjects.Container }> = [];
-    let scrollY = 0;
-    let dragPointerId: number | null = null;
-    let lastDragY = 0;
-    let dragDistance = 0;
-
-    const setScroll = (value: number): void => {
-      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
-      content.y = -scrollY;
-      updateOptionInput();
-    };
-    const updateOptionInput = (): void => {
-      const viewportTop = grid.viewport.y;
-      const viewportBottom = grid.viewport.y + grid.viewport.height;
-
-      for (const entry of options) {
-        const optionY = entry.baseY - scrollY;
-        const isTouchable =
-          optionY + grid.touchHeight / 2 >= viewportTop && optionY - grid.touchHeight / 2 <= viewportBottom;
-
-        if (entry.option.input != null) {
-          entry.option.input.enabled = isTouchable;
-        }
-      }
-    };
-    const beginDrag = (pointer: Phaser.Input.Pointer): void => {
-      dragPointerId = pointer.id;
-      lastDragY = pointer.y;
-      dragDistance = 0;
-    };
-    const updateDrag = (pointer: Phaser.Input.Pointer): void => {
-      if (dragPointerId !== pointer.id || !pointer.isDown || maxScroll <= 0) {
-        return;
-      }
-
-      const deltaY = lastDragY - pointer.y;
-      dragDistance += Math.abs(deltaY);
-      setScroll(scrollY + deltaY);
-      lastDragY = pointer.y;
-    };
-    const finishDrag = (pointer: Phaser.Input.Pointer, onTap?: () => void): void => {
-      if (dragPointerId !== pointer.id) {
-        return;
-      }
-
-      const shouldTap = dragDistance < 8;
-      dragPointerId = null;
-      dragDistance = 0;
-
-      if (shouldTap) {
-        onTap?.();
-      }
-    };
-
-    maskGraphics.setVisible(false);
-    content.setMask(mask);
-    content.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
+  private createCountryGrid(): void {
+    const startX =
+      (SCENE_WIDTH - TEAM_GRID_COLUMNS * TEAM_BUTTON_WIDTH - (TEAM_GRID_COLUMNS - 1) * TEAM_GRID_GAP_X) / 2 +
+      TEAM_BUTTON_WIDTH / 2;
 
     NATIONAL_TEAMS.forEach((team, index) => {
-      const column = index % grid.columns;
-      const row = Math.floor(index / grid.columns);
-      const y = grid.startY + row * (grid.buttonHeight + grid.gapY);
-      const option = this.createCountryOption(
-        startX + column * (grid.buttonWidth + grid.gapX),
-        y,
-          grid.buttonWidth,
-          grid.buttonHeight,
-          team,
-        layout,
-          {
-            onPointerDown: beginDrag,
-            onPointerMove: updateDrag,
-            onPointerUp: (pointer) => finishDrag(pointer, () => this.selectTeam(team.name)),
-            onWheel: (deltaY) => setScroll(scrollY + deltaY * 0.35)
-          }
+      const column = index % TEAM_GRID_COLUMNS;
+      const row = Math.floor(index / TEAM_GRID_COLUMNS);
+      this.createCountryOption(
+        startX + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
+        TEAM_GRID_START_Y + row * (TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y),
+        TEAM_BUTTON_WIDTH,
+        TEAM_BUTTON_HEIGHT,
+        team
       );
-      options.push({ baseY: y, option });
-      content.add(option);
     });
-
-    const scrollZone = this.add
-      .zone(
-        grid.viewport.x + grid.viewport.width / 2,
-        grid.viewport.y + grid.viewport.height / 2,
-        grid.viewport.width,
-        grid.viewport.height
-      )
-      .setInteractive();
-    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => setScroll(scrollY + deltaY * 0.35));
-    scrollZone.on('pointerdown', beginDrag);
-    scrollZone.on('pointermove', updateDrag);
-    scrollZone.on('pointerup', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
-    scrollZone.on('pointerout', (pointer: Phaser.Input.Pointer) => finishDrag(pointer));
-    scrollZone.setDepth(-1);
-    updateOptionInput();
   }
 
-  private createCountryOption(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    team: NationalTeam,
-    layout: TeamSelectLayout,
-    handlers: {
-      onPointerDown: (pointer: Phaser.Input.Pointer) => void;
-      onPointerMove: (pointer: Phaser.Input.Pointer) => void;
-      onPointerUp: (pointer: Phaser.Input.Pointer) => void;
-      onWheel: (deltaY: number) => void;
-    }
-  ): Phaser.GameObjects.Container {
+  private createCountryOption(x: number, y: number, width: number, height: number, team: NationalTeam): void {
     const isTeamOne = this.selectedTeamOne === team.name;
     const isTeamTwo = this.selectedTeamTwo === team.name;
     const isSelected = isTeamOne || isTeamTwo;
@@ -310,10 +186,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
     option.add([background, flag, teamText]);
     option.setSize(width, height);
-    setTouchFriendlyInteractive(option, width, height, {
-      minHeight: layout.grid.touchHeight,
-      minWidth: layout.grid.touchWidth
-    });
+    option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.95);
@@ -324,12 +197,7 @@ export class TeamSelectScene extends Phaser.Scene {
         background.setFillStyle(0x143f2c, 0.9);
       }
     });
-    option.on('pointerdown', (pointer: Phaser.Input.Pointer) => handlers.onPointerDown(pointer));
-    option.on('pointermove', (pointer: Phaser.Input.Pointer) => handlers.onPointerMove(pointer));
-    option.on('pointerup', (pointer: Phaser.Input.Pointer) => handlers.onPointerUp(pointer));
-    option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => handlers.onWheel(deltaY));
-
-    return option;
+    option.on('pointerdown', () => this.selectTeam(team.name));
   }
 
   private selectTeam(teamName: string): void {
@@ -381,11 +249,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
     checkbox.add([box, check, label]);
     checkbox.setSize(58, 28);
-    const layout = this.getTeamSelectLayout();
-    setTouchFriendlyInteractive(checkbox, 58, 28, {
-      minHeight: layout.selectedPanels.aiTouchHeight,
-      minWidth: layout.selectedPanels.aiTouchWidth
-    });
+    checkbox.setInteractive({ useHandCursor: true });
     checkbox.on(
       'pointerdown',
       (
@@ -448,7 +312,7 @@ export class TeamSelectScene extends Phaser.Scene {
   private showMessage(text: string): void {
     this.message?.destroy();
     this.message = this.add
-      .text(SCENE_WIDTH / 2, this.getTeamSelectLayout().message.y, text, {
+      .text(SCENE_WIDTH / 2, 602, text, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',

@@ -40,12 +40,9 @@ export const SHIRT_NUMBER_ANCHOR: ShirtNumberAnchor = {
   y: 0.31
 };
 
-export const TEAM_KIT_IMAGE_WIDTH = 702;
-export const TEAM_KIT_IMAGE_HEIGHT = 900;
-
 export const KIT_IMAGE_SIZE = {
-  width: TEAM_KIT_IMAGE_WIDTH,
-  height: TEAM_KIT_IMAGE_HEIGHT
+  width: 130,
+  height: 150
 } as const;
 
 export const DEFAULT_KIT_IMAGE_SCALE = 1;

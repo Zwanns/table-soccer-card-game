@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import { validateRegisteredKits, type KitAttribution } from '../../scripts/validate-kits';
-import { getGoalkeeperKitStyle, getTeamKitStyle, KIT_IMAGE_SIZE } from '../data/teamKits';
+import { getGoalkeeperKitStyle, getTeamKitStyle } from '../data/teamKits';
 
 const tempRoots: string[] = [];
 
@@ -62,7 +62,7 @@ describe('kit validator', () => {
       projectRoot
     });
 
-    expect(result.errors).toContain('goalkeeper kit gk1: image size must be 702x900, got 200x200.');
+    expect(result.errors).toContain('goalkeeper kit gk1: image size must be 130x150, got 200x200.');
     expect(result.errors).toContain('goalkeeper kit gk2: file is not a WebP.');
     expect(result.warnings).toEqual([]);
   });
@@ -112,7 +112,7 @@ describe('kit validator', () => {
     const readme = readFileSync(join(process.cwd(), 'public', 'kits', 'README.md'), 'utf8');
 
     expect(readme).toContain('public/kits/images/');
-    expect(readme).toContain('702 x 900 px');
+    expect(readme).toContain('130 x 150 px');
     expect(readme).toContain('File must be readable as WebP');
     expect(readme).toContain('File path must be inside `kits/images/`');
     expect(readme).toContain('Do not include a player number');
@@ -150,11 +150,7 @@ async function createRequiredWebps(projectRoot: string): Promise<void> {
   ]);
 }
 
-async function createWebp(
-  filePath: string,
-  width: number = KIT_IMAGE_SIZE.width,
-  height: number = KIT_IMAGE_SIZE.height
-): Promise<void> {
+async function createWebp(filePath: string, width = 130, height = 150): Promise<void> {
   await sharp({
     create: {
       width,
@@ -170,8 +166,8 @@ async function createWebp(
 async function createPng(filePath: string): Promise<void> {
   await sharp({
     create: {
-      width: KIT_IMAGE_SIZE.width,
-      height: KIT_IMAGE_SIZE.height,
+      width: 130,
+      height: 150,
       channels: 4,
       background: { r: 255, g: 255, b: 255, alpha: 0 }
     }

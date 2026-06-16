@@ -24,7 +24,6 @@ import {
   type TournamentFormatId,
   type TournamentTeamId
 } from '../tournament';
-import { createTouchHitArea, setTouchFriendlyInteractive } from '../ui/touchInput';
 
 const TEAM_GRID_COLUMNS = 3;
 const TEAM_BUTTON_WIDTH = 154;
@@ -123,7 +122,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       // Do not show team count in the format button (removed per UI request)
       button.add([background, label]);
       button.setSize(210, 48);
-      setTouchFriendlyInteractive(button, 210, 48);
+      button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
           background.setFillStyle(0x1d5b3f, 0.96);
@@ -204,8 +203,8 @@ export class TournamentSetupScene extends Phaser.Scene {
     const background = this.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.92);
     background.setOrigin(0);
     background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.92);
-    const slotHitArea = createTouchHitArea(this, SLOT_WIDTH / 2, SLOT_HEIGHT / 2, SLOT_WIDTH, SLOT_HEIGHT);
-    slotHitArea.on('pointerdown', () => {
+    background.setInteractive({ useHandCursor: true });
+    background.on('pointerdown', () => {
       this.activeSlotIndex = slotIndex;
       this.render();
     });
@@ -220,7 +219,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    slot.add([background, name, slotHitArea]);
+    slot.add([background, name]);
 
     if (team !== undefined) {
       const flag = this.add.image(24, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
@@ -235,7 +234,8 @@ export class TournamentSetupScene extends Phaser.Scene {
           fontStyle: '700'
         })
         .setOrigin(0.5);
-      const removeHitArea = createTouchHitArea(this, 188, SLOT_HEIGHT / 2, 22, 26);
+      const removeHitArea = this.add.rectangle(188, SLOT_HEIGHT / 2, 22, 26, 0x000000, 0.01);
+      removeHitArea.setInteractive({ useHandCursor: true });
       removeHitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
         this.removeTeam(slotIndex);
@@ -275,8 +275,9 @@ export class TournamentSetupScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    const hitArea = createTouchHitArea(this, 0, 0, 42, 24);
+    const hitArea = this.add.rectangle(0, 0, 42, 24, 0x000000, 0.01);
 
+    hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       this.toggleTeamControllerType(slotIndex);
@@ -382,7 +383,7 @@ export class TournamentSetupScene extends Phaser.Scene {
 
     option.add([background, flag, name]);
     option.setSize(TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
-    setTouchFriendlyInteractive(option, TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
+    option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
         background.setFillStyle(0x1d5b3f, 0.96);

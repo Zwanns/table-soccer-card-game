@@ -2,16 +2,48 @@ import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
-import { createMenuLayout, type MenuLayout } from '../ui/menuLayout';
 import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView';
-import { setTouchFriendlyInteractive } from '../ui/touchInput';
+
+const MENU_LAYOUT = {
+  centerX: SCENE_WIDTH / 2,
+  centerY: SCENE_HEIGHT / 2,
+  titleY: 138,
+  logoMaxWidth: SCENE_WIDTH * 0.76,
+  logoMaxHeight: SCENE_HEIGHT * 0.28,
+  subtitleY: 238,
+  buttonsStartY: 286,
+  buttonsGap: 60,
+  buttonMinWidth: 280,
+  buttonMaxWidthRatio: 0.78,
+  fallbackButtonWidthRatio: 0.72,
+  fallbackButtonMaxWidth: 520,
+  footerMargin: 24
+} as const;
 
 export const LEGAL_DISCLAIMER_TEXT =
   '© 2026 Total Soccer: Mundial. All rights reserved.\n' +
   'This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players. All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.';
 
+const ABOUT_MODAL = {
+  width: 960,
+  height: 600
+} as const;
+
+const ABOUT_VIEWPORT = {
+  x: -390,
+  y: -150,
+  width: 780,
+  height: 360
+} as const;
+
+const INFO_BACK_BUTTON = {
+  y: 258,
+  width: 190,
+  height: 42,
+  fontSize: '18px'
+} as const;
+
 type MenuAnimatedObject = Phaser.GameObjects.Container | Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-type MenuInfoLayout = MenuLayout['info'];
 type MenuView = 'main' | 'modes';
 export type AboutLanguage = 'en' | 'pl' | 'uk';
 export type InfoModalKind = 'about' | 'rules';
@@ -343,24 +375,15 @@ export class MenuScene extends Phaser.Scene {
     this.playIntroAnimation();
   }
 
-  private getMenuLayout(): MenuLayout {
-    return createMenuLayout({
-      width: this.scale.displaySize.width || this.scale.width,
-      height: this.scale.displaySize.height || this.scale.height
-    });
-  }
-
   private createBackground(): void {
-    const layout = this.getMenuLayout();
-
     if (this.textures.exists(MENU_ASSETS.background)) {
-      const background = this.add.image(layout.scene.centerX, layout.scene.centerY, MENU_ASSETS.background);
+      const background = this.add.image(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY, MENU_ASSETS.background);
       const scale = Math.max(SCENE_WIDTH / background.width, SCENE_HEIGHT / background.height);
       background.setScale(scale);
       return;
     }
 
-    this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x102132);
+    this.add.rectangle(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x102132);
 
     const pitch = this.add.graphics();
     pitch.fillStyle(0x0b5f3a, 0.88);
@@ -373,33 +396,27 @@ export class MenuScene extends Phaser.Scene {
 
     pitch.lineStyle(3, 0xbfe8c9, 0.18);
     pitch.strokeRect(250, 94, 1100, 532);
-    pitch.lineBetween(layout.scene.centerX, 94, layout.scene.centerX, 626);
-    pitch.strokeCircle(layout.scene.centerX, layout.scene.centerY + 4, 92);
+    pitch.lineBetween(MENU_LAYOUT.centerX, 94, MENU_LAYOUT.centerX, 626);
+    pitch.strokeCircle(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY + 4, 92);
   }
 
   private createOverlay(): void {
-    const layout = this.getMenuLayout();
-
-    this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x000000, 0.34);
+    this.add.rectangle(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x000000, 0.34);
   }
 
   private createDecor(): void {
-    const layout = this.getMenuLayout();
-
     if (this.textures.exists(MENU_ASSETS.flags)) {
-      const flags = this.add.image(layout.scene.centerX, layout.flags.y, MENU_ASSETS.flags);
+      const flags = this.add.image(MENU_LAYOUT.centerX, 80, MENU_ASSETS.flags);
       flags.setAlpha(0.68);
-      flags.setDisplaySize(Math.min(flags.width, layout.flags.maxWidth), Math.min(flags.height, layout.flags.maxHeight));
+      flags.setDisplaySize(Math.min(flags.width, 720), Math.min(flags.height, 72));
       this.introTargets.push(flags);
     }
   }
 
   private createTitle(): void {
-    const layout = this.getMenuLayout();
-
     if (this.textures.exists(MENU_ASSETS.logoOn)) {
-      const logo = this.add.image(layout.scene.centerX, layout.title.y, MENU_ASSETS.logoOn);
-      fitImageWithin(logo, layout.title.logoMaxWidth, layout.title.logoMaxHeight);
+      const logo = this.add.image(MENU_LAYOUT.centerX, MENU_LAYOUT.titleY, MENU_ASSETS.logoOn);
+      fitImageWithin(logo, MENU_LAYOUT.logoMaxWidth, MENU_LAYOUT.logoMaxHeight);
       this.logoImage = logo;
       this.introTargets.push(logo);
       this.startLogoBlink();
@@ -408,25 +425,25 @@ export class MenuScene extends Phaser.Scene {
 
     const [firstLine, secondLine = 'Mundial'] = GAME_TITLE.split(':').map((part) => part.trim());
     const title = this.add
-      .text(layout.scene.centerX, layout.title.y + layout.title.fallbackTitleOffsetY, firstLine, {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.titleY - 18, firstLine, {
         align: 'center',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.title.fallbackTitleFontSize,
+        fontSize: '68px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
     const subtitle = this.add
-      .text(layout.scene.centerX, layout.title.y + layout.title.fallbackSubtitleOffsetY, secondLine, {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.titleY + 54, secondLine, {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.title.fallbackSubtitleFontSize,
+        fontSize: '42px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
     const description = this.add
-      .text(layout.scene.centerX, layout.subtitle.y, 'A card duel for soccer fans', {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.subtitleY, 'A card duel for soccer fans', {
         align: 'center',
         color: '#d7eadc',
         fontFamily: 'Arial, sans-serif',
@@ -447,37 +464,34 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createMainButtons(): void {
-    const layout = this.getMenuLayout();
     const buttonWidth = this.getMenuButtonWidth();
     const buttons = [
-      new Button(this, layout.scene.centerX, layout.buttons.startY, 'Game modes', () => this.openGameModes(), {
-        fontSize: layout.buttons.fontSize,
-        height: layout.buttons.height,
+      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes(), {
         width: buttonWidth
       }),
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap,
         'Teams',
         () => this.scene.start('SquadSelectScene'),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       ),
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * 2,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2,
         'Rules',
         () => this.openRulesModal(),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       ),
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * 3,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3,
         'About',
         () => this.openAboutModal(),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       )
     ];
 
@@ -486,10 +500,9 @@ export class MenuScene extends Phaser.Scene {
 
   private createGameModeButtons(): void {
     const hasTournamentSave = hasActiveTournamentSave();
-    const layout = this.getMenuLayout();
     const buttonWidth = this.getMenuButtonWidth();
     const title = this.add
-      .text(layout.scene.centerX, layout.buttons.startY + layout.buttons.submenuTitleOffsetY, 'Game modes', {
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Game modes', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -504,11 +517,11 @@ export class MenuScene extends Phaser.Scene {
       buttons.push(
         new Button(
           this,
-          layout.scene.centerX,
-          layout.buttons.startY + layout.buttons.gap * buttonIndex,
+          MENU_LAYOUT.centerX,
+          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Continue tournament',
           () => this.continueTournament(),
-          { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+          { width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -517,11 +530,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * buttonIndex,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -529,11 +542,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * buttonIndex,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Quick match',
         () => this.scene.start('TeamSelectScene'),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -541,11 +554,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * buttonIndex,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -554,11 +567,11 @@ export class MenuScene extends Phaser.Scene {
       buttons.push(
         new Button(
           this,
-          layout.scene.centerX,
-          layout.buttons.startY + layout.buttons.gap * buttonIndex,
+          MENU_LAYOUT.centerX,
+          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Delete save',
           () => this.deleteTournamentSave(),
-          { fontSize: '20px', height: layout.buttons.height, width: buttonWidth }
+          { fontSize: '20px', width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -567,11 +580,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        layout.scene.centerX,
-        layout.buttons.startY + layout.buttons.gap * buttonIndex,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
-        { fontSize: layout.buttons.fontSize, height: layout.buttons.height, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
 
@@ -579,16 +592,15 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private getMenuButtonWidth(): number {
-    const layout = this.getMenuLayout();
-    const maxButtonWidth = this.scale.width * layout.buttons.maxWidthRatio;
+    const maxButtonWidth = this.scale.width * MENU_LAYOUT.buttonMaxWidthRatio;
 
     if (this.logoImage !== null && this.logoImage.displayWidth > 0) {
-      return Phaser.Math.Clamp(this.logoImage.displayWidth, layout.buttons.minWidth, maxButtonWidth);
+      return Phaser.Math.Clamp(this.logoImage.displayWidth, MENU_LAYOUT.buttonMinWidth, maxButtonWidth);
     }
 
     return Phaser.Math.Clamp(
-      Math.min(this.scale.width * layout.buttons.fallbackWidthRatio, layout.buttons.fallbackMaxWidth),
-      layout.buttons.minWidth,
+      Math.min(this.scale.width * MENU_LAYOUT.fallbackButtonWidthRatio, MENU_LAYOUT.fallbackButtonMaxWidth),
+      MENU_LAYOUT.buttonMinWidth,
       maxButtonWidth
     );
   }
@@ -640,24 +652,23 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createFooter(): void {
-    const layout = this.getMenuLayout();
     const disclaimer = this.add
-      .text(layout.scene.centerX, layout.footer.y, LEGAL_DISCLAIMER_TEXT, {
+      .text(MENU_LAYOUT.centerX, SCENE_HEIGHT - 18, LEGAL_DISCLAIMER_TEXT, {
         align: 'center',
         color: '#c4d6cc',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.footer.disclaimerFontSize,
+        fontSize: '12px',
         lineSpacing: 3,
-        wordWrap: { width: layout.footer.disclaimerWidth }
+        wordWrap: { width: 1040 }
       })
       .setOrigin(0.5, 1)
       .setAlpha(0.82);
     const version = this.add
-      .text(SCENE_WIDTH - layout.footer.margin, SCENE_HEIGHT - layout.footer.margin, `v${GAME_VERSION}`, {
+      .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `v${GAME_VERSION}`, {
         align: 'right',
         color: '#b8d2c1',
         fontFamily: 'Arial, sans-serif',
-        fontSize: layout.footer.versionFontSize,
+        fontSize: '16px',
         fontStyle: '700'
       })
       .setOrigin(1, 1);
@@ -704,9 +715,8 @@ export class MenuScene extends Phaser.Scene {
     }
 
     const step = LOGO_BLINK_PATTERN[this.logoBlinkStepIndex];
-    const layout = this.getMenuLayout();
     this.logoImage.setTexture(step.textureKey);
-    fitImageWithin(this.logoImage, layout.title.logoMaxWidth, layout.title.logoMaxHeight);
+    fitImageWithin(this.logoImage, MENU_LAYOUT.logoMaxWidth, MENU_LAYOUT.logoMaxHeight);
     this.logoBlinkStepIndex = (this.logoBlinkStepIndex + 1) % LOGO_BLINK_PATTERN.length;
     this.scheduleLogoBlink(step.delay);
   }
@@ -732,23 +742,21 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.activeInfoModal = kind;
-    const layout = this.getMenuLayout();
-    const info = layout.info;
     const aboutContent = ABOUT_CONTENT[this.aboutLanguage];
     const rulesContent = RULES_CONTENT[this.aboutLanguage];
     const titleText = kind === 'about' ? aboutContent.title : rulesContent.title;
     const modal = this.add.container(0, 0);
-    const overlay = this.add.rectangle(layout.scene.centerX, layout.scene.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
+    const overlay = this.add.rectangle(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
     overlay.setInteractive();
 
-    const panel = this.add.container(layout.scene.centerX, layout.scene.centerY);
-    const background = this.add.rectangle(0, 0, info.modal.width, info.modal.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
+    const panel = this.add.container(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY);
+    const background = this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
     background.setStrokeStyle(2, 0x9dd2a7);
 
-    const backButton = this.createInfoBackButton(info);
-    const languageSelector = this.createAboutLanguageSelector(info);
+    const backButton = this.createInfoBackButton();
+    const languageSelector = this.createAboutLanguageSelector(336, -258);
     const title = this.add
-      .text(0, info.titleY, titleText, {
+      .text(0, -252, titleText, {
         align: 'center',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -758,7 +766,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const subtitle = this.add
-      .text(0, info.subtitleY, `${GAME_TITLE} | v${GAME_VERSION}`, {
+      .text(0, -214, `${GAME_TITLE} | v${GAME_VERSION}`, {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
@@ -767,20 +775,20 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const author = this.add
-      .text(0, info.authorY, `${aboutContent.authorLabel}: ${GAME_AUTHOR}`, {
+      .text(0, -184, `${aboutContent.authorLabel}: ${GAME_AUTHOR}`, {
         align: 'center',
         color: '#8fd4ff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700'
       })
-      .setOrigin(0.5);
-    setTouchFriendlyInteractive(author, Math.max(author.width, 1), Math.max(author.height, 1));
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
     author.on('pointerover', () => author.setColor('#bfe7ff'));
     author.on('pointerout', () => author.setColor('#8fd4ff'));
     author.on('pointerdown', () => window.open(GAME_AUTHOR_URL, '_blank', 'noopener,noreferrer'));
 
-    const viewport = kind === 'about' ? this.createAboutViewport(aboutContent, info) : this.createRulesViewport(rulesContent, info);
+    const viewport = kind === 'about' ? this.createAboutViewport(aboutContent) : this.createRulesViewport(rulesContent);
 
     panel.add(kind === 'about'
       ? [background, backButton, languageSelector, title, subtitle, author, viewport]
@@ -795,22 +803,22 @@ export class MenuScene extends Phaser.Scene {
     this.activeInfoModal = null;
   }
 
-  private createInfoBackButton(info: MenuInfoLayout): Phaser.GameObjects.Container {
-    return new Button(this, 0, info.backButton.y, 'Back', () => this.closeAboutModal(), {
-      fontSize: info.backButton.fontSize,
-      height: info.backButton.height,
-      width: info.backButton.width
+  private createInfoBackButton(): Phaser.GameObjects.Container {
+    return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal(), {
+      fontSize: INFO_BACK_BUTTON.fontSize,
+      height: INFO_BACK_BUTTON.height,
+      width: INFO_BACK_BUTTON.width
     });
   }
 
-  private createAboutLanguageSelector(info: MenuInfoLayout): Phaser.GameObjects.Container {
-    const selector = this.add.container(info.languageSelector.x, info.languageSelector.y);
+  private createAboutLanguageSelector(x: number, y: number): Phaser.GameObjects.Container {
+    const selector = this.add.container(x, y);
     const startX = -62;
 
     ABOUT_LANGUAGES.forEach((language, index) => {
       const isActive = language === this.aboutLanguage;
       const label = this.add
-        .text(startX + index * info.languageSelector.itemGap, 0, getAboutLanguageCode(language), {
+        .text(startX + index * 54, 0, getAboutLanguageCode(language), {
           align: 'center',
           color: isActive ? '#f0c95a' : '#d9eadf',
           fontFamily: 'Arial, sans-serif',
@@ -820,7 +828,7 @@ export class MenuScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        setTouchFriendlyInteractive(label, Math.max(label.width, 1), Math.max(label.height, 1));
+        label.setInteractive({ useHandCursor: true });
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchAboutLanguage(language));
@@ -831,7 +839,7 @@ export class MenuScene extends Phaser.Scene {
       if (index < ABOUT_LANGUAGES.length - 1) {
         selector.add(
           this.add
-            .text(startX + index * info.languageSelector.itemGap + info.languageSelector.itemGap / 2, 0, '|', {
+            .text(startX + index * 54 + 27, 0, '|', {
               color: '#5f9572',
               fontFamily: 'Arial, sans-serif',
               fontSize: '18px',
@@ -845,24 +853,20 @@ export class MenuScene extends Phaser.Scene {
     return selector;
   }
 
-  private createAboutViewport(
-    content: (typeof ABOUT_CONTENT)[AboutLanguage],
-    info: MenuInfoLayout
-  ): Phaser.GameObjects.Container {
+  private createAboutViewport(content: (typeof ABOUT_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
     const wrapper = this.add.container(0, 0);
-    const viewport = info.viewport;
-    const scrollContent = this.add.container(0, viewport.y);
+    const scrollContent = this.add.container(0, ABOUT_VIEWPORT.y);
     let contentHeight = 0;
 
     content.paragraphs.forEach((paragraph) => {
       const text = this.add
-        .text(viewport.x, contentHeight, paragraph, {
+        .text(ABOUT_VIEWPORT.x, contentHeight, paragraph, {
           align: 'left',
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
           fontSize: '20px',
           lineSpacing: 12,
-          wordWrap: { width: viewport.width }
+          wordWrap: { width: ABOUT_VIEWPORT.width }
         })
         .setOrigin(0, 0);
 
@@ -872,13 +876,13 @@ export class MenuScene extends Phaser.Scene {
 
     content.sections.forEach((section) => {
       const heading = this.add
-        .text(viewport.x, contentHeight + 4, section.heading, {
+        .text(ABOUT_VIEWPORT.x, contentHeight + 4, section.heading, {
           align: 'left',
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
           fontSize: '19px',
           fontStyle: '700',
-          wordWrap: { width: viewport.width }
+          wordWrap: { width: ABOUT_VIEWPORT.width }
         })
         .setOrigin(0, 0);
 
@@ -887,13 +891,13 @@ export class MenuScene extends Phaser.Scene {
 
       section.body.forEach((paragraph) => {
         const text = this.add
-          .text(viewport.x, contentHeight, paragraph, {
+          .text(ABOUT_VIEWPORT.x, contentHeight, paragraph, {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',
             lineSpacing: 8,
-            wordWrap: { width: viewport.width }
+            wordWrap: { width: ABOUT_VIEWPORT.width }
           })
           .setOrigin(0, 0);
 
@@ -904,29 +908,25 @@ export class MenuScene extends Phaser.Scene {
       contentHeight += 12;
     });
 
-    this.applyScrollableViewport(wrapper, scrollContent, contentHeight, info);
+    this.applyScrollableViewport(wrapper, scrollContent, contentHeight);
 
     return wrapper;
   }
 
-  private createRulesViewport(
-    content: (typeof RULES_CONTENT)[AboutLanguage],
-    info: MenuInfoLayout
-  ): Phaser.GameObjects.Container {
+  private createRulesViewport(content: (typeof RULES_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
     const wrapper = this.add.container(0, 0);
-    const viewport = info.viewport;
-    const scrollContent = this.add.container(0, viewport.y);
+    const scrollContent = this.add.container(0, ABOUT_VIEWPORT.y);
     let contentHeight = 0;
 
     content.sections.forEach((section, index) => {
       const heading = this.add
-        .text(viewport.x, contentHeight, section.heading, {
+        .text(ABOUT_VIEWPORT.x, contentHeight, section.heading, {
           align: 'left',
           color: index === 0 ? '#f0c95a' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: index === 0 ? '22px' : '19px',
           fontStyle: '700',
-          wordWrap: { width: viewport.width }
+          wordWrap: { width: ABOUT_VIEWPORT.width }
         })
         .setOrigin(0, 0);
 
@@ -935,13 +935,13 @@ export class MenuScene extends Phaser.Scene {
 
       section.body.forEach((paragraph) => {
         const body = this.add
-          .text(viewport.x, contentHeight, paragraph, {
+          .text(ABOUT_VIEWPORT.x, contentHeight, paragraph, {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',
             lineSpacing: 8,
-            wordWrap: { width: viewport.width }
+            wordWrap: { width: ABOUT_VIEWPORT.width }
           })
           .setOrigin(0, 0);
 
@@ -952,7 +952,7 @@ export class MenuScene extends Phaser.Scene {
       contentHeight += 12;
     });
 
-    this.applyScrollableViewport(wrapper, scrollContent, contentHeight, info);
+    this.applyScrollableViewport(wrapper, scrollContent, contentHeight);
 
     return wrapper;
   }
@@ -960,28 +960,24 @@ export class MenuScene extends Phaser.Scene {
   private applyScrollableViewport(
     wrapper: Phaser.GameObjects.Container,
     scrollContent: Phaser.GameObjects.Container,
-    contentHeight: number,
-    info: MenuInfoLayout
+    contentHeight: number
   ): void {
-    const layout = this.getMenuLayout();
-    const viewport = info.viewport;
-    const maxScroll = Math.max(0, contentHeight - viewport.height);
+    const maxScroll = Math.max(0, contentHeight - ABOUT_VIEWPORT.height);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
       .fillRect(
-        layout.scene.centerX + viewport.x,
-        layout.scene.centerY + viewport.y,
-        viewport.width,
-        viewport.height
+        MENU_LAYOUT.centerX + ABOUT_VIEWPORT.x,
+        MENU_LAYOUT.centerY + ABOUT_VIEWPORT.y,
+        ABOUT_VIEWPORT.width,
+        ABOUT_VIEWPORT.height
       )
       .createGeometryMask();
     maskGraphics.setVisible(false);
     scrollContent.setMask(mask);
-    wrapper.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
 
     const scrollZone = this.add
-      .zone(0, viewport.y + viewport.height / 2, viewport.width, viewport.height)
+      .zone(0, ABOUT_VIEWPORT.y + ABOUT_VIEWPORT.height / 2, ABOUT_VIEWPORT.width, ABOUT_VIEWPORT.height)
       .setInteractive();
 
     wrapper.add([scrollContent, scrollZone]);
@@ -990,44 +986,20 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
-    const trackX = viewport.x + viewport.width + 16;
-    const track = this.add.rectangle(trackX, viewport.y + viewport.height / 2, 4, viewport.height, 0x5f9572, 0.28);
-    const thumbHeight = Math.max(28, (viewport.height / contentHeight) * viewport.height);
-    const thumb = this.add.rectangle(trackX, viewport.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    const trackX = ABOUT_VIEWPORT.x + ABOUT_VIEWPORT.width + 16;
+    const track = this.add.rectangle(trackX, ABOUT_VIEWPORT.y + ABOUT_VIEWPORT.height / 2, 4, ABOUT_VIEWPORT.height, 0x5f9572, 0.28);
+    const thumbHeight = Math.max(28, (ABOUT_VIEWPORT.height / contentHeight) * ABOUT_VIEWPORT.height);
+    const thumb = this.add.rectangle(trackX, ABOUT_VIEWPORT.y + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
     let scrollY = 0;
-    let dragPointerId: number | null = null;
-    let lastDragY = 0;
 
     const setScroll = (value: number): void => {
       scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
-      scrollContent.y = viewport.y - scrollY;
-      thumb.y = viewport.y + thumbHeight / 2 + (scrollY / maxScroll) * (viewport.height - thumbHeight);
+      scrollContent.y = ABOUT_VIEWPORT.y - scrollY;
+      thumb.y = ABOUT_VIEWPORT.y + thumbHeight / 2 + (scrollY / maxScroll) * (ABOUT_VIEWPORT.height - thumbHeight);
     };
 
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
       setScroll(scrollY + deltaY * 0.35);
-    });
-    scrollZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      dragPointerId = pointer.id;
-      lastDragY = pointer.y;
-    });
-    scrollZone.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (dragPointerId !== pointer.id || !pointer.isDown) {
-        return;
-      }
-
-      setScroll(scrollY + (lastDragY - pointer.y));
-      lastDragY = pointer.y;
-    });
-    scrollZone.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      if (dragPointerId === pointer.id) {
-        dragPointerId = null;
-      }
-    });
-    scrollZone.on('pointerout', (pointer: Phaser.Input.Pointer) => {
-      if (dragPointerId === pointer.id) {
-        dragPointerId = null;
-      }
     });
     wrapper.add([track, thumb]);
   }

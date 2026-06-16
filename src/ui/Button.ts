@@ -1,12 +1,9 @@
 import Phaser from 'phaser';
-import { setTouchFriendlyInteractive } from './touchInput';
 
 export interface ButtonOptions {
   disabled?: boolean;
   fontSize?: string;
   height?: number;
-  touchHeight?: number;
-  touchWidth?: number;
   width?: number;
 }
 
@@ -35,10 +32,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.setSize(width, height);
 
     if (!disabled) {
-      setTouchFriendlyInteractive(this, width, height, {
-        minWidth: options.touchWidth,
-        minHeight: options.touchHeight
-      });
+      this.setInteractive({ useHandCursor: true });
       this.on('pointerover', () => background.setFillStyle(hoverColor));
       this.on('pointerout', () => background.setFillStyle(baseColor));
       this.on('pointerdown', onClick);

@@ -34,17 +34,13 @@ public/kits/images/gk2.webp
 
 ## Image Requirements
 
-- WebP size: 702 x 900 px.
-- Background must be white.
+- WebP size: 130 x 150 px.
 - File must be readable as WebP.
 - File path must be inside `kits/images/`.
 - Field kit file name must be `<flagCode>.webp`.
 - Fallback file name must be `none.webp`.
 - Goalkeeper file names must be `gk1.webp` and `gk2.webp`.
-- Include only the kit artwork: shirt and shorts only.
-- Do not include socks.
-- Do not include technical sponsor logos.
-- Do not include football association logos.
+- Include only the kit artwork.
 - Do not include a player number.
 - Do not include the card rank.
 - Do not include text or labels.
