@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
-import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView';
 
 const MENU_LAYOUT = {
   centerX: SCENE_WIDTH / 2,
@@ -28,6 +27,8 @@ const ABOUT_MODAL = {
   width: 960,
   height: 600
 } as const;
+const ABOUT_MODAL_BACKGROUND_COLOR = 0x000000;
+const ABOUT_MODAL_BACKGROUND_ALPHA = 0.82;
 
 const ABOUT_VIEWPORT = {
   x: -390,
@@ -750,8 +751,14 @@ export class MenuScene extends Phaser.Scene {
     overlay.setInteractive();
 
     const panel = this.add.container(MENU_LAYOUT.centerX, MENU_LAYOUT.centerY);
-    const background = this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
-    background.setStrokeStyle(2, 0x9dd2a7);
+    const background = this.add.rectangle(
+      0,
+      0,
+      ABOUT_MODAL.width,
+      ABOUT_MODAL.height,
+      ABOUT_MODAL_BACKGROUND_COLOR,
+      ABOUT_MODAL_BACKGROUND_ALPHA
+    );
 
     const backButton = this.createInfoBackButton();
     const languageSelector = this.createAboutLanguageSelector(336, -258);

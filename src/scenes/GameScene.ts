@@ -32,7 +32,7 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerPr
 import { CardView } from '../ui/CardView';
 import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
-import { SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
+import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
@@ -67,6 +67,8 @@ const INFO_MODAL = {
   width: 960,
   height: 600
 } as const;
+const INFO_MODAL_BACKGROUND_COLOR = 0x000000;
+const INFO_MODAL_BACKGROUND_ALPHA = 0.82;
 const INFO_VIEWPORT = {
   x: -390,
   y: -150,
@@ -576,8 +578,14 @@ export class GameScene extends Phaser.Scene {
     overlay.setInteractive();
 
     const panel = this.add.container(centerX, centerY);
-    const background = this.add.rectangle(0, 0, INFO_MODAL.width, INFO_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98);
-    background.setStrokeStyle(2, 0x9dd2a7);
+    const background = this.add.rectangle(
+      0,
+      0,
+      INFO_MODAL.width,
+      INFO_MODAL.height,
+      INFO_MODAL_BACKGROUND_COLOR,
+      INFO_MODAL_BACKGROUND_ALPHA
+    );
 
     const backButton = this.createMatchInfoBackButton();
     const languageSelector = this.createMatchInfoLanguageSelector(336, -258);

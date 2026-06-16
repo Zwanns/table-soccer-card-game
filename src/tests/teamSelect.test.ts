@@ -118,12 +118,16 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
   });
 
-  it('draws a football field background without global scale or input changes', () => {
+  it('uses the team selection menu background with a football field fallback', () => {
     const source = readTeamSelectSource();
     const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'teamFieldBackground.ts'), 'utf8');
 
+    expect(source).toContain("import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
     expect(source).toContain("import { createTeamFieldBackground } from '../ui/teamFieldBackground'");
     expect(source).toContain('private createTeamSelectFieldBackground');
+    expect(source).toContain('this.textures.exists(MENU_ASSETS.teamSelectBackground)');
+    expect(source).toContain('this.add.image(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, MENU_ASSETS.teamSelectBackground)');
+    expect(source).toContain('background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT)');
     expect(source).toContain('createTeamFieldBackground(this)');
     expect(backgroundSource).toContain('const stripeCount = 14');
     expect(backgroundSource).toContain('graphics.lineBetween(SCENE_WIDTH / 2');

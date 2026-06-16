@@ -34,12 +34,15 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'README.md'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-logo1.png'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-logo2.png'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-2-bg.webp'))).toBe(true);
     expect(MENU_ASSETS.logoOn).toBe('menu-logo-on');
     expect(MENU_ASSETS.logoOff).toBe('menu-logo-off');
+    expect(MENU_ASSETS.teamSelectBackground).toBe('team-select-bg');
     expect(MENU_ASSETS.resultDrawBackground).toBe('result-draw-bg');
     expect(MENU_ASSETS.resultWinBackground).toBe('result-win-bg');
     expect(MENU_ASSET_PATHS.logoOn).toBe('menu/menu-logo1.png');
     expect(MENU_ASSET_PATHS.logoOff).toBe('menu/menu-logo2.png');
+    expect(MENU_ASSET_PATHS.teamSelectBackground).toBe('menu/menu-2-bg.webp');
     expect(MENU_ASSET_PATHS.resultDrawBackground).toBe('menu/remis-bg.webp');
     expect(MENU_ASSET_PATHS.resultWinBackground).toBe('menu/gamestat-bg.webp');
     expect(menuSceneSource).toContain('createBackground');
@@ -50,6 +53,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createFooter');
     expect(menuSceneSource).toContain('MENU_LAYOUT');
     expect(bootSceneSource).toContain('MENU_ASSETS.background');
+    expect(bootSceneSource).toContain('MENU_ASSETS.teamSelectBackground');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOn');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOff');
     expect(configSource).not.toContain('menu-logo.png');
@@ -110,10 +114,12 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
     expect(menuSceneSource).toContain('This is an unofficial football card game.');
     expect(menuSceneSource).toContain('RULES_CONTENT');
-    expect(menuSceneSource).toContain("import { SCORE_VIEW_BACKGROUND_COLOR } from '../ui/ScoreView'");
+    expect(menuSceneSource).toContain('const ABOUT_MODAL_BACKGROUND_COLOR = 0x000000');
+    expect(menuSceneSource).toContain('const ABOUT_MODAL_BACKGROUND_ALPHA = 0.82');
     expect(menuSceneSource).toContain(
-      'this.add.rectangle(0, 0, ABOUT_MODAL.width, ABOUT_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
+      'ABOUT_MODAL.width,\n      ABOUT_MODAL.height,\n      ABOUT_MODAL_BACKGROUND_COLOR,\n      ABOUT_MODAL_BACKGROUND_ALPHA'
     );
+    expect(menuSceneSource).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(menuSceneSource).toContain('openRulesModal');
     expect(menuSceneSource).toContain("return 'EN'");
     expect(menuSceneSource).toContain("return 'PL'");

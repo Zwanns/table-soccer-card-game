@@ -148,13 +148,16 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).not.toContain('scene.add.rectangle(0, 0, 620, 78');
   });
 
-  it('uses the scoreboard background color for in-game info panels', () => {
+  it('uses a transparent black background without borders for in-game info panels', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain("import { SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView'");
+    expect(source).toContain("import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView'");
+    expect(source).toContain('const INFO_MODAL_BACKGROUND_COLOR = 0x000000');
+    expect(source).toContain('const INFO_MODAL_BACKGROUND_ALPHA = 0.82');
     expect(source).toContain(
-      'this.add.rectangle(0, 0, INFO_MODAL.width, INFO_MODAL.height, SCORE_VIEW_BACKGROUND_COLOR, 0.98)'
+      'INFO_MODAL.width,\n      INFO_MODAL.height,\n      INFO_MODAL_BACKGROUND_COLOR,\n      INFO_MODAL_BACKGROUND_ALPHA'
     );
+    expect(source).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
   });
 });

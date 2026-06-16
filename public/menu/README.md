@@ -15,6 +15,12 @@ Main menu background. Preferred size: `1600 x 720`.
 Use this for a night stadium, stylized pitch, or tournament atmosphere. Do not include embedded buttons, UI text, or the game logo in this image.
 
 ```text
+menu-2-bg.webp
+```
+
+Team selection menu background. Preferred size: `1600 x 720`.
+
+```text
 remis-bg.webp
 ```
 

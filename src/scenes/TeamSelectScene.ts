@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { resolveTeamCoverLoadResult } from '../assets/teamCover';
 import type { PlayerControllerType } from '../ai';
-import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
@@ -491,6 +491,13 @@ export class TeamSelectScene extends Phaser.Scene {
   }
 
   private createTeamSelectFieldBackground(): void {
+    if (this.textures.exists(MENU_ASSETS.teamSelectBackground)) {
+      const background = this.add.image(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, MENU_ASSETS.teamSelectBackground);
+      background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT);
+      background.setDepth(-20);
+      return;
+    }
+
     createTeamFieldBackground(this);
   }
 
