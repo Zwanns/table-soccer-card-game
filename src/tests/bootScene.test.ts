@@ -115,6 +115,10 @@ describe('BootScene kit asset loading', () => {
 
     expect(source).toContain('logoOn');
     expect(source).toContain('logoOff');
+    expect(source).toContain('resultDrawBackground');
+    expect(source).toContain('resultWinBackground');
+    expect(source).toContain('menu/remis-bg.webp');
+    expect(source).toContain('menu/gamestat-bg.webp');
     expect(source).toContain('menu/menu-logo1.png');
     expect(source).toContain('menu/menu-logo2.png');
     expect(source).not.toContain('menu/menu-logo.png');

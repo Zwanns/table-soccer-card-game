@@ -7,6 +7,18 @@ function readResultSceneSource(): string {
 }
 
 describe('result scene score line layout', () => {
+  it('uses post-match background images based on the result winner', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('MENU_ASSETS.resultDrawBackground');
+    expect(source).toContain('MENU_ASSETS.resultWinBackground');
+    expect(source).toContain('private createResultBackground');
+    expect(source).toContain('playerOneGoals === playerTwoGoals ? MENU_ASSETS.resultDrawBackground : MENU_ASSETS.resultWinBackground');
+    expect(source).toContain('background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT)');
+    expect(source).toContain('if (playerOneGoals > playerTwoGoals)');
+    expect(source).toContain('background.setFlipX(true)');
+  });
+
   it('keeps both team labels the same distance from the centered score', () => {
     const source = readResultSceneSource();
 

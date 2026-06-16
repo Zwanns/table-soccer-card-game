@@ -15,6 +15,18 @@ Main menu background. Preferred size: `1600 x 720`.
 Use this for a night stadium, stylized pitch, or tournament atmosphere. Do not include embedded buttons, UI text, or the game logo in this image.
 
 ```text
+remis-bg.webp
+```
+
+Post-match statistics background for drawn matches. Preferred size: `1600 x 720`.
+
+```text
+gamestat-bg.webp
+```
+
+Post-match statistics background for matches with a winner. It is shown as-is when Player 2 wins and mirrored horizontally when Player 1 wins.
+
+```text
 menu-logo1.png
 ```
 

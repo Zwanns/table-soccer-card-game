@@ -7,6 +7,8 @@ export const SCENE_HEIGHT = 720;
 
 export const MENU_ASSETS = {
   background: 'menu-bg',
+  resultDrawBackground: 'result-draw-bg',
+  resultWinBackground: 'result-win-bg',
   logoOn: 'menu-logo-on',
   logoOff: 'menu-logo-off',
   flags: 'menu-flags'
@@ -14,6 +16,8 @@ export const MENU_ASSETS = {
 
 export const MENU_ASSET_PATHS = {
   background: 'menu/menu-bg.webp',
+  resultDrawBackground: 'menu/remis-bg.webp',
+  resultWinBackground: 'menu/gamestat-bg.webp',
   logoOn: 'menu/menu-logo1.png',
   logoOff: 'menu/menu-logo2.png',
   flags: 'menu/menu-flags.png'

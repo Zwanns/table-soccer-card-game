@@ -41,6 +41,14 @@ const CONTROLLER_TOGGLE_INSET_X = 8;
 const CONTROLLER_TOGGLE_INSET_Y = 8;
 const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
+const TRANSLUCENT_CARD_BACKGROUND = 0x000000;
+const TEAM_OPTION_BACKGROUND_ALPHA = 0.36;
+const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52;
+const TEAM_OPTION_FLAG_WIDTH = 32;
+const TEAM_OPTION_FLAG_HEIGHT = 24;
+const TEAM_OPTION_FLAG_PADDING_X = 10;
+const TEAM_OPTION_TEXT_GAP_X = 12;
+const TEAM_OPTION_TEXT_RIGHT_PADDING_X = 8;
 
 export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN';
 
@@ -305,21 +313,30 @@ export class TeamSelectScene extends Phaser.Scene {
     const isTeamTwo = this.selectedTeamTwo === team.name;
     const isSelected = isTeamOne || isTeamTwo;
     const option = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, height, isSelected ? 0xf0c95a : 0x143f2c, isSelected ? 0.96 : 0.9);
+    const background = this.add.rectangle(
+      0,
+      0,
+      width,
+      height,
+      TRANSLUCENT_CARD_BACKGROUND,
+      isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
+    );
     const strokeColor = isTeamOne ? 0xc43845 : isTeamTwo ? 0xd9eadf : 0x5f9572;
     background.setStrokeStyle(isSelected ? 3 : 2, strokeColor, 0.95);
-    const flag = this.add.image(-width / 2 + 18, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(32, 24);
+    const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2;
+    const textX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH + TEAM_OPTION_TEXT_GAP_X;
+    const flag = this.add.image(flagX, 0, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT);
 
     // Remove ordinal rank numbers from the country option list (UI change)
     const teamText = this.add
-      .text(-width / 2 + 48, 0, team.name, {
+      .text(textX, 0, team.name, {
         align: 'left',
-        color: isSelected ? '#1f2a2e' : '#ffffff',
+        color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         fontStyle: '700',
-        wordWrap: { width: width - 64 }
+        wordWrap: { width: width - (textX + width / 2) - TEAM_OPTION_TEXT_RIGHT_PADDING_X }
       })
       .setOrigin(0, 0.5);
 
@@ -328,12 +345,12 @@ export class TeamSelectScene extends Phaser.Scene {
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(0x1d5b3f, 0.95);
+        background.setFillStyle(TRANSLUCENT_CARD_BACKGROUND, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(0x143f2c, 0.9);
+        background.setFillStyle(TRANSLUCENT_CARD_BACKGROUND, TEAM_OPTION_BACKGROUND_ALPHA);
       }
     });
     option.on('pointerdown', () => this.selectTeam(team.name));

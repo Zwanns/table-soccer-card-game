@@ -36,8 +36,12 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-logo2.png'))).toBe(true);
     expect(MENU_ASSETS.logoOn).toBe('menu-logo-on');
     expect(MENU_ASSETS.logoOff).toBe('menu-logo-off');
+    expect(MENU_ASSETS.resultDrawBackground).toBe('result-draw-bg');
+    expect(MENU_ASSETS.resultWinBackground).toBe('result-win-bg');
     expect(MENU_ASSET_PATHS.logoOn).toBe('menu/menu-logo1.png');
     expect(MENU_ASSET_PATHS.logoOff).toBe('menu/menu-logo2.png');
+    expect(MENU_ASSET_PATHS.resultDrawBackground).toBe('menu/remis-bg.webp');
+    expect(MENU_ASSET_PATHS.resultWinBackground).toBe('menu/gamestat-bg.webp');
     expect(menuSceneSource).toContain('createBackground');
     expect(menuSceneSource).toContain('createOverlay');
     expect(menuSceneSource).toContain('createDecor');

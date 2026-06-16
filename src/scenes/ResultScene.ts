@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
-import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
@@ -46,7 +46,7 @@ export class ResultScene extends Phaser.Scene {
       playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });
     }
 
-    this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
+    this.createResultBackground(centerX, centerY, playerOneGoals, playerTwoGoals);
 
     this.add
       .text(centerX, 112, GAME_TITLE, {
@@ -85,6 +85,23 @@ export class ResultScene extends Phaser.Scene {
 
     new Button(this, centerX - 130, 650, 'Play again', () => this.scene.start('TeamSelectScene'));
     new Button(this, centerX + 130, 650, 'Menu', () => this.scene.start('MenuScene'));
+  }
+
+  private createResultBackground(centerX: number, centerY: number, playerOneGoals: number, playerTwoGoals: number): void {
+    const textureKey =
+      playerOneGoals === playerTwoGoals ? MENU_ASSETS.resultDrawBackground : MENU_ASSETS.resultWinBackground;
+
+    if (!this.textures.exists(textureKey)) {
+      this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
+      return;
+    }
+
+    const background = this.add.image(centerX, centerY, textureKey);
+    background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT);
+
+    if (playerOneGoals > playerTwoGoals) {
+      background.setFlipX(true);
+    }
   }
 
   private needsPenaltyShootout(): boolean {
