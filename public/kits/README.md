@@ -34,7 +34,7 @@ public/kits/images/gk2.webp
 
 ## Image Requirements
 
-- WebP size: 130 x 150 px.
+- WebP size: 702 x 900 px.
 - File must be readable as WebP.
 - File path must be inside `kits/images/`.
 - Field kit file name must be `<flagCode>.webp`.

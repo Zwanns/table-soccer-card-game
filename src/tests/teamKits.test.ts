@@ -11,7 +11,9 @@ import {
   GOALKEEPER_KIT_STYLES,
   KIT_IMAGE_SIZE,
   SHIRT_NUMBER_ANCHOR,
+  TEAM_KIT_IMAGE_HEIGHT,
   TEAM_KIT_STYLES,
+  TEAM_KIT_IMAGE_WIDTH,
   getGoalkeeperKitStyle,
   getTeamKitStyle,
   hasManualGoalkeeperKit,
@@ -53,7 +55,9 @@ describe('team kit data contract', () => {
     }>();
 
     expect(SHIRT_NUMBER_ANCHOR).toEqual({ x: 0.5, y: 0.31 });
-    expect(KIT_IMAGE_SIZE).toEqual({ width: 130, height: 150 });
+    expect(TEAM_KIT_IMAGE_WIDTH).toBe(702);
+    expect(TEAM_KIT_IMAGE_HEIGHT).toBe(900);
+    expect(KIT_IMAGE_SIZE).toEqual({ width: 702, height: 900 });
     expect(DEFAULT_KIT_IMAGE_SCALE).toBe(1);
     expect(DEFAULT_SHIRT_NUMBER_STYLE).toEqual({
       fontFamily: 'Arial Black',
