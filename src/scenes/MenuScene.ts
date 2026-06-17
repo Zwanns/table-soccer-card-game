@@ -15,7 +15,6 @@ const MENU_LAYOUT = {
   buttonsGap: 60,
   buttonMinWidth: 280,
   buttonMaxWidthRatio: 0.78,
-  buttonTouchHeight: 60,
   fallbackButtonWidthRatio: 0.72,
   fallbackButtonMaxWidth: 520,
   footerMargin: 24
@@ -470,7 +469,6 @@ export class MenuScene extends Phaser.Scene {
     const buttonWidth = this.getMenuButtonWidth();
     const buttons = [
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes(), {
-        touchHeight: MENU_LAYOUT.buttonTouchHeight,
         width: buttonWidth
       }),
       new Button(
@@ -479,7 +477,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap,
         'Teams',
         () => this.scene.start('SquadSelectScene'),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       ),
       new Button(
         this,
@@ -487,7 +485,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2,
         'Rules',
         () => this.openRulesModal(),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       ),
       new Button(
         this,
@@ -495,7 +493,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3,
         'About',
         () => this.openAboutModal(),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       )
     ];
 
@@ -524,7 +522,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Quick match',
         () => this.scene.start('TeamSelectScene'),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -537,7 +535,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Continue tournament',
           () => this.continueTournament(),
-          { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+          { width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -550,7 +548,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -562,7 +560,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -575,7 +573,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Delete save',
           () => this.deleteTournamentSave(),
-          { fontSize: '20px', touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+          { fontSize: '20px', width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -588,7 +586,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
-        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
+        { width: buttonWidth }
       )
     );
 
@@ -817,7 +815,6 @@ export class MenuScene extends Phaser.Scene {
     return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal(), {
       fontSize: INFO_BACK_BUTTON.fontSize,
       height: INFO_BACK_BUTTON.height,
-      touchHeight: 60,
       width: INFO_BACK_BUTTON.width
     });
   }
@@ -839,11 +836,7 @@ export class MenuScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        label.setInteractive({
-          hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44),
-          hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-          useHandCursor: true
-        });
+        label.setInteractive({ useHandCursor: true });
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchAboutLanguage(language));

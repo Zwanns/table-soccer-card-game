@@ -22,15 +22,20 @@ describe('touch drag-scroll helpers', () => {
     expect(clampScroll(12, 0)).toBe(0);
   });
 
-  it('uses larger menu hit areas without changing the shared button visuals', () => {
+  it('keeps menu button hit areas aligned with the visual button rectangles', () => {
     const buttonSource = readSource('src/ui/Button.ts');
     const menuSource = readSource('src/scenes/MenuScene.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
 
-    expect(buttonSource).toContain('touchHeight?: number');
-    expect(buttonSource).toContain('hitArea: new Phaser.Geom.Rectangle');
-    expect(menuSource).toContain('buttonTouchHeight: 60');
-    expect(menuSource).toContain('touchHeight: MENU_LAYOUT.buttonTouchHeight');
-    expect(menuSource).toContain('hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44)');
+    expect(buttonSource).toContain('this.setInteractive({ useHandCursor: true })');
+    expect(buttonSource).not.toContain('touchHeight?: number');
+    expect(buttonSource).not.toContain('touchWidth?: number');
+    expect(buttonSource).not.toContain('hitArea: new Phaser.Geom.Rectangle');
+    expect(menuSource).not.toContain('buttonTouchHeight');
+    expect(menuSource).not.toContain('touchHeight:');
+    expect(menuSource).not.toContain('hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44)');
+    expect(gameSource).not.toContain('touchHeight:');
+    expect(gameSource).not.toContain('hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44)');
   });
 
   it('wires team lists through tap-aware drag-scroll targets', () => {
@@ -46,5 +51,28 @@ describe('touch drag-scroll helpers', () => {
     expect(squadSelectSource).toContain('content.setMask(mask)');
     expect(setupSource).toContain('dragScroll.bindScrollableTapTarget(option');
     expect(setupSource).toContain('dragScroll.updateScrollableItemInputs(content, teamOptions)');
+  });
+
+  it('keeps rules/about drag-scroll zones inside the text viewport', () => {
+    const menuSource = readSource('src/scenes/MenuScene.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
+
+    expect(menuSource).toContain('.zone(0, ABOUT_VIEWPORT.y + ABOUT_VIEWPORT.height / 2, ABOUT_VIEWPORT.width, ABOUT_VIEWPORT.height)');
+    expect(menuSource).toContain('width: ABOUT_VIEWPORT.width');
+    expect(menuSource).toContain('height: ABOUT_VIEWPORT.height');
+    expect(gameSource).toContain('.zone(0, INFO_VIEWPORT.y + INFO_VIEWPORT.height / 2, INFO_VIEWPORT.width, INFO_VIEWPORT.height)');
+    expect(gameSource).toContain('width: INFO_VIEWPORT.width');
+    expect(gameSource).toContain('height: INFO_VIEWPORT.height');
+  });
+
+  it('keeps tournament bottom buttons on the shared exact Button hit area', () => {
+    const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+
+    expect(setupSource).toContain("new Button(this, 130, 666, 'Menu'");
+    expect(setupSource).toContain("new Button(this, 1360, 666, 'Start tournament'");
+    expect(setupSource).not.toContain('touchHeight:');
+    expect(hubSource).toContain("new Button(this, 132, 666, 'Menu'");
+    expect(hubSource).not.toContain('touchHeight:');
   });
 });

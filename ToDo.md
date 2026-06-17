@@ -1,6 +1,36 @@
 ````md
 # Total Soccer: Mundial
-# Mobile Step 1 — touch-scroll и укрупнение основных UI-элементов
+# Mobile Step 1.1 — исправить смещение кликов после touch-scroll правок
+
+## Контекст
+
+Проверка mobile-landscape Preview на телефоне показала:
+
+Что работает:
+- скроллинг пальцем работает хорошо.
+
+Что сломано:
+- есть смещение кликов в главном меню;
+- есть смещение кликов в меню режимов игры;
+- есть смещение кликов в Rules/About;
+- есть смещение кликов у нижних кнопок в меню турниров.
+
+Важно:
+- раньше после отката кнопки работали корректно;
+- после Mobile Step 1 появились touchInput.ts, изменения Button.ts и drag-scroll/hitArea правки;
+- глобальные main.ts / index.html / Phaser scale / canvas CSS не менялись.
+
+Значит вероятная причина не в Phaser Scale, а в локальных hitArea / Button / drag-scroll / overlay input zones.
+
+---
+
+## Цель
+
+Исправить смещение кликов, не ломая уже работающий touch-scroll.
+
+Клик должен срабатывать только там, где визуально находится кнопка.
+
+---
 
 ## Ветка
 
@@ -10,216 +40,204 @@
 mobile-landscape
 ````
 
-Не вносить эти изменения в `main`.
-
----
-
-## Контекст
-
-Игра уже запускается на телефоне в Google Chrome, и в нее можно играть.
-
-Главные неудобства сейчас:
-
-```text
-1. Полосы прокрутки / scroll areas плохо работают пальцем.
-2. Кнопки в меню маловаты.
-3. Карточки команд в списках команд маловаты.
-```
-
-Важно: не повторять старую проблему со смещением input.
-
----
-
-## Главное ограничение
-
-Не менять глобальные настройки canvas/input/scale.
-
-Не менять:
-
-```text
-src/main.ts
-index.html
-глобальный Phaser scale config
-viewport meta
-canvas CSS width/height/transform
-game.scale.refresh / updateBounds логику
-```
-
-Если без этого никак — остановиться и сообщить.
-
----
-
-## Цель этапа
-
-Сделать минимальные безопасные улучшения:
-
-```text
-1. Добавить pointer/touch drag-scroll там, где сейчас работает только wheel-scroll.
-2. Немного увеличить кнопки главного меню.
-3. Немного увеличить карточки команд в списках выбора команд.
-4. Не ломать desktop.
-5. Не трогать GameEngine / AI / TournamentEngine.
-```
-
 ---
 
 ## Проверить файлы
 
 ```text
+src/ui/touchInput.ts
+src/ui/Button.ts
 src/scenes/MenuScene.ts
-src/scenes/TeamSelectScene.ts
-src/scenes/SquadSelectScene.ts
+src/scenes/GameScene.ts
 src/scenes/TournamentSetupScene.ts
 src/scenes/TournamentHubScene.ts
-src/ui/Button.ts
-src/ui/touchInput.ts
-src/tests/*
+src/scenes/ResultScene.ts
+src/tests/touchInput.test.ts
+src/tests/menuLayout.test.ts
+src/tests/teamSelect.test.ts
+src/tests/project.test.ts
 ```
 
-Если `touchInput.ts` был откатан и его нет — можно создать небольшой helper только для scroll/hitArea.
+Если menuLayout.test.ts отсутствует — не создавать без необходимости.
 
 ---
 
-# 1. Добавить touch drag-scroll
+# 1. Найти причину смещения
 
-## Где нужно
+Проверить все места, где после Mobile Step 1 добавлены enlarged hitArea.
 
-Проверить и добавить drag-scroll для:
-
-```text
-Rules / About modal в MenuScene
-Rules / About overlay в GameScene, если там scroll только wheel
-TeamSelect список команд
-Teams / SquadSelect список команд
-TournamentSetup списки команд / групп, если есть scroll
-TournamentHub длинные таблицы / статистика, если есть scroll
-ResultScene списки авторов голов, если есть scroll
-```
-
-## Требования
+Особенно проверить:
 
 ```text
-wheel-scroll на desktop должен остаться;
-pointer drag-scroll должен работать на телефоне;
-короткий tap не должен считаться scroll;
-после drag не должен случайно срабатывать click по элементу;
-scroll должен быть ограничен min/max;
-скрытые элементы вне mask не должны перехватывать tap.
+setTouchFriendlyInteractive
+Button.ts
+language buttons
+Back buttons
+Rules/About buttons
+Tournament bottom buttons
+drag-scroll hit zones
 ```
 
-## Рекомендуемый helper
+Возможная ошибка:
 
-Можно создать helper:
+```text
+hitArea расширяется несимметрично;
+hitArea задается в глобальных координатах вместо локальных;
+hitArea x/y смещены относительно GameObject origin;
+для Text/Button origin 0.5, но hitArea считается как будто origin 0;
+drag-scroll overlay лежит поверх кнопок;
+scroll zone перекрывает нижние кнопки.
+```
+
+---
+
+# 2. Исправить Button hitArea
+
+Для общего `Button.ts` нужно убедиться:
+
+если кнопка визуально имеет прямоугольник:
+
+```text
+width × height
+origin 0.5
+```
+
+то hitArea должен быть локальным и центрированным:
 
 ```ts
-createDragScrollArea(...)
+new Phaser.Geom.Rectangle(
+  -hitWidth / 2,
+  -hitHeight / 2,
+  hitWidth,
+  hitHeight,
+)
 ```
 
-или добавить локально, если в проекте уже есть похожая логика.
+Если origin 0 / top-left — использовать:
 
-Логика:
+```ts
+new Phaser.Geom.Rectangle(0, 0, hitWidth, hitHeight)
+```
+
+Нельзя задавать hitArea в scene/global координатах.
+
+---
+
+# 3. Исправить setTouchFriendlyInteractive
+
+Проверить helper в `touchInput.ts`.
+
+Он должен учитывать origin объекта.
+
+Для Phaser Image/Sprite/Text/Container могут быть разные варианты.
+
+Безопасный подход:
 
 ```text
-pointerdown — запомнить startY/startScroll
-pointermove — если движение больше 6–8 px, включить dragging
-pointerup — если был dragging, заблокировать случайный click
+Для Button — использовать отдельную explicit hitArea в Button.ts.
+Для простых rectangles/list rows — hitArea должна совпадать с визуальным rect.
+Не применять универсальное расширение к объектам, у которых origin/size неизвестны.
+```
+
+Если текущий универсальный helper ломает координаты — ограничить его использование или сделать параметры:
+
+```ts
+setTouchFriendlyInteractive(gameObject, {
+  width,
+  height,
+  originX,
+  originY,
+})
 ```
 
 ---
 
-# 2. Укрупнить кнопки меню
+# 4. Rules/About и drag-scroll
 
-## Где
+Проверить, что drag-scroll зона:
 
 ```text
-MenuScene main buttons:
-- Game modes
-- Teams
-- Rules
-- About
-
-Game modes submenu buttons
-Back buttons
-Language buttons EN / PL / UA
+не лежит поверх Back / language buttons;
+не лежит поверх main menu buttons;
+не перехватывает pointerdown за пределами viewport;
+не имеет слишком широкой hitArea;
 ```
 
-## Требования
+Если scroll-zone создается как invisible rectangle, она должна быть строго внутри scroll viewport.
+
+---
+
+# 5. Tournament bottom buttons
+
+Проверить нижние кнопки в tournament screens.
+
+Проблема может быть та же:
 
 ```text
-кнопки должны быть удобнее для пальца;
-desktop вид не должен стать грубым;
-лучше увеличить hitArea, а не обязательно сильно увеличивать визуал;
-если визуал увеличивается — умеренно.
+button visual rect != button hitArea
 ```
 
-Примерно:
+Исправить через общий Button, а не локальной компенсацией.
+
+---
+
+# 6. Что НЕ менять
+
+Не менять:
 
 ```text
-минимальная touch-зона: 56–64 px по высоте в игровых координатах
+main.ts
+index.html
+Phaser scale config
+canvas CSS
+viewport meta
+game.scale.refresh/updateBounds
+GameEngine
+AI
+Penalty AI
+TournamentEngine
+PenaltyShootoutEngine
+правила игры
+assets registry
+kits/covers validation
+```
+
+Не возвращать старые M-6.2/M-6.4 scale/input эксперименты.
+
+---
+
+# 7. Сохранить то, что работает
+
+Не ломать:
+
+```text
+touch-scroll в Rules/About;
+touch-scroll в TeamSelect;
+touch-scroll в Teams;
+touch-scroll в tournament screens;
+отключение input у masked hidden rows.
 ```
 
 ---
 
-# 3. Укрупнить карточки команд в списках
-
-## Где
-
-```text
-TeamSelectScene
-SquadSelectScene / Teams
-```
-
-## Требования
-
-```text
-карточки команд должны быть удобнее для tap;
-текст должен оставаться читаемым;
-флаги не должны обрезаться;
-список должен оставаться доступным через scroll;
-desktop layout не должен ломаться.
-```
-
-Не менять глобальную ширину canvas.
-Не менять Phaser scale.
-
----
-
-# 4. Не делать на этом этапе
-
-Не делать:
-
-```text
-новый mobile layout всего экрана;
-изменение Phaser.Scale;
-portrait overlay;
-изменение main.ts;
-изменение index.html;
-изменение canvas CSS;
-адаптацию GameScene;
-адаптацию турниров целиком;
-PWA;
-Capacitor;
-Android app.
-```
-
----
-
-# 5. Тесты
+# 8. Тесты
 
 Добавить/обновить тесты:
 
 ```text
-drag-scroll helper отличает tap от drag;
-drag-scroll ограничивает scroll min/max;
-Menu buttons имеют touch-friendly hitArea;
-TeamSelect карточки имеют увеличенную touch area;
-Teams list rows имеют увеличенную touch area;
-desktop поведение не сломано.
+Button hitArea совпадает с visual rect по центру;
+Button hitArea не смещен влево/вправо;
+setTouchFriendlyInteractive для centered object создает centered hitArea;
+setTouchFriendlyInteractive для top-left object создает top-left hitArea;
+drag-scroll viewport не перекрывает Back/buttons;
+tournament bottom buttons имеют корректную local hitArea;
+tap outside visual button не срабатывает;
+tap left/center/right inside visual button срабатывает.
 ```
 
 ---
 
-# 6. Проверка
+# 9. Проверка
 
 Запустить:
 
@@ -233,36 +251,42 @@ npm run dev
 
 ---
 
-# 7. Ручная проверка
+# 10. Ручная проверка после Preview deploy
 
-На desktop:
-
-```text
-1. Главное меню работает.
-2. Кнопки нажимаются там, где визуально находятся.
-3. Teams открывается.
-4. Team selection работает.
-```
-
-На телефоне в Google Chrome:
+На телефоне в Android Chrome проверить:
 
 ```text
-1. Главное меню — кнопки удобнее нажимать.
-2. Rules/About — можно прокручивать пальцем.
-3. Team selection — список команд можно прокручивать пальцем.
-4. Карточки команд удобнее нажимать.
-5. Teams — список команд можно прокручивать пальцем.
-6. Нет смещения кликов.
+1. Главное меню:
+   - нажать левее Game modes — не должно срабатывать;
+   - нажать по левой/центральной/правой части Game modes — должно срабатывать;
+   - то же для Teams, Rules, About.
+
+2. Game modes:
+   - каждая кнопка нажимается точно;
+   - Back нажимается точно.
+
+3. Rules/About:
+   - scroll пальцем работает;
+   - Back нажимается точно;
+   - EN/PL/UA нажимаются точно;
+   - tap рядом с кнопкой не срабатывает.
+
+4. Tournament menus:
+   - нижние кнопки нажимаются точно;
+   - tap рядом с кнопками не срабатывает.
+
+5. TeamSelect / Teams:
+   - scroll пальцем все еще работает.
 ```
 
 ---
 
-# 8. Формат отчета
+# 11. Формат отчета
 
 После выполнения вывести:
 
 ```text
-Mobile Step 1 завершен.
+Mobile Step 1.1 завершен.
 
 Созданные файлы:
 - ...
@@ -270,22 +294,31 @@ Mobile Step 1 завершен.
 Измененные файлы:
 - ...
 
-Что изменено:
+Причина смещения:
+- ...
+
+Button hitArea:
+- ...
+
+touchInput helper:
+- ...
+
+Rules/About drag-scroll:
+- ...
+
+Tournament bottom buttons:
+- ...
+
+Что сохранено:
 - touch-scroll:
-- menu buttons:
-- team cards:
+- TeamSelect scroll:
+- Teams scroll:
 
 Что НЕ менялось:
 - main.ts:
 - index.html:
 - Phaser scale:
 - canvas CSS:
-
-Desktop:
-- ...
-
-Mobile Chrome:
-- ...
 
 Изменялись ли GameEngine / AI / TournamentEngine:
 - да / нет

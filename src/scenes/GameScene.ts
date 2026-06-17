@@ -646,7 +646,6 @@ export class GameScene extends Phaser.Scene {
     return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal(), {
       fontSize: INFO_BACK_BUTTON.fontSize,
       height: INFO_BACK_BUTTON.height,
-      touchHeight: 60,
       width: INFO_BACK_BUTTON.width
     });
   }
@@ -668,11 +667,7 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        label.setInteractive({
-          hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44),
-          hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-          useHandCursor: true
-        });
+        label.setInteractive({ useHandCursor: true });
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchMatchInfoLanguage(language));

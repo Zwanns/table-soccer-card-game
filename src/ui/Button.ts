@@ -4,8 +4,6 @@ export interface ButtonOptions {
   disabled?: boolean;
   fontSize?: string;
   height?: number;
-  touchHeight?: number;
-  touchWidth?: number;
   width?: number;
 }
 
@@ -34,13 +32,7 @@ export class Button extends Phaser.GameObjects.Container {
     this.setSize(width, height);
 
     if (!disabled) {
-      const touchWidth = Math.max(width, options.touchWidth ?? width);
-      const touchHeight = Math.max(height, options.touchHeight ?? height);
-      this.setInteractive({
-        hitArea: new Phaser.Geom.Rectangle(-touchWidth / 2, -touchHeight / 2, touchWidth, touchHeight),
-        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-        useHandCursor: true
-      });
+      this.setInteractive({ useHandCursor: true });
       this.on('pointerover', () => background.setFillStyle(hoverColor));
       this.on('pointerout', () => background.setFillStyle(baseColor));
       this.on('pointerdown', onClick);
