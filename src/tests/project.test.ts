@@ -6,6 +6,10 @@ import { NATIONAL_TEAMS } from '../data/nationalTeams';
 
 const SOURCE_FILE_EXTENSIONS = new Set(['.css', '.html', '.ts']);
 
+function normalizeSourceLineEndings(source: string): string {
+  return source.replace(/\r\n/g, '\n');
+}
+
 function collectProjectSourceFiles(directory: string): string[] {
   const entries = readdirSync(directory, { withFileTypes: true });
   const files: string[] = [];
@@ -33,7 +37,7 @@ function collectProjectSourceFiles(directory: string): string[] {
 function readProductionSource(): string {
   const sourceFiles = [join(process.cwd(), 'index.html'), ...collectProjectSourceFiles(join(process.cwd(), 'src'))];
 
-  return sourceFiles.map((sourceFile) => readFileSync(sourceFile, 'utf8')).join('\n');
+  return normalizeSourceLineEndings(sourceFiles.map((sourceFile) => readFileSync(sourceFile, 'utf8')).join('\n'));
 }
 
 describe('project scaffold', () => {
@@ -184,7 +188,7 @@ describe('project scaffold', () => {
   });
 
   it('groups main menu actions into game modes, squads and about', () => {
-    const menuSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
+    const menuSceneSource = normalizeSourceLineEndings(readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8'));
 
     expect(menuSceneSource).toContain('Game modes');
     expect(menuSceneSource).toContain('Tournaments');

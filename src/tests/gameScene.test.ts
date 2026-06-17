@@ -2,8 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+function normalizeSourceLineEndings(source: string): string {
+  return source.replace(/\r\n/g, '\n');
+}
+
 function readSource(relativePath: string): string {
-  return readFileSync(join(process.cwd(), relativePath), 'utf8');
+  return normalizeSourceLineEndings(readFileSync(join(process.cwd(), relativePath), 'utf8'));
 }
 
 describe('GameScene visual layout contracts', () => {
