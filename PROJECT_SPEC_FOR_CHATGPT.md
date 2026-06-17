@@ -26,6 +26,7 @@
 npm run dev
 npm test
 npm run build
+npm run sync:kits
 npm run validate:kits
 npm run validate:covers
 ```
@@ -673,6 +674,14 @@ Fallback:
 - если форма сборной не зарегистрирована, используется `kits/images/none.webp`;
 - если `flagCode` неизвестен, также используется `none.webp`.
 
+Registry доступных ручных team kits генерируется из файлов:
+
+```text
+src/data/generated/availableManualKitFlagCodes.ts
+```
+
+`src/data/teamKits.ts` импортирует generated registry и экспортирует `AVAILABLE_MANUAL_KIT_FLAG_CODES` для runtime. Браузерный runtime не читает `public/kits/images/` через `fs`.
+
 Runtime не должен:
 
 - использовать `public/kits/imported/`;
@@ -688,6 +697,12 @@ Runtime не должен:
 scripts/validate-kits.ts
 ```
 
+Синхронизация registry:
+
+```text
+scripts/sync-kit-registry.ts
+```
+
 Validator проверяет:
 
 - обязательное наличие `none.webp`, `gk1.webp`, `gk2.webp`;
@@ -695,10 +710,11 @@ Validator проверяет:
 - размер `702 x 900`;
 - читаемость файла;
 - путь `kits/images/`;
-- расширение `.webp`.
+- расширение `.webp`;
 - каждый `AVAILABLE_MANUAL_KIT_FLAG_CODES` существует среди `NATIONAL_TEAMS.flagCode`;
 - `none`, `gk1`, `gk2` не зарегистрированы как team kits;
-- если в `public/kits/images/<flagCode>.webp` есть файл для существующей сборной, этот `flagCode` обязан быть в `AVAILABLE_MANUAL_KIT_FLAG_CODES`, иначе `validate:kits` падает.
+- если generated registry отстал от файлов, validator просит запустить `npm run sync:kits`;
+- если в `public/kits/images/<flagCode>.webp` есть неизвестный `flagCode`, validator падает с понятной ошибкой.
 
 ## 11.1 Рубашки командных колод
 
@@ -785,16 +801,19 @@ kit-gk2  -> kits/images/gk2.webp
 cover-none -> covers/none.webp
 ```
 
-Дополнительно загружаются только зарегистрированные формы сборных из `AVAILABLE_MANUAL_KIT_FLAG_CODES`. Этот whitelist является явным runtime source of truth, потому что браузер/Vercel runtime не читает директорию `public/kits/images` через `fs`.
+Дополнительно загружаются только зарегистрированные формы сборных из `AVAILABLE_MANUAL_KIT_FLAG_CODES`. Этот whitelist приходит из generated registry и является явным runtime source of truth, потому что браузер/Vercel runtime не читает директорию `public/kits/images` через `fs`.
 
 Текущий процесс добавления новой формы:
 
 1. положить файл `public/kits/images/<flagCode>.webp`;
-2. добавить `<flagCode>` в `AVAILABLE_MANUAL_KIT_FLAG_CODES`;
+2. убедиться, что файл WebP и имеет размер `702 x 900 px`;
 3. запустить `npm run validate:kits`;
-4. запустить `npm test`.
+4. запустить `npm test`;
+5. закоммитить `.webp` и generated registry.
 
-Если файл формы существует для текущей сборной, но не зарегистрирован в whitelist, validator сообщает ошибку: такая форма не будет загружена в `BootScene` и игра покажет `kit-none`.
+Вручную добавлять `<flagCode>` в `AVAILABLE_MANUAL_KIT_FLAG_CODES` больше не нужно. `npm run validate:kits` сначала запускает `npm run sync:kits`, а `npm test` делает auto-sync через `pretest`.
+
+Если файл формы существует для неизвестной сборной, validator сообщает ошибку и просит переименовать файл или добавить команду.
 
 Командные рубашки колод загружаются из `AVAILABLE_TEAM_COVER_FLAG_CODES`.
 
@@ -1129,6 +1148,7 @@ src/tests/
 Перед завершением значимых правок рекомендуется запускать:
 
 ```bash
+npm run sync:kits
 npm run validate:kits
 npm test
 npm run build

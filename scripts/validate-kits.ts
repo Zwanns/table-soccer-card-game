@@ -186,13 +186,20 @@ function validateManualKitRegistry(
 
     const flagCode = fileName.slice(0, -'.webp'.length);
 
-    if (RESERVED_TEAM_KIT_BASENAMES.has(flagCode) || !nationalFlagCodeSet.has(flagCode)) {
+    if (RESERVED_TEAM_KIT_BASENAMES.has(flagCode)) {
+      continue;
+    }
+
+    if (!nationalFlagCodeSet.has(flagCode)) {
+      errors.push(
+        `Unknown kit file public/kits/images/${fileName}: "${flagCode}" is not a national team flagCode.\nRename the file or add the team first.`
+      );
       continue;
     }
 
     if (!manualKitFlagCodeSet.has(flagCode)) {
       errors.push(
-        `team kit file public/kits/images/${fileName} exists for flagCode "${flagCode}" but is not registered in AVAILABLE_MANUAL_KIT_FLAG_CODES.`
+        `team kit file public/kits/images/${fileName} exists for flagCode "${flagCode}" but is missing from generated AVAILABLE_MANUAL_KIT_FLAG_CODES. Run npm run sync:kits.`
       );
     }
   }

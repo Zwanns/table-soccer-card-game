@@ -1,3 +1,6 @@
+import {
+  AVAILABLE_MANUAL_KIT_FLAG_CODES as GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES
+} from './generated/availableManualKitFlagCodes';
 import { NATIONAL_TEAMS } from './nationalTeams';
 
 export type ShirtNumberAnchor = {
@@ -176,40 +179,9 @@ export const FALLBACK_TEAM_KIT_ASSET = {
   path: 'kits/images/none.webp'
 } as const;
 
-export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>([
-  'al',
-  'am',
-  'ar',
-  'at',
-  'au',
-  'be',
-  'br',
-  'by',
-  'ch',
-  'de',
-  'dz',
-  'es',
-  'fr',
-  'gb-eng',
-  'gb-sct',
-  'gb-wls',
-  'gr',
-  'it',
-  'jp',
-  'kr',
-  'mx',
-  'ng',
-  'nir',
-  'nl',
-  'no',
-  'pl',
-  'pt',
-  'se',
-  'sk',
-  'tr',
-  'ua',
-  'uy'
-]);
+export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>(
+  GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES
+);
 
 export const AVAILABLE_GOALKEEPER_KIT_IDS = new Set<GoalkeeperKitId>(['gk1', 'gk2']);
 

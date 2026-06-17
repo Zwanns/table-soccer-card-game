@@ -84,6 +84,19 @@ Fonts/          Локальные шрифты
 | `npm run test` | Однократный запуск тестов Vitest |
 | `npm run test:watch` | Запуск Vitest в watch-режиме |
 | `npm run build` | Type-check и production-сборка |
+| `npm run sync:kits` | Обновить generated registry экипировок из `public/kits/images/*.webp` |
+| `npm run validate:kits` | Синхронизировать registry и проверить WebP-экипировки |
+
+## Экипировки
+
+Чтобы добавить новую экипировку сборной:
+
+1. Положить файл `public/kits/images/<flagCode>.webp`.
+2. Проверить формат WebP и размер `702 x 900 px`.
+3. Запустить `npm run validate:kits`.
+4. Закоммитить новый `.webp` и generated registry.
+
+Вручную добавлять `flagCode` в `AVAILABLE_MANUAL_KIT_FLAG_CODES` больше не нужно: registry генерируется из файлов в `public/kits/images/`. Reserved-файлы `none.webp`, `gk1.webp` и `gk2.webp` остаются fallback/goalkeeper assets и не входят в team registry.
 
 ## Примечания
 

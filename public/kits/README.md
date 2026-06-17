@@ -51,23 +51,27 @@ The number color uses each team's `shirtNumberColor`. By default this matches `s
 
 ## Registry
 
-Registered team kits are listed in `AVAILABLE_MANUAL_KIT_FLAG_CODES` in:
+Registered team kits are generated into:
 
 ```text
-src/data/teamKits.ts
+src/data/generated/availableManualKitFlagCodes.ts
 ```
 
-Adding a new field kit is a two-step runtime contract:
+Adding a new field kit:
 
 1. Put the file in `public/kits/images/<flagCode>.webp`.
-2. Add `<flagCode>` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`.
-3. Run `npm run validate:kits`.
+2. Keep the file WebP, 702 x 900 px.
+3. Run `npm run validate:kits` to sync and validate the generated registry.
 4. Run `npm test`.
+5. Commit the new `.webp` file and the generated registry update.
 
-If a matching `<flagCode>.webp` exists for a national team but is not registered, `npm run validate:kits` fails.
-The game would otherwise keep showing `none.webp`.
+`npm run validate:kits` runs `npm run sync:kits` before validation. `npm test` also runs the sync hook before Vitest.
 
-Do not add `none`, `gk1`, or `gk2` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`. They are handled as fallback and goalkeeper kits.
+Do not edit `AVAILABLE_MANUAL_KIT_FLAG_CODES` manually. The runtime imports the generated registry through `src/data/teamKits.ts`, because the browser cannot read `public/kits/images/` with `fs`.
+
+Unknown team files still fail validation. If `public/kits/images/xx.webp` does not match a `nationalTeams.flagCode`, rename the file or add the team first.
+
+Do not add `none`, `gk1`, or `gk2` to the generated team registry. They are handled as fallback and goalkeeper kits.
 
 The mandatory service files are not optional registry entries. The validator always requires:
 

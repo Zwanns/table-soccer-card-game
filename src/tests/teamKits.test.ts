@@ -1,6 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, expectTypeOf, it } from 'vitest';
+import {
+  AVAILABLE_MANUAL_KIT_FLAG_CODES as GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES
+} from '../data/generated/availableManualKitFlagCodes';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import {
   AVAILABLE_GOALKEEPER_KIT_IDS,
@@ -221,12 +224,18 @@ describe('team kit data contract', () => {
 
   it('registers available WebP files and mandatory goalkeeper kits', () => {
     const registeredFlagCodes = [...AVAILABLE_MANUAL_KIT_FLAG_CODES].sort();
+    const generatedFlagCodes = [...GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES].sort();
     const currentTeamKitFileCodes = getCurrentTeamKitFileCodes();
 
+    expect(generatedFlagCodes).toEqual(currentTeamKitFileCodes);
     expect(registeredFlagCodes).toEqual(currentTeamKitFileCodes);
     expect(registeredFlagCodes).toEqual(
-      expect.arrayContaining(['al', 'fr', 'es', 'gb-eng', 'gb-sct', 'gb-wls', 'nir', 'pt', 'sk', 'tr'])
+      expect.arrayContaining(['al', 'fr', 'es', 'gb-eng', 'gb-sct', 'gb-wls', 'ie', 'nir', 'pt', 'sk', 'tr'])
     );
+    expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).toContain('ie');
+    expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('none');
+    expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('gk1');
+    expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('gk2');
     expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('none')).toBe(false);
     expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gk1')).toBe(false);
     expect(AVAILABLE_MANUAL_KIT_FLAG_CODES.has('gk2')).toBe(false);
@@ -249,7 +258,9 @@ describe('team kit data contract', () => {
 
   it('does not import sharp in runtime kit data', () => {
     const teamKitsSource = readFileSync(join(process.cwd(), 'src', 'data', 'teamKits.ts'), 'utf8');
+    const normalizedSource = teamKitsSource.replace(/\r\n/g, '\n');
 
+    expect(normalizedSource).toContain("from './generated/availableManualKitFlagCodes'");
     expect(teamKitsSource).not.toContain("from 'sharp'");
     expect(teamKitsSource).not.toContain('from "sharp"');
     expect(teamKitsSource).not.toContain("require('sharp')");

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
+import { syncKitRegistry } from '../../scripts/sync-kit-registry';
 import { validateRegisteredKits, type KitAttribution } from '../../scripts/validate-kits';
 import { getGoalkeeperKitStyle, getTeamKitStyle } from '../data/teamKits';
 
@@ -67,7 +68,7 @@ describe('kit validator', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('reports team WebP files that exist but are not registered', async () => {
+  it('reports team WebP files missing from a stale generated registry', async () => {
     const projectRoot = createTempProjectRoot();
 
     await createRequiredWebps(projectRoot);
@@ -80,7 +81,51 @@ describe('kit validator', () => {
     });
 
     expect(result.errors).toContain(
-      'team kit file public/kits/images/fr.webp exists for flagCode "fr" but is not registered in AVAILABLE_MANUAL_KIT_FLAG_CODES.'
+      'team kit file public/kits/images/fr.webp exists for flagCode "fr" but is missing from generated AVAILABLE_MANUAL_KIT_FLAG_CODES. Run npm run sync:kits.'
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('syncs generated registry content from team WebP files', async () => {
+    const projectRoot = createTempProjectRoot();
+
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr.webp'));
+
+    const result = syncKitRegistry({
+      projectRoot,
+      write: false
+    });
+
+    expect(result.flagCodes).toEqual(['fr', 'pl']);
+    expect(result.content).toContain("  'fr'");
+    expect(result.content).toContain("  'pl'");
+    expect(result.content).not.toContain("  'none'");
+    expect(result.content).not.toContain("  'gk1'");
+    expect(result.content).not.toContain("  'gk2'");
+  });
+
+  it('rejects unknown kit image files', async () => {
+    const projectRoot = createTempProjectRoot();
+
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'xx.webp'));
+
+    const result = await validateRegisteredKits({
+      projectRoot
+    });
+
+    expect(result.errors).toContain(
+      'Unknown kit file public/kits/images/xx.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
+    );
+    expect(() =>
+      syncKitRegistry({
+        projectRoot,
+        write: false
+      })
+    ).toThrow(
+      'Unknown kit file public/kits/images/xx.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
     );
     expect(result.warnings).toEqual([]);
   });
@@ -123,8 +168,9 @@ describe('kit validator', () => {
     expect(readme).toContain('gk1.webp');
     expect(readme).toContain('gk2.webp');
     expect(readme).toContain('SHIRT_NUMBER_ANCHOR');
-    expect(readme).toContain('If a matching `<flagCode>.webp` exists for a national team but is not registered, `npm run validate:kits` fails.');
-    expect(readme).toContain('Do not add `none`, `gk1`, or `gk2` to `AVAILABLE_MANUAL_KIT_FLAG_CODES`.');
+    expect(readme).toContain('Run `npm run validate:kits` to sync and validate the generated registry.');
+    expect(readme).toContain('Do not edit `AVAILABLE_MANUAL_KIT_FLAG_CODES` manually.');
+    expect(readme).toContain('Do not add `none`, `gk1`, or `gk2` to the generated team registry.');
     expect(readme).toContain('scripts/wiki-kits/');
     expect(readme).toContain('public/kits/imported/');
     expect(readme).toContain('not used by the game runtime');

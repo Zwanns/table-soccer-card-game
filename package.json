@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "pretest": "npm run sync:kits",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate:kits": "tsx scripts/validate-kits.ts",
+    "sync:kits": "tsx scripts/sync-kit-registry.ts",
+    "validate:kits": "npm run sync:kits && tsx scripts/validate-kits.ts",
     "validate:covers": "tsx scripts/validate-covers.ts",
     "import:kits:test": "tsx scripts/wiki-kits/index.ts",
     "import:kits:team": "tsx scripts/wiki-kits/index.ts --team",
