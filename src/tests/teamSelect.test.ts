@@ -86,6 +86,8 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('const textWidth = layout.mobileWide');
     expect(source).toContain('const segmentWidth = width / 2');
     expect(source).toContain('const segmentHeight = height / 2');
+    expect(source).toContain('this.add.rectangle(0, -segmentHeight / 2, width, segmentHeight');
+    expect(source).toContain('this.add.rectangle(0, segmentHeight / 2, width, segmentHeight');
   });
 
   it('places selected team labels above panels aligned to panel left edges', () => {

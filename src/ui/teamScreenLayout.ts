@@ -22,6 +22,7 @@ export interface TeamScreenControllerToggleLayout {
   insetX: number;
   insetY: number;
   fontSize: string;
+  fullHeight: boolean;
 }
 
 export interface TeamScreenLayout {
@@ -110,7 +111,8 @@ const DESKTOP_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
     height: 22,
     insetX: 8,
     insetY: 8,
-    fontSize: '12px'
+    fontSize: '12px',
+    fullHeight: false
   }
 };
 
@@ -123,11 +125,12 @@ const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
   startButtonWidth: 300,
   controllerToggle: {
     orientation: 'vertical',
-    width: 62,
-    height: 52,
-    insetX: 10,
-    insetY: 10,
-    fontSize: '12px'
+    width: 68,
+    height: 0,
+    insetX: 0,
+    insetY: 0,
+    fontSize: '13px',
+    fullHeight: true
   }
 };
 
@@ -162,6 +165,7 @@ export function createTeamScreenLayout(
     width: layout.selectedCardWidth,
     height: layout.selectedCardHeight
   };
+  const controllerToggle = resolveControllerToggleLayout(layout.controllerToggle, layout.selectedCardHeight);
   const vsPosition = {
     x: sceneWidth / 2,
     y: layout.selectedCardCenterY
@@ -219,9 +223,9 @@ export function createTeamScreenLayout(
       layout.kitPreviewWidth,
       layout.kitPreviewHeight
     ),
-    team1ControllerToggleRect: createControllerToggleRect(team1SelectedCardRect, layout.controllerToggle),
-    team2ControllerToggleRect: createControllerToggleRect(team2SelectedCardRect, layout.controllerToggle),
-    controllerToggle: layout.controllerToggle,
+    team1ControllerToggleRect: createControllerToggleRect(team1SelectedCardRect, controllerToggle),
+    team2ControllerToggleRect: createControllerToggleRect(team2SelectedCardRect, controllerToggle),
+    controllerToggle,
     vsPosition
   };
 }
@@ -254,10 +258,28 @@ function createControllerToggleRect(
   selectedCardRect: TeamScreenRect,
   toggleLayout: TeamScreenControllerToggleLayout
 ): TeamScreenRect {
+  const height = toggleLayout.fullHeight ? selectedCardRect.height : toggleLayout.height;
+
   return {
     x: rectRight(selectedCardRect) - toggleLayout.insetX - toggleLayout.width,
-    y: rectBottom(selectedCardRect) - toggleLayout.insetY - toggleLayout.height,
+    y: toggleLayout.fullHeight
+      ? selectedCardRect.y
+      : rectBottom(selectedCardRect) - toggleLayout.insetY - height,
     width: toggleLayout.width,
-    height: toggleLayout.height
+    height
+  };
+}
+
+function resolveControllerToggleLayout(
+  toggleLayout: TeamScreenControllerToggleLayout,
+  selectedCardHeight: number
+): TeamScreenControllerToggleLayout {
+  if (!toggleLayout.fullHeight) {
+    return toggleLayout;
+  }
+
+  return {
+    ...toggleLayout,
+    height: selectedCardHeight
   };
 }
