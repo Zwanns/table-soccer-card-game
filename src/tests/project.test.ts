@@ -69,18 +69,37 @@ describe('project scaffold', () => {
     expect(indexSource).toContain("window.addEventListener('resize', updateOrientationOverlay)");
     expect(indexSource).toContain("window.addEventListener('orientationchange', updateOrientationOverlay)");
     expect(indexSource).toContain("window.addEventListener('DOMContentLoaded', updateOrientationOverlay, { once: true })");
+    expect(indexSource).toContain("window.dispatchEvent(new Event('tsm:landscape-visible'))");
     expect(stylesSource).toContain('#orientation-overlay');
     expect(stylesSource).toContain('#orientation-overlay[hidden]');
     expect(stylesSource).toContain('touch-action: none');
+  });
+
+  it('schedules a soft Phaser scale refresh after orientation and viewport changes', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain('const game = new Phaser.Game(config);');
+    expect(mainSource).toContain('function scheduleScaleRefresh()');
+    expect(mainSource).toContain('window.clearTimeout(timer)');
+    expect(mainSource.match(/game\.scale\.refresh\(\);/g)).toHaveLength(2);
+    expect(mainSource).toContain('}, 150)');
+    expect(mainSource).toContain('}, 500)');
+    expect(mainSource).toContain("window.addEventListener('orientationchange', scheduleScaleRefresh)");
+    expect(mainSource).toContain("window.addEventListener('resize', scheduleScaleRefresh)");
+    expect(mainSource).toContain("window.addEventListener('tsm:landscape-visible', scheduleScaleRefresh)");
+    expect(mainSource).not.toContain('game.scale.resize');
+    expect(mainSource).not.toContain('game.scale.updateBounds');
   });
 
   it('keeps mobile orientation handling away from forced locks and viewport resize hooks', () => {
     const productionSource = readProductionSource();
     const forcedOrientationLock = ['screen', 'orientation', 'lock'].join('.');
     const visualViewportResize = ['visualViewport', 'resize'].join('.');
+    const scaleUpdateBounds = ['game', 'scale', 'updateBounds'].join('.');
 
     expect(productionSource).not.toContain(forcedOrientationLock);
     expect(productionSource).not.toContain(visualViewportResize);
+    expect(productionSource).not.toContain(scaleUpdateBounds);
   });
 
   it('does not add manual canvas CSS sizing or transforms', () => {

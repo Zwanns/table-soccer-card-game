@@ -44,4 +44,24 @@ const config: Phaser.Types.Core.GameConfig = {
   }
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+let scaleRefreshTimers: number[] = [];
+
+function scheduleScaleRefresh() {
+  for (const timer of scaleRefreshTimers) {
+    window.clearTimeout(timer);
+  }
+
+  scaleRefreshTimers = [
+    window.setTimeout(() => {
+      game.scale.refresh();
+    }, 150),
+    window.setTimeout(() => {
+      game.scale.refresh();
+    }, 500)
+  ];
+}
+
+window.addEventListener('orientationchange', scheduleScaleRefresh);
+window.addEventListener('resize', scheduleScaleRefresh);
+window.addEventListener('tsm:landscape-visible', scheduleScaleRefresh);

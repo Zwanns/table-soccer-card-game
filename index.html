@@ -19,6 +19,8 @@
     </main>
     <script>
       (() => {
+        let wasShowingOrientationOverlay = false;
+
         const updateOrientationOverlay = () => {
           const overlay = document.getElementById('orientation-overlay');
 
@@ -32,7 +34,14 @@
             navigator.maxTouchPoints > 0;
           const isPortrait = window.innerHeight > window.innerWidth;
 
-          overlay.hidden = !(isMobileLikeDevice && isPortrait);
+          const shouldShowOrientationOverlay = isMobileLikeDevice && isPortrait;
+          overlay.hidden = !shouldShowOrientationOverlay;
+
+          if (wasShowingOrientationOverlay && !shouldShowOrientationOverlay) {
+            window.dispatchEvent(new Event('tsm:landscape-visible'));
+          }
+
+          wasShowingOrientationOverlay = shouldShowOrientationOverlay;
         };
 
         window.addEventListener('resize', updateOrientationOverlay);
