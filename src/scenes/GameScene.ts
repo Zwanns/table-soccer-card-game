@@ -34,6 +34,7 @@ import { DeckView } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
 import { getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
@@ -645,6 +646,7 @@ export class GameScene extends Phaser.Scene {
     return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal(), {
       fontSize: INFO_BACK_BUTTON.fontSize,
       height: INFO_BACK_BUTTON.height,
+      touchHeight: 60,
       width: INFO_BACK_BUTTON.width
     });
   }
@@ -666,7 +668,11 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        label.setInteractive({ useHandCursor: true });
+        label.setInteractive({
+          hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44),
+          hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+          useHandCursor: true
+        });
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchMatchInfoLanguage(language));
@@ -832,14 +838,27 @@ export class GameScene extends Phaser.Scene {
     let scrollY = 0;
 
     const setScroll = (value: number): void => {
-      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      scrollY = clampScroll(value, maxScroll);
       scrollContent.y = INFO_VIEWPORT.y - scrollY;
       thumb.y = INFO_VIEWPORT.y + thumbHeight / 2 + (scrollY / maxScroll) * (INFO_VIEWPORT.height - thumbHeight);
     };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: SCENE_WIDTH / 2 + INFO_VIEWPORT.x,
+        y: SCENE_HEIGHT / 2 + INFO_VIEWPORT.y,
+        width: INFO_VIEWPORT.width,
+        height: INFO_VIEWPORT.height
+      },
+      maxScroll,
+      getScroll: () => scrollY,
+      setScroll
+    });
 
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(scrollY + deltaY * 0.35);
+      setScroll(scrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
+    dragScroll.bindDragTarget(scrollZone);
     wrapper.add([track, thumb]);
   }
 

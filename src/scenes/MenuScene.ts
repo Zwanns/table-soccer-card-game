@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
 const MENU_LAYOUT = {
   centerX: SCENE_WIDTH / 2,
@@ -14,6 +15,7 @@ const MENU_LAYOUT = {
   buttonsGap: 60,
   buttonMinWidth: 280,
   buttonMaxWidthRatio: 0.78,
+  buttonTouchHeight: 60,
   fallbackButtonWidthRatio: 0.72,
   fallbackButtonMaxWidth: 520,
   footerMargin: 24
@@ -468,6 +470,7 @@ export class MenuScene extends Phaser.Scene {
     const buttonWidth = this.getMenuButtonWidth();
     const buttons = [
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes(), {
+        touchHeight: MENU_LAYOUT.buttonTouchHeight,
         width: buttonWidth
       }),
       new Button(
@@ -476,7 +479,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap,
         'Teams',
         () => this.scene.start('SquadSelectScene'),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       ),
       new Button(
         this,
@@ -484,7 +487,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2,
         'Rules',
         () => this.openRulesModal(),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       ),
       new Button(
         this,
@@ -492,7 +495,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3,
         'About',
         () => this.openAboutModal(),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       )
     ];
 
@@ -521,7 +524,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Quick match',
         () => this.scene.start('TeamSelectScene'),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -534,7 +537,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Continue tournament',
           () => this.continueTournament(),
-          { width: buttonWidth }
+          { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -547,7 +550,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -559,7 +562,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       )
     );
     buttonIndex += 1;
@@ -572,7 +575,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Delete save',
           () => this.deleteTournamentSave(),
-          { fontSize: '20px', width: buttonWidth }
+          { fontSize: '20px', touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
         )
       );
       buttonIndex += 1;
@@ -585,7 +588,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
-        { width: buttonWidth }
+        { touchHeight: MENU_LAYOUT.buttonTouchHeight, width: buttonWidth }
       )
     );
 
@@ -814,6 +817,7 @@ export class MenuScene extends Phaser.Scene {
     return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal(), {
       fontSize: INFO_BACK_BUTTON.fontSize,
       height: INFO_BACK_BUTTON.height,
+      touchHeight: 60,
       width: INFO_BACK_BUTTON.width
     });
   }
@@ -835,7 +839,11 @@ export class MenuScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       if (!isActive) {
-        label.setInteractive({ useHandCursor: true });
+        label.setInteractive({
+          hitArea: new Phaser.Geom.Rectangle(-24, -22, 48, 44),
+          hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+          useHandCursor: true
+        });
         label.on('pointerover', () => label.setColor('#ffffff'));
         label.on('pointerout', () => label.setColor('#d9eadf'));
         label.on('pointerdown', () => this.switchAboutLanguage(language));
@@ -1000,14 +1008,27 @@ export class MenuScene extends Phaser.Scene {
     let scrollY = 0;
 
     const setScroll = (value: number): void => {
-      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      scrollY = clampScroll(value, maxScroll);
       scrollContent.y = ABOUT_VIEWPORT.y - scrollY;
       thumb.y = ABOUT_VIEWPORT.y + thumbHeight / 2 + (scrollY / maxScroll) * (ABOUT_VIEWPORT.height - thumbHeight);
     };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: MENU_LAYOUT.centerX + ABOUT_VIEWPORT.x,
+        y: MENU_LAYOUT.centerY + ABOUT_VIEWPORT.y,
+        width: ABOUT_VIEWPORT.width,
+        height: ABOUT_VIEWPORT.height
+      },
+      maxScroll,
+      getScroll: () => scrollY,
+      setScroll
+    });
 
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(scrollY + deltaY * 0.35);
+      setScroll(scrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
+    dragScroll.bindDragTarget(scrollZone);
     wrapper.add([track, thumb]);
   }
 

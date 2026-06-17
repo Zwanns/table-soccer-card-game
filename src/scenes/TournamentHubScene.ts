@@ -20,6 +20,7 @@ import {
   type TournamentTeamStatsRankingKey
 } from '../tournament';
 import { Button } from '../ui/Button';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
@@ -558,14 +559,27 @@ export class TournamentHubScene extends Phaser.Scene {
 
     this.statsTeamScrollY = Phaser.Math.Clamp(this.statsTeamScrollY, 0, maxScroll);
     const setScroll = (value: number): void => {
-      this.statsTeamScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      this.statsTeamScrollY = clampScroll(value, maxScroll);
       rows.y = STATS_TABLE_VIEWPORT_Y - this.statsTeamScrollY;
     };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x,
+        y: y + STATS_TABLE_VIEWPORT_Y,
+        width: STATS_TABLE_WIDTH,
+        height: STATS_TABLE_VIEWPORT_HEIGHT
+      },
+      maxScroll,
+      getScroll: () => this.statsTeamScrollY,
+      setScroll
+    });
 
     setScroll(this.statsTeamScrollY);
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(this.statsTeamScrollY + deltaY * 0.35);
+      setScroll(this.statsTeamScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
+    dragScroll.bindDragTarget(scrollZone);
 
     if (maxScroll > 0) {
       this.createScrollbar(panel, STATS_TABLE_WIDTH + 12, STATS_TABLE_VIEWPORT_Y, STATS_TABLE_VIEWPORT_HEIGHT, maxScroll, () =>
@@ -689,16 +703,29 @@ export class TournamentHubScene extends Phaser.Scene {
       .zone(x + contentWidth / 2, y + STATS_RANKING_VIEWPORT_HEIGHT / 2, contentWidth, STATS_RANKING_VIEWPORT_HEIGHT)
       .setInteractive();
 
-    this.statsRankingScrollY = Phaser.Math.Clamp(this.statsRankingScrollY, 0, maxScroll);
+    this.statsRankingScrollY = clampScroll(this.statsRankingScrollY, maxScroll);
     const setScroll = (value: number): void => {
-      this.statsRankingScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      this.statsRankingScrollY = clampScroll(value, maxScroll);
       content.y = y - this.statsRankingScrollY;
     };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x,
+        y,
+        width: contentWidth,
+        height: STATS_RANKING_VIEWPORT_HEIGHT
+      },
+      maxScroll,
+      getScroll: () => this.statsRankingScrollY,
+      setScroll
+    });
 
     setScroll(this.statsRankingScrollY);
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(this.statsRankingScrollY + deltaY * 0.35);
+      setScroll(this.statsRankingScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
+    dragScroll.bindDragTarget(scrollZone);
 
     if (maxScroll > 0) {
       this.createScrollbar(

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   changeTournamentSetupFormat,
   clearTournamentSetupDraft,
@@ -296,9 +297,12 @@ export class TournamentSetupScene extends Phaser.Scene {
     const rowCount = Math.ceil(NATIONAL_TEAMS.length / TEAM_GRID_COLUMNS);
     const contentHeight = rowCount * rowHeight - TEAM_GRID_GAP_Y;
     const maxScroll = Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT);
+    const teamOptions: Phaser.GameObjects.Container[] = [];
+    let refreshItemInputs = (): void => {};
     const setScroll = (value: number): void => {
-      this.teamGridScrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      this.teamGridScrollY = clampScroll(value, maxScroll);
       content.y = TEAM_GRID_VIEWPORT_TOP - this.teamGridScrollY;
+      refreshItemInputs();
     };
 
     NATIONAL_TEAMS.forEach((team, index) => {
@@ -311,8 +315,9 @@ export class TournamentSetupScene extends Phaser.Scene {
       );
 
       option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-        setScroll(this.teamGridScrollY + deltaY * 0.35);
+        setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
       });
+      teamOptions.push(option);
       content.add(option);
     });
 
@@ -333,12 +338,33 @@ export class TournamentSetupScene extends Phaser.Scene {
       )
       .setInteractive({ useHandCursor: maxScroll > 0 })
       .setDepth(-10);
-
-    this.teamGridScrollY = Phaser.Math.Clamp(this.teamGridScrollY, 0, maxScroll);
-    setScroll(this.teamGridScrollY);
-    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(this.teamGridScrollY + deltaY * 0.35);
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: viewportLeft,
+        y: TEAM_GRID_VIEWPORT_TOP,
+        width: viewportWidth,
+        height: TEAM_GRID_VIEWPORT_HEIGHT
+      },
+      maxScroll,
+      getScroll: () => this.teamGridScrollY,
+      setScroll
     });
+
+    refreshItemInputs = () => dragScroll.updateScrollableItemInputs(content, teamOptions);
+    this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
+    setScroll(this.teamGridScrollY);
+    teamOptions.forEach((option, index) => {
+      const team = NATIONAL_TEAMS[index];
+
+      if (team !== undefined) {
+        dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team.flagCode));
+      }
+    });
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    dragScroll.bindDragTarget(scrollZone);
 
     if (maxScroll > 0) {
       const trackX = viewportLeft + viewportWidth + 12;
@@ -350,6 +376,7 @@ export class TournamentSetupScene extends Phaser.Scene {
           TEAM_GRID_VIEWPORT_TOP +
           thumbHeight / 2 +
           (this.teamGridScrollY / maxScroll) * (TEAM_GRID_VIEWPORT_HEIGHT - thumbHeight);
+        refreshItemInputs();
       };
 
       updateThumb();
@@ -394,8 +421,6 @@ export class TournamentSetupScene extends Phaser.Scene {
         background.setFillStyle(0x143f2c, 0.94);
       }
     });
-    option.on('pointerdown', () => this.selectTeam(team.flagCode));
-
     return option;
   }
 

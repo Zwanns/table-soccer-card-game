@@ -4,6 +4,7 @@ import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   createTournamentMatchResultFromGameState,
   getTournamentTeamControllerType,
@@ -400,14 +401,27 @@ export class ResultScene extends Phaser.Scene {
     panel.add([scrollbarTrack, scrollbarThumb]);
 
     const setScroll = (value: number): void => {
-      scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+      scrollY = clampScroll(value, maxScroll);
       timelineContent.y = viewportTop - scrollY;
       scrollbarThumb.y = viewportTop + thumbHeight / 2 + (scrollY / maxScroll) * (viewportHeight - thumbHeight);
     };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: panelX + viewportLeft,
+        y: panelY + viewportTop,
+        width: viewportWidth,
+        height: viewportHeight
+      },
+      maxScroll,
+      getScroll: () => scrollY,
+      setScroll
+    });
 
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-      setScroll(scrollY + deltaY * 0.35);
+      setScroll(scrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
+    dragScroll.bindDragTarget(scrollZone);
   }
 }
 

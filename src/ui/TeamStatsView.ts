@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from './touchInput';
 
 export const TEAM_STATS_VIEW_WIDTH = 200;
 export const TEAM_STATS_VIEW_HEIGHT = 288;
@@ -70,14 +71,27 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       scrollbarThumb.setVisible(false);
     } else {
       const setScroll = (value: number): void => {
-        scrollY = Phaser.Math.Clamp(value, 0, maxScroll);
+        scrollY = clampScroll(value, maxScroll);
         scorersContent.y = viewportTop - scrollY;
         scrollbarThumb.y = viewportTop + thumbHeight / 2 + (scrollY / maxScroll) * (viewportHeight - thumbHeight);
       };
+      const dragScroll = createDragScrollArea({
+        scene,
+        viewport: {
+          x: x + maskLeft,
+          y: y + maskTop,
+          width: viewportWidth,
+          height: viewportHeight
+        },
+        maxScroll,
+        getScroll: () => scrollY,
+        setScroll
+      });
 
       scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-        setScroll(scrollY + deltaY * 0.35);
+        setScroll(scrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
       });
+      dragScroll.bindDragTarget(scrollZone);
     }
 
     this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);

@@ -9,13 +9,15 @@ import type { NationalTeamSquad } from '../data/squadTypes';
 import { CardView } from '../ui/CardView';
 import { createTeamFieldBackground } from '../ui/teamFieldBackground';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
+import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
 const GRID_COLUMNS = 4;
 const CARD_WIDTH = 171;
-const CARD_HEIGHT = 30;
+const CARD_HEIGHT = 42;
 const GRID_GAP_X = 18;
-const GRID_GAP_Y = 6;
-const GRID_START_Y = 112;
+const GRID_GAP_Y = 8;
+const GRID_VIEWPORT_TOP = 108;
+const GRID_VIEWPORT_HEIGHT = 520;
 const LEFT_PANEL_X = 80;
 const RIGHT_PANEL_X = 840;
 const RIGHT_PANEL_WIDTH = 760;
@@ -39,6 +41,7 @@ const SQUAD_PANEL_BACKGROUND_ALPHA = 0.42;
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
   private squad: NationalTeamSquad = loadSquad(this.selectedTeamId);
+  private teamGridScrollY = 0;
 
   public constructor() {
     super('SquadSelectScene');
@@ -91,20 +94,100 @@ export class SquadSelectScene extends Phaser.Scene {
   }
 
   private createTeamGrid(leftGridX: number): void {
+    const content = this.add.container(0, GRID_VIEWPORT_TOP);
     const startX = leftGridX + CARD_WIDTH / 2;
+    const viewportWidth = GRID_COLUMNS * CARD_WIDTH + (GRID_COLUMNS - 1) * GRID_GAP_X;
+    const rowHeight = CARD_HEIGHT + GRID_GAP_Y;
+    const rowCount = Math.ceil(NATIONAL_TEAMS.length / GRID_COLUMNS);
+    const contentHeight = rowCount * rowHeight - GRID_GAP_Y;
+    const maxScroll = Math.max(0, contentHeight - GRID_VIEWPORT_HEIGHT);
+    const teamOptions: Phaser.GameObjects.Container[] = [];
+    let refreshItemInputs = (): void => {};
+
+    const setScroll = (value: number): void => {
+      this.teamGridScrollY = clampScroll(value, maxScroll);
+      content.y = GRID_VIEWPORT_TOP - this.teamGridScrollY;
+      refreshItemInputs();
+    };
 
     NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % GRID_COLUMNS;
       const row = Math.floor(index / GRID_COLUMNS);
-      this.createTeamOption(
+      const option = this.createTeamOption(
         startX + column * (CARD_WIDTH + GRID_GAP_X),
-        GRID_START_Y + row * (CARD_HEIGHT + GRID_GAP_Y),
+        CARD_HEIGHT / 2 + row * rowHeight,
         team
       );
+
+      option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+        setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+      });
+      teamOptions.push(option);
+      content.add(option);
     });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(leftGridX, GRID_VIEWPORT_TOP, viewportWidth, GRID_VIEWPORT_HEIGHT)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(leftGridX + viewportWidth / 2, GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT / 2, viewportWidth, GRID_VIEWPORT_HEIGHT)
+      .setInteractive({ useHandCursor: maxScroll > 0 })
+      .setDepth(-10);
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: leftGridX,
+        y: GRID_VIEWPORT_TOP,
+        width: viewportWidth,
+        height: GRID_VIEWPORT_HEIGHT
+      },
+      maxScroll,
+      getScroll: () => this.teamGridScrollY,
+      setScroll
+    });
+
+    refreshItemInputs = () => dragScroll.updateScrollableItemInputs(content, teamOptions);
+    this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
+    setScroll(this.teamGridScrollY);
+    teamOptions.forEach((option, index) => {
+      const team = NATIONAL_TEAMS[index];
+
+      if (team !== undefined) {
+        dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team));
+      }
+    });
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    dragScroll.bindDragTarget(scrollZone);
+
+    if (maxScroll > 0) {
+      const trackX = leftGridX + viewportWidth + 12;
+      const track = this.add.rectangle(trackX, GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT / 2, 4, GRID_VIEWPORT_HEIGHT, 0x5f9572, 0.28);
+      const thumbHeight = Math.max(28, (GRID_VIEWPORT_HEIGHT / contentHeight) * GRID_VIEWPORT_HEIGHT);
+      const thumb = this.add.rectangle(trackX, GRID_VIEWPORT_TOP + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+      const updateThumb = (): void => {
+        thumb.y = GRID_VIEWPORT_TOP + thumbHeight / 2 + (this.teamGridScrollY / maxScroll) * (GRID_VIEWPORT_HEIGHT - thumbHeight);
+        refreshItemInputs();
+      };
+
+      updateThumb();
+      this.events.on(Phaser.Scenes.Events.UPDATE, updateThumb);
+      content.once(Phaser.GameObjects.Events.DESTROY, () => {
+        this.events.off(Phaser.Scenes.Events.UPDATE, updateThumb);
+        maskGraphics.destroy();
+      });
+    } else {
+      content.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
+    }
   }
 
-  private createTeamOption(x: number, y: number, team: NationalTeam): void {
+  private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
     const isSelected = team.flagCode === this.selectedTeamId;
     const option = this.add.container(x, y);
     const background = this.add.rectangle(
@@ -117,15 +200,15 @@ export class SquadSelectScene extends Phaser.Scene {
     );
     background.setStrokeStyle(2, isSelected ? 0xf0c95a : 0x5f9572, 0.95);
 
-    const flag = this.add.image(-CARD_WIDTH / 2 + 20, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(28, 20);
+    const flag = this.add.image(-CARD_WIDTH / 2 + 22, 0, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(32, 24);
     const nameText = this.add
-      .text(-CARD_WIDTH / 2 + 44, 0, team.name, {
+      .text(-CARD_WIDTH / 2 + 50, 0, team.name, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontSize: '15px',
         fontStyle: '700',
-        wordWrap: { width: 110 }
+        wordWrap: { width: 108 }
       })
       .setOrigin(0, 0.5);
 
@@ -142,11 +225,14 @@ export class SquadSelectScene extends Phaser.Scene {
         background.setFillStyle(TRANSLUCENT_CARD_BACKGROUND, TEAM_OPTION_BACKGROUND_ALPHA);
       }
     });
-    option.on('pointerdown', () => {
-      this.selectedTeamId = team.flagCode;
-      this.squad = loadSquad(this.selectedTeamId);
-      this.render();
-    });
+
+    return option;
+  }
+
+  private selectTeam(team: NationalTeam): void {
+    this.selectedTeamId = team.flagCode;
+    this.squad = loadSquad(this.selectedTeamId);
+    this.render();
   }
 
   private createSquadPanel(panelX: number, panelY: number): void {
