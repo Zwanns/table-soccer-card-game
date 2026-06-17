@@ -12,7 +12,9 @@ const MENU_LAYOUT = {
   logoMaxHeight: SCENE_HEIGHT * 0.28,
   subtitleY: 238,
   buttonsStartY: 286,
-  buttonsGap: 60,
+  buttonsGap: 66,
+  buttonHeight: 62,
+  buttonFontSize: '24px',
   buttonMinWidth: 280,
   buttonMaxWidthRatio: 0.78,
   fallbackButtonWidthRatio: 0.72,
@@ -467,9 +469,10 @@ export class MenuScene extends Phaser.Scene {
 
   private createMainButtons(): void {
     const buttonWidth = this.getMenuButtonWidth();
+    const buttonOptions = this.getMenuButtonOptions(buttonWidth);
     const buttons = [
       new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes(), {
-        width: buttonWidth
+        ...buttonOptions
       }),
       new Button(
         this,
@@ -477,7 +480,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap,
         'Teams',
         () => this.scene.start('SquadSelectScene'),
-        { width: buttonWidth }
+        buttonOptions
       ),
       new Button(
         this,
@@ -485,7 +488,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2,
         'Rules',
         () => this.openRulesModal(),
-        { width: buttonWidth }
+        buttonOptions
       ),
       new Button(
         this,
@@ -493,7 +496,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3,
         'About',
         () => this.openAboutModal(),
-        { width: buttonWidth }
+        buttonOptions
       )
     ];
 
@@ -503,6 +506,7 @@ export class MenuScene extends Phaser.Scene {
   private createGameModeButtons(): void {
     const hasTournamentSave = hasActiveTournamentSave();
     const buttonWidth = this.getMenuButtonWidth();
+    const buttonOptions = this.getMenuButtonOptions(buttonWidth);
     const title = this.add
       .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Game modes', {
         align: 'center',
@@ -522,7 +526,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Quick match',
         () => this.scene.start('TeamSelectScene'),
-        { width: buttonWidth }
+        buttonOptions
       )
     );
     buttonIndex += 1;
@@ -535,7 +539,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Continue tournament',
           () => this.continueTournament(),
-          { width: buttonWidth }
+          buttonOptions
         )
       );
       buttonIndex += 1;
@@ -548,7 +552,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         hasTournamentSave ? 'New tournament' : 'Tournaments',
         () => this.startNewTournamentSetup(),
-        { width: buttonWidth }
+        buttonOptions
       )
     );
     buttonIndex += 1;
@@ -560,7 +564,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
-        { width: buttonWidth }
+        buttonOptions
       )
     );
     buttonIndex += 1;
@@ -573,7 +577,7 @@ export class MenuScene extends Phaser.Scene {
           MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
           'Delete save',
           () => this.deleteTournamentSave(),
-          { fontSize: '20px', width: buttonWidth }
+          { ...buttonOptions, fontSize: '22px' }
         )
       );
       buttonIndex += 1;
@@ -586,7 +590,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
-        { width: buttonWidth }
+        buttonOptions
       )
     );
 
@@ -605,6 +609,14 @@ export class MenuScene extends Phaser.Scene {
       MENU_LAYOUT.buttonMinWidth,
       maxButtonWidth
     );
+  }
+
+  private getMenuButtonOptions(width: number): { fontSize: string; height: number; width: number } {
+    return {
+      fontSize: MENU_LAYOUT.buttonFontSize,
+      height: MENU_LAYOUT.buttonHeight,
+      width
+    };
   }
 
   private continueTournament(): void {

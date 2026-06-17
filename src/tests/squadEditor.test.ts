@@ -21,12 +21,19 @@ describe('read-only squad scenes', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(selectSource).toContain('const CARD_WIDTH = 180');
+    expect(selectSource).toContain('const CARD_HEIGHT = 48');
+    expect(selectSource).toContain('const GRID_GAP_X = 12');
+    expect(selectSource).toContain('const LEFT_PANEL_X = 60');
     expect(selectSource).toContain("import { createTeamFieldBackground } from '../ui/teamFieldBackground'");
     expect(selectSource).toContain('createTeamFieldBackground(this)');
     expect(selectSource).not.toContain('GAME_TITLE');
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');
+    expect(selectSource).toContain('flag.setDisplaySize(36, 27)');
+    expect(selectSource).toContain("fontSize: '16px'");
+    expect(selectSource).toContain('wordWrap: { width: 118 }');
     expect(selectSource).toContain('this.createBackButton');
     expect(selectSource).toContain("this.scene.start('MenuScene')");
     expect(selectSource).not.toContain('TEAMS_PER_PAGE');

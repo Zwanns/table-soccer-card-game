@@ -12,13 +12,13 @@ import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
 const GRID_COLUMNS = 4;
-const CARD_WIDTH = 171;
-const CARD_HEIGHT = 42;
-const GRID_GAP_X = 18;
+const CARD_WIDTH = 180;
+const CARD_HEIGHT = 48;
+const GRID_GAP_X = 12;
 const GRID_GAP_Y = 8;
 const GRID_VIEWPORT_TOP = 108;
 const GRID_VIEWPORT_HEIGHT = 520;
-const LEFT_PANEL_X = 80;
+const LEFT_PANEL_X = 60;
 const RIGHT_PANEL_X = 840;
 const RIGHT_PANEL_WIDTH = 760;
 const RIGHT_PANEL_HEIGHT = 571;
@@ -200,15 +200,15 @@ export class SquadSelectScene extends Phaser.Scene {
     );
     background.setStrokeStyle(2, isSelected ? 0xf0c95a : 0x5f9572, 0.95);
 
-    const flag = this.add.image(-CARD_WIDTH / 2 + 22, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(32, 24);
+    const flag = this.add.image(-CARD_WIDTH / 2 + 25, 0, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(36, 27);
     const nameText = this.add
-      .text(-CARD_WIDTH / 2 + 50, 0, team.name, {
+      .text(-CARD_WIDTH / 2 + 56, 0, team.name, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '16px',
         fontStyle: '700',
-        wordWrap: { width: 108 }
+        wordWrap: { width: 118 }
       })
       .setOrigin(0, 0.5);
 

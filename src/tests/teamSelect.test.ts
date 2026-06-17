@@ -92,14 +92,18 @@ describe('quick match team selection AI controls', () => {
   it('uses translucent black team cards with padded flags in the country grid', () => {
     const source = readTeamSelectSource();
 
+    expect(source).toContain('const TEAM_BUTTON_HEIGHT = TEAM_SCREEN_TEAM_BUTTON_HEIGHT + 6');
     expect(source).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
     expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = 0.36');
     expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52');
-    expect(source).toContain('const TEAM_OPTION_FLAG_PADDING_X = 10');
+    expect(source).toContain('const TEAM_OPTION_FLAG_WIDTH = 36');
+    expect(source).toContain('const TEAM_OPTION_FLAG_HEIGHT = 27');
+    expect(source).toContain('const TEAM_OPTION_FLAG_PADDING_X = 11');
     expect(source).toContain('TRANSLUCENT_CARD_BACKGROUND');
     expect(source).toContain('isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA');
     expect(source).toContain('const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2');
     expect(source).toContain('flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT)');
+    expect(source).toContain("fontSize: '16px'");
     expect(source).toContain("color: '#ffffff'");
     expect(source).not.toContain('isSelected ? 0xf0c95a : 0x143f2c');
     expect(source).not.toContain("color: isSelected ? '#1f2a2e' : '#ffffff'");

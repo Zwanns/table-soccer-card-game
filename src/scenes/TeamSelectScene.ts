@@ -45,9 +45,9 @@ const TEAM_GRID_VIEWPORT_HEIGHT = 360;
 const TRANSLUCENT_CARD_BACKGROUND = 0x000000;
 const TEAM_OPTION_BACKGROUND_ALPHA = 0.36;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52;
-const TEAM_OPTION_FLAG_WIDTH = 32;
-const TEAM_OPTION_FLAG_HEIGHT = 24;
-const TEAM_OPTION_FLAG_PADDING_X = 10;
+const TEAM_OPTION_FLAG_WIDTH = 36;
+const TEAM_OPTION_FLAG_HEIGHT = 27;
+const TEAM_OPTION_FLAG_PADDING_X = 11;
 const TEAM_OPTION_TEXT_GAP_X = 12;
 const TEAM_OPTION_TEXT_RIGHT_PADDING_X = 8;
 
@@ -359,7 +359,7 @@ export class TeamSelectScene extends Phaser.Scene {
         align: 'left',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '16px',
         fontStyle: '700',
         wordWrap: { width: width - (textX + width / 2) - TEAM_OPTION_TEXT_RIGHT_PADDING_X }
       })

@@ -46,7 +46,7 @@ describe('touch drag-scroll helpers', () => {
     expect(teamSelectSource).toContain('TEAM_SCREEN_TEAM_BUTTON_HEIGHT + 6');
     expect(teamSelectSource).toContain('dragScroll.bindScrollableTapTarget(option');
     expect(teamSelectSource).toContain('dragScroll.updateScrollableItemInputs(content, teamOptions)');
-    expect(squadSelectSource).toContain('const CARD_HEIGHT = 42');
+    expect(squadSelectSource).toContain('const CARD_HEIGHT = 48');
     expect(squadSelectSource).toContain('dragScroll.bindScrollableTapTarget(option');
     expect(squadSelectSource).toContain('content.setMask(mask)');
     expect(setupSource).toContain('dragScroll.bindScrollableTapTarget(option');

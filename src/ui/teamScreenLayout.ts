@@ -27,9 +27,9 @@ export interface TeamScreenLayout {
 
 export const TEAM_SCREEN_GRID_COLUMNS = 8;
 export const TEAM_SCREEN_GRID_ROWS = 9;
-export const TEAM_SCREEN_TEAM_BUTTON_WIDTH = 160;
-export const TEAM_SCREEN_TEAM_BUTTON_HEIGHT = 50;
-export const TEAM_SCREEN_GRID_GAP_X = 12;
+export const TEAM_SCREEN_TEAM_BUTTON_WIDTH = 168;
+export const TEAM_SCREEN_TEAM_BUTTON_HEIGHT = 52;
+export const TEAM_SCREEN_GRID_GAP_X = 10;
 export const TEAM_SCREEN_GRID_GAP_Y = 8;
 export const TEAM_SCREEN_GRID_START_Y = 210;
 

@@ -179,10 +179,16 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('this.logoImage.displayWidth');
     expect(menuSceneSource).toContain('Phaser.Math.Clamp(this.logoImage.displayWidth');
     expect(menuSceneSource).toContain('this.scale.width * MENU_LAYOUT.buttonMaxWidthRatio');
+    expect(menuSceneSource).toContain('buttonHeight: 62');
+    expect(menuSceneSource).toContain("buttonFontSize: '24px'");
+    expect(menuSceneSource).toContain('private getMenuButtonOptions(width: number)');
     expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonWidthRatio');
     expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonMaxWidth');
     expect(menuSceneSource.match(/const buttonWidth = this\.getMenuButtonWidth\(\);/g)?.length).toBe(2);
-    expect(menuSceneSource.match(/width: buttonWidth/g)?.length).toBeGreaterThanOrEqual(8);
+    expect(menuSceneSource.match(/buttonOptions/g)?.length).toBeGreaterThanOrEqual(8);
+    expect(menuSceneSource).toContain('height: MENU_LAYOUT.buttonHeight');
+    expect(menuSceneSource).toContain('fontSize: MENU_LAYOUT.buttonFontSize');
+    expect(menuSceneSource).toContain('width');
     expect(menuSceneSource).not.toContain('{ width: 280 }');
     expect(menuSceneSource).not.toContain('fontSize: \'20px\', width: 280');
   });
