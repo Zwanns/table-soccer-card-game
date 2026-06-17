@@ -1,4 +1,5 @@
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { isMobileLandscapeLayout } from './mobileLayout';
 
 export interface TeamScreenPoint {
   x: number;
@@ -14,6 +15,12 @@ export interface TeamScreenRect {
 
 export interface TeamScreenLayout {
   teamGridRect: TeamScreenRect;
+  teamGridColumns: number;
+  teamButtonWidth: number;
+  teamButtonHeight: number;
+  teamGridGapX: number;
+  teamGridGapY: number;
+  teamGridStartY: number;
   team1SelectedCardRect: TeamScreenRect;
   team2SelectedCardRect: TeamScreenRect;
   menuButtonRect: TeamScreenRect;
@@ -33,48 +40,98 @@ export const TEAM_SCREEN_GRID_GAP_X = 10;
 export const TEAM_SCREEN_GRID_GAP_Y = 8;
 export const TEAM_SCREEN_GRID_START_Y = 210;
 
-const SELECTED_CARD_WIDTH = 440;
-const SELECTED_CARD_HEIGHT = 100;
-const SELECTED_CARD_CENTER_Y = 150;
-const MENU_BUTTON_WIDTH = 220;
-const START_BUTTON_WIDTH = 260;
-const BOTTOM_BUTTON_HEIGHT = 54;
-const BOTTOM_BUTTON_CENTER_Y = 666;
-const COVER_FAN_WIDTH = 116;
-const COVER_FAN_HEIGHT = 68;
-const COVER_FAN_INSET_X = 18;
-const KIT_PREVIEW_WIDTH = 70;
-const KIT_PREVIEW_HEIGHT = 90;
+interface TeamSelectLayoutConfig {
+  gridColumns: number;
+  gridRows: number;
+  teamButtonWidth: number;
+  teamButtonHeight: number;
+  gridGapX: number;
+  gridGapY: number;
+  gridStartY: number;
+  selectedCardWidth: number;
+  selectedCardHeight: number;
+  selectedCardCenterY: number;
+  menuButtonWidth: number;
+  startButtonWidth: number;
+  bottomButtonHeight: number;
+  bottomButtonCenterY: number;
+  coverFanWidth: number;
+  coverFanHeight: number;
+  coverFanInsetX: number;
+  kitPreviewWidth: number;
+  kitPreviewHeight: number;
+}
+
+export interface TeamScreenLayoutOptions {
+  sceneWidth?: number;
+  sceneHeight?: number;
+  mobileWide?: boolean;
+}
+
+const DESKTOP_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
+  gridColumns: TEAM_SCREEN_GRID_COLUMNS,
+  gridRows: TEAM_SCREEN_GRID_ROWS,
+  teamButtonWidth: TEAM_SCREEN_TEAM_BUTTON_WIDTH,
+  teamButtonHeight: TEAM_SCREEN_TEAM_BUTTON_HEIGHT,
+  gridGapX: TEAM_SCREEN_GRID_GAP_X,
+  gridGapY: TEAM_SCREEN_GRID_GAP_Y,
+  gridStartY: TEAM_SCREEN_GRID_START_Y,
+  selectedCardWidth: 440,
+  selectedCardHeight: 100,
+  selectedCardCenterY: 150,
+  menuButtonWidth: 220,
+  startButtonWidth: 260,
+  bottomButtonHeight: 54,
+  bottomButtonCenterY: 666,
+  coverFanWidth: 116,
+  coverFanHeight: 68,
+  coverFanInsetX: 18,
+  kitPreviewWidth: 70,
+  kitPreviewHeight: 90
+};
+
+const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
+  ...DESKTOP_TEAM_SELECT_LAYOUT,
+  teamButtonWidth: 180,
+  gridGapX: 12,
+  selectedCardWidth: 480,
+  menuButtonWidth: 240,
+  startButtonWidth: 300
+};
 
 export function createTeamScreenLayout(
-  sceneWidth = SCENE_WIDTH,
-  sceneHeight = SCENE_HEIGHT
+  options: TeamScreenLayoutOptions = {}
 ): TeamScreenLayout {
+  const sceneWidth = options.sceneWidth ?? SCENE_WIDTH;
+  const sceneHeight = options.sceneHeight ?? SCENE_HEIGHT;
+  const layout = (options.mobileWide ?? isMobileLandscapeLayout())
+    ? MOBILE_WIDE_TEAM_SELECT_LAYOUT
+    : DESKTOP_TEAM_SELECT_LAYOUT;
   const gridWidth =
-    TEAM_SCREEN_GRID_COLUMNS * TEAM_SCREEN_TEAM_BUTTON_WIDTH +
-    (TEAM_SCREEN_GRID_COLUMNS - 1) * TEAM_SCREEN_GRID_GAP_X;
+    layout.gridColumns * layout.teamButtonWidth +
+    (layout.gridColumns - 1) * layout.gridGapX;
   const gridHeight =
-    TEAM_SCREEN_GRID_ROWS * TEAM_SCREEN_TEAM_BUTTON_HEIGHT +
-    (TEAM_SCREEN_GRID_ROWS - 1) * TEAM_SCREEN_GRID_GAP_Y;
+    layout.gridRows * layout.teamButtonHeight +
+    (layout.gridRows - 1) * layout.gridGapY;
   const gridLeft = (sceneWidth - gridWidth) / 2;
-  const gridTop = TEAM_SCREEN_GRID_START_Y - TEAM_SCREEN_TEAM_BUTTON_HEIGHT / 2;
+  const gridTop = layout.gridStartY - layout.teamButtonHeight / 2;
   const gridRight = gridLeft + gridWidth;
-  const selectedTop = SELECTED_CARD_CENTER_Y - SELECTED_CARD_HEIGHT / 2;
+  const selectedTop = layout.selectedCardCenterY - layout.selectedCardHeight / 2;
   const team1SelectedCardRect = {
     x: gridLeft,
     y: selectedTop,
-    width: SELECTED_CARD_WIDTH,
-    height: SELECTED_CARD_HEIGHT
+    width: layout.selectedCardWidth,
+    height: layout.selectedCardHeight
   };
   const team2SelectedCardRect = {
-    x: gridRight - SELECTED_CARD_WIDTH,
+    x: gridRight - layout.selectedCardWidth,
     y: selectedTop,
-    width: SELECTED_CARD_WIDTH,
-    height: SELECTED_CARD_HEIGHT
+    width: layout.selectedCardWidth,
+    height: layout.selectedCardHeight
   };
   const vsPosition = {
     x: sceneWidth / 2,
-    y: SELECTED_CARD_CENTER_Y
+    y: layout.selectedCardCenterY
   };
 
   return {
@@ -84,43 +141,49 @@ export function createTeamScreenLayout(
       width: gridWidth,
       height: gridHeight
     },
+    teamGridColumns: layout.gridColumns,
+    teamButtonWidth: layout.teamButtonWidth,
+    teamButtonHeight: layout.teamButtonHeight,
+    teamGridGapX: layout.gridGapX,
+    teamGridGapY: layout.gridGapY,
+    teamGridStartY: layout.gridStartY,
     team1SelectedCardRect,
     team2SelectedCardRect,
     menuButtonRect: {
       x: gridLeft,
-      y: BOTTOM_BUTTON_CENTER_Y - BOTTOM_BUTTON_HEIGHT / 2,
-      width: MENU_BUTTON_WIDTH,
-      height: BOTTOM_BUTTON_HEIGHT
+      y: layout.bottomButtonCenterY - layout.bottomButtonHeight / 2,
+      width: layout.menuButtonWidth,
+      height: layout.bottomButtonHeight
     },
     startButtonRect: {
-      x: gridRight - START_BUTTON_WIDTH,
-      y: BOTTOM_BUTTON_CENTER_Y - BOTTOM_BUTTON_HEIGHT / 2,
-      width: START_BUTTON_WIDTH,
-      height: BOTTOM_BUTTON_HEIGHT
+      x: gridRight - layout.startButtonWidth,
+      y: layout.bottomButtonCenterY - layout.bottomButtonHeight / 2,
+      width: layout.startButtonWidth,
+      height: layout.bottomButtonHeight
     },
     team1CoverFanRect: {
-      x: team1SelectedCardRect.x + COVER_FAN_INSET_X,
-      y: team1SelectedCardRect.y + (team1SelectedCardRect.height - COVER_FAN_HEIGHT) / 2,
-      width: COVER_FAN_WIDTH,
-      height: COVER_FAN_HEIGHT
+      x: team1SelectedCardRect.x + layout.coverFanInsetX,
+      y: team1SelectedCardRect.y + (team1SelectedCardRect.height - layout.coverFanHeight) / 2,
+      width: layout.coverFanWidth,
+      height: layout.coverFanHeight
     },
     team2CoverFanRect: {
-      x: team2SelectedCardRect.x + COVER_FAN_INSET_X,
-      y: team2SelectedCardRect.y + (team2SelectedCardRect.height - COVER_FAN_HEIGHT) / 2,
-      width: COVER_FAN_WIDTH,
-      height: COVER_FAN_HEIGHT
+      x: team2SelectedCardRect.x + layout.coverFanInsetX,
+      y: team2SelectedCardRect.y + (team2SelectedCardRect.height - layout.coverFanHeight) / 2,
+      width: layout.coverFanWidth,
+      height: layout.coverFanHeight
     },
     team1KitPreviewRect: createCenteredRect(
       (team1SelectedCardRect.x + team1SelectedCardRect.width + vsPosition.x) / 2,
-      SELECTED_CARD_CENTER_Y,
-      KIT_PREVIEW_WIDTH,
-      KIT_PREVIEW_HEIGHT
+      layout.selectedCardCenterY,
+      layout.kitPreviewWidth,
+      layout.kitPreviewHeight
     ),
     team2KitPreviewRect: createCenteredRect(
       (vsPosition.x + team2SelectedCardRect.x) / 2,
-      SELECTED_CARD_CENTER_Y,
-      KIT_PREVIEW_WIDTH,
-      KIT_PREVIEW_HEIGHT
+      layout.selectedCardCenterY,
+      layout.kitPreviewWidth,
+      layout.kitPreviewHeight
     ),
     vsPosition
   };

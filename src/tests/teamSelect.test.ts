@@ -84,7 +84,8 @@ describe('quick match team selection AI controls', () => {
   it('keeps the 8-column country grid layout on one page', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('const TEAM_GRID_COLUMNS = TEAM_SCREEN_GRID_COLUMNS');
+    expect(source).toContain('layout.teamGridColumns');
+    expect(source).toContain('Math.ceil(NATIONAL_TEAMS.length / layout.teamGridColumns)');
     expect(source).not.toContain('page + 1');
     expect(source).not.toContain('1 / 2');
   });
@@ -92,7 +93,9 @@ describe('quick match team selection AI controls', () => {
   it('uses translucent black team cards with padded flags in the country grid', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('const TEAM_BUTTON_HEIGHT = TEAM_SCREEN_TEAM_BUTTON_HEIGHT + 6');
+    expect(source).toContain('const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6');
+    expect(source).toContain('const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET');
+    expect(source).toContain('layout.teamButtonWidth');
     expect(source).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
     expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = 0.36');
     expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52');
@@ -113,6 +116,7 @@ describe('quick match team selection AI controls', () => {
     const source = readTeamSelectSource();
 
     expect(source).toContain('createTeamScreenLayout()');
+    expect(source).toContain('this.createCountryGrid(layout.teamGridRect, layout)');
     expect(source).toContain('resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey');
     expect(source).toContain('private createSelectedTeamCoverFan');
     expect(source).toContain('const SELECTED_COVER_FAN_CARD_COUNT = 3');

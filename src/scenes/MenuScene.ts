@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
+import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
 const MENU_LAYOUT = {
@@ -19,6 +20,8 @@ const MENU_LAYOUT = {
   buttonMaxWidthRatio: 0.78,
   fallbackButtonWidthRatio: 0.72,
   fallbackButtonMaxWidth: 520,
+  mobileWideButtonWidthRatio: 0.9,
+  mobileWideButtonMaxWidth: 720,
   footerMargin: 24
 } as const;
 
@@ -598,14 +601,27 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private getMenuButtonWidth(): number {
+    const mobileWide = isMobileLandscapeLayout();
     const maxButtonWidth = this.scale.width * MENU_LAYOUT.buttonMaxWidthRatio;
+    const fallbackButtonWidth = Math.min(
+      this.scale.width * (mobileWide ? MENU_LAYOUT.mobileWideButtonWidthRatio : MENU_LAYOUT.fallbackButtonWidthRatio),
+      mobileWide ? MENU_LAYOUT.mobileWideButtonMaxWidth : MENU_LAYOUT.fallbackButtonMaxWidth
+    );
 
     if (this.logoImage !== null && this.logoImage.displayWidth > 0) {
+      if (mobileWide) {
+        return Phaser.Math.Clamp(
+          Math.max(this.logoImage.displayWidth, fallbackButtonWidth),
+          MENU_LAYOUT.buttonMinWidth,
+          maxButtonWidth
+        );
+      }
+
       return Phaser.Math.Clamp(this.logoImage.displayWidth, MENU_LAYOUT.buttonMinWidth, maxButtonWidth);
     }
 
     return Phaser.Math.Clamp(
-      Math.min(this.scale.width * MENU_LAYOUT.fallbackButtonWidthRatio, MENU_LAYOUT.fallbackButtonMaxWidth),
+      fallbackButtonWidth,
       MENU_LAYOUT.buttonMinWidth,
       maxButtonWidth
     );

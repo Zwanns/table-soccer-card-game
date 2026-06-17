@@ -12,25 +12,15 @@ import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '..
 import {
   createTeamScreenLayout,
   rectCenter,
-  type TeamScreenRect,
-  TEAM_SCREEN_GRID_COLUMNS,
-  TEAM_SCREEN_GRID_GAP_X,
-  TEAM_SCREEN_GRID_GAP_Y,
-  TEAM_SCREEN_GRID_START_Y,
-  TEAM_SCREEN_TEAM_BUTTON_HEIGHT,
-  TEAM_SCREEN_TEAM_BUTTON_WIDTH
+  type TeamScreenLayout,
+  type TeamScreenRect
 } from '../ui/teamScreenLayout';
 
 type TeamSlot = 1 | 2;
 
 const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
-const TEAM_GRID_COLUMNS = TEAM_SCREEN_GRID_COLUMNS;
-const TEAM_BUTTON_WIDTH = TEAM_SCREEN_TEAM_BUTTON_WIDTH;
-const TEAM_BUTTON_HEIGHT = TEAM_SCREEN_TEAM_BUTTON_HEIGHT + 6;
-const TEAM_GRID_GAP_X = TEAM_SCREEN_GRID_GAP_X;
-const TEAM_GRID_GAP_Y = TEAM_SCREEN_GRID_GAP_Y;
-const TEAM_GRID_START_Y = TEAM_SCREEN_GRID_START_Y;
+const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6;
 const SELECTED_COVER_FAN_CARD_COUNT = 3;
 const SELECTED_COVER_FAN_CARD_SCALE = 0.36;
 const SELECTED_COVER_FAN_OFFSETS = [-22, 0, 22] as const;
@@ -128,7 +118,7 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createCountryGrid(layout.teamGridRect);
+    this.createCountryGrid(layout.teamGridRect, layout);
 
     const menuCenter = rectCenter(layout.menuButtonRect);
     const startCenter = rectCenter(layout.startButtonRect);
@@ -239,32 +229,34 @@ export class TeamSelectScene extends Phaser.Scene {
     }
   }
 
-  private createCountryGrid(gridRect: TeamScreenRect): void {
-    const content = this.add.container(0, TEAM_GRID_VIEWPORT_TOP);
+  private createCountryGrid(gridRect: TeamScreenRect, layout: TeamScreenLayout): void {
+    const viewportTop = layout.teamGridStartY;
+    const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET;
+    const content = this.add.container(0, viewportTop);
     const viewportLeft = gridRect.x;
     const viewportWidth = gridRect.width;
-    const rowHeight = TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / TEAM_GRID_COLUMNS);
-    const contentHeight = rowCount * rowHeight - TEAM_GRID_GAP_Y;
+    const rowHeight = teamButtonHeight + layout.teamGridGapY;
+    const rowCount = Math.ceil(NATIONAL_TEAMS.length / layout.teamGridColumns);
+    const contentHeight = rowCount * rowHeight - layout.teamGridGapY;
     const maxScroll = Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT);
     const teamOptions: Phaser.GameObjects.Container[] = [];
     let teamGridScrollY = 0;
 
     const setScroll = (value: number): void => {
       teamGridScrollY = clampScroll(value, maxScroll);
-      content.y = TEAM_GRID_VIEWPORT_TOP - teamGridScrollY;
+      content.y = viewportTop - teamGridScrollY;
     };
 
-    const startX = gridRect.x + TEAM_BUTTON_WIDTH / 2;
+    const startX = gridRect.x + layout.teamButtonWidth / 2;
 
     NATIONAL_TEAMS.forEach((team, index) => {
-      const column = index % TEAM_GRID_COLUMNS;
-      const row = Math.floor(index / TEAM_GRID_COLUMNS);
+      const column = index % layout.teamGridColumns;
+      const row = Math.floor(index / layout.teamGridColumns);
       const option = this.createCountryOption(
-        startX + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
-        TEAM_BUTTON_HEIGHT / 2 + row * rowHeight,
-        TEAM_BUTTON_WIDTH,
-        TEAM_BUTTON_HEIGHT,
+        startX + column * (layout.teamButtonWidth + layout.teamGridGapX),
+        teamButtonHeight / 2 + row * rowHeight,
+        layout.teamButtonWidth,
+        teamButtonHeight,
         team
       );
 
@@ -278,20 +270,20 @@ export class TeamSelectScene extends Phaser.Scene {
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
-      .fillRect(viewportLeft, TEAM_GRID_VIEWPORT_TOP, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
+      .fillRect(viewportLeft, viewportTop, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
       .createGeometryMask();
     maskGraphics.setVisible(false);
     content.setMask(mask);
 
     const scrollZone = this.add
-      .zone(viewportLeft + viewportWidth / 2, TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
+      .zone(viewportLeft + viewportWidth / 2, viewportTop + TEAM_GRID_VIEWPORT_HEIGHT / 2, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
       .setInteractive({ useHandCursor: maxScroll > 0 })
       .setDepth(-10);
     const dragScroll = createDragScrollArea({
       scene: this,
       viewport: {
         x: viewportLeft,
-        y: TEAM_GRID_VIEWPORT_TOP,
+        y: viewportTop,
         width: viewportWidth,
         height: TEAM_GRID_VIEWPORT_HEIGHT
       },
@@ -316,12 +308,12 @@ export class TeamSelectScene extends Phaser.Scene {
 
     if (maxScroll > 0) {
       const trackX = viewportLeft + viewportWidth + 12;
-      const track = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2, 4, TEAM_GRID_VIEWPORT_HEIGHT, 0x5f9572, 0.28);
+      const track = this.add.rectangle(trackX, viewportTop + TEAM_GRID_VIEWPORT_HEIGHT / 2, 4, TEAM_GRID_VIEWPORT_HEIGHT, 0x5f9572, 0.28);
       const thumbHeight = Math.max(28, (TEAM_GRID_VIEWPORT_HEIGHT / contentHeight) * TEAM_GRID_VIEWPORT_HEIGHT);
-      const thumb = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+      const thumb = this.add.rectangle(trackX, viewportTop + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
 
       const updateThumb = (): void => {
-        thumb.y = TEAM_GRID_VIEWPORT_TOP + thumbHeight / 2 + (teamGridScrollY / maxScroll) * (TEAM_GRID_VIEWPORT_HEIGHT - thumbHeight);
+        thumb.y = viewportTop + thumbHeight / 2 + (teamGridScrollY / maxScroll) * (TEAM_GRID_VIEWPORT_HEIGHT - thumbHeight);
         dragScroll.updateScrollableItemInputs(content, teamOptions);
       };
 

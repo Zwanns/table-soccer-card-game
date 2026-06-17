@@ -175,7 +175,9 @@ describe('project scaffold', () => {
   it('matches main menu and game mode button widths to the scoreboard logo', () => {
     const menuSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
 
+    expect(menuSceneSource).toContain("import { isMobileLandscapeLayout } from '../ui/mobileLayout'");
     expect(menuSceneSource).toContain('private getMenuButtonWidth(): number');
+    expect(menuSceneSource).toContain('const mobileWide = isMobileLandscapeLayout()');
     expect(menuSceneSource).toContain('this.logoImage.displayWidth');
     expect(menuSceneSource).toContain('Phaser.Math.Clamp(this.logoImage.displayWidth');
     expect(menuSceneSource).toContain('this.scale.width * MENU_LAYOUT.buttonMaxWidthRatio');
@@ -184,6 +186,9 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('private getMenuButtonOptions(width: number)');
     expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonWidthRatio');
     expect(menuSceneSource).toContain('MENU_LAYOUT.fallbackButtonMaxWidth');
+    expect(menuSceneSource).toContain('MENU_LAYOUT.mobileWideButtonWidthRatio');
+    expect(menuSceneSource).toContain('MENU_LAYOUT.mobileWideButtonMaxWidth');
+    expect(menuSceneSource).toContain('Math.max(this.logoImage.displayWidth, fallbackButtonWidth)');
     expect(menuSceneSource.match(/const buttonWidth = this\.getMenuButtonWidth\(\);/g)?.length).toBe(2);
     expect(menuSceneSource.match(/buttonOptions/g)?.length).toBeGreaterThanOrEqual(8);
     expect(menuSceneSource).toContain('height: MENU_LAYOUT.buttonHeight');
