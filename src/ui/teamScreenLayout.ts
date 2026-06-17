@@ -13,7 +13,19 @@ export interface TeamScreenRect {
   height: number;
 }
 
+export type TeamScreenControllerToggleOrientation = 'horizontal' | 'vertical';
+
+export interface TeamScreenControllerToggleLayout {
+  orientation: TeamScreenControllerToggleOrientation;
+  width: number;
+  height: number;
+  insetX: number;
+  insetY: number;
+  fontSize: string;
+}
+
 export interface TeamScreenLayout {
+  mobileWide: boolean;
   teamGridRect: TeamScreenRect;
   teamGridColumns: number;
   teamButtonWidth: number;
@@ -29,6 +41,9 @@ export interface TeamScreenLayout {
   team2CoverFanRect: TeamScreenRect;
   team1KitPreviewRect: TeamScreenRect;
   team2KitPreviewRect: TeamScreenRect;
+  team1ControllerToggleRect: TeamScreenRect;
+  team2ControllerToggleRect: TeamScreenRect;
+  controllerToggle: TeamScreenControllerToggleLayout;
   vsPosition: TeamScreenPoint;
 }
 
@@ -60,6 +75,7 @@ interface TeamSelectLayoutConfig {
   coverFanInsetX: number;
   kitPreviewWidth: number;
   kitPreviewHeight: number;
+  controllerToggle: TeamScreenControllerToggleLayout;
 }
 
 export interface TeamScreenLayoutOptions {
@@ -87,7 +103,15 @@ const DESKTOP_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
   coverFanHeight: 68,
   coverFanInsetX: 18,
   kitPreviewWidth: 70,
-  kitPreviewHeight: 90
+  kitPreviewHeight: 90,
+  controllerToggle: {
+    orientation: 'horizontal',
+    width: 90,
+    height: 22,
+    insetX: 8,
+    insetY: 8,
+    fontSize: '12px'
+  }
 };
 
 const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
@@ -96,7 +120,15 @@ const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
   gridGapX: 12,
   selectedCardWidth: 480,
   menuButtonWidth: 240,
-  startButtonWidth: 300
+  startButtonWidth: 300,
+  controllerToggle: {
+    orientation: 'vertical',
+    width: 62,
+    height: 52,
+    insetX: 10,
+    insetY: 10,
+    fontSize: '12px'
+  }
 };
 
 export function createTeamScreenLayout(
@@ -104,7 +136,8 @@ export function createTeamScreenLayout(
 ): TeamScreenLayout {
   const sceneWidth = options.sceneWidth ?? SCENE_WIDTH;
   const sceneHeight = options.sceneHeight ?? SCENE_HEIGHT;
-  const layout = (options.mobileWide ?? isMobileLandscapeLayout())
+  const mobileWide = options.mobileWide ?? isMobileLandscapeLayout();
+  const layout = mobileWide
     ? MOBILE_WIDE_TEAM_SELECT_LAYOUT
     : DESKTOP_TEAM_SELECT_LAYOUT;
   const gridWidth =
@@ -135,6 +168,7 @@ export function createTeamScreenLayout(
   };
 
   return {
+    mobileWide,
     teamGridRect: {
       x: gridLeft,
       y: gridTop,
@@ -185,6 +219,9 @@ export function createTeamScreenLayout(
       layout.kitPreviewWidth,
       layout.kitPreviewHeight
     ),
+    team1ControllerToggleRect: createControllerToggleRect(team1SelectedCardRect, layout.controllerToggle),
+    team2ControllerToggleRect: createControllerToggleRect(team2SelectedCardRect, layout.controllerToggle),
+    controllerToggle: layout.controllerToggle,
     vsPosition
   };
 }
@@ -210,5 +247,17 @@ function createCenteredRect(x: number, y: number, width: number, height: number)
     y: y - height / 2,
     width,
     height
+  };
+}
+
+function createControllerToggleRect(
+  selectedCardRect: TeamScreenRect,
+  toggleLayout: TeamScreenControllerToggleLayout
+): TeamScreenRect {
+  return {
+    x: rectRight(selectedCardRect) - toggleLayout.insetX - toggleLayout.width,
+    y: rectBottom(selectedCardRect) - toggleLayout.insetY - toggleLayout.height,
+    width: toggleLayout.width,
+    height: toggleLayout.height
   };
 }

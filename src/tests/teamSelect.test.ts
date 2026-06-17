@@ -54,9 +54,9 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('.text(centerX, 34');
     expect(source).not.toContain('GAME_TITLE');
     expect(source).toContain("this.mode === 'penalty' ? 'Start penalties' : 'Start'");
-    expect(source).toContain('this.createSelectedPanel(layout.team1SelectedCardRect');
-    expect(source).toContain('this.createSelectedPanel(layout.team2SelectedCardRect');
-    expect(source).toContain('this.addControllerToggle(panel');
+    expect(source).toContain('layout.team1SelectedCardRect');
+    expect(source).toContain('layout.team2SelectedCardRect');
+    expect(source).toContain('this.addControllerToggle(');
     expect(source).toContain("'Player'");
     expect(source).toContain("'AI'");
     expect(source).toContain("export const DEFAULT_QUICK_MATCH_CONTROLLER_TYPE: PlayerControllerType = 'HUMAN'");
@@ -68,9 +68,24 @@ describe('quick match team selection AI controls', () => {
     const source = readTeamSelectSource();
 
     expect(source).toContain('private addControllerToggle');
+    expect(source).toContain('private addVerticalControllerToggle');
     expect(source).toContain('event.stopPropagation()');
     expect(source).toContain('toggle.setSize(width, height)');
     expect(source).toContain('this.toggleControllerType(slot)');
+    expect(source).toContain("this.setControllerType(slot, 'HUMAN')");
+    expect(source).toContain("this.setControllerType(slot, 'AI')");
+  });
+
+  it('uses mobile layout toggle geometry without changing the desktop toggle branch', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain('layout.team1ControllerToggleRect');
+    expect(source).toContain('layout.team2ControllerToggleRect');
+    expect(source).toContain('layout.controllerToggle');
+    expect(source).toContain("if (toggleLayout.orientation === 'vertical')");
+    expect(source).toContain('const textWidth = layout.mobileWide');
+    expect(source).toContain('const segmentWidth = width / 2');
+    expect(source).toContain('const segmentHeight = height / 2');
   });
 
   it('places selected team labels above panels aligned to panel left edges', () => {

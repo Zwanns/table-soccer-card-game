@@ -12,6 +12,7 @@ import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '..
 import {
   createTeamScreenLayout,
   rectCenter,
+  type TeamScreenControllerToggleLayout,
   type TeamScreenLayout,
   type TeamScreenRect
 } from '../ui/teamScreenLayout';
@@ -26,10 +27,6 @@ const SELECTED_COVER_FAN_CARD_SCALE = 0.36;
 const SELECTED_COVER_FAN_OFFSETS = [-22, 0, 22] as const;
 const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
-const CONTROLLER_TOGGLE_WIDTH = 90;
-const CONTROLLER_TOGGLE_HEIGHT = 22;
-const CONTROLLER_TOGGLE_INSET_X = 8;
-const CONTROLLER_TOGGLE_INSET_Y = 8;
 const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
 const TRANSLUCENT_CARD_BACKGROUND = 0x000000;
@@ -104,8 +101,24 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createSelectedPanel(layout.team1SelectedCardRect, layout.team1CoverFanRect, 'Team 1', this.getSelectedTeam(1), 1);
-    this.createSelectedPanel(layout.team2SelectedCardRect, layout.team2CoverFanRect, 'Team 2', this.getSelectedTeam(2), 2);
+    this.createSelectedPanel(
+      layout.team1SelectedCardRect,
+      layout.team1CoverFanRect,
+      layout.team1ControllerToggleRect,
+      layout,
+      'Team 1',
+      this.getSelectedTeam(1),
+      1
+    );
+    this.createSelectedPanel(
+      layout.team2SelectedCardRect,
+      layout.team2CoverFanRect,
+      layout.team2ControllerToggleRect,
+      layout,
+      'Team 2',
+      this.getSelectedTeam(2),
+      2
+    );
     this.createTeamKitPreview(layout.team1KitPreviewRect, this.getSelectedTeam(1));
     this.createTeamKitPreview(layout.team2KitPreviewRect, this.getSelectedTeam(2));
 
@@ -143,6 +156,8 @@ export class TeamSelectScene extends Phaser.Scene {
   private createSelectedPanel(
     rect: TeamScreenRect,
     coverFanRect: TeamScreenRect,
+    controllerToggleRect: TeamScreenRect,
+    layout: TeamScreenLayout,
     title: string,
     team: NationalTeam,
     slot: TeamSlot
@@ -156,6 +171,10 @@ export class TeamSelectScene extends Phaser.Scene {
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
     const fan = this.createSelectedTeamCoverFan(coverFanCenter.x - center.x, coverFanCenter.y - center.y, coverTextureKey);
     const textX = coverFanRect.x + coverFanRect.width - center.x + 18;
+    const textWidth = layout.mobileWide
+      ? Math.max(160, controllerToggleRect.x - (center.x + textX) - 14)
+      : 260;
+    const controllerToggleCenter = rectCenter(controllerToggleRect);
 
     const slotLabel = this.add
       .text(rect.x, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
@@ -173,16 +192,18 @@ export class TeamSelectScene extends Phaser.Scene {
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
         fontStyle: '700',
-        wordWrap: { width: 260 }
+        wordWrap: { width: textWidth }
       })
       .setOrigin(0, 0.5);
 
     panel.add([background, fan, teamText]);
     slotLabel.setDepth(1);
-    this.addControllerToggle(panel,
-      rect.width / 2 - CONTROLLER_TOGGLE_WIDTH / 2 - CONTROLLER_TOGGLE_INSET_X,
-      rect.height / 2 - CONTROLLER_TOGGLE_HEIGHT / 2 - CONTROLLER_TOGGLE_INSET_Y,
-      slot
+    this.addControllerToggle(
+      panel,
+      controllerToggleCenter.x - center.x,
+      controllerToggleCenter.y - center.y,
+      slot,
+      layout.controllerToggle
     );
     panel.setSize(rect.width, rect.height);
     panel.setInteractive({ useHandCursor: true });
@@ -395,12 +416,24 @@ export class TeamSelectScene extends Phaser.Scene {
     this.render();
   }
 
-  private addControllerToggle(parent: Phaser.GameObjects.Container, x: number, y: number, slot: TeamSlot): void {
+  private addControllerToggle(
+    parent: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    slot: TeamSlot,
+    toggleLayout: TeamScreenControllerToggleLayout
+  ): void {
     const controllerType = this.getControllerType(slot);
     const isAi = controllerType === 'AI';
     const toggle = this.add.container(x, y);
-    const width = CONTROLLER_TOGGLE_WIDTH;
-    const height = CONTROLLER_TOGGLE_HEIGHT;
+    const width = toggleLayout.width;
+    const height = toggleLayout.height;
+
+    if (toggleLayout.orientation === 'vertical') {
+      this.addVerticalControllerToggle(parent, toggle, width, height, toggleLayout.fontSize, slot, isAi);
+      return;
+    }
+
     const segmentWidth = width / 2;
     const background = this.add.rectangle(0, 0, width, height, 0x143f2c, 0.92);
     const activeSegment = this.add.rectangle(isAi ? segmentWidth / 2 : -segmentWidth / 2, 0, segmentWidth - 4, height - 4, 0xf0c95a, 1);
@@ -409,7 +442,7 @@ export class TeamSelectScene extends Phaser.Scene {
         align: 'center',
         color: isAi ? '#d9eadf' : '#1f2a2e',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
+        fontSize: toggleLayout.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -418,7 +451,7 @@ export class TeamSelectScene extends Phaser.Scene {
         align: 'center',
         color: isAi ? '#1f2a2e' : '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
+        fontSize: toggleLayout.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -449,11 +482,74 @@ export class TeamSelectScene extends Phaser.Scene {
     parent.add(toggle);
   }
 
+  private addVerticalControllerToggle(
+    parent: Phaser.GameObjects.Container,
+    toggle: Phaser.GameObjects.Container,
+    width: number,
+    height: number,
+    fontSize: string,
+    slot: TeamSlot,
+    isAi: boolean
+  ): void {
+    const segmentHeight = height / 2;
+    const playerSegment = this.add.rectangle(0, -segmentHeight / 2, width, segmentHeight, isAi ? 0x143f2c : 0xf0c95a, 0.96);
+    const aiSegment = this.add.rectangle(0, segmentHeight / 2, width, segmentHeight, isAi ? 0xf0c95a : 0x143f2c, 0.96);
+    const border = this.add.rectangle(0, 0, width, height, 0x143f2c, 0);
+    const playerLabel = this.add
+      .text(0, -segmentHeight / 2, 'Player', {
+        align: 'center',
+        color: isAi ? '#d9eadf' : '#1f2a2e',
+        fontFamily: 'Arial, sans-serif',
+        fontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+    const aiLabel = this.add
+      .text(0, segmentHeight / 2, 'AI', {
+        align: 'center',
+        color: isAi ? '#1f2a2e' : '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+    playerSegment.setInteractive({ useHandCursor: true });
+    aiSegment.setInteractive({ useHandCursor: true });
+    playerSegment.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.setControllerType(slot, 'HUMAN');
+    });
+    aiSegment.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.setControllerType(slot, 'AI');
+    });
+    playerSegment.on('pointerover', () => border.setStrokeStyle(2, 0xffd978, 1));
+    aiSegment.on('pointerover', () => border.setStrokeStyle(2, 0xffd978, 1));
+    playerSegment.on('pointerout', () => border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98));
+    aiSegment.on('pointerout', () => border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98));
+
+    toggle.add([playerSegment, aiSegment, border, playerLabel, aiLabel]);
+    toggle.setSize(width, height);
+    parent.add(toggle);
+  }
+
   private toggleControllerType(slot: TeamSlot): void {
     if (slot === 1) {
       this.player1ControllerType = toggleQuickMatchControllerType(this.player1ControllerType);
     } else {
       this.player2ControllerType = toggleQuickMatchControllerType(this.player2ControllerType);
+    }
+
+    this.render();
+  }
+
+  private setControllerType(slot: TeamSlot, controllerType: PlayerControllerType): void {
+    if (slot === 1) {
+      this.player1ControllerType = controllerType;
+    } else {
+      this.player2ControllerType = controllerType;
     }
 
     this.render();

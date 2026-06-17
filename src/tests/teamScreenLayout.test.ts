@@ -40,9 +40,18 @@ describe('team selection screen layout', () => {
     expect(TEAM_SCREEN_TEAM_BUTTON_WIDTH).toBe(168);
     expect(TEAM_SCREEN_TEAM_BUTTON_HEIGHT).toBe(52);
     expect(layout.teamGridRect.width).toBe(expectedGridWidth);
+    expect(layout.mobileWide).toBe(false);
     expect(layout.teamGridColumns).toBe(TEAM_SCREEN_GRID_COLUMNS);
     expect(layout.teamButtonWidth).toBe(TEAM_SCREEN_TEAM_BUTTON_WIDTH);
     expect(layout.teamButtonHeight).toBe(TEAM_SCREEN_TEAM_BUTTON_HEIGHT);
+    expect(layout.controllerToggle).toMatchObject({
+      orientation: 'horizontal',
+      width: 90,
+      height: 22,
+      insetX: 8,
+      insetY: 8,
+      fontSize: '12px'
+    });
     expect(rectRight(layout.teamGridRect)).toBeLessThanOrEqual(SCENE_WIDTH);
     expect(rectBottom(layout.teamGridRect)).toBeLessThanOrEqual(SCENE_HEIGHT);
   });
@@ -58,7 +67,9 @@ describe('team selection screen layout', () => {
       layout.team1CoverFanRect,
       layout.team2CoverFanRect,
       layout.team1KitPreviewRect,
-      layout.team2KitPreviewRect
+      layout.team2KitPreviewRect,
+      layout.team1ControllerToggleRect,
+      layout.team2ControllerToggleRect
     ];
 
     for (const rect of rects) {
@@ -74,6 +85,7 @@ describe('team selection screen layout', () => {
     const mobileLayout = createTeamScreenLayout({ mobileWide: true });
 
     expect(mobileLayout.teamGridRect.width).toBeGreaterThan(desktopLayout.teamGridRect.width);
+    expect(mobileLayout.mobileWide).toBe(true);
     expect(mobileLayout.teamGridRect.x).toBeLessThan(desktopLayout.teamGridRect.x);
     expect(rectRight(mobileLayout.teamGridRect)).toBeGreaterThan(rectRight(desktopLayout.teamGridRect));
     expect(mobileLayout.teamButtonWidth).toBeGreaterThan(desktopLayout.teamButtonWidth);
@@ -81,6 +93,53 @@ describe('team selection screen layout', () => {
     expect(mobileLayout.teamGridRect.x).toBeGreaterThanOrEqual(0);
     expect(rectRight(mobileLayout.teamGridRect)).toBeLessThanOrEqual(SCENE_WIDTH);
     expect(rectBottom(mobileLayout.teamGridRect)).toBeLessThanOrEqual(SCENE_HEIGHT);
+  });
+
+  it('uses a vertical mobile controller toggle while keeping desktop horizontal', () => {
+    const desktopLayout = createTeamScreenLayout({ mobileWide: false });
+    const mobileLayout = createTeamScreenLayout({ mobileWide: true });
+
+    expect(desktopLayout.controllerToggle.orientation).toBe('horizontal');
+    expect(mobileLayout.controllerToggle).toMatchObject({
+      orientation: 'vertical',
+      width: 62,
+      height: 52,
+      insetX: 10,
+      insetY: 10,
+      fontSize: '12px'
+    });
+    expect(mobileLayout.controllerToggle.height).toBeGreaterThan(desktopLayout.controllerToggle.height);
+  });
+
+  it('keeps mobile controller toggles inside selected cards and pinned to the right edge', () => {
+    const layout = createTeamScreenLayout({ mobileWide: true });
+    const toggles = [
+      { card: layout.team1SelectedCardRect, toggle: layout.team1ControllerToggleRect },
+      { card: layout.team2SelectedCardRect, toggle: layout.team2ControllerToggleRect }
+    ];
+
+    for (const { card, toggle } of toggles) {
+      expect(toggle.x).toBeGreaterThanOrEqual(card.x);
+      expect(toggle.y).toBeGreaterThanOrEqual(card.y);
+      expect(rectRight(toggle)).toBe(rectRight(card) - layout.controllerToggle.insetX);
+      expect(rectBottom(toggle)).toBe(rectBottom(card) - layout.controllerToggle.insetY);
+      expect(rectRight(toggle)).toBeLessThanOrEqual(rectRight(card));
+      expect(rectBottom(toggle)).toBeLessThanOrEqual(rectBottom(card));
+    }
+
+    expect(layout.team1ControllerToggleRect.width).toBe(layout.team2ControllerToggleRect.width);
+    expect(layout.team1ControllerToggleRect.height).toBe(layout.team2ControllerToggleRect.height);
+    expect(layout.team1ControllerToggleRect.x - layout.team1SelectedCardRect.x)
+      .toBe(layout.team2ControllerToggleRect.x - layout.team2SelectedCardRect.x);
+  });
+
+  it('keeps mobile controller toggles clear of the central VS and kit area', () => {
+    const layout = createTeamScreenLayout({ mobileWide: true });
+
+    expect(rectRight(layout.team1ControllerToggleRect)).toBeLessThan(layout.team1KitPreviewRect.x);
+    expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(rectRight(layout.team2CoverFanRect));
+    expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(layout.vsPosition.x);
+    expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(rectRight(layout.team2KitPreviewRect));
   });
 
   it('aligns mobile landscape bottom buttons to the wider grid without overlapping the visible grid viewport', () => {
