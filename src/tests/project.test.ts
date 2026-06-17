@@ -1,8 +1,40 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+
+const SOURCE_FILE_EXTENSIONS = new Set(['.css', '.html', '.ts']);
+
+function collectProjectSourceFiles(directory: string): string[] {
+  const entries = readdirSync(directory, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name === 'tests') {
+        continue;
+      }
+
+      files.push(...collectProjectSourceFiles(fullPath));
+      continue;
+    }
+
+    if (entry.isFile() && SOURCE_FILE_EXTENSIONS.has(fullPath.slice(fullPath.lastIndexOf('.')))) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function readProductionSource(): string {
+  const sourceFiles = [join(process.cwd(), 'index.html'), ...collectProjectSourceFiles(join(process.cwd(), 'src'))];
+
+  return sourceFiles.map((sourceFile) => readFileSync(sourceFile, 'utf8')).join('\n');
+}
 
 describe('project scaffold', () => {
   it('uses the required game title', () => {
@@ -23,6 +55,41 @@ describe('project scaffold', () => {
 
     expect(gameSceneSource).not.toContain("'OUT'");
     expect(gameSceneSource).not.toContain('"OUT"');
+  });
+
+  it('shows a mobile portrait orientation overlay from static bootstrap markup', () => {
+    const indexSource = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
+    const stylesSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
+
+    expect(indexSource).toContain('id="orientation-overlay"');
+    expect(indexSource).toContain('hidden role="status"');
+    expect(indexSource).toContain('Please rotate your device');
+    expect(indexSource).toContain('Use landscape mode');
+    expect(indexSource).toContain("window.matchMedia('(pointer: coarse)').matches");
+    expect(indexSource).toContain("window.addEventListener('resize', updateOrientationOverlay)");
+    expect(indexSource).toContain("window.addEventListener('orientationchange', updateOrientationOverlay)");
+    expect(indexSource).toContain("window.addEventListener('DOMContentLoaded', updateOrientationOverlay, { once: true })");
+    expect(stylesSource).toContain('#orientation-overlay');
+    expect(stylesSource).toContain('#orientation-overlay[hidden]');
+    expect(stylesSource).toContain('touch-action: none');
+  });
+
+  it('keeps mobile orientation handling away from forced locks and viewport resize hooks', () => {
+    const productionSource = readProductionSource();
+    const forcedOrientationLock = ['screen', 'orientation', 'lock'].join('.');
+    const visualViewportResize = ['visualViewport', 'resize'].join('.');
+
+    expect(productionSource).not.toContain(forcedOrientationLock);
+    expect(productionSource).not.toContain(visualViewportResize);
+  });
+
+  it('does not add manual canvas CSS sizing or transforms', () => {
+    const stylesSource = readFileSync(join(process.cwd(), 'src', 'styles', 'main.css'), 'utf8');
+    const canvasRules = stylesSource.match(/(?:^|})\s*[^{}]*canvas[^{}]*\{[^}]*\}/g) ?? [];
+
+    expect(canvasRules).toEqual([]);
+    expect(stylesSource).not.toMatch(/canvas[^{}]*\{[^}]*(?:width|height|transform)\s*:/);
+    expect(stylesSource).not.toMatch(/canvas[^{}]*\{[^}]*scale\s*\(/);
   });
 
   it('prepares the main menu asset folder and architecture', () => {

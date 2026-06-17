@@ -9,7 +9,44 @@
   <body>
     <main id="app">
       <div id="game-container"></div>
+      <div id="orientation-overlay" hidden role="status" aria-live="polite">
+        <div class="orientation-overlay__card">
+          <div class="orientation-overlay__icon" aria-hidden="true">&#8635;</div>
+          <div class="orientation-overlay__title">Please rotate your device</div>
+          <div class="orientation-overlay__text">Use landscape mode</div>
+        </div>
+      </div>
     </main>
+    <script>
+      (() => {
+        const updateOrientationOverlay = () => {
+          const overlay = document.getElementById('orientation-overlay');
+
+          if (!overlay) {
+            return;
+          }
+
+          const isMobileLikeDevice =
+            window.matchMedia('(pointer: coarse)').matches ||
+            'ontouchstart' in window ||
+            navigator.maxTouchPoints > 0;
+          const isPortrait = window.innerHeight > window.innerWidth;
+
+          overlay.hidden = !(isMobileLikeDevice && isPortrait);
+        };
+
+        window.addEventListener('resize', updateOrientationOverlay);
+        window.addEventListener('orientationchange', updateOrientationOverlay);
+
+        if (document.readyState === 'loading') {
+          window.addEventListener('DOMContentLoaded', updateOrientationOverlay, { once: true });
+        } else {
+          updateOrientationOverlay();
+        }
+
+        window.setTimeout(updateOrientationOverlay, 100);
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
