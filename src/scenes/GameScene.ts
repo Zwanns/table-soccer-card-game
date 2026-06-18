@@ -120,6 +120,10 @@ interface AttackAnimationContext {
   defenderId: Player['id'];
   positionId: FieldPositionId;
   attackerCard: Card;
+  defenderCard: FieldCard;
+  defenderCardColor: Player['teamColor'] | Card['color'];
+  defenderKitTextureKey?: string;
+  defenderProfile?: CardPlayerProfile;
   startX?: number;
   startY?: number;
   attackerKitTextureKey?: string;
@@ -979,15 +983,38 @@ export class GameScene extends Phaser.Scene {
       return null;
     }
 
-    if (defender.field[positionId] === null) {
+    const defenderCard = defender.field[positionId];
+
+    if (defenderCard === null) {
       return null;
     }
+
+    const defenderSetup = state.matchSetups[defender.id];
+    const defenderIsGoalkeeper = positionId === 'goalkeeper';
 
     return {
       attackerId: attacker.id,
       defenderId: defender.id,
       positionId,
       attackerCard: { ...state.attackCard },
+      defenderCard: { ...defenderCard },
+      defenderCardColor: defenderIsGoalkeeper ? defender.teamColor : (defenderCard as Card).color,
+      defenderKitTextureKey:
+        defenderSetup === undefined
+          ? undefined
+          : defenderIsGoalkeeper
+            ? getGoalkeeperKitAssetKey(defenderSetup.goalkeeperKitId)
+            : getTeamKitAssetKey(defenderSetup.flagCode),
+      defenderProfile:
+        defenderSetup === undefined
+          ? undefined
+          : defenderIsGoalkeeper
+            ? createGoalkeeperCardProfile(
+                defenderSetup.flagCode,
+                getStartingGoalkeeper(defenderSetup),
+                (defenderCard as GoalkeeperCard).rank
+              )
+            : resolveFieldCardProfile(state, defender, defenderCard as Card),
       attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
       attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
     };
@@ -1003,8 +1030,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     const attackerCard = attacker.field[positionId];
+    const defenderCard = defender.field[positionId];
 
-    if (attackerCard === null || defender.field[positionId] === null) {
+    if (attackerCard === null || defenderCard === null) {
       return null;
     }
 
@@ -1015,6 +1043,10 @@ export class GameScene extends Phaser.Scene {
       defenderId: defender.id,
       positionId,
       attackerCard: { ...attackerCard },
+      defenderCard: { ...defenderCard },
+      defenderCardColor: (defenderCard as Card).color,
+      defenderKitTextureKey: resolveFieldKitTextureKey(state, defender),
+      defenderProfile: resolveFieldCardProfile(state, defender, defenderCard as Card),
       startX: start.x,
       startY: start.y,
       attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
@@ -1036,6 +1068,8 @@ export class GameScene extends Phaser.Scene {
       defenderId: defender.id,
       positionId,
       attackerCard: { ...state.attackCard },
+      defenderCard: { ...state.attackCard },
+      defenderCardColor: attacker.teamColor,
       attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
       attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
     };
@@ -1133,14 +1167,39 @@ export class GameScene extends Phaser.Scene {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
 
     this.playShotSourceKick(state, context, start, () => {
+      const beatenGoalkeeperCard = this.createBeatenGoalkeeperCard(context, target, outcome);
+
       this.animateBallFlightToGoalkeeper({
         start,
         target,
         activeOnLeft: context.attackerId === state.players[0].id,
+        beatenGoalkeeperCard,
         outcome,
         onComplete
       });
     });
+  }
+
+  private createBeatenGoalkeeperCard(
+    context: AttackAnimationContext,
+    target: { x: number; y: number },
+    outcome: GoalkeeperShotAnimationOutcome
+  ): CardView | null {
+    if (outcome !== 'goal') {
+      return null;
+    }
+
+    const card = new CardView(this, target.x, target.y, {
+      rank: context.defenderCard.rank,
+      color: context.defenderCardColor,
+      kitTextureKey: context.defenderKitTextureKey,
+      label: 'GK',
+      playerProfile: context.defenderProfile,
+      tooltipEnabled: false
+    });
+    card.setDepth(850);
+
+    return card;
   }
 
   private playShotSourceKick(
@@ -1189,6 +1248,7 @@ export class GameScene extends Phaser.Scene {
     start: { x: number; y: number };
     target: { x: number; y: number };
     activeOnLeft: boolean;
+    beatenGoalkeeperCard: CardView | null;
     outcome: GoalkeeperShotAnimationOutcome;
     onComplete: () => void;
   }): void {
@@ -1230,6 +1290,7 @@ export class GameScene extends Phaser.Scene {
               options.target,
               options.outcome,
               options.activeOnLeft,
+              options.beatenGoalkeeperCard,
               baseScaleX,
               baseScaleY,
               options.onComplete
@@ -1244,12 +1305,14 @@ export class GameScene extends Phaser.Scene {
     target: { x: number; y: number },
     outcome: GoalkeeperShotAnimationOutcome,
     activeOnLeft: boolean,
+    beatenGoalkeeperCard: CardView | null,
     baseScaleX: number,
     baseScaleY: number,
     onComplete: () => void
   ): void {
     this.showGoalkeeperShotTargetImpact(target, outcome);
     this.playGoalkeeperImpactSound('goalkeeper', outcome);
+    this.animateBeatenGoalkeeperCard(beatenGoalkeeperCard, activeOnLeft);
 
     const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
@@ -1266,6 +1329,22 @@ export class GameScene extends Phaser.Scene {
         ball.destroy();
         onComplete();
       }
+    });
+  }
+
+  private animateBeatenGoalkeeperCard(card: CardView | null, activeOnLeft: boolean): void {
+    if (card === null) {
+      return;
+    }
+
+    this.tweens.add({
+      targets: card,
+      x: card.x + (activeOnLeft ? 8 : -8),
+      scale: 1.04,
+      alpha: 0,
+      duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS,
+      ease: 'Sine.easeOut',
+      onComplete: () => card.destroy()
     });
   }
 

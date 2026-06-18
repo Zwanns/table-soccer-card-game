@@ -400,4 +400,22 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {");
     expect(source).toContain('this.playGoalkeeperImpactSound(\'goalkeeper\', outcome);');
   });
+
+  it('animates a beaten goalkeeper card for goal shot outcome', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('defenderCard: FieldCard');
+    expect(source).toContain('defenderCardColor: Player[\'teamColor\'] | Card[\'color\']');
+    expect(source).toContain('const beatenGoalkeeperCard = this.createBeatenGoalkeeperCard(context, target, outcome);');
+    expect(source).toContain('private createBeatenGoalkeeperCard(');
+    expect(source).toContain("if (outcome !== 'goal') {\n      return null;\n    }");
+    expect(source).toContain('rank: context.defenderCard.rank');
+    expect(source).toContain("label: 'GK'");
+    expect(source).toContain('tooltipEnabled: false');
+    expect(source).toContain('this.animateBeatenGoalkeeperCard(beatenGoalkeeperCard, activeOnLeft);');
+    expect(source).toContain('private animateBeatenGoalkeeperCard(card: CardView | null, activeOnLeft: boolean): void');
+    expect(source).toContain('x: card.x + (activeOnLeft ? 8 : -8)');
+    expect(source).toContain('onComplete: () => card.destroy()');
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
+  });
 });
