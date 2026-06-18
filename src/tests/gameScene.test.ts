@@ -15,6 +15,12 @@ describe('GameScene visual layout contracts', () => {
     const source = readSource('src/ui/DeckView.ts');
 
     expect(source).toContain('export const DECK_MARKER_BOUNCE_HEIGHT = 24');
+    expect(source).toContain('const DECK_MARKER_DECK_OVERLAP_RATIO = 1 / 3');
+    expect(source).toContain("const markerSide = options.countSide ?? 'right'");
+    expect(source).toContain("const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2");
+    expect(source).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
+    expect(source).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
+    expect(source).toContain('const marker = scene.add.image(markerX, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, \'turn-ball\')');
     expect(source).toContain('scene.tweens.chain');
     expect(source).toContain("ease: 'Quad.easeOut'");
     expect(source).toContain("ease: 'Quad.easeIn'");
@@ -24,6 +30,33 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('Phaser.Scenes.Events.SHUTDOWN');
     expect(source).not.toContain("ease: 'Sine.easeInOut'");
     expect(source).not.toContain('repeat: -1');
+  });
+
+  it('positions the active deck ball beside the active deck with one-third horizontal overlap', () => {
+    const deckSource = readSource('src/ui/DeckView.ts');
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+
+    expect(gameSceneSource).toContain("state.players[0],\n        'right',");
+    expect(gameSceneSource).toContain("state.players[1],\n        'left',");
+
+    const deckStackScaleMatch = deckSource.match(/const DECK_STACK_SCALE = ([\d.]+);/);
+    const markerSizeMatch = deckSource.match(/const DECK_MARKER_SIZE = (\d+);/);
+
+    expect(deckSource).toContain('const DECK_WIDTH = CARD_WIDTH');
+    expect(deckStackScaleMatch).not.toBeNull();
+    expect(markerSizeMatch).not.toBeNull();
+
+    const deckStackScale = Number(deckStackScaleMatch![1]);
+    const markerSize = Number(markerSizeMatch![1]);
+    const markerOverlap = markerSize / 3;
+
+    expect(deckStackScale).toBe(1.12);
+    expect(markerSize).toBe(34);
+    expect(markerOverlap).toBeCloseTo(11.33, 2);
+    expect(deckSource).toContain("markerSide === 'right'");
+    expect(deckSource).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
+    expect(deckSource).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
+    expect(deckSource).not.toContain("scene.add.image(0, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, 'turn-ball')");
   });
 
   it('shows the deck count below a slightly enlarged deck stack', () => {
