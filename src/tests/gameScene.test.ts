@@ -330,4 +330,29 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
   });
+
+  it('adds a turn-ball based helper for failed move ball flight without wiring it to successful moves', () => {
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const deckSource = readSource('src/ui/DeckView.ts');
+
+    expect(gameSceneSource).toContain("const TURN_BALL_TEXTURE_KEY = 'turn-ball'");
+    expect(gameSceneSource).toContain('const FAILED_MOVE_BALL_SIZE = 34');
+    expect(gameSceneSource).toContain('private playFailedMoveBallFlight(');
+    expect(gameSceneSource).toContain('private animateBallFlightToTarget(options: {');
+    expect(gameSceneSource).toContain('const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY)');
+    expect(gameSceneSource).toContain('ball.setDisplaySize(FAILED_MOVE_BALL_SIZE, FAILED_MOVE_BALL_SIZE)');
+    expect(gameSceneSource).toContain('this.tweens.chain({');
+    expect(gameSceneSource).toContain('scaleX: baseScaleX * 1.15');
+    expect(gameSceneSource).toContain('angle: rotationSign * 720');
+    expect(gameSceneSource).toContain('private finishFailedMoveBallImpact(');
+    expect(gameSceneSource).toContain('this.showFailedMoveTargetImpact(target)');
+    expect(gameSceneSource).toContain('const deflection = getFailedMoveBallDeflection(target)');
+    expect(gameSceneSource).toContain('ball.destroy();\n        onComplete();');
+    expect(gameSceneSource).toContain('return getDeckTurnBallWorldPosition(getPlayerDeckX(state, playerId), DECK_Y, markerSide)');
+    expect(gameSceneSource).toContain('private playFailedMoveAnimation(');
+    expect(gameSceneSource).not.toContain('this.playFailedMoveBallFlight(state, context, target, onComplete);');
+    expect(deckSource).toContain('showActiveMarker?: boolean');
+    expect(deckSource).toContain('if (options.active === true && options.showActiveMarker !== false)');
+    expect(deckSource).toContain('export function getDeckTurnBallWorldPosition');
+  });
 });

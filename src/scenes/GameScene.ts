@@ -30,7 +30,7 @@ import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
-import { DeckView } from '../ui/DeckView';
+import { DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
@@ -94,6 +94,10 @@ const PAUSE_BUTTON = {
   fontSize: '26px',
   gap: 20
 } as const;
+const TURN_BALL_TEXTURE_KEY = 'turn-ball';
+const FAILED_MOVE_BALL_SIZE = 34;
+const FAILED_MOVE_BALL_FLIGHT_MS = 320;
+const FAILED_MOVE_BALL_DEFLECTION_MS = 220;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -105,6 +109,7 @@ interface RenderOptions {
   hiddenRestoredCards?: readonly RestoreAnimationEntry[];
   interactive?: boolean;
   aiCheckReason?: AiTurnCheckReason;
+  hideActiveTurnBall?: boolean;
 }
 
 interface AttackAnimationContext {
@@ -286,7 +291,8 @@ export class GameScene extends Phaser.Scene {
         'right',
         this.player1CoverTextureKey,
         gameInteractive,
-        () => this.drawAttackCard()
+        () => this.drawAttackCard(),
+        options.hideActiveTurnBall !== true
       )
     );
     this.dynamicLayer.add(
@@ -299,7 +305,8 @@ export class GameScene extends Phaser.Scene {
         'left',
         this.player2CoverTextureKey,
         gameInteractive,
-        () => this.drawAttackCard()
+        () => this.drawAttackCard(),
+        options.hideActiveTurnBall !== true
       )
     );
     this.dynamicLayer.add(
@@ -1130,6 +1137,103 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private playFailedMoveBallFlight(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext,
+    target: { x: number; y: number },
+    onComplete: () => void
+  ): void {
+    const start = this.getTurnBallStartPosition(state, context.attackerId);
+
+    this.animateBallFlightToTarget({
+      start,
+      target,
+      activeOnLeft: context.attackerId === state.players[0].id,
+      onComplete
+    });
+  }
+
+  private animateBallFlightToTarget(options: {
+    start: { x: number; y: number };
+    target: { x: number; y: number };
+    activeOnLeft: boolean;
+    onComplete: () => void;
+  }): void {
+    const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY);
+    ball.setDisplaySize(FAILED_MOVE_BALL_SIZE, FAILED_MOVE_BALL_SIZE);
+    ball.setDepth(900);
+
+    const baseScaleX = ball.scaleX;
+    const baseScaleY = ball.scaleY;
+    const midPoint = {
+      x: (options.start.x + options.target.x) / 2,
+      y: (options.start.y + options.target.y) / 2 - 18
+    };
+    const rotationSign = options.activeOnLeft ? 1 : -1;
+
+    this.tweens.chain({
+      targets: ball,
+      tweens: [
+        {
+          x: midPoint.x,
+          y: midPoint.y,
+          angle: rotationSign * 360,
+          scaleX: baseScaleX * 1.15,
+          scaleY: baseScaleY * 1.15,
+          duration: FAILED_MOVE_BALL_FLIGHT_MS / 2,
+          ease: 'Sine.easeInOut'
+        },
+        {
+          x: options.target.x,
+          y: options.target.y,
+          angle: rotationSign * 720,
+          scaleX: baseScaleX,
+          scaleY: baseScaleY,
+          duration: FAILED_MOVE_BALL_FLIGHT_MS / 2,
+          ease: 'Quad.easeInOut',
+          onComplete: () => this.finishFailedMoveBallImpact(ball, options.target, baseScaleX, baseScaleY, options.onComplete)
+        }
+      ]
+    });
+  }
+
+  private finishFailedMoveBallImpact(
+    ball: Phaser.GameObjects.Image,
+    target: { x: number; y: number },
+    baseScaleX: number,
+    baseScaleY: number,
+    onComplete: () => void
+  ): void {
+    this.showFailedMoveTargetImpact(target);
+
+    const deflection = getFailedMoveBallDeflection(target);
+
+    this.tweens.add({
+      targets: ball,
+      x: deflection.x,
+      y: deflection.y,
+      alpha: 0,
+      scaleX: baseScaleX * 0.5,
+      scaleY: baseScaleY * 0.5,
+      duration: FAILED_MOVE_BALL_DEFLECTION_MS,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        ball.destroy();
+        onComplete();
+      }
+    });
+  }
+
+  private showFailedMoveTargetImpact(target: { x: number; y: number }): void {
+    this.showImpactPulse(target.x, target.y, 'miss');
+  }
+
+  private getTurnBallStartPosition(state: Readonly<GameState>, playerId: Player['id']): { x: number; y: number } {
+    const markerSide = playerId === state.players[0].id ? 'right' : 'left';
+
+    return getDeckTurnBallWorldPosition(getPlayerDeckX(state, playerId), DECK_Y, markerSide);
+  }
+
   private showImpactPulse(x: number, y: number, outcome: AttackAnimationOutcome): void {
     const color = outcome === 'save' || outcome === 'miss' ? 0xffffff : outcome === 'post' ? 0xf0c95a : 0x93f0b2;
     const pulse = this.add.circle(x, y, 20, color, 0.2);
@@ -1333,7 +1437,8 @@ function createPlayerDeck(
   countSide: 'left' | 'right',
   coverTextureKey: string,
   interactive: boolean,
-  onDeckClick: () => void
+  onDeckClick: () => void,
+  showActiveMarker: boolean
 ): DeckView {
   const isActive = state.activePlayerId === player.id;
 
@@ -1346,6 +1451,7 @@ function createPlayerDeck(
       isActive && state.attackCard !== null ? resolveFieldCardProfile(state, player, state.attackCard) : undefined,
     coverTextureKey,
     countSide,
+    showActiveMarker,
     onClick: interactive && isActive && state.phase === 'WAITING_FOR_ATTACK_CARD' ? onDeckClick : undefined
   });
 }
@@ -1400,6 +1506,21 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
   }
 
   return 'defeat';
+}
+
+function getFailedMoveBallDeflection(target: { x: number; y: number }): { x: number; y: number } {
+  const awayFromCenter = new Phaser.Math.Vector2(target.x - SCENE_WIDTH / 2, target.y - FIELD_CENTER_Y);
+
+  if (awayFromCenter.lengthSq() === 0) {
+    awayFromCenter.set(1, 0);
+  }
+
+  awayFromCenter.normalize();
+
+  return {
+    x: target.x + awayFromCenter.x * 170,
+    y: target.y + awayFromCenter.y * 112
+  };
 }
 
 function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {

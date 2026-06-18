@@ -25,6 +25,7 @@ export interface DeckViewOptions {
   attackCardPlayerProfile?: CardPlayerProfile;
   coverTextureKey?: string;
   countSide?: 'left' | 'right';
+  showActiveMarker?: boolean;
   onClick?: () => void;
 }
 
@@ -68,7 +69,7 @@ export class DeckView extends Phaser.GameObjects.Container {
     deckStack.setScale(DECK_STACK_SCALE);
     this.add([deckStack, countText]);
 
-    if (options.active === true) {
+    if (options.active === true && options.showActiveMarker !== false) {
       const markerSide = options.countSide ?? 'right';
       const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2;
       const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2;
@@ -140,6 +141,21 @@ export class DeckView extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
   }
+}
+
+export function getDeckTurnBallWorldPosition(x: number, y: number, markerSide: 'left' | 'right'): { x: number; y: number } {
+  const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2;
+  const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2;
+  const markerX =
+    markerSide === 'right'
+      ? deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO
+      : deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO;
+  const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2;
+
+  return {
+    x: x + markerX,
+    y: y + markerBaseY
+  };
 }
 
 function createRoundedDeckCard(
