@@ -401,21 +401,32 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.playGoalkeeperImpactSound(\'goalkeeper\', outcome);');
   });
 
-  it('animates a beaten goalkeeper card for goal shot outcome', () => {
+  it('animates goalkeeper impact card for goal shot outcome', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('defenderCard: FieldCard');
     expect(source).toContain('defenderCardColor: Player[\'teamColor\'] | Card[\'color\']');
-    expect(source).toContain('const beatenGoalkeeperCard = this.createBeatenGoalkeeperCard(context, target, outcome);');
-    expect(source).toContain('private createBeatenGoalkeeperCard(');
-    expect(source).toContain("if (outcome !== 'goal') {\n      return null;\n    }");
+    expect(source).toContain('const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);');
+    expect(source).toContain('private createGoalkeeperShotImpactCard(');
+    expect(source).toContain("if (outcome === 'post') {\n      return null;\n    }");
     expect(source).toContain('rank: context.defenderCard.rank');
     expect(source).toContain("label: 'GK'");
     expect(source).toContain('tooltipEnabled: false');
-    expect(source).toContain('this.animateBeatenGoalkeeperCard(beatenGoalkeeperCard, activeOnLeft);');
-    expect(source).toContain('private animateBeatenGoalkeeperCard(card: CardView | null, activeOnLeft: boolean): void');
+    expect(source).toContain('this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);');
+    expect(source).toContain('private animateGoalkeeperShotImpactCard(');
     expect(source).toContain('x: card.x + (activeOnLeft ? 8 : -8)');
     expect(source).toContain('onComplete: () => card.destroy()');
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
+  });
+
+  it('animates goalkeeper save as a catch pulse and sends ball toward defending deck', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("if (outcome === 'save') {\n      this.tweens.add({");
+    expect(source).toContain('scale: 1.1');
+    expect(source).toContain('duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2');
+    expect(source).toContain('yoyo: true');
+    expect(source).toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
   });
 });

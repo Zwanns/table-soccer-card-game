@@ -1167,25 +1167,25 @@ export class GameScene extends Phaser.Scene {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
 
     this.playShotSourceKick(state, context, start, () => {
-      const beatenGoalkeeperCard = this.createBeatenGoalkeeperCard(context, target, outcome);
+      const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);
 
       this.animateBallFlightToGoalkeeper({
         start,
         target,
         activeOnLeft: context.attackerId === state.players[0].id,
-        beatenGoalkeeperCard,
+        goalkeeperImpactCard,
         outcome,
         onComplete
       });
     });
   }
 
-  private createBeatenGoalkeeperCard(
+  private createGoalkeeperShotImpactCard(
     context: AttackAnimationContext,
     target: { x: number; y: number },
     outcome: GoalkeeperShotAnimationOutcome
   ): CardView | null {
-    if (outcome !== 'goal') {
+    if (outcome === 'post') {
       return null;
     }
 
@@ -1248,7 +1248,7 @@ export class GameScene extends Phaser.Scene {
     start: { x: number; y: number };
     target: { x: number; y: number };
     activeOnLeft: boolean;
-    beatenGoalkeeperCard: CardView | null;
+    goalkeeperImpactCard: CardView | null;
     outcome: GoalkeeperShotAnimationOutcome;
     onComplete: () => void;
   }): void {
@@ -1290,7 +1290,7 @@ export class GameScene extends Phaser.Scene {
               options.target,
               options.outcome,
               options.activeOnLeft,
-              options.beatenGoalkeeperCard,
+              options.goalkeeperImpactCard,
               baseScaleX,
               baseScaleY,
               options.onComplete
@@ -1305,14 +1305,14 @@ export class GameScene extends Phaser.Scene {
     target: { x: number; y: number },
     outcome: GoalkeeperShotAnimationOutcome,
     activeOnLeft: boolean,
-    beatenGoalkeeperCard: CardView | null,
+    goalkeeperImpactCard: CardView | null,
     baseScaleX: number,
     baseScaleY: number,
     onComplete: () => void
   ): void {
     this.showGoalkeeperShotTargetImpact(target, outcome);
     this.playGoalkeeperImpactSound('goalkeeper', outcome);
-    this.animateBeatenGoalkeeperCard(beatenGoalkeeperCard, activeOnLeft);
+    this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);
 
     const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
@@ -1332,8 +1332,24 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private animateBeatenGoalkeeperCard(card: CardView | null, activeOnLeft: boolean): void {
+  private animateGoalkeeperShotImpactCard(
+    card: CardView | null,
+    outcome: GoalkeeperShotAnimationOutcome,
+    activeOnLeft: boolean
+  ): void {
     if (card === null) {
+      return;
+    }
+
+    if (outcome === 'save') {
+      this.tweens.add({
+        targets: card,
+        scale: 1.1,
+        duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2,
+        ease: 'Sine.easeOut',
+        yoyo: true,
+        onComplete: () => card.destroy()
+      });
       return;
     }
 
@@ -1658,6 +1674,13 @@ function getGoalkeeperShotBallExit(
   if (outcome === 'post') {
     return {
       x: activeOnLeft ? 115 : 1485,
+      y: DECK_Y
+    };
+  }
+
+  if (outcome === 'save') {
+    return {
+      x: activeOnLeft ? 1485 : 115,
       y: DECK_Y
     };
   }
