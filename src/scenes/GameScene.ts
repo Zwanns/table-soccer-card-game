@@ -1110,7 +1110,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (outcome === 'defeat') {
+    if (outcome === 'defeat' || (outcome === 'miss' && context.sourcePositionId === undefined)) {
       this.hideAttackAnimationSource(context);
     }
 

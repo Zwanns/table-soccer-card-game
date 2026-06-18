@@ -355,7 +355,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('this.playFailedMoveAnimation(state, context, target');
   });
 
-  it('hides the deck source card only for successful attack flight', () => {
+  it('hides the deck source card for successful and failed attack flight', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
     const deckSource = readSource('src/ui/DeckView.ts');
     const animationBlock = gameSceneSource.slice(
@@ -366,9 +366,12 @@ describe('GameScene visual layout contracts', () => {
     expect(deckSource).toContain('attackCardSourcePlayerId?: string');
     expect(deckSource).toContain("attackCard.setData('attackDeckSourcePlayerId', options.attackCardSourcePlayerId)");
     expect(gameSceneSource).toContain("attackCardSourcePlayerId: isActive && state.attackCard !== null ? player.id : undefined");
-    expect(animationBlock).toContain("if (outcome === 'defeat') {\n      this.hideAttackAnimationSource(context);\n    }");
+    expect(animationBlock).toContain(
+      "if (outcome === 'defeat' || (outcome === 'miss' && context.sourcePositionId === undefined)) {\n      this.hideAttackAnimationSource(context);\n    }"
+    );
     expect(gameSceneSource).toContain("return cardView.getData('attackDeckSourcePlayerId') === context.attackerId");
     expect(animationBlock).not.toContain("if (outcome === 'miss') {\n      this.hideAttackAnimationSource(context);");
+    expect(animationBlock).not.toContain("outcome === 'miss' || outcome === 'defeat'");
   });
 
   it('hides a committed midfielder source card only during successful attack flight', () => {
