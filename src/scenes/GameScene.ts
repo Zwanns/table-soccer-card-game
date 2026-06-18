@@ -63,6 +63,8 @@ const MATCH_ACTION_BUTTON_HEIGHT = 38;
 const MATCH_ACTION_BUTTON_FONT_SIZE = '16px';
 const MATCH_ACTION_BUTTON_GAP = 10;
 const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3;
+const MATCH_ACTION_BUTTON_STACK_HEIGHT = MATCH_ACTION_BUTTON_HEIGHT * 2 + MATCH_ACTION_BUTTON_GAP;
+const MATCH_ACTION_BUTTON_CENTER_Y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_STACK_HEIGHT / 2;
 const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2;
 const INFO_MODAL = {
   width: 960,
@@ -81,6 +83,16 @@ const INFO_BACK_BUTTON = {
   width: 190,
   height: 42,
   fontSize: '18px'
+} as const;
+const PAUSE_MODAL = {
+  width: 420,
+  height: 430
+} as const;
+const PAUSE_BUTTON = {
+  width: 220,
+  height: 48,
+  fontSize: '20px',
+  gap: 16
 } as const;
 
 interface RestoreAnimationEntry {
@@ -114,6 +126,7 @@ export class GameScene extends Phaser.Scene {
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
   private exitConfirmModal: Phaser.GameObjects.Container | null = null;
+  private pauseModal: Phaser.GameObjects.Container | null = null;
   private infoModal: Phaser.GameObjects.Container | null = null;
   private activeInfoModal: InfoModalKind | null = null;
   private infoLanguage: AboutLanguage = 'en';
@@ -163,6 +176,8 @@ export class GameScene extends Phaser.Scene {
     this.startWhistlePlayed = false;
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
@@ -233,46 +248,18 @@ export class GameScene extends Phaser.Scene {
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
-      new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Menu', () => this.openExitConfirmModal(), {
+      new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause', () => this.openPauseModal(state), {
         fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_HEIGHT,
+        height: MATCH_ACTION_BUTTON_STACK_HEIGHT,
         width: SIDE_ACTION_BUTTON_WIDTH
       })
     );
     this.dynamicLayer.add(
-      new Button(
-        this,
-        LEFT_ACTION_BUTTON_X,
-        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
-        'Result',
-        () => this.openResult(state),
-        {
-          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-          height: MATCH_ACTION_BUTTON_HEIGHT,
-          width: SIDE_ACTION_BUTTON_WIDTH
-        }
-      )
-    );
-    this.dynamicLayer.add(
-      new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2, 'Rules', () => this.openMatchInfoModal('rules'), {
+      new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Rules', () => this.openMatchInfoModal('rules'), {
         fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_HEIGHT,
+        height: MATCH_ACTION_BUTTON_STACK_HEIGHT,
         width: SIDE_ACTION_BUTTON_WIDTH
       })
-    );
-    this.dynamicLayer.add(
-      new Button(
-        this,
-        RIGHT_ACTION_BUTTON_X,
-        MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2,
-        'About',
-        () => this.openMatchInfoModal('about'),
-        {
-          fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-          height: MATCH_ACTION_BUTTON_HEIGHT,
-          width: SIDE_ACTION_BUTTON_WIDTH
-        }
-      )
     );
     this.dynamicLayer.add(
       new ScoreView(
@@ -561,10 +548,83 @@ export class GameScene extends Phaser.Scene {
   private closeExitConfirmModal(): void {
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
+
+    if (this.engine !== null && this.isSceneStableForAi()) {
+      this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
+    }
+  }
+
+  private openPauseModal(state: Readonly<GameState>): void {
+    if (this.pauseModal !== null || this.infoModal !== null || this.exitConfirmModal !== null) {
+      return;
+    }
+
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+    const modal = this.add.container(0, 0).setDepth(1000);
+    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
+    overlay.setInteractive();
+
+    const panel = this.add.container(centerX, centerY);
+    const background = this.add.rectangle(
+      0,
+      0,
+      PAUSE_MODAL.width,
+      PAUSE_MODAL.height,
+      INFO_MODAL_BACKGROUND_COLOR,
+      INFO_MODAL_BACKGROUND_ALPHA
+    );
+
+    const title = this.add
+      .text(0, -160, 'Pause', {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '34px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    const firstButtonY = -84;
+    const buttonStep = PAUSE_BUTTON.height + PAUSE_BUTTON.gap;
+    const continueButton = this.createPauseButton(0, firstButtonY, 'Continue', () => this.closePauseModal());
+    const menuButton = this.createPauseButton(0, firstButtonY + buttonStep, 'Menu', () => {
+      this.closePauseModal();
+      this.openExitConfirmModal();
+    });
+    const resultButton = this.createPauseButton(0, firstButtonY + buttonStep * 2, 'Result', () => {
+      this.closePauseModal();
+      this.openResult(state);
+    });
+    const aboutButton = this.createPauseButton(0, firstButtonY + buttonStep * 3, 'About', () => {
+      this.closePauseModal();
+      this.openMatchInfoModal('about');
+    });
+
+    panel.add([background, title, continueButton, menuButton, resultButton, aboutButton]);
+    modal.add([overlay, panel]);
+    this.pauseModal = modal;
+  }
+
+  private closePauseModal(): void {
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+
+    if (this.engine !== null && this.isSceneStableForAi()) {
+      this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
+    }
+  }
+
+  private createPauseButton(x: number, y: number, label: string, onClick: () => void): Phaser.GameObjects.Container {
+    return new Button(this, x, y, label, onClick, {
+      fontSize: PAUSE_BUTTON.fontSize,
+      height: PAUSE_BUTTON.height,
+      width: PAUSE_BUTTON.width
+    });
   }
 
   private openMatchInfoModal(kind: InfoModalKind): void {
-    if (this.infoModal !== null) {
+    if (this.infoModal !== null || this.pauseModal !== null) {
       return;
     }
 
@@ -1185,6 +1245,8 @@ export class GameScene extends Phaser.Scene {
   private isSceneStableForAi(): boolean {
     return (
       this.input.enabled &&
+      this.exitConfirmModal === null &&
+      this.pauseModal === null &&
       this.infoModal === null &&
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
@@ -1214,6 +1276,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleSceneShutdown(): void {
+    this.exitConfirmModal?.destroy();
+    this.exitConfirmModal = null;
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;

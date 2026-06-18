@@ -40,7 +40,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("options.countSide === 'left' ? -84 : 84");
   });
 
-  it('stretches Menu and Result from the field edge toward the scoreboard', () => {
+  it('replaces the left match actions with one tall Pause button', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2');
@@ -52,34 +52,55 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14');
     expect(source).toContain('const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT');
     expect(source).toContain('const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT');
     expect(source).toContain('const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH)');
     expect(source).toContain('const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2');
     expect(source).toContain('const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3');
-    expect(source).toContain('MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT / 2');
-    expect(source).toContain(
-      'MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_HEIGHT + MATCH_ACTION_BUTTON_GAP + MATCH_ACTION_BUTTON_HEIGHT / 2'
-    );
-    expect(source).toContain('height: MATCH_ACTION_BUTTON_HEIGHT');
+    expect(source).toContain('const MATCH_ACTION_BUTTON_STACK_HEIGHT = MATCH_ACTION_BUTTON_HEIGHT * 2 + MATCH_ACTION_BUTTON_GAP');
+    expect(source).toContain('const MATCH_ACTION_BUTTON_CENTER_Y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_STACK_HEIGHT / 2');
+    expect(source).toContain("'Pause', () => this.openPauseModal(state)");
+    expect(source).toContain('height: MATCH_ACTION_BUTTON_STACK_HEIGHT');
     expect(source).toContain('fontSize: MATCH_ACTION_BUTTON_FONT_SIZE');
     expect(source).toContain('width: SIDE_ACTION_BUTTON_WIDTH');
+    expect(source).not.toContain("'Menu', () => this.openExitConfirmModal()");
+    expect(source).not.toContain("'Result',\n        () => this.openResult(state)");
     expect(source).not.toContain("new Button(this, 120, 34, 'Menu'");
     expect(source).not.toContain("new Button(this, 120, 90, 'Result'");
   });
 
-  it('adds matching Rules and About buttons that open in-game overlays', () => {
+  it('keeps one tall Rules button on the right side of the match UI', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
+    expect(source).toContain('const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
+    expect(source).toContain('const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT');
     expect(source).toContain('const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2');
     expect(source).toContain("'Rules', () => this.openMatchInfoModal('rules')");
-    expect(source).toContain("'About',");
-    expect(source).toContain("() => this.openMatchInfoModal('about')");
-    expect(source.match(/width: SIDE_ACTION_BUTTON_WIDTH/g)?.length).toBeGreaterThanOrEqual(4);
-    expect(source.match(/height: MATCH_ACTION_BUTTON_HEIGHT/g)?.length).toBeGreaterThanOrEqual(4);
-    expect(source.match(/fontSize: MATCH_ACTION_BUTTON_FONT_SIZE/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(source.match(/width: SIDE_ACTION_BUTTON_WIDTH/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source.match(/height: MATCH_ACTION_BUTTON_STACK_HEIGHT/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source.match(/fontSize: MATCH_ACTION_BUTTON_FONT_SIZE/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source).not.toContain("() => this.openMatchInfoModal('about')");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'rules' })");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
+  });
+
+  it('opens a Pause overlay with Continue, Menu, Result and About actions', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('private pauseModal: Phaser.GameObjects.Container | null = null');
+    expect(source).toContain('private openPauseModal(state: Readonly<GameState>): void');
+    expect(source).toContain('const modal = this.add.container(0, 0).setDepth(1000)');
+    expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
+    expect(source).toContain('overlay.setInteractive()');
+    expect(source).toContain('PAUSE_MODAL.width,\n      PAUSE_MODAL.height,\n      INFO_MODAL_BACKGROUND_COLOR,\n      INFO_MODAL_BACKGROUND_ALPHA');
+    expect(source).toContain("text(0, -160, 'Pause'");
+    expect(source).toContain("this.createPauseButton(0, firstButtonY, 'Continue', () => this.closePauseModal())");
+    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep, 'Menu', () => {");
+    expect(source).toContain('this.openExitConfirmModal()');
+    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep * 2, 'Result', () => {");
+    expect(source).toContain('this.openResult(state)');
+    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep * 3, 'About', () => {");
+    expect(source).toContain("this.openMatchInfoModal('about')");
+    expect(source).toContain('private closePauseModal(): void');
+    expect(source).toContain('this.pauseModal === null');
   });
 
   it('keeps match info overlays localized, scrollable and non-resetting', () => {
@@ -103,6 +124,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent)');
     expect(source).toContain("scrollZone.on('wheel'");
     expect(source).toContain('this.infoModal === null');
+    expect(source).toContain('this.pauseModal === null');
     expect(source).toContain("this.aiTurnController?.requestTurnCheck('STATE_RENDERED')");
     expect(source).not.toContain("openMatchInfoModal('rules') => this.scene.start");
     expect(source).not.toContain("openMatchInfoModal('about') => this.scene.start");

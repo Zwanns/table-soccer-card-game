@@ -345,6 +345,8 @@ describe('AiTurnController', () => {
     expect(source).toContain('if (interactive && this.isSceneStableForAi())');
     expect(source).toContain('this.aiTurnController?.requestTurnCheck(options.aiCheckReason)');
     expect(source).toContain('private isSceneStableForAi(): boolean');
+    expect(source).toContain('this.exitConfirmModal === null');
+    expect(source).toContain('this.pauseModal === null');
     expect(source).toContain('!this.isAttackAnimationInProgress');
     expect(source).toContain('!this.isRestoreAnimationInProgress');
     expect(source).toContain('!this.isMatchEffectInProgress');
