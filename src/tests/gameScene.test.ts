@@ -339,15 +339,21 @@ describe('GameScene visual layout contracts', () => {
 
     expect(gameSceneSource).toContain("const TURN_BALL_TEXTURE_KEY = 'turn-ball'");
     expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_SIZE = 34');
+    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58');
     expect(gameSceneSource).toContain("type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>");
     expect(gameSceneSource).toContain('private playGoalkeeperShotBallFlight(');
     expect(gameSceneSource).toContain('outcome: GoalkeeperShotAnimationOutcome');
     expect(gameSceneSource).toContain('private animateBallFlightToGoalkeeper(options: {');
     expect(gameSceneSource).toContain('const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY)');
     expect(gameSceneSource).toContain('ball.setDisplaySize(GOALKEEPER_SHOT_BALL_SIZE, GOALKEEPER_SHOT_BALL_SIZE)');
-    expect(gameSceneSource).toContain('this.tweens.chain({');
-    expect(gameSceneSource).toContain('scaleX: baseScaleX * 1.15');
-    expect(gameSceneSource).toContain('angle: rotationSign * 720');
+    expect(gameSceneSource).toContain('const flight = { progress: 0 }');
+    expect(gameSceneSource).toContain('targets: flight');
+    expect(gameSceneSource).toContain('progress: 1');
+    expect(gameSceneSource).toContain('const arcLift = Math.sin(Math.PI * progress) * GOALKEEPER_SHOT_BALL_ARC_HEIGHT');
+    expect(gameSceneSource).toContain('Phaser.Math.Linear(options.start.x, options.target.x, progress)');
+    expect(gameSceneSource).toContain('Phaser.Math.Linear(options.start.y, options.target.y, progress) - arcLift');
+    expect(gameSceneSource).toContain('ball.setAngle(rotationSign * 720 * progress)');
+    expect(gameSceneSource).toContain('ball.setScale(baseScaleX * scale, baseScaleY * scale)');
     expect(gameSceneSource).toContain('private finishGoalkeeperShotBallImpact(');
     expect(gameSceneSource).toContain('this.showGoalkeeperShotTargetImpact(target, outcome)');
     expect(gameSceneSource).toContain('const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft)');

@@ -97,6 +97,7 @@ const PAUSE_BUTTON = {
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const GOALKEEPER_SHOT_BALL_SIZE = 34;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
+const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
 const SHOT_SOURCE_KICK_FORWARD_MS = 90;
 const SHOT_SOURCE_KICK_RETURN_MS = 80;
@@ -1274,45 +1275,37 @@ export class GameScene extends Phaser.Scene {
 
     const baseScaleX = ball.scaleX;
     const baseScaleY = ball.scaleY;
-    const midPoint = {
-      x: (options.start.x + options.target.x) / 2,
-      y: (options.start.y + options.target.y) / 2 - 18
-    };
     const rotationSign = options.activeOnLeft ? 1 : -1;
+    const flight = { progress: 0 };
 
-    this.tweens.chain({
-      targets: ball,
-      tweens: [
-        {
-          x: midPoint.x,
-          y: midPoint.y,
-          angle: rotationSign * 360,
-          scaleX: baseScaleX * 1.15,
-          scaleY: baseScaleY * 1.15,
-          duration: GOALKEEPER_SHOT_BALL_FLIGHT_MS / 2,
-          ease: 'Sine.easeInOut'
-        },
-        {
-          x: options.target.x,
-          y: options.target.y,
-          angle: rotationSign * 720,
-          scaleX: baseScaleX,
-          scaleY: baseScaleY,
-          duration: GOALKEEPER_SHOT_BALL_FLIGHT_MS / 2,
-          ease: 'Quad.easeInOut',
-          onComplete: () =>
-            this.finishGoalkeeperShotBallImpact(
-              ball,
-              options.target,
-              options.outcome,
-              options.activeOnLeft,
-              options.goalkeeperImpactCard,
-              baseScaleX,
-              baseScaleY,
-              options.onComplete
-            )
-        }
-      ]
+    this.tweens.add({
+      targets: flight,
+      progress: 1,
+      duration: GOALKEEPER_SHOT_BALL_FLIGHT_MS,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => {
+        const progress = flight.progress;
+        const arcLift = Math.sin(Math.PI * progress) * GOALKEEPER_SHOT_BALL_ARC_HEIGHT;
+        const scale = 1 + Math.sin(Math.PI * progress) * 0.15;
+
+        ball.setPosition(
+          Phaser.Math.Linear(options.start.x, options.target.x, progress),
+          Phaser.Math.Linear(options.start.y, options.target.y, progress) - arcLift
+        );
+        ball.setAngle(rotationSign * 720 * progress);
+        ball.setScale(baseScaleX * scale, baseScaleY * scale);
+      },
+      onComplete: () =>
+        this.finishGoalkeeperShotBallImpact(
+          ball,
+          options.target,
+          options.outcome,
+          options.activeOnLeft,
+          options.goalkeeperImpactCard,
+          baseScaleX,
+          baseScaleY,
+          options.onComplete
+        )
     });
   }
 
