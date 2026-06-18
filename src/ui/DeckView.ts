@@ -10,8 +10,9 @@ const DECK_HEIGHT = CARD_HEIGHT;
 const DECK_STACK_SCALE = 1.12;
 const DECK_COUNT_OFFSET_Y = DECK_HEIGHT * DECK_STACK_SCALE / 2 + 32;
 const DECK_MARKER_SIZE = 34;
-export const DECK_MARKER_BOUNCE_HEIGHT = 24;
+export const DECK_MARKER_BOUNCE_HEIGHT = 20;
 const DECK_MARKER_DECK_OVERLAP_RATIO = 1 / 3;
+const DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO = 1 / 2 - DECK_MARKER_DECK_OVERLAP_RATIO;
 const DECK_MARKER_BOUNCE_UP_MS = 360;
 const DECK_MARKER_BOUNCE_DOWN_MS = 260;
 const DECK_MARKER_SQUASH_MS = 64;
@@ -70,11 +71,13 @@ export class DeckView extends Phaser.GameObjects.Container {
     if (options.active === true) {
       const markerSide = options.countSide ?? 'right';
       const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2;
+      const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2;
       const markerX =
         markerSide === 'right'
-          ? deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO
-          : deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO;
-      const marker = scene.add.image(markerX, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, 'turn-ball');
+          ? deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO
+          : deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO;
+      const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2;
+      const marker = scene.add.image(markerX, markerBaseY, 'turn-ball');
       marker.setDisplaySize(DECK_MARKER_SIZE, DECK_MARKER_SIZE);
       const baseY = marker.y;
       const baseScaleX = marker.scaleX;

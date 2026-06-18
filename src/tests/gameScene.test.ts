@@ -14,13 +14,16 @@ describe('GameScene visual layout contracts', () => {
   it('uses a bounce chain for the active deck ball instead of yoyo levitation', () => {
     const source = readSource('src/ui/DeckView.ts');
 
-    expect(source).toContain('export const DECK_MARKER_BOUNCE_HEIGHT = 24');
+    expect(source).toContain('export const DECK_MARKER_BOUNCE_HEIGHT = 20');
     expect(source).toContain('const DECK_MARKER_DECK_OVERLAP_RATIO = 1 / 3');
+    expect(source).toContain('const DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO = 1 / 2 - DECK_MARKER_DECK_OVERLAP_RATIO');
     expect(source).toContain("const markerSide = options.countSide ?? 'right'");
     expect(source).toContain("const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2");
-    expect(source).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
-    expect(source).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
-    expect(source).toContain('const marker = scene.add.image(markerX, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, \'turn-ball\')');
+    expect(source).toContain('const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2');
+    expect(source).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
+    expect(source).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
+    expect(source).toContain('const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2');
+    expect(source).toContain("const marker = scene.add.image(markerX, markerBaseY, 'turn-ball')");
     expect(source).toContain('scene.tweens.chain');
     expect(source).toContain("ease: 'Quad.easeOut'");
     expect(source).toContain("ease: 'Quad.easeIn'");
@@ -41,21 +44,28 @@ describe('GameScene visual layout contracts', () => {
 
     const deckStackScaleMatch = deckSource.match(/const DECK_STACK_SCALE = ([\d.]+);/);
     const markerSizeMatch = deckSource.match(/const DECK_MARKER_SIZE = (\d+);/);
+    const bounceHeightMatch = deckSource.match(/export const DECK_MARKER_BOUNCE_HEIGHT = (\d+);/);
 
     expect(deckSource).toContain('const DECK_WIDTH = CARD_WIDTH');
     expect(deckStackScaleMatch).not.toBeNull();
     expect(markerSizeMatch).not.toBeNull();
+    expect(bounceHeightMatch).not.toBeNull();
 
     const deckStackScale = Number(deckStackScaleMatch![1]);
     const markerSize = Number(markerSizeMatch![1]);
-    const markerOverlap = markerSize / 3;
+    const bounceHeight = Number(bounceHeightMatch![1]);
+    const markerOverlap = markerSize * (1 / 3);
+    const markerOutsideCenterOffset = markerSize * (1 / 2 - 1 / 3);
 
     expect(deckStackScale).toBe(1.12);
     expect(markerSize).toBe(34);
+    expect(bounceHeight).toBe(20);
     expect(markerOverlap).toBeCloseTo(11.33, 2);
+    expect(markerOutsideCenterOffset).toBeCloseTo(5.67, 2);
     expect(deckSource).toContain("markerSide === 'right'");
-    expect(deckSource).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
-    expect(deckSource).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_DECK_OVERLAP_RATIO');
+    expect(deckSource).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
+    expect(deckSource).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
+    expect(deckSource).toContain('const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2');
     expect(deckSource).not.toContain("scene.add.image(0, -DECK_HEIGHT * DECK_STACK_SCALE / 2 - 30, 'turn-ball')");
   });
 
