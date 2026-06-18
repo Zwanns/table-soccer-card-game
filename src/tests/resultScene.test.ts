@@ -44,8 +44,10 @@ describe('result scene score line layout', () => {
     expect(source).toContain('const flagHeight = 50');
     expect(source).toContain("fontSize: '54px'");
     expect(source).toContain("fontSize: '38px'");
-    expect(source).toContain('playerOneText.x - playerOneText.width - flagGap - flagWidth / 2');
-    expect(source).toContain('playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2');
+    expect(source).toContain('const playerOneBadge = this.createControllerBadge(');
+    expect(source).toContain('const playerTwoBadge = this.createControllerBadge(');
+    expect(source).toContain('const playerOneFlagX = playerOneBadge.x - playerOneBadge.width / 2 - flagGap - flagWidth / 2');
+    expect(source).toContain('const playerTwoFlagX = playerTwoBadge.x + playerTwoBadge.width / 2 + flagGap + flagWidth / 2');
   });
 
   it('renders the final score inside the raised result statistics panel', () => {
@@ -74,24 +76,57 @@ describe('result scene score line layout', () => {
     expect(source).not.toContain("color: '#a9c7b3'");
   });
 
-  it('uses shared team abbreviations on the result screen instead of full team names', () => {
+  it('uses shared team abbreviations on the result scoreboard instead of full team names', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
     expect(source).toContain('getTeamScoreboardCode(playerOne.flagCode)');
     expect(source).toContain('getTeamScoreboardCode(playerTwo.flagCode)');
+    expect(source).toContain('getTeamScoreboardCode(playerOneFlagCode)');
+    expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(source).not.toContain('playerOne?.name ??');
     expect(source).not.toContain('playerTwo?.name ??');
-    expect(source).not.toContain('playerOne.name');
-    expect(source).not.toContain('playerTwo.name');
   });
 
-  it('keeps Play again and Menu actions available', () => {
+  it('creates three quick-match actions aligned to the scoreboard panel width', () => {
     const source = readResultSceneSource();
 
-    expect(source).toContain("new Button(this, centerX - 130, 650, 'Play again', () => this.scene.start('TeamSelectScene'))");
-    expect(source).toContain("new Button(this, centerX + 130, 650, 'Menu', () => this.scene.start('MenuScene'))");
+    expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
+    expect(source).toContain('const RESULT_ACTION_BUTTON_GAP = 24');
+    expect(source).toContain('const RESULT_ACTION_BUTTON_WIDTH = (RESULT_SCOREBOARD_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3');
+    expect(source).toContain('const RESULT_ACTION_BUTTON_HEIGHT = 62');
+    expect(source).toContain('const firstButtonX = centerX - RESULT_SCOREBOARD_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2');
+    expect(source).toContain("new Button(this, firstButtonX, RESULT_ACTION_BUTTON_Y, 'Play Again', () => this.startReplayMatch(), buttonOptions)");
+    expect(source).toContain("new Button(this, secondButtonX, RESULT_ACTION_BUTTON_Y, 'New Match', () => this.scene.start('TeamSelectScene'), buttonOptions)");
+    expect(source).toContain("new Button(this, thirdButtonX, RESULT_ACTION_BUTTON_Y, 'Menu', () => this.scene.start('MenuScene'), buttonOptions)");
+    expect(source).not.toContain("'Play again', () => this.scene.start('TeamSelectScene')");
     expect(source).toContain("new Button(this, centerX + 150, 650, 'Menu', () => this.scene.start('MenuScene'), { width: 230 })");
+  });
+
+  it('replays the same teams and controller types with a fresh GameScene', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('private startReplayMatch(): void');
+    expect(source).toContain("this.scene.start('GameScene', {");
+    expect(source).toContain('player1Name: playerOne.name');
+    expect(source).toContain('player2Name: playerTwo.name');
+    expect(source).toContain('player1FlagCode: playerOne.flagCode');
+    expect(source).toContain('player2FlagCode: playerTwo.flagCode');
+    expect(source).toContain("player1ControllerType: this.state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN'");
+    expect(source).toContain("player2ControllerType: this.state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN'");
+    expect(source).toContain('launchContext: this.launchContext');
+  });
+
+  it('shows controller type badges next to both result scoreboard team codes', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('private createControllerBadge');
+    expect(source).toContain("const label = controllerType === 'AI' ? 'AI' : 'P'");
+    expect(source).toContain('const width = controllerType === \'AI\' ? 40 : 32');
+    expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)');
+    expect(source).toContain('scoreLine.add([playerOneFlag, playerOneBadge, playerOneText, score, playerTwoText, playerTwoBadge, playerTwoFlag])');
+    expect(source).toContain("state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN'");
+    expect(source).toContain("state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN'");
   });
 
   it('left-aligns final match goal scorers inside both scorer columns', () => {

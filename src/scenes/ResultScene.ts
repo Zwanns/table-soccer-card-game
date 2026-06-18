@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
+import type { PlayerControllerType } from '../ai';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
@@ -22,6 +23,13 @@ import {
   type TournamentMatchResult,
   type TournamentState
 } from '../tournament';
+
+const RESULT_SCOREBOARD_WIDTH = 840;
+const RESULT_ACTION_BUTTON_GAP = 24;
+const RESULT_ACTION_BUTTON_WIDTH = (RESULT_SCOREBOARD_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3;
+const RESULT_ACTION_BUTTON_HEIGHT = 62;
+const RESULT_ACTION_BUTTON_Y = 650;
+const CONTROLLER_BADGE_HEIGHT = 26;
 
 interface ResultSceneData {
   state?: Readonly<GameState>;
@@ -71,8 +79,18 @@ export class ResultScene extends Phaser.Scene {
       return;
     }
 
-    new Button(this, centerX - 130, 650, 'Play again', () => this.scene.start('TeamSelectScene'));
-    new Button(this, centerX + 130, 650, 'Menu', () => this.scene.start('MenuScene'));
+    const firstButtonX = centerX - RESULT_SCOREBOARD_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2;
+    const secondButtonX = firstButtonX + RESULT_ACTION_BUTTON_WIDTH + RESULT_ACTION_BUTTON_GAP;
+    const thirdButtonX = secondButtonX + RESULT_ACTION_BUTTON_WIDTH + RESULT_ACTION_BUTTON_GAP;
+    const buttonOptions = {
+      fontSize: '24px',
+      height: RESULT_ACTION_BUTTON_HEIGHT,
+      width: RESULT_ACTION_BUTTON_WIDTH
+    };
+
+    new Button(this, firstButtonX, RESULT_ACTION_BUTTON_Y, 'Play Again', () => this.startReplayMatch(), buttonOptions);
+    new Button(this, secondButtonX, RESULT_ACTION_BUTTON_Y, 'New Match', () => this.scene.start('TeamSelectScene'), buttonOptions);
+    new Button(this, thirdButtonX, RESULT_ACTION_BUTTON_Y, 'Menu', () => this.scene.start('MenuScene'), buttonOptions);
   }
 
   private createResultBackground(centerX: number, centerY: number, playerOneGoals: number, playerTwoGoals: number): void {
@@ -197,7 +215,7 @@ export class ResultScene extends Phaser.Scene {
   private createMatchStatsPanel(x: number, y: number, state: Readonly<GameState>): void {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
-    const width = 840;
+    const width = RESULT_SCOREBOARD_WIDTH;
     const height = 500;
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
@@ -208,6 +226,8 @@ export class ResultScene extends Phaser.Scene {
       -height / 2 + 64,
       playerOne.flagCode,
       playerTwo.flagCode,
+      state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN',
+      state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN',
       playerOneStats.goals,
       playerTwoStats.goals
     );
@@ -248,6 +268,8 @@ export class ResultScene extends Phaser.Scene {
     y: number,
     playerOneFlagCode: string,
     playerTwoFlagCode: string,
+    playerOneControllerType: PlayerControllerType,
+    playerTwoControllerType: PlayerControllerType,
     playerOneGoals: number,
     playerTwoGoals: number
   ): Phaser.GameObjects.Container {
@@ -288,16 +310,48 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2;
-    const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2;
+    const playerOneBadge = this.createControllerBadge(
+      playerOneText.x - playerOneText.width - 22,
+      0,
+      playerOneControllerType
+    );
+    const playerTwoBadge = this.createControllerBadge(
+      playerTwoText.x + playerTwoText.width + 22,
+      0,
+      playerTwoControllerType
+    );
+    const playerOneFlagX = playerOneBadge.x - playerOneBadge.width / 2 - flagGap - flagWidth / 2;
+    const playerTwoFlagX = playerTwoBadge.x + playerTwoBadge.width / 2 + flagGap + flagWidth / 2;
     const playerOneFlag = this.add.image(playerOneFlagX, 0, getFlagAssetKey(playerOneFlagCode));
     playerOneFlag.setDisplaySize(flagWidth, flagHeight);
     const playerTwoFlag = this.add.image(playerTwoFlagX, 0, getFlagAssetKey(playerTwoFlagCode));
     playerTwoFlag.setDisplaySize(flagWidth, flagHeight);
 
-    scoreLine.add([playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag]);
+    scoreLine.add([playerOneFlag, playerOneBadge, playerOneText, score, playerTwoText, playerTwoBadge, playerTwoFlag]);
 
     return scoreLine;
+  }
+
+  private createControllerBadge(x: number, y: number, controllerType: PlayerControllerType): Phaser.GameObjects.Container {
+    const label = controllerType === 'AI' ? 'AI' : 'P';
+    const width = controllerType === 'AI' ? 40 : 32;
+    const badge = this.add.container(x, y);
+    const background = this.add.rectangle(0, 0, width, CONTROLLER_BADGE_HEIGHT, 0x08120f, 0.72);
+    background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
+    const text = this.add
+      .text(0, 0, label, {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: '16px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    badge.add([background, text]);
+    badge.setSize(width, CONTROLLER_BADGE_HEIGHT);
+
+    return badge;
   }
 
   private createTeamName(x: number, y: number, name: string): Phaser.GameObjects.Text {
@@ -423,6 +477,25 @@ export class ResultScene extends Phaser.Scene {
       setScroll(scrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
     dragScroll.bindDragTarget(scrollZone);
+  }
+
+  private startReplayMatch(): void {
+    if (this.state === null) {
+      this.scene.start('TeamSelectScene');
+      return;
+    }
+
+    const [playerOne, playerTwo] = this.state.players;
+
+    this.scene.start('GameScene', {
+      player1Name: playerOne.name,
+      player2Name: playerTwo.name,
+      player1FlagCode: playerOne.flagCode,
+      player2FlagCode: playerTwo.flagCode,
+      player1ControllerType: this.state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN',
+      player2ControllerType: this.state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN',
+      launchContext: this.launchContext
+    });
   }
 }
 

@@ -322,6 +322,7 @@ describe('project scaffold', () => {
     expect(getTeamScoreboardCode('pl')).toBe('POL');
     expect(getTeamScoreboardCode('ie')).toBe('IRL');
     expect(getTeamScoreboardCode('no')).toBe('NOR');
+    expect(getTeamScoreboardCode('cl')).toBe('CHI');
     expect(getTeamScoreboardCode('co')).toBe('COL');
     expect(getTeamScoreboardCode('es')).toBe('ESP');
     expect(getTeamScoreboardCode('nir')).toBe('NIR');
