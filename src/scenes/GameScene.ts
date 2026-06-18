@@ -1053,15 +1053,6 @@ export class GameScene extends Phaser.Scene {
     const startX = context.startX ?? getPlayerDeckX(state, context.attackerId);
     const startY = context.startY ?? DECK_Y;
 
-    if (outcome === 'miss') {
-      this.render(state, {
-        interactive: false,
-        hideActiveTurnBall: true
-      });
-      this.playFailedMoveAnimation(state, context, target, () => this.finishAttackAnimationSequence(onComplete));
-      return;
-    }
-
     const card = new CardView(this, startX, startY, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
@@ -1094,7 +1085,7 @@ export class GameScene extends Phaser.Scene {
     this.showImpactPulse(target.x, target.y, outcome);
     this.playGoalkeeperImpactSound(context.positionId, outcome);
 
-    if (outcome === 'post' || outcome === 'save') {
+    if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
       const activeOnLeft = context.attackerId === state.players[0].id;
       const reboundX = target.x + (activeOnLeft ? -180 : 180);
       const reboundY = outcome === 'post' ? target.y - 145 : target.y + 84;
