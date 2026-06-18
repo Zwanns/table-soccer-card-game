@@ -275,6 +275,7 @@ export class ResultScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const teamNameInnerGap = 112;
     const flagGap = 14;
+    const badgeFlagGap = 10;
     const flagWidth = 76;
     const flagHeight = 50;
     const scoreLine = this.add.container(x, y);
@@ -310,24 +311,18 @@ export class ResultScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    const playerOneBadge = this.createControllerBadge(
-      playerOneText.x - playerOneText.width - 22,
-      0,
-      playerOneControllerType
-    );
-    const playerTwoBadge = this.createControllerBadge(
-      playerTwoText.x + playerTwoText.width + 22,
-      0,
-      playerTwoControllerType
-    );
-    const playerOneFlagX = playerOneBadge.x - playerOneBadge.width / 2 - flagGap - flagWidth / 2;
-    const playerTwoFlagX = playerTwoBadge.x + playerTwoBadge.width / 2 + flagGap + flagWidth / 2;
+    const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2;
+    const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2;
     const playerOneFlag = this.add.image(playerOneFlagX, 0, getFlagAssetKey(playerOneFlagCode));
     playerOneFlag.setDisplaySize(flagWidth, flagHeight);
     const playerTwoFlag = this.add.image(playerTwoFlagX, 0, getFlagAssetKey(playerTwoFlagCode));
     playerTwoFlag.setDisplaySize(flagWidth, flagHeight);
+    const playerOneBadge = this.createControllerBadge(0, 0, playerOneControllerType);
+    playerOneBadge.setPosition(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2, 0);
+    const playerTwoBadge = this.createControllerBadge(0, 0, playerTwoControllerType);
+    playerTwoBadge.setPosition(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2, 0);
 
-    scoreLine.add([playerOneFlag, playerOneBadge, playerOneText, score, playerTwoText, playerTwoBadge, playerTwoFlag]);
+    scoreLine.add([playerOneBadge, playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag, playerTwoBadge]);
 
     return scoreLine;
   }

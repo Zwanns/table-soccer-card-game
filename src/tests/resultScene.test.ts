@@ -40,14 +40,17 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain('const flagGap = 14');
+    expect(source).toContain('const badgeFlagGap = 10');
     expect(source).toContain('const flagWidth = 76');
     expect(source).toContain('const flagHeight = 50');
     expect(source).toContain("fontSize: '54px'");
     expect(source).toContain("fontSize: '38px'");
     expect(source).toContain('const playerOneBadge = this.createControllerBadge(');
     expect(source).toContain('const playerTwoBadge = this.createControllerBadge(');
-    expect(source).toContain('const playerOneFlagX = playerOneBadge.x - playerOneBadge.width / 2 - flagGap - flagWidth / 2');
-    expect(source).toContain('const playerTwoFlagX = playerTwoBadge.x + playerTwoBadge.width / 2 + flagGap + flagWidth / 2');
+    expect(source).toContain('const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2');
+    expect(source).toContain('const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2');
+    expect(source).toContain('playerOneBadge.setPosition(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2, 0)');
+    expect(source).toContain('playerTwoBadge.setPosition(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2, 0)');
   });
 
   it('renders the final score inside the raised result statistics panel', () => {
@@ -124,7 +127,7 @@ describe('result scene score line layout', () => {
     expect(source).toContain("const label = controllerType === 'AI' ? 'AI' : 'P'");
     expect(source).toContain('const width = controllerType === \'AI\' ? 40 : 32');
     expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)');
-    expect(source).toContain('scoreLine.add([playerOneFlag, playerOneBadge, playerOneText, score, playerTwoText, playerTwoBadge, playerTwoFlag])');
+    expect(source).toContain('scoreLine.add([playerOneBadge, playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag, playerTwoBadge])');
     expect(source).toContain("state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN'");
     expect(source).toContain("state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN'");
   });
