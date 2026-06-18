@@ -320,7 +320,8 @@ describe('GameScene visual layout contracts', () => {
   it('isolates failed move animation without changing successful or goalkeeper outcomes', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain("if (outcome === 'miss') {\n      this.playFailedMoveAnimation(state, context, card, target, onComplete);");
+    expect(source).toContain("if (outcome === 'miss') {\n      this.render(state, {\n        interactive: false,\n        hideActiveTurnBall: true");
+    expect(source).toContain('this.playFailedMoveAnimation(state, context, target, () => this.finishAttackAnimationSequence(onComplete));');
     expect(source).toContain('private playFailedMoveAnimation(');
     expect(source).toContain("if (outcome === 'post' || outcome === 'save') {");
     expect(source).toContain('this.showImpactPulse(target.x, target.y, outcome);');
@@ -350,7 +351,6 @@ describe('GameScene visual layout contracts', () => {
     expect(gameSceneSource).toContain('ball.destroy();\n        onComplete();');
     expect(gameSceneSource).toContain('return getDeckTurnBallWorldPosition(getPlayerDeckX(state, playerId), DECK_Y, markerSide)');
     expect(gameSceneSource).toContain('private playFailedMoveAnimation(');
-    expect(gameSceneSource).not.toContain('this.playFailedMoveBallFlight(state, context, target, onComplete);');
     expect(deckSource).toContain('showActiveMarker?: boolean');
     expect(deckSource).toContain('if (options.active === true && options.showActiveMarker !== false)');
     expect(deckSource).toContain('export function getDeckTurnBallWorldPosition');
@@ -370,5 +370,20 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('y: source.y + kickDirection.y * FAILED_MOVE_SOURCE_KICK_DISTANCE - FAILED_MOVE_SOURCE_KICK_LIFT');
     expect(source).toContain('yoyo: true');
     expect(source).toContain('sourceCard.destroy();\n        onComplete();');
+  });
+
+  it('uses source kick and ball flight for failed move while keeping other attack outcomes on card flight', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("if (outcome === 'miss') {\n      this.render(state, {\n        interactive: false,\n        hideActiveTurnBall: true");
+    expect(source).toContain('this.playFailedMoveAnimation(state, context, target, () => this.finishAttackAnimationSequence(onComplete));');
+    expect(source).toContain('private playFailedMoveAnimation(\n    state: Readonly<GameState>,\n    context: AttackAnimationContext,');
+    expect(source).toContain('this.playFailedMoveBallFlight(state, context, target, onComplete);');
+    expect(source).toContain('const card = new CardView(this, startX, startY, {');
+    expect(source).toContain("onComplete: () => this.finishAttackAnimation(state, context, card, target, outcome, onComplete)");
+    expect(source).toContain("if (outcome === 'post' || outcome === 'save') {");
+    expect(source).toContain('private finishAttackAnimationSequence(onComplete: () => void): void');
+    expect(source).toContain('this.isAttackAnimationInProgress = false;\n    this.input.enabled = true;\n    onComplete();');
+    expect(source).not.toContain('this.playFailedMoveAnimation(state, context, card, target');
   });
 });

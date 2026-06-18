@@ -1052,6 +1052,16 @@ export class GameScene extends Phaser.Scene {
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, context.defenderId, context.positionId);
     const startX = context.startX ?? getPlayerDeckX(state, context.attackerId);
     const startY = context.startY ?? DECK_Y;
+
+    if (outcome === 'miss') {
+      this.render(state, {
+        interactive: false,
+        hideActiveTurnBall: true
+      });
+      this.playFailedMoveAnimation(state, context, target, () => this.finishAttackAnimationSequence(onComplete));
+      return;
+    }
+
     const card = new CardView(this, startX, startY, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
@@ -1084,11 +1094,6 @@ export class GameScene extends Phaser.Scene {
     this.showImpactPulse(target.x, target.y, outcome);
     this.playGoalkeeperImpactSound(context.positionId, outcome);
 
-    if (outcome === 'miss') {
-      this.playFailedMoveAnimation(state, context, card, target, onComplete);
-      return;
-    }
-
     if (outcome === 'post' || outcome === 'save') {
       const activeOnLeft = context.attackerId === state.players[0].id;
       const reboundX = target.x + (activeOnLeft ? -180 : 180);
@@ -1120,24 +1125,10 @@ export class GameScene extends Phaser.Scene {
   private playFailedMoveAnimation(
     state: Readonly<GameState>,
     context: AttackAnimationContext,
-    card: CardView,
     target: { x: number; y: number },
     onComplete: () => void
   ): void {
-    const activeOnLeft = context.attackerId === state.players[0].id;
-    const reboundX = target.x + (activeOnLeft ? -180 : 180);
-    const reboundY = target.y + 84;
-
-    this.tweens.add({
-      targets: card,
-      x: reboundX,
-      y: reboundY,
-      alpha: 0,
-      rotation: activeOnLeft ? -0.7 : 0.7,
-      duration: 260,
-      ease: 'Cubic.easeOut',
-      onComplete: () => this.finishAnimationObject(card, onComplete)
-    });
+    this.playFailedMoveBallFlight(state, context, target, onComplete);
   }
 
   private playFailedMoveBallFlight(
@@ -1318,6 +1309,10 @@ export class GameScene extends Phaser.Scene {
 
   private finishAnimationObject(card: CardView, onComplete: () => void): void {
     card.destroy();
+    this.finishAttackAnimationSequence(onComplete);
+  }
+
+  private finishAttackAnimationSequence(onComplete: () => void): void {
     this.isAttackAnimationInProgress = false;
     this.input.enabled = true;
     onComplete();
