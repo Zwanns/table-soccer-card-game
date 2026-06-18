@@ -316,4 +316,18 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
   });
+
+  it('isolates failed move animation without changing successful or goalkeeper outcomes', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("if (outcome === 'miss') {\n      this.playFailedMoveAnimation(state, context, card, target, onComplete);");
+    expect(source).toContain('private playFailedMoveAnimation(');
+    expect(source).toContain("if (outcome === 'post' || outcome === 'save') {");
+    expect(source).toContain('this.showImpactPulse(target.x, target.y, outcome);');
+    expect(source).toContain('this.playGoalkeeperImpactSound(context.positionId, outcome);');
+    expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
+  });
 });

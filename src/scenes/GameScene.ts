@@ -1074,7 +1074,12 @@ export class GameScene extends Phaser.Scene {
     this.showImpactPulse(target.x, target.y, outcome);
     this.playGoalkeeperImpactSound(context.positionId, outcome);
 
-    if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
+    if (outcome === 'miss') {
+      this.playFailedMoveAnimation(state, context, card, target, onComplete);
+      return;
+    }
+
+    if (outcome === 'post' || outcome === 'save') {
       const activeOnLeft = context.attackerId === state.players[0].id;
       const reboundX = target.x + (activeOnLeft ? -180 : 180);
       const reboundY = outcome === 'post' ? target.y - 145 : target.y + 84;
@@ -1098,6 +1103,29 @@ export class GameScene extends Phaser.Scene {
       scale: 1.12,
       duration: 180,
       ease: 'Sine.easeOut',
+      onComplete: () => this.finishAnimationObject(card, onComplete)
+    });
+  }
+
+  private playFailedMoveAnimation(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext,
+    card: CardView,
+    target: { x: number; y: number },
+    onComplete: () => void
+  ): void {
+    const activeOnLeft = context.attackerId === state.players[0].id;
+    const reboundX = target.x + (activeOnLeft ? -180 : 180);
+    const reboundY = target.y + 84;
+
+    this.tweens.add({
+      targets: card,
+      x: reboundX,
+      y: reboundY,
+      alpha: 0,
+      rotation: activeOnLeft ? -0.7 : 0.7,
+      duration: 260,
+      ease: 'Cubic.easeOut',
       onComplete: () => this.finishAnimationObject(card, onComplete)
     });
   }
