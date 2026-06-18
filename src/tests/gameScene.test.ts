@@ -363,18 +363,29 @@ describe('GameScene visual layout contracts', () => {
 
   it('keeps a temporary source kick available before goalkeeper shot ball flight', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const sourceKickBlock = source.slice(
+      source.indexOf('private playShotSourceKick('),
+      source.indexOf('private animateBallFlightToGoalkeeper(')
+    );
 
-    expect(source).toContain('const SHOT_SOURCE_KICK_MS = 150');
-    expect(source).toContain('const SHOT_SOURCE_KICK_DISTANCE = 10');
-    expect(source).toContain('const SHOT_SOURCE_KICK_LIFT = 8');
+    expect(source).toContain('const SHOT_SOURCE_KICK_FORWARD_MS = 90');
+    expect(source).toContain('const SHOT_SOURCE_KICK_RETURN_MS = 80');
+    expect(source).toContain('const SHOT_SOURCE_KICK_DISTANCE = 16');
+    expect(source).toContain('const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9)');
     expect(source).toContain('this.playShotSourceKick(state, context, start, () => {');
     expect(source).toContain('private playShotSourceKick(');
     expect(source).toContain('const sourceCard = new CardView(this, source.x, source.y, {');
     expect(source).toContain('const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y)');
+    expect(source).toContain('const kickRotation = (context.attackerId === state.players[0].id ? 1 : -1) * SHOT_SOURCE_KICK_ROTATION;');
+    expect(source).toContain('this.tweens.chain({');
     expect(source).toContain('x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE');
-    expect(source).toContain('y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE - SHOT_SOURCE_KICK_LIFT');
-    expect(source).toContain('yoyo: true');
-    expect(source).toContain('sourceCard.destroy();\n        onComplete();');
+    expect(source).toContain('y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE');
+    expect(source).toContain('rotation: kickRotation');
+    expect(source).toContain('x: source.x,\n          y: source.y,\n          rotation: 0');
+    expect(source).not.toContain('SHOT_SOURCE_KICK_LIFT');
+    expect(sourceKickBlock).not.toContain('yoyo: true');
+    expect(sourceKickBlock).toContain('sourceCard.destroy();');
+    expect(sourceKickBlock).toContain('onComplete();');
   });
 
   it('does not use source kick or temporary ball for ordinary failed move', () => {

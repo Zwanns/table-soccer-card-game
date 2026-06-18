@@ -98,9 +98,10 @@ const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const GOALKEEPER_SHOT_BALL_SIZE = 34;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
-const SHOT_SOURCE_KICK_MS = 150;
-const SHOT_SOURCE_KICK_DISTANCE = 10;
-const SHOT_SOURCE_KICK_LIFT = 8;
+const SHOT_SOURCE_KICK_FORWARD_MS = 90;
+const SHOT_SOURCE_KICK_RETURN_MS = 80;
+const SHOT_SOURCE_KICK_DISTANCE = 16;
+const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -1228,18 +1229,34 @@ export class GameScene extends Phaser.Scene {
     sourceCard.setAlpha(0.92);
     sourceCard.setDepth(880);
 
-    this.tweens.add({
+    const kickRotation = (context.attackerId === state.players[0].id ? 1 : -1) * SHOT_SOURCE_KICK_ROTATION;
+
+    this.tweens.chain({
       targets: sourceCard,
-      x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE,
-      y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE - SHOT_SOURCE_KICK_LIFT,
-      scale: 0.98,
-      duration: SHOT_SOURCE_KICK_MS,
-      ease: 'Sine.easeOut',
-      yoyo: true,
-      onComplete: () => {
-        sourceCard.destroy();
-        onComplete();
-      }
+      tweens: [
+        {
+          x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE,
+          y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE,
+          rotation: kickRotation,
+          scaleX: 0.97,
+          scaleY: 0.88,
+          duration: SHOT_SOURCE_KICK_FORWARD_MS,
+          ease: 'Back.easeOut'
+        },
+        {
+          x: source.x,
+          y: source.y,
+          rotation: 0,
+          scaleX: 0.92,
+          scaleY: 0.92,
+          duration: SHOT_SOURCE_KICK_RETURN_MS,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            sourceCard.destroy();
+            onComplete();
+          }
+        }
+      ]
     });
   }
 
