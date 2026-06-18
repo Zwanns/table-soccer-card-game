@@ -4,4 +4,4 @@ dist
 .vite-dev*.log
 *.local
 .cache/wiki-kits/
-.vite-dev-*.log
+.vite-dev*.log
