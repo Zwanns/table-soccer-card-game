@@ -393,12 +393,28 @@ describe('GameScene visual layout contracts', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('if (isGoalkeeperShotAnimationOutcome(context, outcome)) {');
-    expect(source).toContain("hideActiveTurnBall: true\n      });\n      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));");
+    expect(source).toContain(
+      "this.render(state, {\n        hiddenRestoredCards,\n        interactive: false,\n        hideActiveTurnBall: true\n      });\n      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));"
+    );
     expect(source).toContain('function isGoalkeeperShotAnimationOutcome(');
     expect(source).toContain("return context.positionId === 'goalkeeper' && (outcome === 'goal' || outcome === 'save' || outcome === 'post')");
     expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
     expect(source).toContain("if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {");
     expect(source).toContain('this.playGoalkeeperImpactSound(\'goalkeeper\', outcome);');
+  });
+
+  it('defers restored field cards until goalkeeper shot and outcome visuals complete', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('const pendingRestores = this.getPendingRestoreAnimationEntries(state);');
+    expect(source).toContain('const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);');
+    expect(source).toContain('hiddenCards: hiddenRestoredCards');
+    expect(source).toContain(
+      'if (interactive && pendingRestores.length > 0) {\n      this.isRestoreAnimationInProgress = true;\n      this.animateRestoredCards(state, pendingRestores);\n      return;\n    }'
+    );
+    expect(source).toContain('const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);');
+    expect(source).toContain('this.render(state, { hiddenRestoredCards, interactive: false });');
+    expect(source).not.toContain('this.render(state, {\n        hiddenRestoredCards: pendingRestores,\n        interactive: false\n      });');
   });
 
   it('animates goalkeeper impact card for goal shot outcome', () => {
@@ -407,6 +423,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('defenderCard: FieldCard');
     expect(source).toContain('defenderCardColor: Player[\'teamColor\'] | Card[\'color\']');
     expect(source).toContain('const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);');
+    expect(source).toContain(
+      'const start = this.getTurnBallStartPosition(state, context.attackerId);\n    const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);\n\n    this.playShotSourceKick'
+    );
     expect(source).toContain('private createGoalkeeperShotImpactCard(');
     expect(source).toContain("if (outcome === 'post') {\n      return null;\n    }");
     expect(source).toContain('rank: context.defenderCard.rank');

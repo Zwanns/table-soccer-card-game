@@ -255,6 +255,8 @@ export class GameScene extends Phaser.Scene {
     const centerY = SCENE_HEIGHT / 2;
     const interactive = options.interactive !== false;
     const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
+    const pendingRestores = this.getPendingRestoreAnimationEntries(state);
+    const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);
 
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
@@ -319,7 +321,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
-        hiddenCards: options.hiddenRestoredCards,
+        hiddenCards: hiddenRestoredCards,
         interactive: gameInteractive,
         onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
         onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
@@ -332,14 +334,8 @@ export class GameScene extends Phaser.Scene {
     );
     this.addTeamStats(state);
 
-    const pendingRestores = getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
-
     if (interactive && pendingRestores.length > 0) {
       this.isRestoreAnimationInProgress = true;
-      this.render(state, {
-        hiddenRestoredCards: pendingRestores,
-        interactive: false
-      });
       this.animateRestoredCards(state, pendingRestores);
       return;
     }
@@ -441,20 +437,21 @@ export class GameScene extends Phaser.Scene {
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
       const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
       const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalScoredEventCursor);
+      const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);
 
       if (goalEffect !== null) {
         this.handledGoalScoredEventCursor = goalEffect.eventIndex + 1;
-        this.render(state, { interactive: false });
+        this.render(state, { hiddenRestoredCards, interactive: false });
         this.isMatchEffectInProgress = true;
         this.showFlyingMessage(goalEffect.flyingMessage, goalEffect.flyingMessageTone, () => {
           this.isMatchEffectInProgress = false;
           this.startTurn();
         });
       } else if (goalkeeperSave) {
-        this.render(state, { interactive: false });
+        this.render(state, { hiddenRestoredCards, interactive: false });
         this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
       } else if (missedAttack) {
-        this.render(state, { interactive: false });
+        this.render(state, { hiddenRestoredCards, interactive: false });
         this.showFlyingMessage('Turnover...', 'out', () => this.startTurn());
       } else {
         this.startTurn();
@@ -1089,7 +1086,10 @@ export class GameScene extends Phaser.Scene {
     const startY = context.startY ?? DECK_Y;
 
     if (isGoalkeeperShotAnimationOutcome(context, outcome)) {
+      const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);
+
       this.render(state, {
+        hiddenRestoredCards,
         interactive: false,
         hideActiveTurnBall: true
       });
@@ -1165,10 +1165,9 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
+    const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);
 
     this.playShotSourceKick(state, context, start, () => {
-      const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);
-
       this.animateBallFlightToGoalkeeper({
         start,
         target,
@@ -1611,6 +1610,10 @@ export class GameScene extends Phaser.Scene {
     this.activeInfoModal = null;
     this.aiTurnController?.dispose();
     this.aiTurnController = null;
+  }
+
+  private getPendingRestoreAnimationEntries(state: Readonly<GameState>): RestoreAnimationEntry[] {
+    return getRestoreAnimationEntries(state.log).slice(this.animatedRestoreCount);
   }
 
   private requireEngine(): GameEngine {
