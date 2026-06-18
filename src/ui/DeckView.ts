@@ -17,6 +17,23 @@ const DECK_MARKER_BOUNCE_UP_MS = 360;
 const DECK_MARKER_BOUNCE_DOWN_MS = 260;
 const DECK_MARKER_SQUASH_MS = 64;
 
+interface ActiveDeckMarkerState {
+  baseScaleX: number;
+  baseScaleY: number;
+  baseX: number;
+  baseY: number;
+  stopBounceTween: () => void;
+  marker: Phaser.GameObjects.Image;
+  markerSide: 'left' | 'right';
+  offsetY: number;
+  scaleX: number;
+  scaleY: number;
+  stopped: boolean;
+  tween: Phaser.Tweens.TweenChain;
+}
+
+const activeDeckMarkers = new WeakMap<Phaser.Scene, ActiveDeckMarkerState>();
+
 export interface DeckViewOptions {
   active?: boolean;
   attackCardRank?: string;
@@ -71,58 +88,8 @@ export class DeckView extends Phaser.GameObjects.Container {
 
     if (options.active === true && options.showActiveMarker !== false) {
       const markerSide = options.countSide ?? 'right';
-      const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2;
-      const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2;
-      const markerX =
-        markerSide === 'right'
-          ? deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO
-          : deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO;
-      const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2;
-      const marker = scene.add.image(markerX, markerBaseY, 'turn-ball');
-      marker.setDisplaySize(DECK_MARKER_SIZE, DECK_MARKER_SIZE);
-      const baseY = marker.y;
-      const baseScaleX = marker.scaleX;
-      const baseScaleY = marker.scaleY;
 
-      const bounceTween = scene.tweens.chain({
-        targets: marker,
-        loop: -1,
-        tweens: [
-          {
-            y: baseY - DECK_MARKER_BOUNCE_HEIGHT,
-            duration: DECK_MARKER_BOUNCE_UP_MS,
-            ease: 'Quad.easeOut'
-          },
-          {
-            y: baseY,
-            duration: DECK_MARKER_BOUNCE_DOWN_MS,
-            ease: 'Quad.easeIn'
-          },
-          {
-            scaleX: baseScaleX * 1.08,
-            scaleY: baseScaleY * 0.92,
-            duration: DECK_MARKER_SQUASH_MS,
-            yoyo: true,
-            ease: 'Sine.easeOut'
-          }
-        ]
-      });
-      let bounceTweenStopped = false;
-      const stopBounceTween = (): void => {
-        if (bounceTweenStopped) {
-          return;
-        }
-
-        bounceTweenStopped = true;
-        scene.events.off(Phaser.Scenes.Events.SHUTDOWN, stopBounceTween);
-        marker.off(Phaser.GameObjects.Events.DESTROY, stopBounceTween);
-        bounceTween.stop();
-      };
-
-      marker.once(Phaser.GameObjects.Events.DESTROY, stopBounceTween);
-      scene.events.once(Phaser.Scenes.Events.SHUTDOWN, stopBounceTween);
-
-      this.add(marker);
+      syncDeckTurnBallMarker(scene, x, y, markerSide);
     }
 
     if (options.onClick !== undefined) {
@@ -143,6 +110,92 @@ export class DeckView extends Phaser.GameObjects.Container {
   }
 }
 
+export function syncDeckTurnBallMarker(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  markerSide: 'left' | 'right'
+): void {
+  const markerBase = getDeckTurnBallWorldPosition(x, y, markerSide);
+  const activeMarker = activeDeckMarkers.get(scene);
+
+  if (activeMarker !== undefined && activeMarker.stopped === false && activeMarker.markerSide === markerSide) {
+    activeMarker.baseX = markerBase.x;
+    activeMarker.baseY = markerBase.y;
+    applyDeckTurnBallMarkerState(activeMarker);
+    return;
+  }
+
+  clearDeckTurnBallMarker(scene);
+
+  const marker = scene.add.image(markerBase.x, markerBase.y, 'turn-ball');
+  marker.setDisplaySize(DECK_MARKER_SIZE, DECK_MARKER_SIZE);
+  marker.setDepth(600);
+
+  const markerState: ActiveDeckMarkerState = {
+    baseScaleX: marker.scaleX,
+    baseScaleY: marker.scaleY,
+    baseX: markerBase.x,
+    baseY: markerBase.y,
+    stopBounceTween: () => undefined,
+    marker,
+    markerSide,
+    offsetY: 0,
+    scaleX: marker.scaleX,
+    scaleY: marker.scaleY,
+    stopped: false,
+    tween: undefined as unknown as Phaser.Tweens.TweenChain
+  };
+
+  const stopBounceTween = (): void => {
+    stopDeckTurnBallMarkerTween(scene, markerState);
+  };
+  markerState.stopBounceTween = stopBounceTween;
+
+  marker.once(Phaser.GameObjects.Events.DESTROY, stopBounceTween);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, stopBounceTween);
+
+  markerState.tween = scene.tweens.chain({
+    targets: markerState,
+    loop: -1,
+    tweens: [
+      {
+        offsetY: -DECK_MARKER_BOUNCE_HEIGHT,
+        duration: DECK_MARKER_BOUNCE_UP_MS,
+        ease: 'Quad.easeOut',
+        onUpdate: () => applyDeckTurnBallMarkerState(markerState)
+      },
+      {
+        offsetY: 0,
+        duration: DECK_MARKER_BOUNCE_DOWN_MS,
+        ease: 'Quad.easeIn',
+        onUpdate: () => applyDeckTurnBallMarkerState(markerState)
+      },
+      {
+        scaleX: markerState.baseScaleX * 1.08,
+        scaleY: markerState.baseScaleY * 0.92,
+        duration: DECK_MARKER_SQUASH_MS,
+        yoyo: true,
+        ease: 'Sine.easeOut',
+        onUpdate: () => applyDeckTurnBallMarkerState(markerState)
+      }
+    ]
+  });
+
+  activeDeckMarkers.set(scene, markerState);
+}
+
+export function clearDeckTurnBallMarker(scene: Phaser.Scene): void {
+  const activeMarker = activeDeckMarkers.get(scene);
+
+  if (activeMarker === undefined) {
+    return;
+  }
+
+  stopDeckTurnBallMarkerTween(scene, activeMarker);
+  activeMarker.marker.destroy();
+}
+
 export function getDeckTurnBallWorldPosition(x: number, y: number, markerSide: 'left' | 'right'): { x: number; y: number } {
   const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2;
   const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2;
@@ -156,6 +209,27 @@ export function getDeckTurnBallWorldPosition(x: number, y: number, markerSide: '
     x: x + markerX,
     y: y + markerBaseY
   };
+}
+
+function applyDeckTurnBallMarkerState(markerState: ActiveDeckMarkerState): void {
+  if (markerState.marker.active === false) {
+    return;
+  }
+
+  markerState.marker.setPosition(markerState.baseX, markerState.baseY + markerState.offsetY);
+  markerState.marker.setScale(markerState.scaleX, markerState.scaleY);
+}
+
+function stopDeckTurnBallMarkerTween(scene: Phaser.Scene, markerState: ActiveDeckMarkerState): void {
+  if (markerState.stopped) {
+    return;
+  }
+
+  markerState.stopped = true;
+  activeDeckMarkers.delete(scene);
+  scene.events.off(Phaser.Scenes.Events.SHUTDOWN, markerState.stopBounceTween);
+  markerState.marker.off(Phaser.GameObjects.Events.DESTROY, markerState.stopBounceTween);
+  markerState.tween.stop();
 }
 
 function createRoundedDeckCard(

@@ -18,21 +18,43 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const DECK_MARKER_DECK_OVERLAP_RATIO = 1 / 3');
     expect(source).toContain('const DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO = 1 / 2 - DECK_MARKER_DECK_OVERLAP_RATIO');
     expect(source).toContain("const markerSide = options.countSide ?? 'right'");
+    expect(source).toContain('syncDeckTurnBallMarker(scene, x, y, markerSide)');
+    expect(source).toContain('const activeDeckMarkers = new WeakMap<Phaser.Scene, ActiveDeckMarkerState>()');
+    expect(source).toContain('export function syncDeckTurnBallMarker(');
+    expect(source).toContain('export function clearDeckTurnBallMarker(scene: Phaser.Scene): void');
+    expect(source).toContain('if (activeMarker !== undefined && activeMarker.stopped === false && activeMarker.markerSide === markerSide) {');
+    expect(source).toContain('activeMarker.baseX = markerBase.x');
+    expect(source).toContain('activeMarker.baseY = markerBase.y');
+    expect(source).toContain('applyDeckTurnBallMarkerState(activeMarker)');
+    expect(source).toContain('return;');
+    expect(source).toContain('clearDeckTurnBallMarker(scene);');
     expect(source).toContain("const deckEdgeX = markerSide === 'right' ? DECK_WIDTH * DECK_STACK_SCALE / 2 : -DECK_WIDTH * DECK_STACK_SCALE / 2");
     expect(source).toContain('const deckBottomY = DECK_HEIGHT * DECK_STACK_SCALE / 2');
     expect(source).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
     expect(source).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
     expect(source).toContain('const markerBaseY = deckBottomY - DECK_MARKER_SIZE / 2');
-    expect(source).toContain("const marker = scene.add.image(markerX, markerBaseY, 'turn-ball')");
+    expect(source).toContain("const marker = scene.add.image(markerBase.x, markerBase.y, 'turn-ball')");
     expect(source).toContain('scene.tweens.chain');
+    expect(source).toContain('targets: markerState');
+    expect(source).toContain('offsetY: -DECK_MARKER_BOUNCE_HEIGHT');
+    expect(source).toContain('onUpdate: () => applyDeckTurnBallMarkerState(markerState)');
     expect(source).toContain("ease: 'Quad.easeOut'");
     expect(source).toContain("ease: 'Quad.easeIn'");
-    expect(source).toContain('scaleX: baseScaleX * 1.08');
-    expect(source).toContain('scaleY: baseScaleY * 0.92');
-    expect(source).toContain('bounceTween.stop()');
+    expect(source).toContain('scaleX: markerState.baseScaleX * 1.08');
+    expect(source).toContain('scaleY: markerState.baseScaleY * 0.92');
+    expect(source).toContain('markerState.tween.stop()');
     expect(source).toContain('Phaser.Scenes.Events.SHUTDOWN');
     expect(source).not.toContain("ease: 'Sine.easeInOut'");
     expect(source).not.toContain('repeat: -1');
+  });
+
+  it('clears the active deck ball when goalkeeper shot hides the turn marker', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView'");
+    expect(source).toContain(
+      'if (options.hideActiveTurnBall === true) {\n      clearDeckTurnBallMarker(this);\n    }'
+    );
   });
 
   it('positions the active deck ball beside the active deck with one-third horizontal overlap', () => {

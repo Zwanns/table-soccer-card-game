@@ -30,7 +30,7 @@ import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
-import { DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
+import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
@@ -260,6 +260,10 @@ export class GameScene extends Phaser.Scene {
     const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
     const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);
+
+    if (options.hideActiveTurnBall === true) {
+      clearDeckTurnBallMarker(this);
+    }
 
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
