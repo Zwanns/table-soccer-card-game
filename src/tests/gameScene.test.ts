@@ -449,7 +449,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.playShotSourceKick(state, context, sourceSnapshot, start, () => {');
     expect(source).toContain('private playShotSourceKick(');
     expect(source).toContain('private createGoalkeeperShotSourceSnapshot(');
-    expect(source).toContain('const sourceSnapshot = new CardView(this, source.x, source.y, {');
+    expect(source).toContain('const sourceSnapshot = new CardView(this, sourceTransform.x, sourceTransform.y, {');
     expect(source).toContain('sourceSnapshot.setDepth(GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH);');
     expect(source).toContain('const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y)');
     expect(source).toContain('const kickRotation = (context.attackerId === state.players[0].id ? 1 : -1) * SHOT_SOURCE_KICK_ROTATION;');
@@ -458,11 +458,63 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE');
     expect(source).toContain('y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE');
     expect(source).toContain('rotation: kickRotation');
-    expect(source).toContain('x: source.x,\n          y: source.y,\n          rotation: 0');
+    expect(source).toContain('x: source.x,\n          y: source.y,\n          rotation: source.rotation');
     expect(source).not.toContain('SHOT_SOURCE_KICK_LIFT');
     expect(sourceKickBlock).not.toContain('yoyo: true');
     expect(sourceKickBlock).not.toContain('sourceSnapshot.destroy();');
     expect(sourceKickBlock).toContain('onComplete();');
+  });
+
+  it('copies the real source CardView scale into the goalkeeper shot source snapshot', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const transformBlock = source.slice(
+      source.indexOf('private getGoalkeeperShotSourceTransform('),
+      source.indexOf('private createGoalkeeperShotImpactCard(')
+    );
+
+    expect(source).toContain('interface CardVisualTransform');
+    expect(transformBlock).toContain('const sourceView = this.findAttackAnimationSourceView(context);');
+    expect(transformBlock).toContain('const transform = sourceView.getWorldTransformMatrix().decomposeMatrix();');
+    expect(transformBlock).toContain('x: transform.translateX');
+    expect(transformBlock).toContain('y: transform.translateY');
+    expect(transformBlock).toContain('rotation: transform.rotation');
+    expect(transformBlock).toContain('scaleX: transform.scaleX');
+    expect(transformBlock).toContain('scaleY: transform.scaleY');
+    expect(transformBlock).toContain('alpha: sourceView.alpha');
+    expect(source).toContain('sourceSnapshot.setRotation(sourceTransform.rotation);');
+    expect(source).toContain('sourceSnapshot.setScale(sourceTransform.scaleX, sourceTransform.scaleY);');
+    expect(source).toContain('sourceSnapshot.setAlpha(sourceTransform.alpha);');
+    expect(source).not.toContain('sourceSnapshot.setScale(0.92);');
+  });
+
+  it('returns the goalkeeper shot source snapshot to its original scale after kick', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const sourceKickBlock = source.slice(
+      source.indexOf('private playShotSourceKick('),
+      source.indexOf('private animateBallFlightToGoalkeeper(')
+    );
+
+    expect(sourceKickBlock).toContain('scaleX: sourceSnapshot.scaleX');
+    expect(sourceKickBlock).toContain('scaleY: sourceSnapshot.scaleY');
+    expect(sourceKickBlock).toContain('rotation: sourceSnapshot.rotation');
+    expect(sourceKickBlock).toContain('rotation: source.rotation');
+    expect(sourceKickBlock).toContain('scaleX: source.scaleX');
+    expect(sourceKickBlock).toContain('scaleY: source.scaleY');
+    expect(sourceKickBlock).not.toContain('scaleX: 0.92');
+    expect(sourceKickBlock).not.toContain('scaleY: 0.92');
+  });
+
+  it('uses relative squash stretch for goalkeeper shot source kick scale', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const sourceKickBlock = source.slice(
+      source.indexOf('private playShotSourceKick('),
+      source.indexOf('private animateBallFlightToGoalkeeper(')
+    );
+
+    expect(sourceKickBlock).toContain('scaleX: source.scaleX * 1.04');
+    expect(sourceKickBlock).toContain('scaleY: source.scaleY * 0.97');
+    expect(sourceKickBlock).not.toContain('scaleX: 0.97');
+    expect(sourceKickBlock).not.toContain('scaleY: 0.88');
   });
 
   it('keeps the goalkeeper shot source snapshot visible through goal animation', () => {

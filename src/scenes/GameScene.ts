@@ -106,6 +106,15 @@ const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
 
+interface CardVisualTransform {
+  x: number;
+  y: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  alpha: number;
+}
+
 interface RestoreAnimationEntry {
   playerId: Player['id'];
   positionId: FieldPositionId;
@@ -1222,11 +1231,8 @@ export class GameScene extends Phaser.Scene {
     state: Readonly<GameState>,
     context: AttackAnimationContext
   ): CardView {
-    const source = {
-      x: context.startX ?? getPlayerDeckX(state, context.attackerId),
-      y: context.startY ?? DECK_Y
-    };
-    const sourceSnapshot = new CardView(this, source.x, source.y, {
+    const sourceTransform = this.getGoalkeeperShotSourceTransform(state, context);
+    const sourceSnapshot = new CardView(this, sourceTransform.x, sourceTransform.y, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
       kitTextureKey: context.attackerKitTextureKey,
@@ -1234,11 +1240,41 @@ export class GameScene extends Phaser.Scene {
       tooltipEnabled: false
     });
 
-    sourceSnapshot.setScale(0.92);
-    sourceSnapshot.setAlpha(0.92);
+    sourceSnapshot.setRotation(sourceTransform.rotation);
+    sourceSnapshot.setScale(sourceTransform.scaleX, sourceTransform.scaleY);
+    sourceSnapshot.setAlpha(sourceTransform.alpha);
     sourceSnapshot.setDepth(GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH);
 
     return sourceSnapshot;
+  }
+
+  private getGoalkeeperShotSourceTransform(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext
+  ): CardVisualTransform {
+    const sourceView = this.findAttackAnimationSourceView(context);
+
+    if (sourceView !== null) {
+      const transform = sourceView.getWorldTransformMatrix().decomposeMatrix();
+
+      return {
+        x: transform.translateX,
+        y: transform.translateY,
+        rotation: transform.rotation,
+        scaleX: transform.scaleX,
+        scaleY: transform.scaleY,
+        alpha: sourceView.alpha
+      };
+    }
+
+    return {
+      x: context.startX ?? getPlayerDeckX(state, context.attackerId),
+      y: context.startY ?? DECK_Y,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      alpha: 1
+    };
   }
 
   private createGoalkeeperShotImpactCard(
@@ -1271,8 +1307,11 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     const source = {
-      x: context.startX ?? getPlayerDeckX(state, context.attackerId),
-      y: context.startY ?? DECK_Y
+      x: sourceSnapshot.x,
+      y: sourceSnapshot.y,
+      rotation: sourceSnapshot.rotation,
+      scaleX: sourceSnapshot.scaleX,
+      scaleY: sourceSnapshot.scaleY
     };
     const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y);
 
@@ -1291,17 +1330,17 @@ export class GameScene extends Phaser.Scene {
           x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE,
           y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE,
           rotation: kickRotation,
-          scaleX: 0.97,
-          scaleY: 0.88,
+          scaleX: source.scaleX * 1.04,
+          scaleY: source.scaleY * 0.97,
           duration: SHOT_SOURCE_KICK_FORWARD_MS,
           ease: 'Back.easeOut'
         },
         {
           x: source.x,
           y: source.y,
-          rotation: 0,
-          scaleX: 0.92,
-          scaleY: 0.92,
+          rotation: source.rotation,
+          scaleX: source.scaleX,
+          scaleY: source.scaleY,
           duration: SHOT_SOURCE_KICK_RETURN_MS,
           ease: 'Sine.easeIn',
           onComplete: () => {
