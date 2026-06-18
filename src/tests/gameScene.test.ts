@@ -355,4 +355,20 @@ describe('GameScene visual layout contracts', () => {
     expect(deckSource).toContain('if (options.active === true && options.showActiveMarker !== false)');
     expect(deckSource).toContain('export function getDeckTurnBallWorldPosition');
   });
+
+  it('adds a temporary source kick before the failed move ball flight helper', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_MS = 150');
+    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_DISTANCE = 10');
+    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_LIFT = 8');
+    expect(source).toContain('this.playFailedMoveSourceKick(state, context, start, () => {');
+    expect(source).toContain('private playFailedMoveSourceKick(');
+    expect(source).toContain('const sourceCard = new CardView(this, source.x, source.y, {');
+    expect(source).toContain('const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y)');
+    expect(source).toContain('x: source.x + kickDirection.x * FAILED_MOVE_SOURCE_KICK_DISTANCE');
+    expect(source).toContain('y: source.y + kickDirection.y * FAILED_MOVE_SOURCE_KICK_DISTANCE - FAILED_MOVE_SOURCE_KICK_LIFT');
+    expect(source).toContain('yoyo: true');
+    expect(source).toContain('sourceCard.destroy();\n        onComplete();');
+  });
 });

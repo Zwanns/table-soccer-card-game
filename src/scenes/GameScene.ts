@@ -98,6 +98,9 @@ const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const FAILED_MOVE_BALL_SIZE = 34;
 const FAILED_MOVE_BALL_FLIGHT_MS = 320;
 const FAILED_MOVE_BALL_DEFLECTION_MS = 220;
+const FAILED_MOVE_SOURCE_KICK_MS = 150;
+const FAILED_MOVE_SOURCE_KICK_DISTANCE = 10;
+const FAILED_MOVE_SOURCE_KICK_LIFT = 8;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -1145,11 +1148,55 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
 
-    this.animateBallFlightToTarget({
-      start,
-      target,
-      activeOnLeft: context.attackerId === state.players[0].id,
-      onComplete
+    this.playFailedMoveSourceKick(state, context, start, () => {
+      this.animateBallFlightToTarget({
+        start,
+        target,
+        activeOnLeft: context.attackerId === state.players[0].id,
+        onComplete
+      });
+    });
+  }
+
+  private playFailedMoveSourceKick(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext,
+    ballStart: { x: number; y: number },
+    onComplete: () => void
+  ): void {
+    const source = {
+      x: context.startX ?? getPlayerDeckX(state, context.attackerId),
+      y: context.startY ?? DECK_Y
+    };
+    const sourceCard = new CardView(this, source.x, source.y, {
+      rank: context.attackerCard.rank,
+      color: context.attackerCard.color,
+      kitTextureKey: context.attackerKitTextureKey,
+      playerProfile: context.attackerProfile
+    });
+    const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y);
+
+    if (kickDirection.lengthSq() === 0) {
+      kickDirection.set(context.attackerId === state.players[0].id ? 1 : -1, 0);
+    }
+
+    kickDirection.normalize();
+    sourceCard.setScale(0.92);
+    sourceCard.setAlpha(0.92);
+    sourceCard.setDepth(880);
+
+    this.tweens.add({
+      targets: sourceCard,
+      x: source.x + kickDirection.x * FAILED_MOVE_SOURCE_KICK_DISTANCE,
+      y: source.y + kickDirection.y * FAILED_MOVE_SOURCE_KICK_DISTANCE - FAILED_MOVE_SOURCE_KICK_LIFT,
+      scale: 0.98,
+      duration: FAILED_MOVE_SOURCE_KICK_MS,
+      ease: 'Sine.easeOut',
+      yoyo: true,
+      onComplete: () => {
+        sourceCard.destroy();
+        onComplete();
+      }
     });
   }
 
