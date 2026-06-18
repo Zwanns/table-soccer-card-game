@@ -1054,6 +1054,15 @@ export class GameScene extends Phaser.Scene {
     const startX = context.startX ?? getPlayerDeckX(state, context.attackerId);
     const startY = context.startY ?? DECK_Y;
 
+    if (isGoalkeeperShotAnimationOutcome(context, outcome)) {
+      this.render(state, {
+        interactive: false,
+        hideActiveTurnBall: true
+      });
+      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));
+      return;
+    }
+
     const card = new CardView(this, startX, startY, {
       rank: context.attackerCard.rank,
       color: context.attackerCard.color,
@@ -1240,6 +1249,7 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     this.showGoalkeeperShotTargetImpact(target, outcome);
+    this.playGoalkeeperImpactSound('goalkeeper', outcome);
 
     const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
@@ -1545,6 +1555,13 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
   }
 
   return 'defeat';
+}
+
+function isGoalkeeperShotAnimationOutcome(
+  context: AttackAnimationContext,
+  outcome: AttackAnimationOutcome
+): outcome is GoalkeeperShotAnimationOutcome {
+  return context.positionId === 'goalkeeper' && (outcome === 'goal' || outcome === 'save' || outcome === 'post');
 }
 
 function getGoalkeeperShotBallExit(

@@ -317,7 +317,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
   });
 
-  it('restores failed move card animation without changing successful or goalkeeper outcomes', () => {
+  it('restores failed move card animation while leaving field success on card flight', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('const card = new CardView(this, startX, startY, {');
@@ -387,5 +387,17 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.isAttackAnimationInProgress = false;\n    this.input.enabled = true;\n    onComplete();');
     expect(source).not.toContain("if (outcome === 'miss') {\n      this.render(state, {");
     expect(source).not.toContain('hideActiveTurnBall: true\n      });\n      this.playFailedMoveAnimation');
+  });
+
+  it('uses ball flight only for goalkeeper shot outcomes', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('if (isGoalkeeperShotAnimationOutcome(context, outcome)) {');
+    expect(source).toContain("hideActiveTurnBall: true\n      });\n      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));");
+    expect(source).toContain('function isGoalkeeperShotAnimationOutcome(');
+    expect(source).toContain("return context.positionId === 'goalkeeper' && (outcome === 'goal' || outcome === 'save' || outcome === 'post')");
+    expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
+    expect(source).toContain("if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {");
+    expect(source).toContain('this.playGoalkeeperImpactSound(\'goalkeeper\', outcome);');
   });
 });
