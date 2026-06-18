@@ -85,8 +85,8 @@ const INFO_BACK_BUTTON = {
   fontSize: '18px'
 } as const;
 const PAUSE_MODAL = {
-  width: 420,
-  height: 430
+  width: 460,
+  height: 500
 } as const;
 const PAUSE_BUTTON = {
   width: 300,

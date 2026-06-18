@@ -90,6 +90,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const modal = this.add.container(0, 0).setDepth(1000)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
     expect(source).toContain('overlay.setInteractive()');
+    expect(source).toContain('const PAUSE_MODAL = {');
+    expect(source).toContain('width: 460');
+    expect(source).toContain('height: 500');
     expect(source).toContain('PAUSE_MODAL.width,\n      PAUSE_MODAL.height,\n      INFO_MODAL_BACKGROUND_COLOR,\n      INFO_MODAL_BACKGROUND_ALPHA');
     expect(source).toContain("text(0, -160, 'Pause'");
     expect(source).toContain('const PAUSE_BUTTON = {');
@@ -107,6 +110,42 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("this.openMatchInfoModal('about')");
     expect(source).toContain('private closePauseModal(): void');
     expect(source).toContain('this.pauseModal === null');
+  });
+
+  it('keeps enlarged pause buttons inside a roomier panel', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const modalMatch = source.match(/const PAUSE_MODAL = {\n  width: (\d+),\n  height: (\d+)\n} as const;/);
+    const buttonMatch = source.match(
+      /const PAUSE_BUTTON = {\n  width: (\d+),\n  height: (\d+),\n  fontSize: '(\d+)px',\n  gap: (\d+)\n} as const;/
+    );
+    const firstButtonYMatch = source.match(/const firstButtonY = (-?\d+);/);
+
+    expect(modalMatch).not.toBeNull();
+    expect(buttonMatch).not.toBeNull();
+    expect(firstButtonYMatch).not.toBeNull();
+
+    const [, modalWidthText, modalHeightText] = modalMatch!;
+    const [, buttonWidthText, buttonHeightText, fontSizeText, gapText] = buttonMatch!;
+    const [, firstButtonYText] = firstButtonYMatch!;
+    const modalWidth = Number(modalWidthText);
+    const modalHeight = Number(modalHeightText);
+    const buttonWidth = Number(buttonWidthText);
+    const buttonHeight = Number(buttonHeightText);
+    const fontSize = Number(fontSizeText);
+    const gap = Number(gapText);
+    const firstButtonY = Number(firstButtonYText);
+    const buttonStep = buttonHeight + gap;
+    const sidePadding = (modalWidth - buttonWidth) / 2;
+    const buttonsBottom = firstButtonY + buttonStep * 3 + buttonHeight / 2;
+    const bottomPadding = modalHeight / 2 - buttonsBottom;
+
+    expect(buttonWidth).toBe(300);
+    expect(buttonHeight).toBe(64);
+    expect(fontSize).toBe(26);
+    expect(gap).toBe(20);
+    expect(sidePadding).toBeGreaterThanOrEqual(70);
+    expect(bottomPadding).toBeGreaterThanOrEqual(40);
+    expect(modalHeight).toBeGreaterThan(buttonHeight * 4 + gap * 3);
   });
 
   it('keeps pause action hit areas tied to the visible Button size', () => {
