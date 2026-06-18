@@ -104,6 +104,7 @@ const SHOT_SOURCE_KICK_FORWARD_MS = 90;
 const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
+const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -1202,17 +1203,42 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
     const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);
+    const sourceSnapshot = this.createGoalkeeperShotSourceSnapshot(state, context);
 
-    this.playShotSourceKick(state, context, start, () => {
+    this.playShotSourceKick(state, context, sourceSnapshot, start, () => {
       this.animateBallFlightToGoalkeeper({
         start,
         target,
         activeOnLeft: context.attackerId === state.players[0].id,
         goalkeeperImpactCard,
+        sourceSnapshot,
         outcome,
         onComplete
       });
     });
+  }
+
+  private createGoalkeeperShotSourceSnapshot(
+    state: Readonly<GameState>,
+    context: AttackAnimationContext
+  ): CardView {
+    const source = {
+      x: context.startX ?? getPlayerDeckX(state, context.attackerId),
+      y: context.startY ?? DECK_Y
+    };
+    const sourceSnapshot = new CardView(this, source.x, source.y, {
+      rank: context.attackerCard.rank,
+      color: context.attackerCard.color,
+      kitTextureKey: context.attackerKitTextureKey,
+      playerProfile: context.attackerProfile,
+      tooltipEnabled: false
+    });
+
+    sourceSnapshot.setScale(0.92);
+    sourceSnapshot.setAlpha(0.92);
+    sourceSnapshot.setDepth(GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH);
+
+    return sourceSnapshot;
   }
 
   private createGoalkeeperShotImpactCard(
@@ -1240,6 +1266,7 @@ export class GameScene extends Phaser.Scene {
   private playShotSourceKick(
     state: Readonly<GameState>,
     context: AttackAnimationContext,
+    sourceSnapshot: CardView,
     ballStart: { x: number; y: number },
     onComplete: () => void
   ): void {
@@ -1247,12 +1274,6 @@ export class GameScene extends Phaser.Scene {
       x: context.startX ?? getPlayerDeckX(state, context.attackerId),
       y: context.startY ?? DECK_Y
     };
-    const sourceCard = new CardView(this, source.x, source.y, {
-      rank: context.attackerCard.rank,
-      color: context.attackerCard.color,
-      kitTextureKey: context.attackerKitTextureKey,
-      playerProfile: context.attackerProfile
-    });
     const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y);
 
     if (kickDirection.lengthSq() === 0) {
@@ -1260,14 +1281,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     kickDirection.normalize();
-    sourceCard.setScale(0.92);
-    sourceCard.setAlpha(0.92);
-    sourceCard.setDepth(880);
 
     const kickRotation = (context.attackerId === state.players[0].id ? 1 : -1) * SHOT_SOURCE_KICK_ROTATION;
 
     this.tweens.chain({
-      targets: sourceCard,
+      targets: sourceSnapshot,
       tweens: [
         {
           x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE,
@@ -1287,7 +1305,6 @@ export class GameScene extends Phaser.Scene {
           duration: SHOT_SOURCE_KICK_RETURN_MS,
           ease: 'Sine.easeIn',
           onComplete: () => {
-            sourceCard.destroy();
             onComplete();
           }
         }
@@ -1300,6 +1317,7 @@ export class GameScene extends Phaser.Scene {
     target: { x: number; y: number };
     activeOnLeft: boolean;
     goalkeeperImpactCard: CardView | null;
+    sourceSnapshot: CardView;
     outcome: GoalkeeperShotAnimationOutcome;
     onComplete: () => void;
   }): void {
@@ -1338,9 +1356,14 @@ export class GameScene extends Phaser.Scene {
           options.goalkeeperImpactCard,
           baseScaleX,
           baseScaleY,
-          options.onComplete
+          () => this.finishGoalkeeperShotSourceSnapshot(options.sourceSnapshot, options.onComplete)
         )
     });
+  }
+
+  private finishGoalkeeperShotSourceSnapshot(sourceSnapshot: CardView, onComplete: () => void): void {
+    sourceSnapshot.destroy();
+    onComplete();
   }
 
   private finishGoalkeeperShotBallImpact(

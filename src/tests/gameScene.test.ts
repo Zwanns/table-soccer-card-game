@@ -444,20 +444,104 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const SHOT_SOURCE_KICK_RETURN_MS = 80');
     expect(source).toContain('const SHOT_SOURCE_KICK_DISTANCE = 16');
     expect(source).toContain('const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9)');
-    expect(source).toContain('this.playShotSourceKick(state, context, start, () => {');
+    expect(source).toContain('const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840');
+    expect(source).toContain('const sourceSnapshot = this.createGoalkeeperShotSourceSnapshot(state, context);');
+    expect(source).toContain('this.playShotSourceKick(state, context, sourceSnapshot, start, () => {');
     expect(source).toContain('private playShotSourceKick(');
-    expect(source).toContain('const sourceCard = new CardView(this, source.x, source.y, {');
+    expect(source).toContain('private createGoalkeeperShotSourceSnapshot(');
+    expect(source).toContain('const sourceSnapshot = new CardView(this, source.x, source.y, {');
+    expect(source).toContain('sourceSnapshot.setDepth(GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH);');
     expect(source).toContain('const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y)');
     expect(source).toContain('const kickRotation = (context.attackerId === state.players[0].id ? 1 : -1) * SHOT_SOURCE_KICK_ROTATION;');
     expect(source).toContain('this.tweens.chain({');
+    expect(source).toContain('targets: sourceSnapshot');
     expect(source).toContain('x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE');
     expect(source).toContain('y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE');
     expect(source).toContain('rotation: kickRotation');
     expect(source).toContain('x: source.x,\n          y: source.y,\n          rotation: 0');
     expect(source).not.toContain('SHOT_SOURCE_KICK_LIFT');
     expect(sourceKickBlock).not.toContain('yoyo: true');
-    expect(sourceKickBlock).toContain('sourceCard.destroy();');
+    expect(sourceKickBlock).not.toContain('sourceSnapshot.destroy();');
     expect(sourceKickBlock).toContain('onComplete();');
+  });
+
+  it('keeps the goalkeeper shot source snapshot visible through goal animation', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const flightBlock = source.slice(
+      source.indexOf('private playGoalkeeperShotBallFlight('),
+      source.indexOf('private createGoalkeeperShotImpactCard(')
+    );
+    const impactBlock = source.slice(
+      source.indexOf('private finishGoalkeeperShotBallImpact('),
+      source.indexOf('private animateGoalkeeperShotGoalDisappear(')
+    );
+    const goalBlock = source.slice(
+      source.indexOf('private animateGoalkeeperShotGoalDisappear('),
+      source.indexOf('private animateGoalkeeperShotSaveDeflection(')
+    );
+
+    expect(flightBlock).toContain('const sourceSnapshot = this.createGoalkeeperShotSourceSnapshot(state, context);');
+    expect(flightBlock).toContain('sourceSnapshot,');
+    expect(impactBlock).toContain("if (outcome === 'goal') {");
+    expect(impactBlock).toContain('this.animateGoalkeeperShotGoalDisappear(');
+    expect(goalBlock).toContain('goalkeeperImpactCard?.destroy();\n        onComplete();');
+    expect(goalBlock).not.toContain('sourceSnapshot.destroy();');
+  });
+
+  it('keeps the goalkeeper shot source snapshot visible through save animation', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const impactBlock = source.slice(
+      source.indexOf('private finishGoalkeeperShotBallImpact('),
+      source.indexOf('private animateGoalkeeperShotGoalDisappear(')
+    );
+    const saveBlock = source.slice(
+      source.indexOf('private animateGoalkeeperShotSaveDeflection('),
+      source.indexOf('private animateGoalkeeperShotPostForwardDeflection(')
+    );
+
+    expect(impactBlock).toContain("if (outcome === 'save') {\n      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
+    expect(saveBlock).toContain('ball.destroy();\n        onComplete();');
+    expect(saveBlock).not.toContain('sourceSnapshot.destroy();');
+  });
+
+  it('keeps the goalkeeper shot source snapshot visible through post animation', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const impactBlock = source.slice(
+      source.indexOf('private finishGoalkeeperShotBallImpact('),
+      source.indexOf('private animateGoalkeeperShotGoalDisappear(')
+    );
+    const postBlock = source.slice(
+      source.indexOf('private animateGoalkeeperShotPostForwardDeflection('),
+      source.indexOf('private animateGoalkeeperShotImpactCard(')
+    );
+
+    expect(impactBlock).toContain("if (outcome === 'post') {\n      this.animateGoalkeeperShotPostForwardDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
+    expect(postBlock).toContain('ball.destroy();\n            onComplete();');
+    expect(postBlock).not.toContain('sourceSnapshot.destroy();');
+  });
+
+  it('removes the goalkeeper shot source snapshot after outcome animation complete', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const flightBlock = source.slice(
+      source.indexOf('private animateBallFlightToGoalkeeper(options: {'),
+      source.indexOf('private finishGoalkeeperShotSourceSnapshot(')
+    );
+    const cleanupBlock = source.slice(
+      source.indexOf('private finishGoalkeeperShotSourceSnapshot('),
+      source.indexOf('private finishGoalkeeperShotBallImpact(')
+    );
+
+    expect(flightBlock).toContain('sourceSnapshot: CardView;');
+    expect(flightBlock).toContain('() => this.finishGoalkeeperShotSourceSnapshot(options.sourceSnapshot, options.onComplete)');
+    expect(cleanupBlock).toContain('sourceSnapshot.destroy();\n    onComplete();');
+  });
+
+  it('keeps goalkeeper shot source snapshot visuals out of GameEngine rules', () => {
+    const engineSource = readSource('src/game/GameEngine.ts');
+
+    expect(engineSource).not.toContain('GoalkeeperShotSourceSnapshot');
+    expect(engineSource).not.toContain('sourceSnapshot');
+    expect(engineSource).not.toContain('GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH');
   });
 
   it('does not use source kick or temporary ball for ordinary failed move', () => {
@@ -507,7 +591,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('defenderCardColor: Player[\'teamColor\'] | Card[\'color\']');
     expect(source).toContain('const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);');
     expect(source).toContain(
-      'const start = this.getTurnBallStartPosition(state, context.attackerId);\n    const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);\n\n    this.playShotSourceKick'
+      'const start = this.getTurnBallStartPosition(state, context.attackerId);\n    const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);\n    const sourceSnapshot = this.createGoalkeeperShotSourceSnapshot(state, context);\n\n    this.playShotSourceKick'
     );
     expect(source).toContain('private createGoalkeeperShotImpactCard(');
     expect(source).toContain("if (outcome === 'post') {\n      return null;\n    }");
