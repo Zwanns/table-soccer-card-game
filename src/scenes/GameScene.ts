@@ -1343,6 +1343,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (outcome === 'save') {
+      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);
+      return;
+    }
+
     const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
     this.tweens.add({
@@ -1399,6 +1404,34 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => {
         ball.destroy();
         goalkeeperImpactCard?.destroy();
+        onComplete();
+      }
+    });
+  }
+
+  private animateGoalkeeperShotSaveDeflection(
+    ball: Phaser.GameObjects.Image,
+    target: { x: number; y: number },
+    activeOnLeft: boolean,
+    baseScaleX: number,
+    baseScaleY: number,
+    onComplete: () => void
+  ): void {
+    const deflection = getGoalkeeperShotSaveDeflection(target, activeOnLeft);
+    const rotationSign = activeOnLeft ? -1 : 1;
+
+    this.tweens.add({
+      targets: ball,
+      x: deflection.x,
+      y: deflection.y,
+      angle: ball.angle + rotationSign * 420,
+      alpha: 0,
+      scaleX: baseScaleX * 0.45,
+      scaleY: baseScaleY * 0.45,
+      duration: 240,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        ball.destroy();
         onComplete();
       }
     });
@@ -1799,13 +1832,6 @@ function getGoalkeeperShotBallExit(
     };
   }
 
-  if (outcome === 'save') {
-    return {
-      x: activeOnLeft ? 1485 : 115,
-      y: DECK_Y
-    };
-  }
-
   const awayFromCenter = new Phaser.Math.Vector2(target.x - SCENE_WIDTH / 2, target.y - FIELD_CENTER_Y);
 
   if (awayFromCenter.lengthSq() === 0) {
@@ -1817,6 +1843,16 @@ function getGoalkeeperShotBallExit(
   return {
     x: target.x + awayFromCenter.x * 170,
     y: target.y + awayFromCenter.y * 112
+  };
+}
+
+function getGoalkeeperShotSaveDeflection(
+  target: { x: number; y: number },
+  activeOnLeft: boolean
+): { x: number; y: number } {
+  return {
+    x: target.x + (activeOnLeft ? -155 : 155),
+    y: target.y + 104
   };
 }
 

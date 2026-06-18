@@ -460,14 +460,20 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
   });
 
-  it('animates goalkeeper save as a catch pulse and sends ball toward defending deck', () => {
+  it('animates goalkeeper save as a catch pulse and side deflection', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain("if (outcome === 'save') {\n      this.tweens.add({");
     expect(source).toContain('scale: 1.1');
     expect(source).toContain('duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2');
     expect(source).toContain('yoyo: true');
-    expect(source).toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
+    expect(source).toContain("if (outcome === 'save') {\n      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
+    expect(source).toContain('private animateGoalkeeperShotSaveDeflection(');
+    expect(source).toContain('const deflection = getGoalkeeperShotSaveDeflection(target, activeOnLeft)');
+    expect(source).toContain('x: target.x + (activeOnLeft ? -155 : 155)');
+    expect(source).toContain('y: target.y + 104');
+    expect(source).toContain('angle: ball.angle + rotationSign * 420');
+    expect(source).not.toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
   });
 
