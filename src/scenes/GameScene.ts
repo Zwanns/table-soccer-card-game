@@ -1314,6 +1314,11 @@ export class GameScene extends Phaser.Scene {
     this.playGoalkeeperImpactSound('goalkeeper', outcome);
     this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);
 
+    if (outcome === 'post') {
+      this.animateGoalkeeperShotPostReturn(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);
+      return;
+    }
+
     const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
     this.tweens.add({
@@ -1329,6 +1334,51 @@ export class GameScene extends Phaser.Scene {
         ball.destroy();
         onComplete();
       }
+    });
+  }
+
+  private animateGoalkeeperShotPostReturn(
+    ball: Phaser.GameObjects.Image,
+    target: { x: number; y: number },
+    activeOnLeft: boolean,
+    baseScaleX: number,
+    baseScaleY: number,
+    onComplete: () => void
+  ): void {
+    const bounce = {
+      x: target.x + (activeOnLeft ? 86 : -86),
+      y: target.y - 112
+    };
+    const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft);
+    const rotationSign = activeOnLeft ? -1 : 1;
+
+    this.tweens.chain({
+      targets: ball,
+      tweens: [
+        {
+          x: bounce.x,
+          y: bounce.y,
+          angle: rotationSign * 900,
+          scaleX: baseScaleX * 0.9,
+          scaleY: baseScaleY * 0.9,
+          duration: 120,
+          ease: 'Cubic.easeOut'
+        },
+        {
+          x: returnTarget.x,
+          y: returnTarget.y,
+          angle: rotationSign * 1080,
+          alpha: 0,
+          scaleX: baseScaleX * 0.5,
+          scaleY: baseScaleY * 0.5,
+          duration: 280,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            ball.destroy();
+            onComplete();
+          }
+        }
+      ]
     });
   }
 

@@ -429,4 +429,16 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
   });
+
+  it('animates post outcome as a bounce back toward the attacking deck', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("if (outcome === 'post') {\n      this.animateGoalkeeperShotPostReturn(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
+    expect(source).toContain('private animateGoalkeeperShotPostReturn(');
+    expect(source).toContain('x: target.x + (activeOnLeft ? 86 : -86)');
+    expect(source).toContain('y: target.y - 112');
+    expect(source).toContain("const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft)");
+    expect(source).toContain('x: activeOnLeft ? 115 : 1485');
+    expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
+  });
 });
