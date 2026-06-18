@@ -99,6 +99,7 @@ const GOALKEEPER_SHOT_BALL_SIZE = 34;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
 const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
+const GOALKEEPER_SHOT_GOAL_SPIN_DEGREES = 1080;
 const SHOT_SOURCE_KICK_FORWARD_MS = 90;
 const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
@@ -1321,6 +1322,20 @@ export class GameScene extends Phaser.Scene {
   ): void {
     this.showGoalkeeperShotTargetImpact(target, outcome);
     this.playGoalkeeperImpactSound('goalkeeper', outcome);
+
+    if (outcome === 'goal') {
+      this.animateGoalkeeperShotGoalDisappear(
+        ball,
+        target,
+        activeOnLeft,
+        goalkeeperImpactCard,
+        baseScaleX,
+        baseScaleY,
+        onComplete
+      );
+      return;
+    }
+
     this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);
 
     if (outcome === 'post') {
@@ -1341,6 +1356,49 @@ export class GameScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => {
         ball.destroy();
+        onComplete();
+      }
+    });
+  }
+
+  private animateGoalkeeperShotGoalDisappear(
+    ball: Phaser.GameObjects.Image,
+    target: { x: number; y: number },
+    activeOnLeft: boolean,
+    goalkeeperImpactCard: CardView | null,
+    baseScaleX: number,
+    baseScaleY: number,
+    onComplete: () => void
+  ): void {
+    const exit = getGoalkeeperShotBallExit(target, 'goal', activeOnLeft);
+    const spin = (activeOnLeft ? 1 : -1) * GOALKEEPER_SHOT_GOAL_SPIN_DEGREES;
+
+    if (goalkeeperImpactCard !== null) {
+      this.tweens.add({
+        targets: goalkeeperImpactCard,
+        x: exit.x,
+        y: exit.y,
+        angle: spin,
+        scale: 0.18,
+        alpha: 0,
+        duration: 300,
+        ease: 'Cubic.easeIn'
+      });
+    }
+
+    this.tweens.add({
+      targets: ball,
+      x: exit.x,
+      y: exit.y,
+      angle: ball.angle + spin,
+      alpha: 0,
+      scaleX: baseScaleX * 0.35,
+      scaleY: baseScaleY * 0.35,
+      duration: 300,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        ball.destroy();
+        goalkeeperImpactCard?.destroy();
         onComplete();
       }
     });

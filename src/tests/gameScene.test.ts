@@ -448,10 +448,15 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('rank: context.defenderCard.rank');
     expect(source).toContain("label: 'GK'");
     expect(source).toContain('tooltipEnabled: false');
-    expect(source).toContain('this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);');
-    expect(source).toContain('private animateGoalkeeperShotImpactCard(');
-    expect(source).toContain('x: card.x + (activeOnLeft ? 8 : -8)');
-    expect(source).toContain('onComplete: () => card.destroy()');
+    expect(source).toContain('const GOALKEEPER_SHOT_GOAL_SPIN_DEGREES = 1080');
+    expect(source).toContain("if (outcome === 'goal') {");
+    expect(source).toContain('this.animateGoalkeeperShotGoalDisappear(');
+    expect(source).toContain('private animateGoalkeeperShotGoalDisappear(');
+    expect(source).toContain("const exit = getGoalkeeperShotBallExit(target, 'goal', activeOnLeft)");
+    expect(source).toContain('angle: spin');
+    expect(source).toContain('scale: 0.18');
+    expect(source).toContain('angle: ball.angle + spin');
+    expect(source).toContain('goalkeeperImpactCard?.destroy();');
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
   });
 
