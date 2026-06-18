@@ -72,6 +72,78 @@ export const NATIONAL_TEAMS: readonly NationalTeam[] = [
   { rank: 65, name: 'Wales', flagCode: 'gb-wls' }
 ];
 
+export const TEAM_SCOREBOARD_CODES: Readonly<Record<string, string>> = {
+  al: 'ALB',
+  dz: 'ALG',
+  ar: 'ARG',
+  am: 'ARM',
+  au: 'AUS',
+  at: 'AUT',
+  by: 'BLR',
+  be: 'BEL',
+  br: 'BRA',
+  cm: 'CMR',
+  ca: 'CAN',
+  cl: 'CHI',
+  co: 'COL',
+  cr: 'CRC',
+  hr: 'CRO',
+  cz: 'CZE',
+  dk: 'DEN',
+  ec: 'ECU',
+  eg: 'EGY',
+  'gb-eng': 'ENG',
+  fr: 'FRA',
+  ge: 'GEO',
+  de: 'GER',
+  gr: 'GRE',
+  hu: 'HUN',
+  ir: 'IRN',
+  iq: 'IRQ',
+  ie: 'IRL',
+  it: 'ITA',
+  ci: 'CIV',
+  jp: 'JPN',
+  kz: 'KAZ',
+  ml: 'MLI',
+  mx: 'MEX',
+  ma: 'MAR',
+  nl: 'NED',
+  ng: 'NGA',
+  nir: 'NIR',
+  no: 'NOR',
+  pa: 'PAN',
+  py: 'PAR',
+  pe: 'PER',
+  pl: 'POL',
+  pt: 'POR',
+  qa: 'QAT',
+  ro: 'ROU',
+  sa: 'KSA',
+  'gb-sct': 'SCO',
+  sn: 'SEN',
+  rs: 'SRB',
+  sk: 'SVK',
+  si: 'SVN',
+  za: 'RSA',
+  kr: 'KOR',
+  es: 'ESP',
+  se: 'SWE',
+  ch: 'SUI',
+  tn: 'TUN',
+  tr: 'TUR',
+  ua: 'UKR',
+  uy: 'URU',
+  us: 'USA',
+  uz: 'UZB',
+  ve: 'VEN',
+  'gb-wls': 'WAL'
+};
+
 export function getFlagAssetKey(flagCode: string): string {
   return `flag-${flagCode}`;
+}
+
+export function getTeamScoreboardCode(flagCode: string): string {
+  return TEAM_SCOREBOARD_CODES[flagCode] ?? flagCode.replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase();
 }

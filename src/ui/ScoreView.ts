@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
-import { getFlagAssetKey } from '../data/nationalTeams';
+import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
 import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView';
 
 export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH;
 export const SCORE_VIEW_HEIGHT = 78;
 export const SCORE_VIEW_BACKGROUND_COLOR = 0x08120f;
+export const SCORE_VIEW_BORDER_COLOR = 0xf0c95a;
+export const SCORE_VIEW_FONT_FAMILY = 'DS-Digital, Arial, sans-serif';
 const SCORE_VIEW_BACKGROUND_ALPHA = 0.92;
 
 export interface ScoreViewOptions {
@@ -32,19 +34,19 @@ export class ScoreView extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
-    background.setStrokeStyle(2, 0x436b58, 0.95);
+    background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, 0.95);
 
     const playerOneFlag = this.createFlag(scene, -158, playerOneFlagCode);
     const playerTwoFlag = this.createFlag(scene, 158, playerTwoFlagCode);
-    const playerOneLabel = this.createPlayerLabel(scene, -158, 26, playerOneName);
-    const playerTwoLabel = this.createPlayerLabel(scene, 158, 26, playerTwoName);
+    const playerOneLabel = this.createPlayerLabel(scene, -158, 26, getTeamScoreboardCode(playerOneFlagCode));
+    const playerTwoLabel = this.createPlayerLabel(scene, 158, 26, getTeamScoreboardCode(playerTwoFlagCode));
     const playerOneShotsText = this.createShotsLabel(scene, -226, playerOneShots);
     const playerTwoShotsText = this.createShotsLabel(scene, 226, playerTwoShots);
 
     const label = scene.add
       .text(0, -1, `${playerOneGoals}:${playerTwoGoals}`, {
         color: '#f6e06e',
-        fontFamily: 'DS-Digital, Arial, sans-serif',
+        fontFamily: SCORE_VIEW_FONT_FAMILY,
         fontSize: '64px',
         fontStyle: '400'
       })
@@ -58,7 +60,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
           .text(0, 29, `PEN ${options.penaltyScore.playerOne}:${options.penaltyScore.playerTwo}`, {
             align: 'center',
             color: '#f0c95a',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: SCORE_VIEW_FONT_FAMILY,
             fontSize: '16px',
             fontStyle: '700'
           })
@@ -80,8 +82,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
       .text(x, y, text, {
         align: 'center',
         color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontFamily: SCORE_VIEW_FONT_FAMILY,
+        fontSize: '18px',
         fontStyle: '700',
         wordWrap: { width: 130 }
       })
@@ -94,8 +96,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
       .text(0, -13, 'Shots:', {
         align: 'center',
         color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontFamily: SCORE_VIEW_FONT_FAMILY,
+        fontSize: '17px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -103,8 +105,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
       .text(0, 13, String(shots), {
         align: 'center',
         color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontFamily: SCORE_VIEW_FONT_FAMILY,
+        fontSize: '22px',
         fontStyle: '700'
       })
       .setOrigin(0.5);

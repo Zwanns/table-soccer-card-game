@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
-import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { getTeamScoreboardCode, NATIONAL_TEAMS, TEAM_SCOREBOARD_CODES } from '../data/nationalTeams';
 
 const SOURCE_FILE_EXTENSIONS = new Set(['.css', '.html', '.ts']);
 
@@ -307,6 +307,25 @@ describe('project scaffold', () => {
       expect(team.flagCode).not.toBe('');
       expect(existsSync(join(process.cwd(), 'public', 'flags', `${team.flagCode}.svg`))).toBe(true);
     }
+  });
+
+  it('provides uppercase 3-letter scoreboard codes for every national team', () => {
+    for (const team of NATIONAL_TEAMS) {
+      const code = getTeamScoreboardCode(team.flagCode);
+
+      expect(TEAM_SCOREBOARD_CODES).toHaveProperty(team.flagCode);
+      expect(code).toHaveLength(3);
+      expect(code).toBe(code.toUpperCase());
+    }
+
+    expect(getTeamScoreboardCode('ua')).toBe('UKR');
+    expect(getTeamScoreboardCode('pl')).toBe('POL');
+    expect(getTeamScoreboardCode('ie')).toBe('IRL');
+    expect(getTeamScoreboardCode('no')).toBe('NOR');
+    expect(getTeamScoreboardCode('co')).toBe('COL');
+    expect(getTeamScoreboardCode('es')).toBe('ESP');
+    expect(getTeamScoreboardCode('nir')).toBe('NIR');
+    expect(getTeamScoreboardCode('kr')).toBe('KOR');
   });
 
   it('provides the national deck cover folder and fallback cover', () => {

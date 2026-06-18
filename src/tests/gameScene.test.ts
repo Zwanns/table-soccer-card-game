@@ -47,7 +47,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH');
     expect(source).toContain('const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2');
     expect(source).toContain('const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2');
-    expect(source).toContain("const MATCH_ACTION_BUTTON_FONT_SIZE = '16px'");
+    expect(source).toContain("const MATCH_ACTION_BUTTON_FONT_SIZE = '28px'");
     expect(source).toContain('const MATCH_ACTION_BUTTON_HEIGHT = 38');
     expect(source).toContain('const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14');
     expect(source).toContain('const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT');
@@ -168,10 +168,27 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).toContain("import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView'");
     expect(scoreSource).toContain('export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH');
     expect(scoreSource).toContain('export const SCORE_VIEW_BACKGROUND_COLOR = 0x08120f');
+    expect(scoreSource).toContain('export const SCORE_VIEW_BORDER_COLOR = 0xf0c95a');
+    expect(scoreSource).toContain('export const SCORE_VIEW_FONT_FAMILY = \'DS-Digital, Arial, sans-serif\'');
     expect(scoreSource).toContain('scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT');
     expect(scoreSource).toContain('SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA');
+    expect(scoreSource).toContain('background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, 0.95)');
+    expect(scoreSource).not.toContain('background.setStrokeStyle(2, 0x436b58, 0.95)');
     expect(advantageSource).toContain('scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, ADVANTAGE_VIEW_HEIGHT');
     expect(scoreSource).not.toContain('scene.add.rectangle(0, 0, 620, 78');
+  });
+
+  it('uses scoreboard codes and the score font for all top scoreboard text', () => {
+    const scoreSource = readSource('src/ui/ScoreView.ts');
+
+    expect(scoreSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
+    expect(scoreSource).toContain('getTeamScoreboardCode(playerOneFlagCode)');
+    expect(scoreSource).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
+    expect(scoreSource).toContain('fontFamily: SCORE_VIEW_FONT_FAMILY');
+    expect(scoreSource.match(/fontFamily: SCORE_VIEW_FONT_FAMILY/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(scoreSource).not.toContain('fontFamily: \'Arial, sans-serif\'');
+    expect(scoreSource).not.toContain('createPlayerLabel(scene, -158, 26, playerOneName)');
+    expect(scoreSource).not.toContain('createPlayerLabel(scene, 158, 26, playerTwoName)');
   });
 
   it('uses a transparent black background without borders for in-game info panels', () => {
