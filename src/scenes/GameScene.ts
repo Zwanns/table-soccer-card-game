@@ -1339,7 +1339,7 @@ export class GameScene extends Phaser.Scene {
     this.animateGoalkeeperShotImpactCard(goalkeeperImpactCard, outcome, activeOnLeft);
 
     if (outcome === 'post') {
-      this.animateGoalkeeperShotPostReturn(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);
+      this.animateGoalkeeperShotPostForwardDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);
       return;
     }
 
@@ -1437,7 +1437,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private animateGoalkeeperShotPostReturn(
+  private animateGoalkeeperShotPostForwardDeflection(
     ball: Phaser.GameObjects.Image,
     target: { x: number; y: number },
     activeOnLeft: boolean,
@@ -1445,33 +1445,33 @@ export class GameScene extends Phaser.Scene {
     baseScaleY: number,
     onComplete: () => void
   ): void {
-    const bounce = {
-      x: target.x + (activeOnLeft ? 86 : -86),
-      y: target.y - 112
+    const deflection = getGoalkeeperShotPostForwardDeflection(target, activeOnLeft);
+    const settle = {
+      x: deflection.x + (activeOnLeft ? -88 : 88),
+      y: deflection.y - 28
     };
-    const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft);
-    const rotationSign = activeOnLeft ? -1 : 1;
+    const rotationSign = activeOnLeft ? 1 : -1;
 
     this.tweens.chain({
       targets: ball,
       tweens: [
         {
-          x: bounce.x,
-          y: bounce.y,
-          angle: rotationSign * 900,
+          x: deflection.x,
+          y: deflection.y,
+          angle: ball.angle + rotationSign * 520,
           scaleX: baseScaleX * 0.9,
           scaleY: baseScaleY * 0.9,
-          duration: 120,
+          duration: 130,
           ease: 'Cubic.easeOut'
         },
         {
-          x: returnTarget.x,
-          y: returnTarget.y,
-          angle: rotationSign * 1080,
+          x: settle.x,
+          y: settle.y,
+          angle: ball.angle + rotationSign * 760,
           alpha: 0,
           scaleX: baseScaleX * 0.5,
           scaleY: baseScaleY * 0.5,
-          duration: 280,
+          duration: 250,
           ease: 'Sine.easeInOut',
           onComplete: () => {
             ball.destroy();
@@ -1825,13 +1825,6 @@ function getGoalkeeperShotBallExit(
     };
   }
 
-  if (outcome === 'post') {
-    return {
-      x: activeOnLeft ? 115 : 1485,
-      y: DECK_Y
-    };
-  }
-
   const awayFromCenter = new Phaser.Math.Vector2(target.x - SCENE_WIDTH / 2, target.y - FIELD_CENTER_Y);
 
   if (awayFromCenter.lengthSq() === 0) {
@@ -1853,6 +1846,16 @@ function getGoalkeeperShotSaveDeflection(
   return {
     x: target.x + (activeOnLeft ? -155 : 155),
     y: target.y + 104
+  };
+}
+
+function getGoalkeeperShotPostForwardDeflection(
+  target: { x: number; y: number },
+  activeOnLeft: boolean
+): { x: number; y: number } {
+  return {
+    x: target.x + (activeOnLeft ? -190 : 190),
+    y: target.y - 64
   };
 }
 

@@ -477,15 +477,19 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
   });
 
-  it('animates post outcome as a bounce back toward the attacking deck', () => {
+  it('animates post outcome as a forward goalkeeper deflection with goalpost sound', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain("if (outcome === 'post') {\n      this.animateGoalkeeperShotPostReturn(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
-    expect(source).toContain('private animateGoalkeeperShotPostReturn(');
-    expect(source).toContain('x: target.x + (activeOnLeft ? 86 : -86)');
-    expect(source).toContain('y: target.y - 112');
-    expect(source).toContain("const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft)");
-    expect(source).toContain('x: activeOnLeft ? 115 : 1485');
+    expect(source).toContain("if (outcome === 'post') {\n      this.animateGoalkeeperShotPostForwardDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
+    expect(source).toContain('private animateGoalkeeperShotPostForwardDeflection(');
+    expect(source).toContain('const deflection = getGoalkeeperShotPostForwardDeflection(target, activeOnLeft)');
+    expect(source).toContain('x: target.x + (activeOnLeft ? -190 : 190)');
+    expect(source).toContain('y: target.y - 64');
+    expect(source).toContain('x: deflection.x + (activeOnLeft ? -88 : 88)');
+    expect(source).toContain("case 'post':\n        this.playSound('sound-goalpost', 0.72);");
+    expect(source).not.toContain('private animateGoalkeeperShotPostReturn(');
+    expect(source).not.toContain("const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft)");
+    expect(source).not.toContain('x: activeOnLeft ? 115 : 1485');
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
   });
 });
