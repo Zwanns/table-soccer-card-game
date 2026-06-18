@@ -92,6 +92,12 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('overlay.setInteractive()');
     expect(source).toContain('PAUSE_MODAL.width,\n      PAUSE_MODAL.height,\n      INFO_MODAL_BACKGROUND_COLOR,\n      INFO_MODAL_BACKGROUND_ALPHA');
     expect(source).toContain("text(0, -160, 'Pause'");
+    expect(source).toContain('const PAUSE_BUTTON = {');
+    expect(source).toContain('width: 300');
+    expect(source).toContain('height: 64');
+    expect(source).toContain("fontSize: '26px'");
+    expect(source).toContain('gap: 20');
+    expect(source).toContain('const buttonStep = PAUSE_BUTTON.height + PAUSE_BUTTON.gap');
     expect(source).toContain("this.createPauseButton(0, firstButtonY, 'Continue', () => this.closePauseModal())");
     expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep, 'Menu', () => {");
     expect(source).toContain('this.openExitConfirmModal()');
@@ -101,6 +107,22 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("this.openMatchInfoModal('about')");
     expect(source).toContain('private closePauseModal(): void');
     expect(source).toContain('this.pauseModal === null');
+  });
+
+  it('keeps pause action hit areas tied to the visible Button size', () => {
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const buttonSource = readSource('src/ui/Button.ts');
+
+    expect(gameSceneSource).toContain('return new Button(this, x, y, label, onClick, {');
+    expect(gameSceneSource).toContain('fontSize: PAUSE_BUTTON.fontSize');
+    expect(gameSceneSource).toContain('height: PAUSE_BUTTON.height');
+    expect(gameSceneSource).toContain('width: PAUSE_BUTTON.width');
+    expect(buttonSource).toContain('const width = options.width ?? 220');
+    expect(buttonSource).toContain('const height = options.height ?? 54');
+    expect(buttonSource).toContain('const background = scene.add.rectangle(0, 0, width, height');
+    expect(buttonSource).toContain('this.setSize(width, height)');
+    expect(buttonSource).toContain('this.setInteractive({ useHandCursor: true })');
+    expect(buttonSource).not.toContain('hitArea');
   });
 
   it('keeps match info overlays localized, scrollable and non-resetting', () => {

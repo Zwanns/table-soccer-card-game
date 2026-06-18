@@ -89,10 +89,10 @@ const PAUSE_MODAL = {
   height: 430
 } as const;
 const PAUSE_BUTTON = {
-  width: 220,
-  height: 48,
-  fontSize: '20px',
-  gap: 16
+  width: 300,
+  height: 64,
+  fontSize: '26px',
+  gap: 20
 } as const;
 
 interface RestoreAnimationEntry {
