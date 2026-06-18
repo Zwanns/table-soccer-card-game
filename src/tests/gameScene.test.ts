@@ -355,6 +355,47 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('this.playFailedMoveAnimation(state, context, target');
   });
 
+  it('hides the deck source card only for successful attack flight', () => {
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const deckSource = readSource('src/ui/DeckView.ts');
+    const animationBlock = gameSceneSource.slice(
+      gameSceneSource.indexOf('private animateAttackSelection('),
+      gameSceneSource.indexOf('private finishAttackAnimation(')
+    );
+
+    expect(deckSource).toContain('attackCardSourcePlayerId?: string');
+    expect(deckSource).toContain("attackCard.setData('attackDeckSourcePlayerId', options.attackCardSourcePlayerId)");
+    expect(gameSceneSource).toContain("attackCardSourcePlayerId: isActive && state.attackCard !== null ? player.id : undefined");
+    expect(animationBlock).toContain("if (outcome === 'defeat') {\n      this.hideAttackAnimationSource(context);\n    }");
+    expect(gameSceneSource).toContain("return cardView.getData('attackDeckSourcePlayerId') === context.attackerId");
+    expect(animationBlock).not.toContain("if (outcome === 'miss') {\n      this.hideAttackAnimationSource(context);");
+  });
+
+  it('hides a committed midfielder source card only during successful attack flight', () => {
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const fieldSource = readSource('src/ui/FieldView.ts');
+
+    expect(gameSceneSource).toContain('sourcePositionId?: MidfielderPositionId');
+    expect(gameSceneSource).toContain('sourcePositionId: positionId');
+    expect(gameSceneSource).toContain("state.currentAttackCardSource === 'MIDFIELDER'");
+    expect(fieldSource).toContain("cardView.setData('fieldSourcePlayerId', player.id)");
+    expect(fieldSource).toContain("cardView.setData('fieldSourcePositionId', position.positionId)");
+    expect(gameSceneSource).toContain("cardView.getData('fieldSourcePlayerId') === context.attackerId");
+    expect(gameSceneSource).toContain("cardView.getData('fieldSourcePositionId') === context.sourcePositionId");
+  });
+
+  it('cleans hidden source visuals through normal render instead of persistent game state', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('private hideAttackAnimationSource(context: AttackAnimationContext): void');
+    expect(source).toContain('sourceView?.setVisible(false);');
+    expect(source).toContain('private findAttackAnimationSourceView(context: AttackAnimationContext): CardView | null');
+    expect(source).toContain('function findCardView(');
+    expect(source).toContain('child instanceof CardView && predicate(child)');
+    expect(source).not.toContain('hiddenAnimatingSourceCards');
+    expect(source).not.toContain('hiddenAnimatingSourceSlots');
+  });
+
   it('prepares a turn-ball based helper for goalkeeper shot outcomes without wiring it to failed moves', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
     const deckSource = readSource('src/ui/DeckView.ts');

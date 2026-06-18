@@ -40,6 +40,7 @@ export interface DeckViewOptions {
   attackCardColor?: CardColor;
   attackCardKitTextureKey?: string;
   attackCardPlayerProfile?: CardPlayerProfile;
+  attackCardSourcePlayerId?: string;
   coverTextureKey?: string;
   countSide?: 'left' | 'right';
   showActiveMarker?: boolean;
@@ -73,14 +74,18 @@ export class DeckView extends Phaser.GameObjects.Container {
     deckStack.add([back, frontBackground, cover, frontBorder]);
 
     if (options.attackCardRank !== undefined) {
-      deckStack.add(
-        new CardView(scene, 0, 0, {
-          rank: options.attackCardRank,
-          color: options.attackCardColor,
-          kitTextureKey: options.attackCardKitTextureKey,
-          playerProfile: options.attackCardPlayerProfile
-        })
-      );
+      const attackCard = new CardView(scene, 0, 0, {
+        rank: options.attackCardRank,
+        color: options.attackCardColor,
+        kitTextureKey: options.attackCardKitTextureKey,
+        playerProfile: options.attackCardPlayerProfile
+      });
+
+      if (options.attackCardSourcePlayerId !== undefined) {
+        attackCard.setData('attackDeckSourcePlayerId', options.attackCardSourcePlayerId);
+      }
+
+      deckStack.add(attackCard);
     }
 
     deckStack.setScale(DECK_STACK_SCALE);

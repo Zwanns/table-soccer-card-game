@@ -122,6 +122,7 @@ interface AttackAnimationContext {
   attackerId: Player['id'];
   defenderId: Player['id'];
   positionId: FieldPositionId;
+  sourcePositionId?: MidfielderPositionId;
   attackerCard: Card;
   defenderCard: FieldCard;
   defenderCardColor: Player['teamColor'] | Card['color'];
@@ -1019,6 +1020,10 @@ export class GameScene extends Phaser.Scene {
                 (defenderCard as GoalkeeperCard).rank
               )
             : resolveFieldCardProfile(state, defender, defenderCard as Card),
+      sourcePositionId:
+        state.currentAttackCardSource === 'MIDFIELDER'
+          ? state.currentAttackingMidfielderPositionId ?? undefined
+          : undefined,
       attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
       attackerProfile: resolveFieldCardProfile(state, attacker, state.attackCard)
     };
@@ -1051,6 +1056,7 @@ export class GameScene extends Phaser.Scene {
       defenderCardColor: (defenderCard as Card).color,
       defenderKitTextureKey: resolveFieldKitTextureKey(state, defender),
       defenderProfile: resolveFieldCardProfile(state, defender, defenderCard as Card),
+      sourcePositionId: positionId,
       startX: start.x,
       startY: start.y,
       attackerKitTextureKey: resolveFieldKitTextureKey(state, attacker),
@@ -1102,6 +1108,10 @@ export class GameScene extends Phaser.Scene {
       });
       this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));
       return;
+    }
+
+    if (outcome === 'defeat') {
+      this.hideAttackAnimationSource(context);
     }
 
     const card = new CardView(this, startX, startY, {
@@ -1161,6 +1171,25 @@ export class GameScene extends Phaser.Scene {
       duration: 180,
       ease: 'Sine.easeOut',
       onComplete: () => this.finishAnimationObject(card, onComplete)
+    });
+  }
+
+  private hideAttackAnimationSource(context: AttackAnimationContext): void {
+    const sourceView = this.findAttackAnimationSourceView(context);
+
+    sourceView?.setVisible(false);
+  }
+
+  private findAttackAnimationSourceView(context: AttackAnimationContext): CardView | null {
+    return findCardView(this.dynamicLayer, (cardView) => {
+      if (context.sourcePositionId !== undefined) {
+        return (
+          cardView.getData('fieldSourcePlayerId') === context.attackerId &&
+          cardView.getData('fieldSourcePositionId') === context.sourcePositionId
+        );
+      }
+
+      return cardView.getData('attackDeckSourcePlayerId') === context.attackerId;
     });
   }
 
@@ -1751,6 +1780,7 @@ function createPlayerDeck(
     attackCardKitTextureKey: isActive ? resolveFieldKitTextureKey(state, player) : undefined,
     attackCardPlayerProfile:
       isActive && state.attackCard !== null ? resolveFieldCardProfile(state, player, state.attackCard) : undefined,
+    attackCardSourcePlayerId: isActive && state.attackCard !== null ? player.id : undefined,
     coverTextureKey,
     countSide,
     showActiveMarker,
@@ -1760,6 +1790,31 @@ function createPlayerDeck(
 
 function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
   return playerId === state.players[0].id ? 115 : 1485;
+}
+
+function findCardView(
+  container: Phaser.GameObjects.Container | null,
+  predicate: (cardView: CardView) => boolean
+): CardView | null {
+  if (container === null) {
+    return null;
+  }
+
+  for (const child of container.list) {
+    if (child instanceof CardView && predicate(child)) {
+      return child;
+    }
+
+    if (child instanceof Phaser.GameObjects.Container) {
+      const match = findCardView(child, predicate);
+
+      if (match !== null) {
+        return match;
+      }
+    }
+  }
+
+  return null;
 }
 
 function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, card: Card): CardPlayerProfile | undefined {

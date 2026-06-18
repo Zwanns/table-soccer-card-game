@@ -140,30 +140,31 @@ export class FieldView extends Phaser.GameObjects.Container {
         (state.committableMidfielderPositionIds ?? []).includes(position.positionId);
       const setup = state.matchSetups[player.id];
       const isGoalkeeper = position.positionId === 'goalkeeper';
-      this.add(
-        new CardView(scene, position.x, position.y, {
-          rank: card.rank,
-          color: isGoalkeeper ? player.teamColor : (card as Card).color,
-          playerProfile:
-            setup === undefined
-              ? undefined
-              : isGoalkeeper
-                ? createGoalkeeperCardProfile(setup.flagCode, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
-                : createCardPlayerProfile(setup.flagCode, getFieldPlayerForCard(setup, card as Card)),
-          kitTextureKey:
-            setup === undefined
-              ? undefined
-              : isGoalkeeper
-                ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
-                : getTeamKitAssetKey(setup.flagCode),
-          label: isGoalkeeper ? 'GK' : '',
-          onClick: selectable
-            ? () => onTargetSelect(position.positionId)
-            : committable && options.onMidfielderCommit !== undefined
-              ? () => options.onMidfielderCommit?.(position.positionId as MidfielderPositionId)
-              : undefined
-        })
-      );
+      const cardView = new CardView(scene, position.x, position.y, {
+        rank: card.rank,
+        color: isGoalkeeper ? player.teamColor : (card as Card).color,
+        playerProfile:
+          setup === undefined
+            ? undefined
+            : isGoalkeeper
+              ? createGoalkeeperCardProfile(setup.flagCode, getStartingGoalkeeper(setup), (card as GoalkeeperCard).rank)
+              : createCardPlayerProfile(setup.flagCode, getFieldPlayerForCard(setup, card as Card)),
+        kitTextureKey:
+          setup === undefined
+            ? undefined
+            : isGoalkeeper
+              ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
+              : getTeamKitAssetKey(setup.flagCode),
+        label: isGoalkeeper ? 'GK' : '',
+        onClick: selectable
+          ? () => onTargetSelect(position.positionId)
+          : committable && options.onMidfielderCommit !== undefined
+            ? () => options.onMidfielderCommit?.(position.positionId as MidfielderPositionId)
+            : undefined
+      });
+      cardView.setData('fieldSourcePlayerId', player.id);
+      cardView.setData('fieldSourcePositionId', position.positionId);
+      this.add(cardView);
     });
   }
 
