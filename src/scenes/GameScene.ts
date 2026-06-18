@@ -95,12 +95,12 @@ const PAUSE_BUTTON = {
   gap: 20
 } as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
-const FAILED_MOVE_BALL_SIZE = 34;
-const FAILED_MOVE_BALL_FLIGHT_MS = 320;
-const FAILED_MOVE_BALL_DEFLECTION_MS = 220;
-const FAILED_MOVE_SOURCE_KICK_MS = 150;
-const FAILED_MOVE_SOURCE_KICK_DISTANCE = 10;
-const FAILED_MOVE_SOURCE_KICK_LIFT = 8;
+const GOALKEEPER_SHOT_BALL_SIZE = 34;
+const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
+const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
+const SHOT_SOURCE_KICK_MS = 150;
+const SHOT_SOURCE_KICK_DISTANCE = 10;
+const SHOT_SOURCE_KICK_LIFT = 8;
 
 interface RestoreAnimationEntry {
   playerId: Player['id'];
@@ -127,6 +127,7 @@ interface AttackAnimationContext {
 }
 
 type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
+type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>;
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
@@ -1113,34 +1114,27 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private playFailedMoveAnimation(
+  private playGoalkeeperShotBallFlight(
     state: Readonly<GameState>,
     context: AttackAnimationContext,
     target: { x: number; y: number },
-    onComplete: () => void
-  ): void {
-    this.playFailedMoveBallFlight(state, context, target, onComplete);
-  }
-
-  private playFailedMoveBallFlight(
-    state: Readonly<GameState>,
-    context: AttackAnimationContext,
-    target: { x: number; y: number },
+    outcome: GoalkeeperShotAnimationOutcome,
     onComplete: () => void
   ): void {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
 
-    this.playFailedMoveSourceKick(state, context, start, () => {
-      this.animateBallFlightToTarget({
+    this.playShotSourceKick(state, context, start, () => {
+      this.animateBallFlightToGoalkeeper({
         start,
         target,
         activeOnLeft: context.attackerId === state.players[0].id,
+        outcome,
         onComplete
       });
     });
   }
 
-  private playFailedMoveSourceKick(
+  private playShotSourceKick(
     state: Readonly<GameState>,
     context: AttackAnimationContext,
     ballStart: { x: number; y: number },
@@ -1169,10 +1163,10 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: sourceCard,
-      x: source.x + kickDirection.x * FAILED_MOVE_SOURCE_KICK_DISTANCE,
-      y: source.y + kickDirection.y * FAILED_MOVE_SOURCE_KICK_DISTANCE - FAILED_MOVE_SOURCE_KICK_LIFT,
+      x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE,
+      y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE - SHOT_SOURCE_KICK_LIFT,
       scale: 0.98,
-      duration: FAILED_MOVE_SOURCE_KICK_MS,
+      duration: SHOT_SOURCE_KICK_MS,
       ease: 'Sine.easeOut',
       yoyo: true,
       onComplete: () => {
@@ -1182,14 +1176,15 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private animateBallFlightToTarget(options: {
+  private animateBallFlightToGoalkeeper(options: {
     start: { x: number; y: number };
     target: { x: number; y: number };
     activeOnLeft: boolean;
+    outcome: GoalkeeperShotAnimationOutcome;
     onComplete: () => void;
   }): void {
     const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY);
-    ball.setDisplaySize(FAILED_MOVE_BALL_SIZE, FAILED_MOVE_BALL_SIZE);
+    ball.setDisplaySize(GOALKEEPER_SHOT_BALL_SIZE, GOALKEEPER_SHOT_BALL_SIZE);
     ball.setDepth(900);
 
     const baseScaleX = ball.scaleX;
@@ -1209,7 +1204,7 @@ export class GameScene extends Phaser.Scene {
           angle: rotationSign * 360,
           scaleX: baseScaleX * 1.15,
           scaleY: baseScaleY * 1.15,
-          duration: FAILED_MOVE_BALL_FLIGHT_MS / 2,
+          duration: GOALKEEPER_SHOT_BALL_FLIGHT_MS / 2,
           ease: 'Sine.easeInOut'
         },
         {
@@ -1218,33 +1213,44 @@ export class GameScene extends Phaser.Scene {
           angle: rotationSign * 720,
           scaleX: baseScaleX,
           scaleY: baseScaleY,
-          duration: FAILED_MOVE_BALL_FLIGHT_MS / 2,
+          duration: GOALKEEPER_SHOT_BALL_FLIGHT_MS / 2,
           ease: 'Quad.easeInOut',
-          onComplete: () => this.finishFailedMoveBallImpact(ball, options.target, baseScaleX, baseScaleY, options.onComplete)
+          onComplete: () =>
+            this.finishGoalkeeperShotBallImpact(
+              ball,
+              options.target,
+              options.outcome,
+              options.activeOnLeft,
+              baseScaleX,
+              baseScaleY,
+              options.onComplete
+            )
         }
       ]
     });
   }
 
-  private finishFailedMoveBallImpact(
+  private finishGoalkeeperShotBallImpact(
     ball: Phaser.GameObjects.Image,
     target: { x: number; y: number },
+    outcome: GoalkeeperShotAnimationOutcome,
+    activeOnLeft: boolean,
     baseScaleX: number,
     baseScaleY: number,
     onComplete: () => void
   ): void {
-    this.showFailedMoveTargetImpact(target);
+    this.showGoalkeeperShotTargetImpact(target, outcome);
 
-    const deflection = getFailedMoveBallDeflection(target);
+    const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft);
 
     this.tweens.add({
       targets: ball,
-      x: deflection.x,
-      y: deflection.y,
+      x: exit.x,
+      y: exit.y,
       alpha: 0,
       scaleX: baseScaleX * 0.5,
       scaleY: baseScaleY * 0.5,
-      duration: FAILED_MOVE_BALL_DEFLECTION_MS,
+      duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS,
       ease: 'Cubic.easeOut',
       onComplete: () => {
         ball.destroy();
@@ -1253,8 +1259,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private showFailedMoveTargetImpact(target: { x: number; y: number }): void {
-    this.showImpactPulse(target.x, target.y, 'miss');
+  private showGoalkeeperShotTargetImpact(target: { x: number; y: number }, outcome: GoalkeeperShotAnimationOutcome): void {
+    this.showImpactPulse(target.x, target.y, outcome);
   }
 
   private getTurnBallStartPosition(state: Readonly<GameState>, playerId: Player['id']): { x: number; y: number } {
@@ -1541,7 +1547,25 @@ function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: Field
   return 'defeat';
 }
 
-function getFailedMoveBallDeflection(target: { x: number; y: number }): { x: number; y: number } {
+function getGoalkeeperShotBallExit(
+  target: { x: number; y: number },
+  outcome: GoalkeeperShotAnimationOutcome,
+  activeOnLeft: boolean
+): { x: number; y: number } {
+  if (outcome === 'goal') {
+    return {
+      x: target.x + (activeOnLeft ? 120 : -120),
+      y: target.y
+    };
+  }
+
+  if (outcome === 'post') {
+    return {
+      x: activeOnLeft ? 115 : 1485,
+      y: DECK_Y
+    };
+  }
+
   const awayFromCenter = new Phaser.Math.Vector2(target.x - SCENE_WIDTH / 2, target.y - FIELD_CENTER_Y);
 
   if (awayFromCenter.lengthSq() === 0) {

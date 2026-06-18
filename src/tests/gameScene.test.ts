@@ -333,43 +333,46 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('this.playFailedMoveAnimation(state, context, target');
   });
 
-  it('keeps the turn-ball helper available without wiring it to failed moves', () => {
+  it('prepares a turn-ball based helper for goalkeeper shot outcomes without wiring it to failed moves', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
     const deckSource = readSource('src/ui/DeckView.ts');
 
     expect(gameSceneSource).toContain("const TURN_BALL_TEXTURE_KEY = 'turn-ball'");
-    expect(gameSceneSource).toContain('const FAILED_MOVE_BALL_SIZE = 34');
-    expect(gameSceneSource).toContain('private playFailedMoveBallFlight(');
-    expect(gameSceneSource).toContain('private animateBallFlightToTarget(options: {');
+    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_SIZE = 34');
+    expect(gameSceneSource).toContain("type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>");
+    expect(gameSceneSource).toContain('private playGoalkeeperShotBallFlight(');
+    expect(gameSceneSource).toContain('outcome: GoalkeeperShotAnimationOutcome');
+    expect(gameSceneSource).toContain('private animateBallFlightToGoalkeeper(options: {');
     expect(gameSceneSource).toContain('const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY)');
-    expect(gameSceneSource).toContain('ball.setDisplaySize(FAILED_MOVE_BALL_SIZE, FAILED_MOVE_BALL_SIZE)');
+    expect(gameSceneSource).toContain('ball.setDisplaySize(GOALKEEPER_SHOT_BALL_SIZE, GOALKEEPER_SHOT_BALL_SIZE)');
     expect(gameSceneSource).toContain('this.tweens.chain({');
     expect(gameSceneSource).toContain('scaleX: baseScaleX * 1.15');
     expect(gameSceneSource).toContain('angle: rotationSign * 720');
-    expect(gameSceneSource).toContain('private finishFailedMoveBallImpact(');
-    expect(gameSceneSource).toContain('this.showFailedMoveTargetImpact(target)');
-    expect(gameSceneSource).toContain('const deflection = getFailedMoveBallDeflection(target)');
+    expect(gameSceneSource).toContain('private finishGoalkeeperShotBallImpact(');
+    expect(gameSceneSource).toContain('this.showGoalkeeperShotTargetImpact(target, outcome)');
+    expect(gameSceneSource).toContain('const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft)');
     expect(gameSceneSource).toContain('ball.destroy();\n        onComplete();');
     expect(gameSceneSource).toContain('return getDeckTurnBallWorldPosition(getPlayerDeckX(state, playerId), DECK_Y, markerSide)');
-    expect(gameSceneSource).toContain('private playFailedMoveAnimation(');
     expect(gameSceneSource).not.toContain('this.playFailedMoveAnimation(state, context, target');
+    expect(gameSceneSource).not.toContain('private playFailedMoveBallFlight(');
+    expect(gameSceneSource).not.toContain('getFailedMoveBallDeflection');
     expect(deckSource).toContain('showActiveMarker?: boolean');
     expect(deckSource).toContain('if (options.active === true && options.showActiveMarker !== false)');
     expect(deckSource).toContain('export function getDeckTurnBallWorldPosition');
   });
 
-  it('adds a temporary source kick before the failed move ball flight helper', () => {
+  it('keeps a temporary source kick available before goalkeeper shot ball flight', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
-    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_MS = 150');
-    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_DISTANCE = 10');
-    expect(source).toContain('const FAILED_MOVE_SOURCE_KICK_LIFT = 8');
-    expect(source).toContain('this.playFailedMoveSourceKick(state, context, start, () => {');
-    expect(source).toContain('private playFailedMoveSourceKick(');
+    expect(source).toContain('const SHOT_SOURCE_KICK_MS = 150');
+    expect(source).toContain('const SHOT_SOURCE_KICK_DISTANCE = 10');
+    expect(source).toContain('const SHOT_SOURCE_KICK_LIFT = 8');
+    expect(source).toContain('this.playShotSourceKick(state, context, start, () => {');
+    expect(source).toContain('private playShotSourceKick(');
     expect(source).toContain('const sourceCard = new CardView(this, source.x, source.y, {');
     expect(source).toContain('const kickDirection = new Phaser.Math.Vector2(ballStart.x - source.x, ballStart.y - source.y)');
-    expect(source).toContain('x: source.x + kickDirection.x * FAILED_MOVE_SOURCE_KICK_DISTANCE');
-    expect(source).toContain('y: source.y + kickDirection.y * FAILED_MOVE_SOURCE_KICK_DISTANCE - FAILED_MOVE_SOURCE_KICK_LIFT');
+    expect(source).toContain('x: source.x + kickDirection.x * SHOT_SOURCE_KICK_DISTANCE');
+    expect(source).toContain('y: source.y + kickDirection.y * SHOT_SOURCE_KICK_DISTANCE - SHOT_SOURCE_KICK_LIFT');
     expect(source).toContain('yoyo: true');
     expect(source).toContain('sourceCard.destroy();\n        onComplete();');
   });
