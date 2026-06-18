@@ -162,17 +162,26 @@ describe('GameScene visual layout contracts', () => {
 
   it('matches the top scoreboard width to the advantage indicator width', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
+    const scoreboardStyleSource = readSource('src/ui/scoreboardStyle.ts');
     const advantageSource = readSource('src/ui/AdvantageView.ts');
 
     expect(advantageSource).toContain('export const ADVANTAGE_VIEW_WIDTH = 520');
     expect(scoreSource).toContain("import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView'");
+    expect(scoreSource).toContain("} from './scoreboardStyle'");
     expect(scoreSource).toContain('export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH');
-    expect(scoreSource).toContain('export const SCORE_VIEW_BACKGROUND_COLOR = 0x08120f');
-    expect(scoreSource).toContain('export const SCORE_VIEW_BORDER_COLOR = 0xf0c95a');
-    expect(scoreSource).toContain('export const SCORE_VIEW_FONT_FAMILY = \'DS-Digital, Arial, sans-serif\'');
+    expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BACKGROUND_COLOR = 0x08120f');
+    expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BACKGROUND_ALPHA = 0.92');
+    expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BORDER_COLOR = 0xf0c95a');
+    expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BORDER_ALPHA = 0.95');
+    expect(scoreboardStyleSource).toContain("export const SCOREBOARD_FONT_FAMILY = 'DS-Digital, Arial, sans-serif'");
+    expect(scoreSource).toContain('export const SCORE_VIEW_BACKGROUND_COLOR = SCOREBOARD_BACKGROUND_COLOR');
+    expect(scoreSource).toContain('export const SCORE_VIEW_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
+    expect(scoreSource).toContain('export const SCORE_VIEW_BORDER_COLOR = SCOREBOARD_BORDER_COLOR');
+    expect(scoreSource).toContain('export const SCORE_VIEW_BORDER_ALPHA = SCOREBOARD_BORDER_ALPHA');
+    expect(scoreSource).toContain('export const SCORE_VIEW_FONT_FAMILY = SCOREBOARD_FONT_FAMILY');
     expect(scoreSource).toContain('scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT');
     expect(scoreSource).toContain('SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA');
-    expect(scoreSource).toContain('background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, 0.95)');
+    expect(scoreSource).toContain('background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA)');
     expect(scoreSource).not.toContain('background.setStrokeStyle(2, 0x436b58, 0.95)');
     expect(advantageSource).toContain('scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, ADVANTAGE_VIEW_HEIGHT');
     expect(scoreSource).not.toContain('scene.add.rectangle(0, 0, 620, 78');

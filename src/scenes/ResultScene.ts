@@ -2,8 +2,15 @@ import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
-import { getFlagAssetKey } from '../data/nationalTeams';
+import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import {
+  SCOREBOARD_BACKGROUND_ALPHA,
+  SCOREBOARD_BACKGROUND_COLOR,
+  SCOREBOARD_BORDER_ALPHA,
+  SCOREBOARD_BORDER_COLOR,
+  SCOREBOARD_FONT_FAMILY
+} from '../ui/scoreboardStyle';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   createTournamentMatchResultFromGameState,
@@ -49,19 +56,8 @@ export class ResultScene extends Phaser.Scene {
 
     this.createResultBackground(centerX, centerY, playerOneGoals, playerTwoGoals);
 
-    this.createScoreLine(
-      centerX,
-      92,
-      playerOne?.name ?? 'France',
-      playerTwo?.name ?? 'Spain',
-      playerOne?.flagCode ?? 'fr',
-      playerTwo?.flagCode ?? 'es',
-      playerOneGoals,
-      playerTwoGoals
-    );
-
     if (this.state !== null) {
-      this.createMatchStatsPanel(centerX, 378, this.state);
+      this.createMatchStatsPanel(centerX, 360, this.state);
     }
 
     this.createActions(centerX);
@@ -202,24 +198,33 @@ export class ResultScene extends Phaser.Scene {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = 840;
-    const height = 420;
+    const height = 500;
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, height, 0x000000, 0.76);
-    background.setStrokeStyle(2, 0xf0c95a, 0.95);
+    const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+    background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
+
+    const finalScore = this.createScoreLine(
+      0,
+      -height / 2 + 64,
+      playerOne.flagCode,
+      playerTwo.flagCode,
+      playerOneStats.goals,
+      playerTwoStats.goals
+    );
 
     const title = this.add
-      .text(0, -height / 2 + 28, 'Match statistics', {
+      .text(0, -height / 2 + 120, 'Match statistics', {
         color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '22px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    const playerOneHeader = this.createTeamName(-285, -108, playerOne.name);
-    const playerTwoHeader = this.createTeamName(285, -108, playerTwo.name);
+    const playerOneHeader = this.createTeamName(-285, -64, getTeamScoreboardCode(playerOne.flagCode));
+    const playerTwoHeader = this.createTeamName(285, -64, getTeamScoreboardCode(playerTwo.flagCode));
 
-    panel.add([background, title, playerOneHeader, playerTwoHeader]);
+    panel.add([background, finalScore, title, playerOneHeader, playerTwoHeader]);
 
     const rows: Array<[string, string, string]> = [
       ['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)],
@@ -228,63 +233,58 @@ export class ResultScene extends Phaser.Scene {
     ];
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
-      const rowY = -66 + index * 34;
+      const rowY = -24 + index * 34;
       panel.add(this.createStatsValue(-285, rowY, playerOneValue));
       panel.add(this.createStatsLabel(rowY, label));
       panel.add(this.createStatsValue(285, rowY, playerTwoValue));
     });
 
-    panel.add(this.createStatsLabel(58, 'Goalscorers'));
+    panel.add(this.createStatsLabel(100, 'Goalscorers'));
     this.addScorerTimeline(panel, x, y, width, playerOneStats, playerTwoStats);
   }
 
   private createScoreLine(
     x: number,
     y: number,
-    playerOneName: string,
-    playerTwoName: string,
     playerOneFlagCode: string,
     playerTwoFlagCode: string,
     playerOneGoals: number,
     playerTwoGoals: number
-  ): void {
-    const teamNameInnerGap = 96;
-    const teamNameWidth = 260;
-    const flagGap = 18;
-    const flagWidth = 104;
-    const flagHeight = 70;
+  ): Phaser.GameObjects.Container {
+    const teamNameInnerGap = 112;
+    const flagGap = 14;
+    const flagWidth = 76;
+    const flagHeight = 50;
     const scoreLine = this.add.container(x, y);
     const playerOneNameX = -teamNameInnerGap;
     const playerTwoNameX = teamNameInnerGap;
 
     const playerOneText = this.add
-      .text(playerOneNameX, 0, playerOneName, {
+      .text(playerOneNameX, 0, getTeamScoreboardCode(playerOneFlagCode), {
         align: 'right',
         color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '46px',
-        fontStyle: '700',
-        wordWrap: { width: teamNameWidth }
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: '38px',
+        fontStyle: '700'
       })
       .setOrigin(1, 0.5);
 
     const score = this.add
-      .text(0, 0, `${playerOneGoals} : ${playerTwoGoals}`, {
-        color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '48px',
+      .text(0, 0, `${playerOneGoals}:${playerTwoGoals}`, {
+        color: '#f0c95a',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: '54px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
     const playerTwoText = this.add
-      .text(playerTwoNameX, 0, playerTwoName, {
+      .text(playerTwoNameX, 0, getTeamScoreboardCode(playerTwoFlagCode), {
         align: 'left',
         color: '#dfeaf2',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '46px',
-        fontStyle: '700',
-        wordWrap: { width: teamNameWidth }
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: '38px',
+        fontStyle: '700'
       })
       .setOrigin(0, 0.5);
 
@@ -296,6 +296,8 @@ export class ResultScene extends Phaser.Scene {
     playerTwoFlag.setDisplaySize(flagWidth, flagHeight);
 
     scoreLine.add([playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag]);
+
+    return scoreLine;
   }
 
   private createTeamName(x: number, y: number, name: string): Phaser.GameObjects.Text {
@@ -303,10 +305,9 @@ export class ResultScene extends Phaser.Scene {
       .text(x, y, name, {
         align: 'center',
         color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        fontStyle: '700',
-        wordWrap: { width: 190 }
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: '22px',
+        fontStyle: '700'
       })
       .setOrigin(0.5);
   }
@@ -316,7 +317,7 @@ export class ResultScene extends Phaser.Scene {
       .text(0, y, text, {
         align: 'center',
         color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '18px',
         fontStyle: '700'
       })
@@ -328,7 +329,7 @@ export class ResultScene extends Phaser.Scene {
       .text(x, y, text, {
         align: 'center',
         color: '#f0c95a',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '22px',
         fontStyle: '700'
       })
@@ -340,7 +341,7 @@ export class ResultScene extends Phaser.Scene {
       .text(x, y, text, {
         align: 'left',
         color: '#f0c95a',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '16px',
         fontStyle: '700',
         wordWrap: { width }
@@ -357,7 +358,7 @@ export class ResultScene extends Phaser.Scene {
     playerTwoStats: PlayerMatchStats
   ): void {
     const rows = createScorerTimeline(playerOneStats, playerTwoStats);
-    const viewportTop = 78;
+    const viewportTop = 120;
     const viewportHeight = 128;
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
