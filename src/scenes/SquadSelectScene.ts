@@ -47,6 +47,7 @@ const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_LIST_FADE_HEIGHT = 52;
 const TEAM_LIST_FADE_MIN_ALPHA = 0.22;
+const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5;
 
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
@@ -166,7 +167,7 @@ export class SquadSelectScene extends Phaser.Scene {
 
     refreshItemInputs = () => {
       dragScroll.updateScrollableItemInputs(content, teamOptions);
-      this.updateTeamListItemAlphas(content, teamOptions);
+      this.updateTeamListItemAlphas(content, teamOptions, maxScroll);
     };
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
@@ -203,14 +204,30 @@ export class SquadSelectScene extends Phaser.Scene {
     }
   }
 
-  private updateTeamListItemAlphas(content: Phaser.GameObjects.Container, teamOptions: readonly Phaser.GameObjects.Container[]): void {
+  private updateTeamListItemAlphas(
+    content: Phaser.GameObjects.Container,
+    teamOptions: readonly Phaser.GameObjects.Container[],
+    maxScroll: number
+  ): void {
     const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT;
+    const shouldFadeTop = this.teamGridScrollY > TEAM_LIST_SCROLL_EDGE_EPSILON;
+    const shouldFadeBottom = this.teamGridScrollY < maxScroll - TEAM_LIST_SCROLL_EDGE_EPSILON;
 
     teamOptions.forEach((option) => {
       const itemCenterY = content.y + option.y;
-      const distanceToViewportEdge = Math.min(itemCenterY - GRID_VIEWPORT_TOP, viewportBottom - itemCenterY);
-      const edgeFadeProgress = Phaser.Math.Clamp(distanceToViewportEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
-      const alpha = TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * edgeFadeProgress;
+      let alpha = 1;
+
+      if (shouldFadeTop) {
+        const distanceToTopEdge = itemCenterY - GRID_VIEWPORT_TOP;
+        const topFadeProgress = Phaser.Math.Clamp(distanceToTopEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
+        alpha = Math.min(alpha, TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * topFadeProgress);
+      }
+
+      if (shouldFadeBottom) {
+        const distanceToBottomEdge = viewportBottom - itemCenterY;
+        const bottomFadeProgress = Phaser.Math.Clamp(distanceToBottomEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
+        alpha = Math.min(alpha, TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * bottomFadeProgress);
+      }
 
       option.setAlpha(alpha);
     });

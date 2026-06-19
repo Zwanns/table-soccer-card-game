@@ -139,14 +139,20 @@ describe('read-only squad scenes', () => {
 
     expect(selectSource).toContain('const TEAM_LIST_FADE_HEIGHT = 52');
     expect(selectSource).toContain('const TEAM_LIST_FADE_MIN_ALPHA = 0.22');
-    expect(selectSource).toContain('this.updateTeamListItemAlphas(content, teamOptions)');
+    expect(selectSource).toContain('const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5');
+    expect(selectSource).toContain('this.updateTeamListItemAlphas(content, teamOptions, maxScroll)');
     expect(selectSource).toContain(
-      'private updateTeamListItemAlphas(content: Phaser.GameObjects.Container, teamOptions: readonly Phaser.GameObjects.Container[]): void'
+      'teamOptions: readonly Phaser.GameObjects.Container[],'
     );
+    expect(selectSource).toContain('maxScroll: number');
     expect(selectSource).toContain('const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT');
+    expect(selectSource).toContain('const shouldFadeTop = this.teamGridScrollY > TEAM_LIST_SCROLL_EDGE_EPSILON');
+    expect(selectSource).toContain('const shouldFadeBottom = this.teamGridScrollY < maxScroll - TEAM_LIST_SCROLL_EDGE_EPSILON');
     expect(selectSource).toContain('const itemCenterY = content.y + option.y');
-    expect(selectSource).toContain('const distanceToViewportEdge = Math.min(itemCenterY - GRID_VIEWPORT_TOP, viewportBottom - itemCenterY)');
-    expect(selectSource).toContain('const edgeFadeProgress = Phaser.Math.Clamp(distanceToViewportEdge / TEAM_LIST_FADE_HEIGHT, 0, 1)');
+    expect(selectSource).toContain('if (shouldFadeTop)');
+    expect(selectSource).toContain('const distanceToTopEdge = itemCenterY - GRID_VIEWPORT_TOP');
+    expect(selectSource).toContain('if (shouldFadeBottom)');
+    expect(selectSource).toContain('const distanceToBottomEdge = viewportBottom - itemCenterY');
     expect(selectSource).toContain('option.setAlpha(alpha)');
     expect(selectSource).not.toContain('private createTeamListFade');
     expect(selectSource).not.toContain('TEAM_LIST_FADE_MAX_ALPHA');
