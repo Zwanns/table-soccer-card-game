@@ -48,7 +48,10 @@ describe('read-only squad scenes', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(selectSource).toContain('const teamSelectionLayout = createTeamScreenLayout()');
-    expect(selectSource).toContain("this.createBackButton(teamSelectionLayout.menuButtonRect, () => this.scene.start('MenuScene'))");
+    expect(selectSource).toContain('const backButtonRect = {');
+    expect(selectSource).toContain('...teamSelectionLayout.menuButtonRect');
+    expect(selectSource).toContain('x: leftGridX');
+    expect(selectSource).toContain("this.createBackButton(backButtonRect, () => this.scene.start('MenuScene'))");
     expect(selectSource).toContain("new Button(this, center.x, center.y, 'Back', onClick");
     expect(selectSource).toContain('width: rect.width');
     expect(selectSource).toContain('height: rect.height');
@@ -99,11 +102,14 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
     expect(selectSource).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
-    expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = 0.36');
-    expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52');
+    expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
+    expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
     expect(selectSource).toContain('const SQUAD_PANEL_BACKGROUND_ALPHA = 0.42');
     expect(selectSource).toContain('TRANSLUCENT_CARD_BACKGROUND');
-    expect(selectSource).toContain('background.setStrokeStyle(2, 0xf0c95a, 0.95)');
+    expect(selectSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
+    expect(selectSource).toContain('SCOREBOARD_METAL_BORDER_COLOR');
+    expect(selectSource).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : SCOREBOARD_METAL_BORDER_COLOR');
+    expect(selectSource).toContain('isSelected ? 1 : SCOREBOARD_METAL_BORDER_ALPHA');
     expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
     expect(selectSource).toContain('const TEAM_COLORS_SWATCH_Y = 62');
     expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');

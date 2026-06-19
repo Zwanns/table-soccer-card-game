@@ -122,8 +122,10 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('SCOREBOARD_BACKGROUND_ALPHA');
     expect(source).toContain('SCOREBOARD_BORDER_COLOR');
     expect(source).toContain('SCOREBOARD_TEXT_COLOR');
-    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_COLOR = 0x8f9a96');
-    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_ALPHA = 0.95');
+    expect(source).toContain('SCOREBOARD_METAL_BORDER_COLOR');
+    expect(source).toContain('SCOREBOARD_METAL_BORDER_ALPHA');
+    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_COLOR = SCOREBOARD_METAL_BORDER_COLOR');
+    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_ALPHA = SCOREBOARD_METAL_BORDER_ALPHA');
     expect(source).toContain('const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6');
     expect(source).toContain('const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET');
     expect(source).toContain('layout.teamButtonWidth');
