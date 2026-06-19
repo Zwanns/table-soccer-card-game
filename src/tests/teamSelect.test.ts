@@ -90,9 +90,13 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('this.add.rectangle(0, segmentHeight / 2, width, segmentHeight');
   });
 
-  it('places selected team labels above panels aligned to panel left edges', () => {
+  it('places player labels above panels aligned to panel left edges', () => {
     const source = readTeamSelectSource();
 
+    expect(source).toContain("'Player 1'");
+    expect(source).toContain("'Player 2'");
+    expect(source).not.toContain("'Team 1'");
+    expect(source).not.toContain("'Team 2'");
     expect(source).toContain('const SELECTED_PANEL_LABEL_OFFSET_Y = 16');
     expect(source).toContain('.text(rect.x, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title');
     expect(source).toContain('slotLabel.setDepth(1)');
@@ -107,26 +111,44 @@ describe('quick match team selection AI controls', () => {
     expect(source).not.toContain('1 / 2');
   });
 
-  it('uses translucent black team cards with padded flags in the country grid', () => {
+  it('uses scoreboard-style team cards with padded flags in the country grid', () => {
     const source = readTeamSelectSource();
 
+    expect(source).toContain('SCOREBOARD_BACKGROUND_COLOR');
+    expect(source).toContain('SCOREBOARD_BACKGROUND_ALPHA');
+    expect(source).toContain('SCOREBOARD_BORDER_COLOR');
+    expect(source).toContain('SCOREBOARD_BORDER_ALPHA');
+    expect(source).toContain('SCOREBOARD_TEXT_COLOR');
     expect(source).toContain('const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6');
     expect(source).toContain('const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET');
     expect(source).toContain('layout.teamButtonWidth');
-    expect(source).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
-    expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = 0.36');
-    expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52');
+    expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
+    expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
     expect(source).toContain('const TEAM_OPTION_FLAG_WIDTH = 36');
     expect(source).toContain('const TEAM_OPTION_FLAG_HEIGHT = 27');
     expect(source).toContain('const TEAM_OPTION_FLAG_PADDING_X = 11');
-    expect(source).toContain('TRANSLUCENT_CARD_BACKGROUND');
+    expect(source).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(source).toContain('isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA');
+    expect(source).toContain('background.setStrokeStyle(isSelected ? 3 : 2, SCOREBOARD_BORDER_COLOR');
     expect(source).toContain('const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2');
     expect(source).toContain('flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT)');
     expect(source).toContain("fontSize: '16px'");
-    expect(source).toContain("color: '#ffffff'");
+    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
     expect(source).not.toContain('isSelected ? 0xf0c95a : 0x143f2c');
     expect(source).not.toContain("color: isSelected ? '#1f2a2e' : '#ffffff'");
+    expect(source).not.toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
+  });
+
+  it('uses scoreboard-style selected panels without switching to the scoreboard font', () => {
+    const source = readTeamSelectSource();
+    const scoreboardStyleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'scoreboardStyle.ts'), 'utf8');
+
+    expect(scoreboardStyleSource).toContain("export const SCOREBOARD_TEXT_COLOR = '#d9eadf'");
+    expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
+    expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, SCOREBOARD_BORDER_COLOR');
+    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain("fontFamily: 'Arial, sans-serif'");
+    expect(source).not.toContain('SCOREBOARD_FONT_FAMILY');
   });
 
   it('uses selected team cover fans and kit previews in both match modes', () => {

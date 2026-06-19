@@ -7,6 +7,13 @@ import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nati
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
+import {
+  SCOREBOARD_BACKGROUND_ALPHA,
+  SCOREBOARD_BACKGROUND_COLOR,
+  SCOREBOARD_BORDER_ALPHA,
+  SCOREBOARD_BORDER_COLOR,
+  SCOREBOARD_TEXT_COLOR
+} from '../ui/scoreboardStyle';
 import { createTeamFieldBackground } from '../ui/teamFieldBackground';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
@@ -31,9 +38,8 @@ const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
-const TRANSLUCENT_CARD_BACKGROUND = 0x000000;
-const TEAM_OPTION_BACKGROUND_ALPHA = 0.36;
-const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.52;
+const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
+const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_OPTION_FLAG_WIDTH = 36;
 const TEAM_OPTION_FLAG_HEIGHT = 27;
 const TEAM_OPTION_FLAG_PADDING_X = 11;
@@ -108,7 +114,7 @@ export class TeamSelectScene extends Phaser.Scene {
       layout.team1CoverFanRect,
       layout.team1ControllerToggleRect,
       layout,
-      'Team 1',
+      'Player 1',
       this.getSelectedTeam(1),
       1
     );
@@ -117,7 +123,7 @@ export class TeamSelectScene extends Phaser.Scene {
       layout.team2CoverFanRect,
       layout.team2ControllerToggleRect,
       layout,
-      'Team 2',
+      'Player 2',
       this.getSelectedTeam(2),
       2
     );
@@ -169,8 +175,8 @@ export class TeamSelectScene extends Phaser.Scene {
     const coverFanCenter = rectCenter(coverFanRect);
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
     const panel = this.add.container(center.x, center.y);
-    const background = this.add.rectangle(0, 0, rect.width, rect.height, 0x0b2118, 0.82);
-    background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
+    const background = this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+    background.setStrokeStyle(isActive ? 4 : 2, SCOREBOARD_BORDER_COLOR, isActive ? 1 : SCOREBOARD_BORDER_ALPHA);
     const fan = this.createSelectedTeamCoverFan(
       coverFanCenter.x - center.x,
       coverFanCenter.y - center.y,
@@ -186,7 +192,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const slotLabel = this.add
       .text(rect.x, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
         align: 'left',
-        color: '#b9d5c3',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         fontStyle: '700'
@@ -195,7 +201,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const teamText = this.add
       .text(textX, 0, team.name, {
         align: 'left',
-        color: slot === 1 ? '#f1d4d6' : '#d9eadf',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
         fontStyle: '700',
@@ -370,11 +376,10 @@ export class TeamSelectScene extends Phaser.Scene {
       0,
       width,
       height,
-      TRANSLUCENT_CARD_BACKGROUND,
+      SCOREBOARD_BACKGROUND_COLOR,
       isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
     );
-    const strokeColor = isTeamOne ? 0xc43845 : isTeamTwo ? 0xd9eadf : 0x5f9572;
-    background.setStrokeStyle(isSelected ? 3 : 2, strokeColor, 0.95);
+    background.setStrokeStyle(isSelected ? 3 : 2, SCOREBOARD_BORDER_COLOR, isSelected ? 1 : SCOREBOARD_BORDER_ALPHA);
     const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2;
     const textX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH + TEAM_OPTION_TEXT_GAP_X;
     const flag = this.add.image(flagX, 0, getFlagAssetKey(team.flagCode));
@@ -384,7 +389,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const teamText = this.add
       .text(textX, 0, team.name, {
         align: 'left',
-        color: '#ffffff',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700',
@@ -397,12 +402,12 @@ export class TeamSelectScene extends Phaser.Scene {
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(TRANSLUCENT_CARD_BACKGROUND, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
+        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(TRANSLUCENT_CARD_BACKGROUND, TEAM_OPTION_BACKGROUND_ALPHA);
+        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA);
       }
     });
     return option;
@@ -410,12 +415,12 @@ export class TeamSelectScene extends Phaser.Scene {
 
   private selectTeam(teamName: string): void {
     if (this.activeSlot === 1 && teamName === this.selectedTeamTwo) {
-      this.showMessage('This team is already selected for Team 2');
+      this.showMessage('This team is already selected for Player 2');
       return;
     }
 
     if (this.activeSlot === 2 && teamName === this.selectedTeamOne) {
-      this.showMessage('This team is already selected for Team 1');
+      this.showMessage('This team is already selected for Player 1');
       return;
     }
 
