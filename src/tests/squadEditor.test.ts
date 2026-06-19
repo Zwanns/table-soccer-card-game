@@ -25,7 +25,12 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const CARD_HEIGHT = 48');
     expect(selectSource).toContain('const GRID_GAP_X = 12');
     expect(selectSource).toContain('const LEFT_PANEL_X = 60');
+    expect(selectSource).toContain("import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
     expect(selectSource).toContain("import { createTeamFieldBackground } from '../ui/teamFieldBackground'");
+    expect(selectSource).toContain('private createTeamsBackground');
+    expect(selectSource).toContain('this.textures.exists(MENU_ASSETS.teamsBackground)');
+    expect(selectSource).toContain('this.add.image(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, MENU_ASSETS.teamsBackground)');
+    expect(selectSource).toContain('background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT)');
     expect(selectSource).toContain('createTeamFieldBackground(this)');
     expect(selectSource).not.toContain('GAME_TITLE');
     expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
@@ -42,10 +47,11 @@ describe('read-only squad scenes', () => {
   it('uses a Back text button on the Teams screen without the old arrow label', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
-    expect(selectSource).toContain("this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'))");
-    expect(selectSource).toContain(".text(0, -1, 'Back'");
-    expect(selectSource).toContain('button.setSize(132, 38)');
-    expect(selectSource).toContain("button.on('pointerdown', onClick)");
+    expect(selectSource).toContain('const teamSelectionLayout = createTeamScreenLayout()');
+    expect(selectSource).toContain("this.createBackButton(teamSelectionLayout.menuButtonRect, () => this.scene.start('MenuScene'))");
+    expect(selectSource).toContain("new Button(this, center.x, center.y, 'Back', onClick");
+    expect(selectSource).toContain('width: rect.width');
+    expect(selectSource).toContain('height: rect.height');
     expect(selectSource).not.toContain(".text(0, -1, '<'");
   });
 

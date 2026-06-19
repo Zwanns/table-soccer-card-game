@@ -29,6 +29,7 @@ export class BootScene extends Phaser.Scene {
 
   public preload(): void {
     this.load.image(MENU_ASSETS.background, MENU_ASSET_PATHS.background);
+    this.load.image(MENU_ASSETS.teamsBackground, MENU_ASSET_PATHS.teamsBackground);
     this.load.image(MENU_ASSETS.teamSelectBackground, MENU_ASSET_PATHS.teamSelectBackground);
     this.load.image(MENU_ASSETS.resultDrawBackground, MENU_ASSET_PATHS.resultDrawBackground);
     this.load.image(MENU_ASSETS.resultWinBackground, MENU_ASSET_PATHS.resultWinBackground);

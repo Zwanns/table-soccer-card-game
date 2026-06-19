@@ -7,6 +7,7 @@ export const SCENE_HEIGHT = 720;
 
 export const MENU_ASSETS = {
   background: 'menu-bg',
+  teamsBackground: 'teams-bg',
   teamSelectBackground: 'team-select-bg',
   resultDrawBackground: 'result-draw-bg',
   resultWinBackground: 'result-win-bg',
@@ -17,6 +18,7 @@ export const MENU_ASSETS = {
 
 export const MENU_ASSET_PATHS = {
   background: 'menu/menu-bg.webp',
+  teamsBackground: 'menu/teams-bg.webp',
   teamSelectBackground: 'menu/menu-2-bg.webp',
   resultDrawBackground: 'menu/remis-bg.webp',
   resultWinBackground: 'menu/gamestat-bg.webp',

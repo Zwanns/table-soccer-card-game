@@ -124,14 +124,17 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'README.md'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-logo1.png'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-logo2.png'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'menu', 'teams-bg.webp'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-2-bg.webp'))).toBe(true);
     expect(MENU_ASSETS.logoOn).toBe('menu-logo-on');
     expect(MENU_ASSETS.logoOff).toBe('menu-logo-off');
+    expect(MENU_ASSETS.teamsBackground).toBe('teams-bg');
     expect(MENU_ASSETS.teamSelectBackground).toBe('team-select-bg');
     expect(MENU_ASSETS.resultDrawBackground).toBe('result-draw-bg');
     expect(MENU_ASSETS.resultWinBackground).toBe('result-win-bg');
     expect(MENU_ASSET_PATHS.logoOn).toBe('menu/menu-logo1.png');
     expect(MENU_ASSET_PATHS.logoOff).toBe('menu/menu-logo2.png');
+    expect(MENU_ASSET_PATHS.teamsBackground).toBe('menu/teams-bg.webp');
     expect(MENU_ASSET_PATHS.teamSelectBackground).toBe('menu/menu-2-bg.webp');
     expect(MENU_ASSET_PATHS.resultDrawBackground).toBe('menu/remis-bg.webp');
     expect(MENU_ASSET_PATHS.resultWinBackground).toBe('menu/gamestat-bg.webp');
@@ -143,6 +146,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createFooter');
     expect(menuSceneSource).toContain('MENU_LAYOUT');
     expect(bootSceneSource).toContain('MENU_ASSETS.background');
+    expect(bootSceneSource).toContain('MENU_ASSETS.teamsBackground');
     expect(bootSceneSource).toContain('MENU_ASSETS.teamSelectBackground');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOn');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOff');

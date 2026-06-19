@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 import { resolveTeamCoverLoadResult } from '../assets/teamCover';
-import { SCENE_WIDTH } from '../config';
+import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
+import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
 import { createTeamFieldBackground } from '../ui/teamFieldBackground';
+import { createTeamScreenLayout, rectCenter, type TeamScreenRect } from '../ui/teamScreenLayout';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
@@ -55,7 +57,8 @@ export class SquadSelectScene extends Phaser.Scene {
     this.children.removeAll(true);
 
     const centerX = SCENE_WIDTH / 2;
-    createTeamFieldBackground(this);
+    const teamSelectionLayout = createTeamScreenLayout();
+    this.createTeamsBackground();
     this.add
       .text(centerX, 34, 'Teams', {
         color: '#d9eadf',
@@ -66,31 +69,29 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const leftGridX = LEFT_PANEL_X;
-    this.createBackButton(leftGridX + 66, 60, () => this.scene.start('MenuScene'));
     this.createTeamGrid(leftGridX);
     this.createSquadPanel(RIGHT_PANEL_X, 96);
+    this.createBackButton(teamSelectionLayout.menuButtonRect, () => this.scene.start('MenuScene'));
   }
 
-  private createBackButton(x: number, y: number, onClick: () => void): void {
-    const button = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, 132, 38, 0xf0c95a, 1);
-    background.setStrokeStyle(2, 0x2d382f);
-    const label = this.add
-      .text(0, -1, 'Back', {
-        align: 'center',
-        color: '#1f2a2e',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
+  private createTeamsBackground(): void {
+    if (this.textures.exists(MENU_ASSETS.teamsBackground)) {
+      const background = this.add.image(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, MENU_ASSETS.teamsBackground);
+      background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT);
+      background.setDepth(-20);
+      return;
+    }
 
-    button.add([background, label]);
-    button.setSize(132, 38);
-    button.setInteractive({ useHandCursor: true });
-    button.on('pointerover', () => background.setFillStyle(0xffd978));
-    button.on('pointerout', () => background.setFillStyle(0xf0c95a));
-    button.on('pointerdown', onClick);
+    createTeamFieldBackground(this);
+  }
+
+  private createBackButton(rect: TeamScreenRect, onClick: () => void): void {
+    const center = rectCenter(rect);
+
+    new Button(this, center.x, center.y, 'Back', onClick, {
+      width: rect.width,
+      height: rect.height
+    });
   }
 
   private createTeamGrid(leftGridX: number): void {
