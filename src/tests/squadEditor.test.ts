@@ -134,21 +134,23 @@ describe('read-only squad scenes', () => {
     expect(selectSource).not.toContain('kit.setDisplaySize');
   });
 
-  it('adds non-interactive top and bottom fade overlays inside the team list viewport', () => {
+  it('fades team list cards themselves near the viewport edges without dark overlays', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(selectSource).toContain('const TEAM_LIST_FADE_HEIGHT = 52');
-    expect(selectSource).toContain('const TEAM_LIST_FADE_STEPS = 12');
-    expect(selectSource).toContain('const TEAM_LIST_FADE_MAX_ALPHA = 0.76');
-    expect(selectSource).toContain('this.createTeamListFade(leftGridX, viewportWidth)');
-    expect(selectSource).toContain('private createTeamListFade(leftGridX: number, viewportWidth: number): void');
-    expect(selectSource).toContain('const fade = this.add.graphics()');
-    expect(selectSource).toContain('fade.setDepth(25)');
-    expect(selectSource).toContain('const topY = GRID_VIEWPORT_TOP + step * stepHeight');
-    expect(selectSource).toContain('const bottomY = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT - (step + 1) * stepHeight');
-    expect(selectSource).toContain('fade.fillRect(leftGridX, topY, viewportWidth, stepHeight + 1)');
-    expect(selectSource).toContain('fade.fillRect(leftGridX, bottomY, viewportWidth, stepHeight + 1)');
-    expect(selectSource).not.toContain('fade.setInteractive');
+    expect(selectSource).toContain('const TEAM_LIST_FADE_MIN_ALPHA = 0.22');
+    expect(selectSource).toContain('this.updateTeamListItemAlphas(content, teamOptions)');
+    expect(selectSource).toContain(
+      'private updateTeamListItemAlphas(content: Phaser.GameObjects.Container, teamOptions: readonly Phaser.GameObjects.Container[]): void'
+    );
+    expect(selectSource).toContain('const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT');
+    expect(selectSource).toContain('const itemCenterY = content.y + option.y');
+    expect(selectSource).toContain('const distanceToViewportEdge = Math.min(itemCenterY - GRID_VIEWPORT_TOP, viewportBottom - itemCenterY)');
+    expect(selectSource).toContain('const edgeFadeProgress = Phaser.Math.Clamp(distanceToViewportEdge / TEAM_LIST_FADE_HEIGHT, 0, 1)');
+    expect(selectSource).toContain('option.setAlpha(alpha)');
+    expect(selectSource).not.toContain('private createTeamListFade');
+    expect(selectSource).not.toContain('TEAM_LIST_FADE_MAX_ALPHA');
+    expect(selectSource).not.toContain('fade.fillRect');
   });
 
   it('shows selected team colors from teamKits above the squad preview cards', () => {

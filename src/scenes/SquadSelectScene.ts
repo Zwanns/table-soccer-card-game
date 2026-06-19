@@ -46,8 +46,7 @@ const SQUAD_SECTION_ROW_GAP = 28;
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_LIST_FADE_HEIGHT = 52;
-const TEAM_LIST_FADE_STEPS = 12;
-const TEAM_LIST_FADE_MAX_ALPHA = 0.76;
+const TEAM_LIST_FADE_MIN_ALPHA = 0.22;
 
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
@@ -165,7 +164,10 @@ export class SquadSelectScene extends Phaser.Scene {
       setScroll
     });
 
-    refreshItemInputs = () => dragScroll.updateScrollableItemInputs(content, teamOptions);
+    refreshItemInputs = () => {
+      dragScroll.updateScrollableItemInputs(content, teamOptions);
+      this.updateTeamListItemAlphas(content, teamOptions);
+    };
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
     teamOptions.forEach((option, index) => {
@@ -179,7 +181,6 @@ export class SquadSelectScene extends Phaser.Scene {
       setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
     dragScroll.bindDragTarget(scrollZone);
-    this.createTeamListFade(leftGridX, viewportWidth);
 
     if (maxScroll > 0) {
       const trackX = leftGridX + viewportWidth + 12;
@@ -202,21 +203,17 @@ export class SquadSelectScene extends Phaser.Scene {
     }
   }
 
-  private createTeamListFade(leftGridX: number, viewportWidth: number): void {
-    const fade = this.add.graphics();
-    const stepHeight = TEAM_LIST_FADE_HEIGHT / TEAM_LIST_FADE_STEPS;
+  private updateTeamListItemAlphas(content: Phaser.GameObjects.Container, teamOptions: readonly Phaser.GameObjects.Container[]): void {
+    const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT;
 
-    fade.setDepth(25);
-    for (let step = 0; step < TEAM_LIST_FADE_STEPS; step += 1) {
-      const progress = 1 - step / TEAM_LIST_FADE_STEPS;
-      const alpha = TEAM_LIST_FADE_MAX_ALPHA * progress;
-      const topY = GRID_VIEWPORT_TOP + step * stepHeight;
-      const bottomY = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT - (step + 1) * stepHeight;
+    teamOptions.forEach((option) => {
+      const itemCenterY = content.y + option.y;
+      const distanceToViewportEdge = Math.min(itemCenterY - GRID_VIEWPORT_TOP, viewportBottom - itemCenterY);
+      const edgeFadeProgress = Phaser.Math.Clamp(distanceToViewportEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
+      const alpha = TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * edgeFadeProgress;
 
-      fade.fillStyle(SCOREBOARD_BACKGROUND_COLOR, alpha);
-      fade.fillRect(leftGridX, topY, viewportWidth, stepHeight + 1);
-      fade.fillRect(leftGridX, bottomY, viewportWidth, stepHeight + 1);
-    }
+      option.setAlpha(alpha);
+    });
   }
 
   private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
