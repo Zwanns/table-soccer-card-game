@@ -74,6 +74,7 @@ interface TeamSelectLayoutConfig {
   coverFanWidth: number;
   coverFanHeight: number;
   coverFanInsetX: number;
+  coverFanInsetY: number;
   kitPreviewWidth: number;
   kitPreviewHeight: number;
   controllerToggle: TeamScreenControllerToggleLayout;
@@ -100,9 +101,10 @@ const DESKTOP_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
   startButtonWidth: 260,
   bottomButtonHeight: 54,
   bottomButtonCenterY: 666,
-  coverFanWidth: 116,
-  coverFanHeight: 68,
-  coverFanInsetX: 18,
+  coverFanWidth: 150,
+  coverFanHeight: 112,
+  coverFanInsetX: -16,
+  coverFanInsetY: -18,
   kitPreviewWidth: 70,
   kitPreviewHeight: 90,
   controllerToggle: {
@@ -121,6 +123,10 @@ const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
   teamButtonWidth: 180,
   gridGapX: 12,
   selectedCardWidth: 480,
+  coverFanWidth: 142,
+  coverFanHeight: 106,
+  coverFanInsetX: -10,
+  coverFanInsetY: -12,
   menuButtonWidth: 240,
   startButtonWidth: 300,
   controllerToggle: {
@@ -201,13 +207,13 @@ export function createTeamScreenLayout(
     },
     team1CoverFanRect: {
       x: team1SelectedCardRect.x + layout.coverFanInsetX,
-      y: team1SelectedCardRect.y + (team1SelectedCardRect.height - layout.coverFanHeight) / 2,
+      y: team1SelectedCardRect.y + layout.coverFanInsetY,
       width: layout.coverFanWidth,
       height: layout.coverFanHeight
     },
     team2CoverFanRect: {
       x: team2SelectedCardRect.x + layout.coverFanInsetX,
-      y: team2SelectedCardRect.y + (team2SelectedCardRect.height - layout.coverFanHeight) / 2,
+      y: team2SelectedCardRect.y + layout.coverFanInsetY,
       width: layout.coverFanWidth,
       height: layout.coverFanHeight
     },

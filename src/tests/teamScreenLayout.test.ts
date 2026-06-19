@@ -81,6 +81,29 @@ describe('team selection screen layout', () => {
     }
   });
 
+  it('lets selected team cover fans overflow the selected panels without reaching controller toggles', () => {
+    const layout = createTeamScreenLayout({ mobileWide: false });
+    const pairs = [
+      {
+        selectedCard: layout.team1SelectedCardRect,
+        coverFan: layout.team1CoverFanRect,
+        controllerToggle: layout.team1ControllerToggleRect
+      },
+      {
+        selectedCard: layout.team2SelectedCardRect,
+        coverFan: layout.team2CoverFanRect,
+        controllerToggle: layout.team2ControllerToggleRect
+      }
+    ];
+
+    for (const { selectedCard, coverFan, controllerToggle } of pairs) {
+      expect(coverFan.x).toBeLessThan(selectedCard.x);
+      expect(coverFan.y).toBeLessThan(selectedCard.y);
+      expect(rectRight(coverFan)).toBeLessThan(controllerToggle.x);
+      expect(rectBottom(coverFan)).toBeLessThanOrEqual(rectBottom(selectedCard));
+    }
+  });
+
   it('uses a wider mobile landscape grid while keeping it inside the canvas', () => {
     const desktopLayout = createTeamScreenLayout({ mobileWide: false });
     const mobileLayout = createTeamScreenLayout({ mobileWide: true });
@@ -94,6 +117,20 @@ describe('team selection screen layout', () => {
     expect(mobileLayout.teamGridRect.x).toBeGreaterThanOrEqual(0);
     expect(rectRight(mobileLayout.teamGridRect)).toBeLessThanOrEqual(SCENE_WIDTH);
     expect(rectBottom(mobileLayout.teamGridRect)).toBeLessThanOrEqual(SCENE_HEIGHT);
+  });
+
+  it('uses a softer mobile selected team cover fan overflow', () => {
+    const desktopLayout = createTeamScreenLayout({ mobileWide: false });
+    const mobileLayout = createTeamScreenLayout({ mobileWide: true });
+
+    expect(mobileLayout.team1CoverFanRect.x).toBeLessThan(mobileLayout.team1SelectedCardRect.x);
+    expect(mobileLayout.team1CoverFanRect.y).toBeLessThan(mobileLayout.team1SelectedCardRect.y);
+    expect(mobileLayout.team1SelectedCardRect.x - mobileLayout.team1CoverFanRect.x)
+      .toBeLessThan(desktopLayout.team1SelectedCardRect.x - desktopLayout.team1CoverFanRect.x);
+    expect(mobileLayout.team1SelectedCardRect.y - mobileLayout.team1CoverFanRect.y)
+      .toBeLessThan(desktopLayout.team1SelectedCardRect.y - desktopLayout.team1CoverFanRect.y);
+    expect(rectRight(mobileLayout.team1CoverFanRect)).toBeLessThan(mobileLayout.team1ControllerToggleRect.x);
+    expect(rectRight(mobileLayout.team2CoverFanRect)).toBeLessThan(mobileLayout.team2ControllerToggleRect.x);
   });
 
   it('uses a vertical mobile controller toggle while keeping desktop horizontal', () => {
