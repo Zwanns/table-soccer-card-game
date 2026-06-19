@@ -43,10 +43,11 @@ const TEAM_PREVIEW_BACK_Y = 432;
 const TEAM_PREVIEW_CARD_SCALE = 1.45;
 const TEAM_PREVIEW_DISPLAY_RANK = 'N';
 const SQUAD_SECTION_ROW_GAP = 28;
-const TRANSLUCENT_CARD_BACKGROUND = 0x000000;
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
-const SQUAD_PANEL_BACKGROUND_ALPHA = 0.42;
+const TEAM_LIST_FADE_HEIGHT = 52;
+const TEAM_LIST_FADE_STEPS = 12;
+const TEAM_LIST_FADE_MAX_ALPHA = 0.76;
 
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
@@ -178,6 +179,7 @@ export class SquadSelectScene extends Phaser.Scene {
       setScroll(this.teamGridScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
     });
     dragScroll.bindDragTarget(scrollZone);
+    this.createTeamListFade(leftGridX, viewportWidth);
 
     if (maxScroll > 0) {
       const trackX = leftGridX + viewportWidth + 12;
@@ -197,6 +199,23 @@ export class SquadSelectScene extends Phaser.Scene {
       });
     } else {
       content.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
+    }
+  }
+
+  private createTeamListFade(leftGridX: number, viewportWidth: number): void {
+    const fade = this.add.graphics();
+    const stepHeight = TEAM_LIST_FADE_HEIGHT / TEAM_LIST_FADE_STEPS;
+
+    fade.setDepth(25);
+    for (let step = 0; step < TEAM_LIST_FADE_STEPS; step += 1) {
+      const progress = 1 - step / TEAM_LIST_FADE_STEPS;
+      const alpha = TEAM_LIST_FADE_MAX_ALPHA * progress;
+      const topY = GRID_VIEWPORT_TOP + step * stepHeight;
+      const bottomY = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT - (step + 1) * stepHeight;
+
+      fade.fillStyle(SCOREBOARD_BACKGROUND_COLOR, alpha);
+      fade.fillRect(leftGridX, topY, viewportWidth, stepHeight + 1);
+      fade.fillRect(leftGridX, bottomY, viewportWidth, stepHeight + 1);
     }
   }
 
@@ -255,7 +274,7 @@ export class SquadSelectScene extends Phaser.Scene {
   private createSquadPanel(panelX: number, panelY: number): void {
     const panel = this.add.container(panelX, panelY);
     const background = this.add
-      .rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, TRANSLUCENT_CARD_BACKGROUND, SQUAD_PANEL_BACKGROUND_ALPHA)
+      .rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA)
       .setOrigin(0);
     background.setStrokeStyle(2, 0xf0c95a, 0.95);
 

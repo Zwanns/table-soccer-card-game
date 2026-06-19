@@ -95,17 +95,18 @@ describe('read-only squad scenes', () => {
     expect(FIELD_SQUAD_RANKS).toContain('JOKER');
   });
 
-  it('shows selected team preview cards beside a compact translucent squad card', () => {
+  it('shows selected team preview cards beside a compact squad card styled like team cards', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
-    expect(selectSource).toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
     expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
     expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
-    expect(selectSource).toContain('const SQUAD_PANEL_BACKGROUND_ALPHA = 0.42');
-    expect(selectSource).toContain('TRANSLUCENT_CARD_BACKGROUND');
+    expect(selectSource).toContain(
+      '.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA)'
+    );
+    expect(selectSource).toContain('background.setStrokeStyle(2, 0xf0c95a, 0.95)');
     expect(selectSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(selectSource).toContain('SCOREBOARD_METAL_BORDER_COLOR');
     expect(selectSource).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : SCOREBOARD_METAL_BORDER_COLOR');
@@ -131,6 +132,23 @@ describe('read-only squad scenes', () => {
     expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
     expect(selectSource).not.toContain('createTeamKitPreview');
     expect(selectSource).not.toContain('kit.setDisplaySize');
+  });
+
+  it('adds non-interactive top and bottom fade overlays inside the team list viewport', () => {
+    const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+
+    expect(selectSource).toContain('const TEAM_LIST_FADE_HEIGHT = 52');
+    expect(selectSource).toContain('const TEAM_LIST_FADE_STEPS = 12');
+    expect(selectSource).toContain('const TEAM_LIST_FADE_MAX_ALPHA = 0.76');
+    expect(selectSource).toContain('this.createTeamListFade(leftGridX, viewportWidth)');
+    expect(selectSource).toContain('private createTeamListFade(leftGridX: number, viewportWidth: number): void');
+    expect(selectSource).toContain('const fade = this.add.graphics()');
+    expect(selectSource).toContain('fade.setDepth(25)');
+    expect(selectSource).toContain('const topY = GRID_VIEWPORT_TOP + step * stepHeight');
+    expect(selectSource).toContain('const bottomY = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT - (step + 1) * stepHeight');
+    expect(selectSource).toContain('fade.fillRect(leftGridX, topY, viewportWidth, stepHeight + 1)');
+    expect(selectSource).toContain('fade.fillRect(leftGridX, bottomY, viewportWidth, stepHeight + 1)');
+    expect(selectSource).not.toContain('fade.setInteractive');
   });
 
   it('shows selected team colors from teamKits above the squad preview cards', () => {
