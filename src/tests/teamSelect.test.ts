@@ -160,7 +160,8 @@ describe('quick match team selection AI controls', () => {
   it('styles Player AI toggles with the selected-card color scheme', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = 0x22302c');
+    expect(source).toContain('const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = SCOREBOARD_BORDER_COLOR');
+    expect(source).toContain("const TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR = '#1f2a2e'");
     expect(source).toContain('const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
     expect(source).toContain('TEAM_SELECTION_TOGGLE_ACTIVE_COLOR');
     expect(source).toContain('background.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
@@ -168,6 +169,8 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
     expect(source).toContain('border.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
     expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain('color: isAi ? SCOREBOARD_TEXT_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR');
+    expect(source).toContain('color: isAi ? TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR : SCOREBOARD_TEXT_COLOR');
     expect(source).not.toContain('isAi ? 0xf0c95a : 0x5f9572');
     expect(source).not.toContain('isAi ? 0x143f2c : 0xf0c95a');
   });

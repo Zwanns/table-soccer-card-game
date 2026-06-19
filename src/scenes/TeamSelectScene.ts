@@ -39,7 +39,8 @@ const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
 const TEAM_SELECTION_METAL_BORDER_COLOR = 0x8f9a96;
 const TEAM_SELECTION_METAL_BORDER_ALPHA = 0.95;
-const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = 0x22302c;
+const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = SCOREBOARD_BORDER_COLOR;
+const TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR = '#1f2a2e';
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_OPTION_FLAG_WIDTH = 36;
@@ -472,7 +473,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const playerLabel = this.add
       .text(-segmentWidth / 2, 0, 'Player', {
         align: 'center',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: isAi ? SCOREBOARD_TEXT_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: toggleLayout.fontSize,
         fontStyle: '700'
@@ -481,7 +482,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const aiLabel = this.add
       .text(segmentWidth / 2, 0, 'AI', {
         align: 'center',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: isAi ? TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR : SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: toggleLayout.fontSize,
         fontStyle: '700'
@@ -544,7 +545,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const playerLabel = this.add
       .text(0, -segmentHeight / 2, 'Player', {
         align: 'center',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: isAi ? SCOREBOARD_TEXT_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize,
         fontStyle: '700'
@@ -553,7 +554,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const aiLabel = this.add
       .text(0, segmentHeight / 2, 'AI', {
         align: 'center',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: isAi ? TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR : SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize,
         fontStyle: '700'
