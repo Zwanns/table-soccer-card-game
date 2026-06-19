@@ -39,6 +39,7 @@ const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
 const TEAM_SELECTION_METAL_BORDER_COLOR = 0x8f9a96;
 const TEAM_SELECTION_METAL_BORDER_ALPHA = 0.95;
+const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = 0x22302c;
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_OPTION_FLAG_WIDTH = 36;
@@ -191,14 +192,14 @@ export class TeamSelectScene extends Phaser.Scene {
     const controllerToggleCenter = rectCenter(controllerToggleRect);
 
     const slotLabel = this.add
-      .text(rect.x, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
-        align: 'left',
+      .text(rect.x + rect.width, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
+        align: 'right',
         color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         fontStyle: '700'
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(1, 0.5);
     const teamText = this.add
       .text(textX, 0, team.name, {
         align: 'left',
@@ -459,12 +460,19 @@ export class TeamSelectScene extends Phaser.Scene {
     }
 
     const segmentWidth = width / 2;
-    const background = this.add.rectangle(0, 0, width, height, 0x143f2c, 0.92);
-    const activeSegment = this.add.rectangle(isAi ? segmentWidth / 2 : -segmentWidth / 2, 0, segmentWidth - 4, height - 4, 0xf0c95a, 1);
+    const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+    const activeSegment = this.add.rectangle(
+      isAi ? segmentWidth / 2 : -segmentWidth / 2,
+      0,
+      segmentWidth - 4,
+      height - 4,
+      TEAM_SELECTION_TOGGLE_ACTIVE_COLOR,
+      1
+    );
     const playerLabel = this.add
       .text(-segmentWidth / 2, 0, 'Player', {
         align: 'center',
-        color: isAi ? '#d9eadf' : '#1f2a2e',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: toggleLayout.fontSize,
         fontStyle: '700'
@@ -473,14 +481,14 @@ export class TeamSelectScene extends Phaser.Scene {
     const aiLabel = this.add
       .text(segmentWidth / 2, 0, 'AI', {
         align: 'center',
-        color: isAi ? '#1f2a2e' : '#d9eadf',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: toggleLayout.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    background.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+    background.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
     toggle.add([background, activeSegment, playerLabel, aiLabel]);
     toggle.setSize(width, height);
     toggle.setInteractive({ useHandCursor: true });
@@ -497,10 +505,10 @@ export class TeamSelectScene extends Phaser.Scene {
       }
     );
     toggle.on('pointerover', () => {
-      background.setStrokeStyle(2, 0xffd978, 1);
+      background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1);
     });
     toggle.on('pointerout', () => {
-      background.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+      background.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
     });
 
     parent.add(toggle);
@@ -516,13 +524,27 @@ export class TeamSelectScene extends Phaser.Scene {
     isAi: boolean
   ): void {
     const segmentHeight = height / 2;
-    const playerSegment = this.add.rectangle(0, -segmentHeight / 2, width, segmentHeight, isAi ? 0x143f2c : 0xf0c95a, 0.96);
-    const aiSegment = this.add.rectangle(0, segmentHeight / 2, width, segmentHeight, isAi ? 0xf0c95a : 0x143f2c, 0.96);
-    const border = this.add.rectangle(0, 0, width, height, 0x143f2c, 0);
+    const playerSegment = this.add.rectangle(
+      0,
+      -segmentHeight / 2,
+      width,
+      segmentHeight,
+      isAi ? SCOREBOARD_BACKGROUND_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_COLOR,
+      isAi ? SCOREBOARD_BACKGROUND_ALPHA : 1
+    );
+    const aiSegment = this.add.rectangle(
+      0,
+      segmentHeight / 2,
+      width,
+      segmentHeight,
+      isAi ? TEAM_SELECTION_TOGGLE_ACTIVE_COLOR : SCOREBOARD_BACKGROUND_COLOR,
+      isAi ? 1 : SCOREBOARD_BACKGROUND_ALPHA
+    );
+    const border = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, 0);
     const playerLabel = this.add
       .text(0, -segmentHeight / 2, 'Player', {
         align: 'center',
-        color: isAi ? '#d9eadf' : '#1f2a2e',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize,
         fontStyle: '700'
@@ -531,14 +553,14 @@ export class TeamSelectScene extends Phaser.Scene {
     const aiLabel = this.add
       .text(0, segmentHeight / 2, 'AI', {
         align: 'center',
-        color: isAi ? '#1f2a2e' : '#d9eadf',
+        color: SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98);
+    border.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
     playerSegment.setInteractive({ useHandCursor: true });
     aiSegment.setInteractive({ useHandCursor: true });
     playerSegment.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
@@ -549,10 +571,10 @@ export class TeamSelectScene extends Phaser.Scene {
       event.stopPropagation();
       this.setControllerType(slot, 'AI');
     });
-    playerSegment.on('pointerover', () => border.setStrokeStyle(2, 0xffd978, 1));
-    aiSegment.on('pointerover', () => border.setStrokeStyle(2, 0xffd978, 1));
-    playerSegment.on('pointerout', () => border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98));
-    aiSegment.on('pointerout', () => border.setStrokeStyle(2, isAi ? 0xf0c95a : 0x5f9572, 0.98));
+    playerSegment.on('pointerover', () => border.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1));
+    aiSegment.on('pointerover', () => border.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1));
+    playerSegment.on('pointerout', () => border.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA));
+    aiSegment.on('pointerout', () => border.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA));
 
     toggle.add([playerSegment, aiSegment, border, playerLabel, aiLabel]);
     toggle.setSize(width, height);

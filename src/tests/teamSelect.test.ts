@@ -86,11 +86,13 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('const textWidth = layout.mobileWide');
     expect(source).toContain('const segmentWidth = width / 2');
     expect(source).toContain('const segmentHeight = height / 2');
-    expect(source).toContain('this.add.rectangle(0, -segmentHeight / 2, width, segmentHeight');
-    expect(source).toContain('this.add.rectangle(0, segmentHeight / 2, width, segmentHeight');
+    expect(source).toContain('const playerSegment = this.add.rectangle(');
+    expect(source).toContain('-segmentHeight / 2');
+    expect(source).toContain('const aiSegment = this.add.rectangle(');
+    expect(source).toContain('segmentHeight / 2');
   });
 
-  it('places player labels above panels aligned to panel left edges', () => {
+  it('places player labels above panels aligned to panel right edges', () => {
     const source = readTeamSelectSource();
 
     expect(source).toContain("'Player 1'");
@@ -98,7 +100,9 @@ describe('quick match team selection AI controls', () => {
     expect(source).not.toContain("'Team 1'");
     expect(source).not.toContain("'Team 2'");
     expect(source).toContain('const SELECTED_PANEL_LABEL_OFFSET_Y = 16');
-    expect(source).toContain('.text(rect.x, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title');
+    expect(source).toContain('.text(rect.x + rect.width, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title');
+    expect(source).toContain("align: 'right'");
+    expect(source).toContain('.setOrigin(1, 0.5)');
     expect(source).toContain('slotLabel.setDepth(1)');
   });
 
@@ -151,6 +155,21 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
     expect(source).toContain("fontFamily: 'Arial, sans-serif'");
     expect(source).not.toContain('SCOREBOARD_FONT_FAMILY');
+  });
+
+  it('styles Player AI toggles with the selected-card color scheme', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain('const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = 0x22302c');
+    expect(source).toContain('const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
+    expect(source).toContain('TEAM_SELECTION_TOGGLE_ACTIVE_COLOR');
+    expect(source).toContain('background.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
+    expect(source).toContain('border.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
+    expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
+    expect(source).toContain('border.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
+    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).not.toContain('isAi ? 0xf0c95a : 0x5f9572');
+    expect(source).not.toContain('isAi ? 0x143f2c : 0xf0c95a');
   });
 
   it('uses selected team cover fans and kit previews in both match modes', () => {
