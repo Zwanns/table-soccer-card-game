@@ -147,6 +147,26 @@ describe('quick match team selection AI controls', () => {
     expect(source).not.toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
   });
 
+  it('fades country grid cards at overflowing viewport edges without dark overlays', () => {
+    const source = readTeamSelectSource();
+
+    expect(source).toContain('const TEAM_GRID_EDGE_FADE_HEIGHT = 52');
+    expect(source).toContain('const TEAM_GRID_EDGE_FADE_MIN_ALPHA = 0.22');
+    expect(source).toContain('const TEAM_GRID_SCROLL_EDGE_EPSILON = 0.5');
+    expect(source).toContain('let refreshTeamGridItems = (): void => {}');
+    expect(source).toContain('this.updateCountryGridItemAlphas(content, teamOptions, viewportTop, teamGridScrollY, maxScroll)');
+    expect(source).toContain('private updateCountryGridItemAlphas(');
+    expect(source).toContain('const viewportBottom = viewportTop + TEAM_GRID_VIEWPORT_HEIGHT');
+    expect(source).toContain('const shouldFadeTop = scrollY > TEAM_GRID_SCROLL_EDGE_EPSILON');
+    expect(source).toContain('const shouldFadeBottom = scrollY < maxScroll - TEAM_GRID_SCROLL_EDGE_EPSILON');
+    expect(source).toContain('const itemCenterY = content.y + option.y');
+    expect(source).toContain('const distanceToTopEdge = itemCenterY - viewportTop');
+    expect(source).toContain('const distanceToBottomEdge = viewportBottom - itemCenterY');
+    expect(source).toContain('option.setAlpha(alpha)');
+    expect(source).not.toContain('fade.fillRect');
+    expect(source).not.toContain('TEAM_GRID_EDGE_FADE_MAX_ALPHA');
+  });
+
   it('uses scoreboard-style selected panels without switching to the scoreboard font', () => {
     const source = readTeamSelectSource();
     const scoreboardStyleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'scoreboardStyle.ts'), 'utf8');
