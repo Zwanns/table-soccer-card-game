@@ -117,8 +117,9 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(source).toContain('SCOREBOARD_BACKGROUND_ALPHA');
     expect(source).toContain('SCOREBOARD_BORDER_COLOR');
-    expect(source).toContain('SCOREBOARD_BORDER_ALPHA');
     expect(source).toContain('SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_COLOR = 0x8f9a96');
+    expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_ALPHA = 0.95');
     expect(source).toContain('const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6');
     expect(source).toContain('const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET');
     expect(source).toContain('layout.teamButtonWidth');
@@ -129,7 +130,8 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('const TEAM_OPTION_FLAG_PADDING_X = 11');
     expect(source).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(source).toContain('isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA');
-    expect(source).toContain('background.setStrokeStyle(isSelected ? 3 : 2, SCOREBOARD_BORDER_COLOR');
+    expect(source).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : TEAM_SELECTION_METAL_BORDER_COLOR');
+    expect(source).toContain('isSelected ? 1 : TEAM_SELECTION_METAL_BORDER_ALPHA');
     expect(source).toContain('const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2');
     expect(source).toContain('flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT)');
     expect(source).toContain("fontSize: '16px'");
@@ -145,7 +147,7 @@ describe('quick match team selection AI controls', () => {
 
     expect(scoreboardStyleSource).toContain("export const SCOREBOARD_TEXT_COLOR = '#d9eadf'");
     expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
-    expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, SCOREBOARD_BORDER_COLOR');
+    expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
     expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
     expect(source).toContain("fontFamily: 'Arial, sans-serif'");
     expect(source).not.toContain('SCOREBOARD_FONT_FAMILY');

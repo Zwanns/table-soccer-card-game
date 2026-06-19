@@ -10,7 +10,6 @@ import { CardView } from '../ui/CardView';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
-  SCOREBOARD_BORDER_ALPHA,
   SCOREBOARD_BORDER_COLOR,
   SCOREBOARD_TEXT_COLOR
 } from '../ui/scoreboardStyle';
@@ -38,6 +37,8 @@ const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_GRID_VIEWPORT_HEIGHT = 360;
+const TEAM_SELECTION_METAL_BORDER_COLOR = 0x8f9a96;
+const TEAM_SELECTION_METAL_BORDER_ALPHA = 0.95;
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_OPTION_FLAG_WIDTH = 36;
@@ -176,7 +177,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
     const panel = this.add.container(center.x, center.y);
     const background = this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
-    background.setStrokeStyle(isActive ? 4 : 2, SCOREBOARD_BORDER_COLOR, isActive ? 1 : SCOREBOARD_BORDER_ALPHA);
+    background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
     const fan = this.createSelectedTeamCoverFan(
       coverFanCenter.x - center.x,
       coverFanCenter.y - center.y,
@@ -379,7 +380,11 @@ export class TeamSelectScene extends Phaser.Scene {
       SCOREBOARD_BACKGROUND_COLOR,
       isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
     );
-    background.setStrokeStyle(isSelected ? 3 : 2, SCOREBOARD_BORDER_COLOR, isSelected ? 1 : SCOREBOARD_BORDER_ALPHA);
+    background.setStrokeStyle(
+      isSelected ? 3 : 2,
+      isSelected ? SCOREBOARD_BORDER_COLOR : TEAM_SELECTION_METAL_BORDER_COLOR,
+      isSelected ? 1 : TEAM_SELECTION_METAL_BORDER_ALPHA
+    );
     const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2;
     const textX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH + TEAM_OPTION_TEXT_GAP_X;
     const flag = this.add.image(flagX, 0, getFlagAssetKey(team.flagCode));
