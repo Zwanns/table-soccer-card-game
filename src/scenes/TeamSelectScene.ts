@@ -23,8 +23,10 @@ const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
 const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6;
 const SELECTED_COVER_FAN_CARD_COUNT = 3;
-const SELECTED_COVER_FAN_CARD_SCALE = 0.36;
-const SELECTED_COVER_FAN_OFFSETS = [-22, 0, 22] as const;
+const SELECTED_COVER_FAN_CARD_SCALE = 0.56;
+const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.5;
+const SELECTED_COVER_FAN_OFFSETS = [-34, 0, 34] as const;
+const SELECTED_COVER_FAN_MOBILE_OFFSETS = [-30, 0, 30] as const;
 const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
@@ -169,7 +171,12 @@ export class TeamSelectScene extends Phaser.Scene {
     const panel = this.add.container(center.x, center.y);
     const background = this.add.rectangle(0, 0, rect.width, rect.height, 0x0b2118, 0.82);
     background.setStrokeStyle(isActive ? 4 : 2, isActive ? 0xf0c95a : 0x5f9572, 0.95);
-    const fan = this.createSelectedTeamCoverFan(coverFanCenter.x - center.x, coverFanCenter.y - center.y, coverTextureKey);
+    const fan = this.createSelectedTeamCoverFan(
+      coverFanCenter.x - center.x,
+      coverFanCenter.y - center.y,
+      coverTextureKey,
+      layout.mobileWide
+    );
     const textX = coverFanRect.x + coverFanRect.width - center.x + 18;
     const textWidth = layout.mobileWide
       ? Math.max(160, controllerToggleRect.x - (center.x + textX) - 14)
@@ -213,18 +220,25 @@ export class TeamSelectScene extends Phaser.Scene {
     });
   }
 
-  private createSelectedTeamCoverFan(x: number, y: number, coverTextureKey: string): Phaser.GameObjects.Container {
+  private createSelectedTeamCoverFan(
+    x: number,
+    y: number,
+    coverTextureKey: string,
+    mobileWide: boolean
+  ): Phaser.GameObjects.Container {
     const fan = this.add.container(x, y);
+    const cardScale = mobileWide ? SELECTED_COVER_FAN_MOBILE_CARD_SCALE : SELECTED_COVER_FAN_CARD_SCALE;
+    const cardOffsets = mobileWide ? SELECTED_COVER_FAN_MOBILE_OFFSETS : SELECTED_COVER_FAN_OFFSETS;
 
     for (let index = 0; index < SELECTED_COVER_FAN_CARD_COUNT; index += 1) {
-      const card = new CardView(this, SELECTED_COVER_FAN_OFFSETS[index], 0, {
+      const card = new CardView(this, cardOffsets[index], 0, {
         faceDown: true,
         faceDownVariant: 'preview',
         rank: '',
         coverTextureKey,
         tooltipEnabled: false
       });
-      card.setScale(SELECTED_COVER_FAN_CARD_SCALE);
+      card.setScale(cardScale);
       card.setAngle(SELECTED_COVER_FAN_ANGLES[index]);
       fan.add(card);
     }
