@@ -9,6 +9,14 @@ export type ScorerSnapshot = {
   teamId: string;
 };
 
+export type GoalkeeperRankChangedEvent = {
+  type: 'GOALKEEPER_RANK_CHANGED';
+  playerId: Player['id'];
+  turnNumber: number;
+  previousCard: GoalkeeperCard;
+  nextCard: GoalkeeperCard;
+};
+
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
@@ -49,6 +57,7 @@ export type GameEvent =
   | { type: 'SHOT_ON_GOAL'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: GoalkeeperCard }
   | { type: 'GOALPOST_HIT'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: GoalkeeperCard }
   | { type: 'GOALKEEPER_SAVE'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: GoalkeeperCard }
+  | GoalkeeperRankChangedEvent
   | {
       type: 'GOALKEEPER_CARD_RECYCLED';
       playerId: Player['id'];

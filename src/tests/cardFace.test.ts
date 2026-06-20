@@ -97,6 +97,8 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankFontFamily');
     expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '26px' : '42px'");
+    expect(kitFaceSource).toContain('public setDisplayRank(rank: string): void');
+    expect(kitFaceSource).toContain('public animateRankRoll(targetRank: string');
     expect(kitFaceSource).toContain('getKitImageLayout()');
     expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
     expect(kitFaceSource).toContain('setDisplaySize(layout.width, layout.height)');
@@ -182,11 +184,29 @@ describe('kit card face rendering contracts', () => {
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
 
     expect(kitFaceSource.match(/addRank/g)?.length).toBe(2);
-    expect(kitFaceSource.match(/const rank = scene\.add/g)?.length).toBe(1);
+    expect(kitFaceSource).toContain('private rankText: Phaser.GameObjects.Text | null = null');
+    expect(kitFaceSource).toContain('this.rankText = scene.add');
     expect(kitFaceSource).not.toContain('CARD_HEIGHT / 2 -');
     expect(kitFaceSource).not.toContain('playerName');
     expect(cardViewSource).not.toContain('playerName');
     expect(cardViewSource).not.toContain('options.suit');
+  });
+
+  it('exposes a rank-only roll animation without changing closed card rendering', () => {
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+
+    expect(kitFaceSource).toContain('export interface RankRollOptions');
+    expect(kitFaceSource).toContain('this.rankText.setText(rank)');
+    expect(kitFaceSource).toContain("this.rankText.setFontSize(rank.length > 2 ? '26px' : '42px')");
+    expect(kitFaceSource).toContain('steps?: readonly string[]');
+    expect(kitFaceSource).toContain('this.scene.tweens.add({');
+    expect(kitFaceSource).toContain('this.setDisplayRank(targetRank)');
+    expect(cardViewSource).toContain('private faceView: KitCardFaceView | null = null');
+    expect(cardViewSource).toContain('public setDisplayRank(rank: string): void');
+    expect(cardViewSource).toContain('public animateDisplayRankRoll(targetRank: string');
+    expect(cardViewSource).toContain('this.faceView?.animateRankRoll(targetRank, options) ?? Promise.resolve()');
+    expect(cardViewSource).toContain('options.faceDown === true');
   });
 
   it('uses resolver number colors without strokes and keeps closed cards unchanged', () => {

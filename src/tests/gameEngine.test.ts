@@ -744,6 +744,8 @@ describe('game engine attacks', () => {
     expect(afterGoal.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['Q', 'K', '6']);
     expect(afterGoal.attackBank).toEqual([]);
     expect(afterGoal.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['A']);
+    expect(afterGoal.players[0].deck.cards.some((deckCard) => deckCard.id.startsWith('ENGINE_GK_'))).toBe(false);
+    expect(afterGoal.log.some((event) => event.type === 'GOALKEEPER_RANK_CHANGED')).toBe(false);
     expect(afterGoal.log).toContainEqual({
       type: 'GOALKEEPER_CARD_RECYCLED',
       playerId: 'PLAYER_2',
@@ -796,6 +798,7 @@ describe('game engine attacks', () => {
     expect(afterPost.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
     expect(afterPost.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
     expect(afterPost.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
+    expect(afterPost.log.some((event) => event.type === 'GOALKEEPER_RANK_CHANGED')).toBe(false);
     expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
 
     const nextShot = engine.drawAttackCard();
@@ -825,27 +828,40 @@ describe('game engine attacks', () => {
     expect(afterPost.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
     expect(afterPost.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
     expect(afterPost.log.some((event) => event.type === 'GOAL_SCORED')).toBe(false);
+    expect(afterPost.log.some((event) => event.type === 'GOALKEEPER_RANK_CHANGED')).toBe(false);
     expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
   });
 
-  it('ends the attack with a goalkeeper save when the selected shot cannot beat the goalkeeper', () => {
+  it('ends the attack with a goalkeeper save and changes the goalkeeper card through the goalkeeper deck', () => {
     const engine = createReadyEngine(['5']);
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
     const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
-    const originalGoalkeeperDeck = engine.getState().players[1].goalkeeperDeck.toArray();
+    engine.getState().players[1].goalkeeperDeck = goalkeeperDeck(['7', '8']);
 
     engine.startNextTurn();
     engine.drawAttackCard();
     const result = engine.selectTarget('goalkeeper');
+    const rankChange = result.log.find((event) => event.type === 'GOALKEEPER_RANK_CHANGED');
 
     expect(result.phase).toBe('ENDING_TURN');
     expect(result.activePlayerId).toBe('PLAYER_2');
-    expect(result.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
-    expect(result.players[1].goalkeeperDeck.toArray()).toEqual(originalGoalkeeperDeck);
+    expect(result.players[1].field.goalkeeper).toEqual(goalkeeperCard('7'));
+    expect(result.players[1].field.goalkeeper).not.toEqual(originalGoalkeeper);
+    expect(result.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['8', '6']);
+    expect(result.attackBank).toEqual([]);
+    expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['5']);
+    expect(result.players[0].deck.cards.some((deckCard) => deckCard.id.startsWith('ENGINE_GK_'))).toBe(false);
     expect(result.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
     expect(result.log.some((event) => event.type === 'GOALKEEPER_SAVE')).toBe(true);
+    expect(rankChange).toMatchObject({
+      type: 'GOALKEEPER_RANK_CHANGED',
+      playerId: 'PLAYER_2',
+      turnNumber: 1,
+      previousCard: { rank: '6' },
+      nextCard: { rank: '7' }
+    });
   });
 
   it('scenario 6: not enough cards to restore the field ends the game', () => {
@@ -948,7 +964,14 @@ describe('game engine attacks', () => {
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
       { type: 'GOALPOST_HIT', playerId: 'PLAYER_2', attackerCard: card('7'), goalkeeperCard: goalkeeperCard('7') },
       { type: 'SHOT_ON_GOAL', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
-      { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') }
+      { type: 'GOALKEEPER_SAVE', playerId: 'PLAYER_2', attackerCard: card('5'), goalkeeperCard: goalkeeperCard('8') },
+      {
+        type: 'GOALKEEPER_RANK_CHANGED',
+        playerId: 'PLAYER_1',
+        turnNumber: 5,
+        previousCard: goalkeeperCard('8'),
+        nextCard: goalkeeperCard('9')
+      }
     );
 
     const [playerOneStats, playerTwoStats] = getMatchStats(gameState);

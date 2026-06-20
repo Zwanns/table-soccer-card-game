@@ -659,6 +659,7 @@ export class GameEngine {
       this.state.legalTargetPositionIds = [];
       this.state.legalMidfieldGapPositionIds = [];
       this.appendLog({ type: 'GOALKEEPER_SAVE', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
+      this.changeGoalkeeperCardAfterSave(opponent, goalkeeperCard);
       this.finishAttack('MISS');
       return this.state;
     }
@@ -752,6 +753,28 @@ export class GameEngine {
       turnNumber: this.state.turnNumber,
       attackerCard: scoringCard,
       scorer: createScorerSnapshot(this.state, activePlayer, scoringCard)
+    });
+  }
+
+  private changeGoalkeeperCardAfterSave(player: Player, goalkeeperCard: GoalkeeperCard): void {
+    const previousCard = player.field.goalkeeper ?? goalkeeperCard;
+
+    recycleGoalkeeperCard(player, previousCard);
+
+    const nextCard = player.goalkeeperDeck.drawTop();
+
+    if (nextCard === undefined) {
+      player.field.goalkeeper = previousCard;
+      return;
+    }
+
+    player.field.goalkeeper = nextCard;
+    this.appendLog({
+      type: 'GOALKEEPER_RANK_CHANGED',
+      playerId: player.id,
+      turnNumber: this.state.turnNumber,
+      previousCard,
+      nextCard
     });
   }
 

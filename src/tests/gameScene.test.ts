@@ -679,6 +679,21 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
   });
 
+  it('rolls the goalkeeper rank on the same field card after a goalkeeper save', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain("type GoalkeeperRankChangedSceneEvent = Extract<GameEvent, { type: 'GOALKEEPER_RANK_CHANGED' }>");
+    expect(source).toContain('const GOALKEEPER_RANK_ROLL_SEQUENCE');
+    expect(source).toContain('const goalkeeperRankChange = getLastGoalkeeperRankChangedEvent(state.log);');
+    expect(source).toContain('this.animateGoalkeeperRankChange(goalkeeperRankChange, () => {');
+    expect(source).toContain("const goalkeeperView = this.findFieldCardView(event.playerId, 'goalkeeper');");
+    expect(source).toContain('goalkeeperView.setDisplayRank(event.previousCard.rank);');
+    expect(source).toContain('goalkeeperView\n      .animateDisplayRankRoll(event.nextCard.rank');
+    expect(source).toContain('steps: getGoalkeeperRankRollSteps(event.previousCard.rank, event.nextCard.rank)');
+    expect(source).toContain("cardView.getData('fieldSourcePlayerId') === playerId");
+    expect(source).toContain("cardView.getData('fieldSourcePositionId') === positionId");
+  });
+
   it('animates post outcome as a forward goalkeeper deflection with goalpost sound', () => {
     const source = readSource('src/scenes/GameScene.ts');
 

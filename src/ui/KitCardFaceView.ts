@@ -16,6 +16,11 @@ export interface KitCardFaceViewOptions {
   kitAsset?: ResolvedKitAsset;
 }
 
+export interface RankRollOptions {
+  durationMs?: number;
+  steps?: readonly string[];
+}
+
 type RenderedKitColorScheme = {
   shirt: number;
   shorts: number;
@@ -24,6 +29,9 @@ type RenderedKitColorScheme = {
 };
 
 export class KitCardFaceView extends Phaser.GameObjects.Container {
+  private rankText: Phaser.GameObjects.Text | null = null;
+  private rankBaseY = -CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop;
+
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
     super(scene, x, y);
 
@@ -39,6 +47,65 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     this.addRank(scene, options);
 
     scene.add.existing(this);
+  }
+
+  public setDisplayRank(rank: string): void {
+    if (this.rankText === null) {
+      return;
+    }
+
+    this.rankText.setText(rank);
+    this.rankText.setFontSize(rank.length > 2 ? '26px' : '42px');
+  }
+
+  public animateRankRoll(targetRank: string, options: RankRollOptions = {}): Promise<void> {
+    if (this.rankText === null) {
+      return Promise.resolve();
+    }
+
+    const rankText = this.rankText;
+    const steps = options.steps?.length === 0 ? [targetRank] : [...(options.steps ?? [targetRank])];
+    const stepDuration = Math.max(24, Math.floor((options.durationMs ?? 780) / steps.length));
+
+    return new Promise((resolve) => {
+      let stepIndex = 0;
+
+      const showNextStep = () => {
+        const nextRank = steps[stepIndex] ?? targetRank;
+
+        this.scene.tweens.add({
+          targets: rankText,
+          y: this.rankBaseY + 12,
+          alpha: 0.18,
+          duration: stepDuration / 2,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            this.setDisplayRank(nextRank);
+            rankText.setY(this.rankBaseY - 10);
+            this.scene.tweens.add({
+              targets: rankText,
+              y: this.rankBaseY,
+              alpha: 1,
+              duration: stepDuration / 2,
+              ease: 'Sine.easeOut',
+              onComplete: () => {
+                stepIndex += 1;
+
+                if (stepIndex < steps.length) {
+                  showNextStep();
+                  return;
+                }
+
+                this.setDisplayRank(targetRank);
+                resolve();
+              }
+            });
+          }
+        });
+      };
+
+      showNextStep();
+    });
   }
 
   private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
@@ -90,10 +157,10 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   }
 
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
-    const rank = scene.add
+    this.rankText = scene.add
       .text(
         -CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft,
-        -CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop,
+        this.rankBaseY,
         options.rank,
         {
           color: KIT_CARD_LAYOUT.rankColor,
@@ -104,7 +171,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       )
       .setOrigin(0, 0);
 
-    this.add(rank);
+    this.add(this.rankText);
   }
 }
 

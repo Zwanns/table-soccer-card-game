@@ -105,6 +105,22 @@ const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
+const GOALKEEPER_RANK_ROLL_DURATION_MS = 820;
+const GOALKEEPER_RANK_ROLL_MIN_STEPS = 8;
+const GOALKEEPER_RANK_ROLL_SEQUENCE: readonly GoalkeeperCard['rank'][] = [
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  'J',
+  'Q',
+  'K',
+  'A'
+];
 
 interface CardVisualTransform {
   x: number;
@@ -146,6 +162,7 @@ interface AttackAnimationContext {
 
 type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
 type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>;
+type GoalkeeperRankChangedSceneEvent = Extract<GameEvent, { type: 'GOALKEEPER_RANK_CHANGED' }>;
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
@@ -453,6 +470,7 @@ export class GameScene extends Phaser.Scene {
 
     if (state.phase === 'ENDING_TURN') {
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
+      const goalkeeperRankChange = getLastGoalkeeperRankChangedEvent(state.log);
       const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
       const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalScoredEventCursor);
       const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);
@@ -467,7 +485,9 @@ export class GameScene extends Phaser.Scene {
         });
       } else if (goalkeeperSave) {
         this.render(state, { hiddenRestoredCards, interactive: false });
-        this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
+        this.animateGoalkeeperRankChange(goalkeeperRankChange, () => {
+          this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
+        });
       } else if (missedAttack) {
         this.render(state, { hiddenRestoredCards, interactive: false });
         this.showFlyingMessage('Turnover...', 'out', () => this.startTurn());
@@ -504,6 +524,43 @@ export class GameScene extends Phaser.Scene {
         align: 'right',
         scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
       })
+    );
+  }
+
+  private animateGoalkeeperRankChange(event: GoalkeeperRankChangedSceneEvent | null, onComplete: () => void): void {
+    if (event === null) {
+      onComplete();
+      return;
+    }
+
+    const goalkeeperView = this.findFieldCardView(event.playerId, 'goalkeeper');
+
+    if (goalkeeperView === null) {
+      onComplete();
+      return;
+    }
+
+    this.isMatchEffectInProgress = true;
+    this.input.enabled = false;
+    goalkeeperView.setDisplayRank(event.previousCard.rank);
+    goalkeeperView
+      .animateDisplayRankRoll(event.nextCard.rank, {
+        durationMs: GOALKEEPER_RANK_ROLL_DURATION_MS,
+        steps: getGoalkeeperRankRollSteps(event.previousCard.rank, event.nextCard.rank)
+      })
+      .then(() => {
+        this.input.enabled = true;
+        this.isMatchEffectInProgress = false;
+        onComplete();
+      });
+  }
+
+  private findFieldCardView(playerId: Player['id'], positionId: FieldPositionId): CardView | null {
+    return findCardView(
+      this.dynamicLayer,
+      (cardView) =>
+        cardView.getData('fieldSourcePlayerId') === playerId &&
+        cardView.getData('fieldSourcePositionId') === positionId
     );
   }
 
@@ -1903,6 +1960,51 @@ function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimat
         ]
       : []
   );
+}
+
+function getLastGoalkeeperRankChangedEvent(events: readonly GameEvent[]): GoalkeeperRankChangedSceneEvent | null {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+
+    if (event === undefined) {
+      continue;
+    }
+
+    if (event.type === 'GOALKEEPER_RANK_CHANGED') {
+      return event;
+    }
+
+    if (event.type === 'TURN_ENDED' || event.type === 'GOALKEEPER_SAVE') {
+      continue;
+    }
+
+    break;
+  }
+
+  return null;
+}
+
+function getGoalkeeperRankRollSteps(
+  previousRank: GoalkeeperCard['rank'],
+  nextRank: GoalkeeperCard['rank']
+): GoalkeeperCard['rank'][] {
+  const startIndex = GOALKEEPER_RANK_ROLL_SEQUENCE.indexOf(previousRank);
+  const steps: GoalkeeperCard['rank'][] = [];
+  let currentIndex = startIndex >= 0 ? startIndex : 0;
+
+  while (
+    (steps.length < GOALKEEPER_RANK_ROLL_MIN_STEPS || steps.at(-1) !== nextRank) &&
+    steps.length < GOALKEEPER_RANK_ROLL_SEQUENCE.length * 2
+  ) {
+    currentIndex = (currentIndex + 1) % GOALKEEPER_RANK_ROLL_SEQUENCE.length;
+    steps.push(GOALKEEPER_RANK_ROLL_SEQUENCE[currentIndex]!);
+  }
+
+  if (steps.at(-1) !== nextRank) {
+    steps.push(nextRank);
+  }
+
+  return steps;
 }
 
 function getAttackAnimationOutcome(state: Readonly<GameState>, positionId: FieldPositionId): AttackAnimationOutcome {

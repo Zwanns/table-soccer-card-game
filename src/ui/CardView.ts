@@ -3,7 +3,7 @@ import { fitImageContain, getFallbackCoverTextureKey } from '../assets/teamCover
 import type { CardColor } from '../cards';
 import { CardTooltipView } from './CardTooltipView';
 import type { CardPlayerProfile } from './cardPlayerProfile';
-import { KitCardFaceView } from './KitCardFaceView';
+import { KitCardFaceView, type RankRollOptions } from './KitCardFaceView';
 import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
 
 export interface CardViewOptions {
@@ -26,6 +26,7 @@ export const CARD_HEIGHT = 148.5;
 
 export class CardView extends Phaser.GameObjects.Container {
   private tooltip: CardTooltipView | null = null;
+  private faceView: KitCardFaceView | null = null;
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
     super(scene, x, y);
@@ -40,16 +41,15 @@ export class CardView extends Phaser.GameObjects.Container {
         playerProfile: options.playerProfile
       });
 
-      this.add(
-        new KitCardFaceView(scene, 0, 0, {
-          rank: face.rank,
-          teamColor: options.color,
-          highlighted: options.highlighted,
-          shirtNumber: face.shirtNumber,
-          kitTextureKey: options.kitTextureKey,
-          kitAsset: face.kitAsset ?? undefined
-        })
-      );
+      this.faceView = new KitCardFaceView(scene, 0, 0, {
+        rank: face.rank,
+        teamColor: options.color,
+        highlighted: options.highlighted,
+        shirtNumber: face.shirtNumber,
+        kitTextureKey: options.kitTextureKey,
+        kitAsset: face.kitAsset ?? undefined
+      });
+      this.add(this.faceView);
     }
 
     const label = scene.add
@@ -88,6 +88,14 @@ export class CardView extends Phaser.GameObjects.Container {
   public override destroy(fromScene?: boolean): void {
     this.hideTooltip();
     super.destroy(fromScene);
+  }
+
+  public setDisplayRank(rank: string): void {
+    this.faceView?.setDisplayRank(rank);
+  }
+
+  public animateDisplayRankRoll(targetRank: string, options?: RankRollOptions): Promise<void> {
+    return this.faceView?.animateRankRoll(targetRank, options) ?? Promise.resolve();
   }
 
   private showTooltip(scene: Phaser.Scene, profile?: CardPlayerProfile): void {
