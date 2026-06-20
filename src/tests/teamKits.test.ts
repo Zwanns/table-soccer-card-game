@@ -32,6 +32,7 @@ const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
 const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
   ['ar', '#111111'],
+  ['ng', '#000000'],
   ['no', '#FFFFFF']
 ]);
 
@@ -169,6 +170,15 @@ describe('team kit data contract', () => {
       secondaryColor: '#FFFFFF',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: '#111111'
+    });
+    expect(getTeamKitStyle('ng')).toMatchObject({
+      flagCode: 'ng',
+      assetKey: 'kit-ng',
+      path: 'kits/images/ng.webp',
+      primaryColor: '#008753',
+      secondaryColor: '#FFFFFF',
+      shirtNumberColor: '#000000',
+      shirtNumberStrokeColor: '#FFFFFF'
     });
     expect(getTeamKitStyle('no')).toMatchObject({
       flagCode: 'no',

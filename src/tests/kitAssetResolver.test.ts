@@ -37,6 +37,15 @@ describe('kit asset resolver', () => {
     });
   });
 
+  it('uses black shirt numbers for the registered Nigeria kit', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('ng');
+
+    expect(resolveTeamKitAsset('ng')).toEqual({
+      assetKey: 'kit-ng',
+      numberColor: '#000000'
+    });
+  });
+
   it('resolves newly registered team WebP assets by flagCode', () => {
     for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
