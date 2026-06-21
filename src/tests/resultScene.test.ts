@@ -60,8 +60,8 @@ describe('result scene score line layout', () => {
     expect(source).toContain('this.createMatchStatsPanel(centerX, 360, this.state)');
     expect(source).toContain('const height = 500');
     expect(source).toContain('const finalScore = this.createScoreLine(');
-    expect(source).toContain('panel.add([background, finalScore, title, playerOneHeader, playerTwoHeader])');
-    expect(source).toContain('const viewportHeight = 128');
+    expect(source).toContain('panel.add([background, finalScore, title])');
+    expect(source).toContain('const viewportHeight = 156');
   });
 
   it('uses the shared scoreboard style for the final statistics card', () => {
@@ -83,12 +83,32 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
-    expect(source).toContain('getTeamScoreboardCode(playerOne.flagCode)');
-    expect(source).toContain('getTeamScoreboardCode(playerTwo.flagCode)');
     expect(source).toContain('getTeamScoreboardCode(playerOneFlagCode)');
     expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(source).not.toContain('playerOne?.name ??');
     expect(source).not.toContain('playerTwo?.name ??');
+  });
+
+  it('does not render duplicate team-code labels inside the stats rows', () => {
+    const source = readResultSceneSource();
+
+    expect(source).not.toContain('const playerOneHeader =');
+    expect(source).not.toContain('const playerTwoHeader =');
+    expect(source).not.toContain('private createTeamName');
+    expect(source).not.toContain('getTeamScoreboardCode(playerOne.flagCode)');
+    expect(source).not.toContain('getTeamScoreboardCode(playerTwo.flagCode)');
+  });
+
+  it('keeps stats labels and gives the goal scorers list more vertical space', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain("['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)]");
+    expect(source).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
+    expect(source).toContain("['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]");
+    expect(source).toContain("panel.add(this.createStatsLabel(72, 'Goalscorers'))");
+    expect(source).toContain('const viewportTop = 92');
+    expect(source).toContain('const viewportHeight = 156');
+    expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');
   });
 
   it('renders result text with snapped coordinates and high-resolution text canvases', () => {
