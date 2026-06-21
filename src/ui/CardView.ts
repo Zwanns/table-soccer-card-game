@@ -4,7 +4,7 @@ import type { CardColor } from '../cards';
 import { CardTooltipView } from './CardTooltipView';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { KitCardFaceView, type RankRollOptions } from './KitCardFaceView';
-import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
+import { KIT_CARD_LAYOUT, prepareKitCardFace, type KitCardFaceLayoutVariant } from './kitCardFaceModel';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 export interface CardViewOptions {
@@ -16,6 +16,7 @@ export interface CardViewOptions {
   highlighted?: boolean;
   playerProfile?: CardPlayerProfile;
   kitTextureKey?: string;
+  kitLayoutVariant?: KitCardFaceLayoutVariant;
   coverTextureKey?: string;
   faceDownVariant?: 'deck' | 'preview' | 'squad-preview';
   tooltipEnabled?: boolean;
@@ -48,7 +49,8 @@ export class CardView extends Phaser.GameObjects.Container {
         highlighted: options.highlighted,
         shirtNumber: face.shirtNumber,
         kitTextureKey: options.kitTextureKey,
-        kitAsset: face.kitAsset ?? undefined
+        kitAsset: face.kitAsset ?? undefined,
+        kitLayoutVariant: options.kitLayoutVariant
       });
       this.add(this.faceView);
     }

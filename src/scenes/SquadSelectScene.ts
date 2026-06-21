@@ -8,6 +8,7 @@ import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
+import { createCardPlayerProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -48,6 +49,20 @@ const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_LIST_FADE_HEIGHT = 52;
 const TEAM_LIST_FADE_MIN_ALPHA = 0.22;
 const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5;
+const SQUAD_PANEL_COLORS = {
+  background: 0x11161a,
+  backgroundAlpha: 0.82,
+  border: 0xc7cfd6,
+  borderAlpha: 0.95,
+  divider: 0x9aa4ad,
+  dividerAlpha: 0.9,
+  title: '#f2f5f7',
+  subtitle: '#d4dbe1',
+  header: '#bfc7ce',
+  primaryText: '#f0f3f5',
+  secondaryText: '#c4ccd3',
+  rankAccent: '#f2cc55'
+} as const;
 
 export class SquadSelectScene extends Phaser.Scene {
   private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
@@ -288,9 +303,9 @@ export class SquadSelectScene extends Phaser.Scene {
   private createSquadPanel(panelX: number, panelY: number): void {
     const panel = this.add.container(panelX, panelY);
     const background = this.add
-      .rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA)
+      .rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SQUAD_PANEL_COLORS.background, SQUAD_PANEL_COLORS.backgroundAlpha)
       .setOrigin(0);
-    background.setStrokeStyle(2, 0xf0c95a, 0.95);
+    background.setStrokeStyle(2, SQUAD_PANEL_COLORS.border, SQUAD_PANEL_COLORS.borderAlpha);
 
     const team = getTeam(this.selectedTeamId);
     const header = this.add.container(28, 32);
@@ -299,7 +314,7 @@ export class SquadSelectScene extends Phaser.Scene {
     flag.setOrigin(0, 0.5);
     const title = this.add
       .text(92, -10, team.name, {
-        color: '#ffffff',
+        color: SQUAD_PANEL_COLORS.title,
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
         fontStyle: '700',
@@ -308,7 +323,7 @@ export class SquadSelectScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
     const subtitle = this.add
       .text(92, 18, 'Team squad', {
-        color: '#d9eadf',
+        color: SQUAD_PANEL_COLORS.subtitle,
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700'
@@ -320,19 +335,19 @@ export class SquadSelectScene extends Phaser.Scene {
     squadTable.add(this.createHeaderText(0, 0, 'Rank', 'left'));
     squadTable.add(this.createHeaderText(92, 0, 'Player', 'left'));
     squadTable.add(this.createHeaderText(SQUAD_CARD_WIDTH - 84, 0, 'Number', 'right'));
-    squadTable.add(this.add.rectangle(0, 24, SQUAD_CARD_WIDTH - 56, 2, 0x5f9572, 0.9).setOrigin(0, 0));
+    squadTable.add(this.add.rectangle(0, 24, SQUAD_CARD_WIDTH - 56, 2, SQUAD_PANEL_COLORS.divider, SQUAD_PANEL_COLORS.dividerAlpha).setOrigin(0, 0));
 
     const goalkeeperY = 48;
-    squadTable.add(this.createCellText(0, goalkeeperY, 'GK', 'left', '#f0c95a'));
-    squadTable.add(this.createCellText(92, goalkeeperY, this.squad.goalkeeper.name, 'left', '#ffffff'));
-    squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', '#d9eadf'));
+    squadTable.add(this.createCellText(0, goalkeeperY, 'GK', 'left', SQUAD_PANEL_COLORS.rankAccent));
+    squadTable.add(this.createCellText(92, goalkeeperY, this.squad.goalkeeper.name, 'left', SQUAD_PANEL_COLORS.primaryText));
+    squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, goalkeeperY, String(this.squad.goalkeeper.shirtNumber), 'right', SQUAD_PANEL_COLORS.secondaryText));
 
     FIELD_SQUAD_RANKS.forEach((rank, index) => {
       const player = this.squad.fieldPlayers[rank];
       const y = 84 + index * SQUAD_SECTION_ROW_GAP;
-      squadTable.add(this.createCellText(0, y, rank, 'left', '#f0c95a'));
-      squadTable.add(this.createCellText(92, y, player.name, 'left', '#ffffff'));
-      squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, y, String(player.shirtNumber), 'right', '#d9eadf'));
+      squadTable.add(this.createCellText(0, y, rank, 'left', SQUAD_PANEL_COLORS.rankAccent));
+      squadTable.add(this.createCellText(92, y, player.name, 'left', SQUAD_PANEL_COLORS.primaryText));
+      squadTable.add(this.createCellText(SQUAD_CARD_WIDTH - 84, y, String(player.shirtNumber), 'right', SQUAD_PANEL_COLORS.secondaryText));
     });
 
     const teamPreview = this.createTeamCardPreview(team);
@@ -344,9 +359,12 @@ export class SquadSelectScene extends Phaser.Scene {
     const preview = this.add.container(SQUAD_CARD_WIDTH + TEAM_PREVIEW_OFFSET_X, 0);
     const teamKitAssetKey = getTeamKitAssetKey(team.flagCode);
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
+    const previewPlayerProfile = this.getPreviewFieldPlayerProfile(team);
     const faceCard = new CardView(this, 0, TEAM_PREVIEW_FACE_Y, {
       rank: TEAM_PREVIEW_DISPLAY_RANK,
       kitTextureKey: teamKitAssetKey,
+      kitLayoutVariant: 'teams-preview',
+      playerProfile: previewPlayerProfile,
       tooltipEnabled: false
     });
     const deckBack = new CardView(this, 0, TEAM_PREVIEW_BACK_Y, {
@@ -362,6 +380,18 @@ export class SquadSelectScene extends Phaser.Scene {
     preview.add([faceCard, deckBack, this.createTeamColorSwatches(team.flagCode)]);
 
     return preview;
+  }
+
+  private getPreviewFieldPlayerProfile(team: NationalTeam): CardPlayerProfile | undefined {
+    for (const rank of FIELD_SQUAD_RANKS) {
+      const player = this.squad.fieldPlayers[rank];
+
+      if (player !== undefined) {
+        return createCardPlayerProfile(team.flagCode, player);
+      }
+    }
+
+    return undefined;
   }
 
   private createTeamColorSwatches(flagCode: string): Phaser.GameObjects.Container {
@@ -394,7 +424,7 @@ export class SquadSelectScene extends Phaser.Scene {
   private createSectionTitle(x: number, y: number, text: string): Phaser.GameObjects.Text {
     return this.add
       .text(x, y, text, {
-        color: '#f0c95a',
+        color: SQUAD_PANEL_COLORS.rankAccent,
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
         fontStyle: '700'
@@ -406,7 +436,7 @@ export class SquadSelectScene extends Phaser.Scene {
     return this.add
       .text(x, y, text, {
         align,
-        color: '#9fc5ad',
+        color: SQUAD_PANEL_COLORS.header,
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700'

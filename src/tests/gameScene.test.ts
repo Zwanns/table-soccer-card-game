@@ -60,30 +60,33 @@ describe('GameScene visual layout contracts', () => {
   it('positions the active deck ball beside the active deck with one-third horizontal overlap', () => {
     const deckSource = readSource('src/ui/DeckView.ts');
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const matchCardScaleSource = readSource('src/ui/matchCardScale.ts');
 
     expect(gameSceneSource).toContain("state.players[0],\n        'right',");
     expect(gameSceneSource).toContain("state.players[1],\n        'left',");
 
-    const deckStackScaleMatch = deckSource.match(/const DECK_STACK_SCALE = ([\d.]+);/);
     const markerSizeMatch = deckSource.match(/const DECK_MARKER_SIZE = (\d+);/);
     const bounceHeightMatch = deckSource.match(/export const DECK_MARKER_BOUNCE_HEIGHT = (\d+);/);
+    const matchCardScaleMatch = matchCardScaleSource.match(/export const MATCH_CARD_SCALE = ([\d.]+);/);
 
     expect(deckSource).toContain('const DECK_WIDTH = CARD_WIDTH');
-    expect(deckStackScaleMatch).not.toBeNull();
+    expect(deckSource).toContain("import { MATCH_CARD_SCALE } from './matchCardScale'");
+    expect(deckSource).toContain('const DECK_STACK_SCALE = MATCH_CARD_SCALE');
     expect(markerSizeMatch).not.toBeNull();
     expect(bounceHeightMatch).not.toBeNull();
+    expect(matchCardScaleMatch).not.toBeNull();
 
-    const deckStackScale = Number(deckStackScaleMatch![1]);
+    const matchCardScale = Number(matchCardScaleMatch![1]);
     const markerSize = Number(markerSizeMatch![1]);
     const bounceHeight = Number(bounceHeightMatch![1]);
     const markerOverlap = markerSize * (1 / 3);
     const markerOutsideCenterOffset = markerSize * (1 / 2 - 1 / 3);
 
-    expect(deckStackScale).toBe(1.12);
-    expect(markerSize).toBe(34);
+    expect(matchCardScale).toBe(1.12);
+    expect(markerSize).toBe(42);
     expect(bounceHeight).toBe(20);
-    expect(markerOverlap).toBeCloseTo(11.33, 2);
-    expect(markerOutsideCenterOffset).toBeCloseTo(5.67, 2);
+    expect(markerOverlap).toBeCloseTo(14, 2);
+    expect(markerOutsideCenterOffset).toBeCloseTo(7, 2);
     expect(deckSource).toContain("markerSide === 'right'");
     expect(deckSource).toContain('deckEdgeX + DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
     expect(deckSource).toContain('deckEdgeX - DECK_MARKER_SIZE * DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO');
@@ -94,7 +97,7 @@ describe('GameScene visual layout contracts', () => {
   it('shows the deck count below a slightly enlarged deck stack', () => {
     const source = readSource('src/ui/DeckView.ts');
 
-    expect(source).toContain('const DECK_STACK_SCALE = 1.12');
+    expect(source).toContain('const DECK_STACK_SCALE = MATCH_CARD_SCALE');
     expect(source).toContain('const DECK_COUNT_OFFSET_Y = DECK_HEIGHT * DECK_STACK_SCALE / 2 + 32');
     expect(source).toContain('const deckStack = scene.add.container(0, 0)');
     expect(source).toContain('deckStack.add([back, frontBackground, cover, frontBorder])');
@@ -103,6 +106,51 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.add([deckStack, countText])');
     expect(source).toContain('DECK_WIDTH * DECK_STACK_SCALE + 24');
     expect(source).not.toContain("options.countSide === 'left' ? -84 : 84");
+  });
+
+  it('uses the same match card scale for field cards and deck cards', () => {
+    const fieldSource = readSource('src/ui/FieldView.ts');
+    const deckSource = readSource('src/ui/DeckView.ts');
+    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const matchCardScaleSource = readSource('src/ui/matchCardScale.ts');
+
+    expect(matchCardScaleSource).toContain('export const MATCH_CARD_SCALE = 1.12');
+    expect(fieldSource).toContain("import { MATCH_CARD_SCALE } from './matchCardScale'");
+    expect(fieldSource).toContain('cardView.setScale(MATCH_CARD_SCALE)');
+    expect(fieldSource).toContain('CARD_WIDTH * MATCH_CARD_SCALE');
+    expect(fieldSource).toContain('CARD_HEIGHT * MATCH_CARD_SCALE');
+    expect(deckSource).toContain("import { MATCH_CARD_SCALE } from './matchCardScale'");
+    expect(deckSource).toContain('const DECK_STACK_SCALE = MATCH_CARD_SCALE');
+    expect(deckSource).toContain('deckStack.setScale(DECK_STACK_SCALE)');
+    expect(gameSceneSource).toContain("import { MATCH_CARD_SCALE } from '../ui/matchCardScale'");
+    expect(gameSceneSource).toContain('card.setScale(MATCH_CARD_SCALE * 0.92)');
+    expect(gameSceneSource).toContain('scale: MATCH_CARD_SCALE * 1.04');
+    expect(gameSceneSource).toContain('scale: MATCH_CARD_SCALE * 1.12');
+    expect(gameSceneSource).toContain('scale: MATCH_CARD_SCALE');
+  });
+
+  it('keeps enlarged midfield cards separated with symmetric field offsets', () => {
+    const fieldSource = readSource('src/ui/FieldView.ts');
+    const matchCardScaleSource = readSource('src/ui/matchCardScale.ts');
+
+    const matchCardScale = Number(matchCardScaleSource.match(/export const MATCH_CARD_SCALE = ([\d.]+);/)?.[1]);
+    const fieldViewHeight = Number(fieldSource.match(/export const FIELD_VIEW_HEIGHT = (\d+);/)?.[1]);
+    const midfieldOffset = Number(fieldSource.match(/const MIDFIELDER_Y_OFFSET = (\d+);/)?.[1]);
+    const defenderOffset = Number(fieldSource.match(/const DEFENDER_Y_OFFSET = (\d+);/)?.[1]);
+    const scaledCardHeight = 148.5 * matchCardScale;
+
+    expect(matchCardScale).toBe(1.12);
+    expect(fieldViewHeight).toBe(600);
+    expect(midfieldOffset).toBe(185);
+    expect(defenderOffset).toBe(115);
+    expect(midfieldOffset - scaledCardHeight).toBeGreaterThan(16);
+    expect(fieldViewHeight / 2 - (midfieldOffset + scaledCardHeight / 2)).toBeGreaterThan(30);
+    expect(fieldSource).toContain("{ positionId: 'midfielder-1', x: -MIDFIELDER_X_OFFSET, y: -MIDFIELDER_Y_OFFSET }");
+    expect(fieldSource).toContain("{ positionId: 'midfielder-2', x: -MIDFIELDER_X_OFFSET, y: 0 }");
+    expect(fieldSource).toContain("{ positionId: 'midfielder-3', x: -MIDFIELDER_X_OFFSET, y: MIDFIELDER_Y_OFFSET }");
+    expect(fieldSource).toContain("{ positionId: 'midfielder-1', x: MIDFIELDER_X_OFFSET, y: -MIDFIELDER_Y_OFFSET }");
+    expect(fieldSource).toContain("{ positionId: 'midfielder-2', x: MIDFIELDER_X_OFFSET, y: 0 }");
+    expect(fieldSource).toContain("{ positionId: 'midfielder-3', x: MIDFIELDER_X_OFFSET, y: MIDFIELDER_Y_OFFSET }");
   });
 
   it('replaces the left match actions with one tall Pause button', () => {
@@ -408,7 +456,7 @@ describe('GameScene visual layout contracts', () => {
     const deckSource = readSource('src/ui/DeckView.ts');
 
     expect(gameSceneSource).toContain("const TURN_BALL_TEXTURE_KEY = 'turn-ball'");
-    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_SIZE = 34');
+    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_SIZE = 42');
     expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58');
     expect(gameSceneSource).toContain("type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>");
     expect(gameSceneSource).toContain('private playGoalkeeperShotBallFlight(');
@@ -670,7 +718,7 @@ describe('GameScene visual layout contracts', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain("if (outcome === 'save') {\n      this.tweens.add({");
-    expect(source).toContain('scale: 1.1');
+    expect(source).toContain('scale: MATCH_CARD_SCALE * 1.1');
     expect(source).toContain('duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2');
     expect(source).toContain('yoyo: true');
     expect(source).toContain("if (outcome === 'save') {\n      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");

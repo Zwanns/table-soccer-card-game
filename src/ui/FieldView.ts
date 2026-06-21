@@ -11,6 +11,7 @@ import type { Card, GoalkeeperCard } from '../cards';
 import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
+import { MATCH_CARD_SCALE } from './matchCardScale';
 
 export const FIELD_VIEW_WIDTH = 1120;
 export const FIELD_VIEW_HEIGHT = 600;
@@ -18,6 +19,11 @@ export const FIELD_GRASS_STRIPE_COUNT = 14;
 export const FIELD_GRASS_BASE_COLOR = 0x157a43;
 export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a;
 export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c;
+const GOALKEEPER_X_OFFSET = 490;
+const DEFENDER_X_OFFSET = 360;
+const DEFENDER_Y_OFFSET = 115;
+const MIDFIELDER_X_OFFSET = 205;
+const MIDFIELDER_Y_OFFSET = 185;
 
 export type TargetSelectHandler = (positionId: FieldPositionId) => void;
 export type MidfielderCommitHandler = (positionId: MidfielderPositionId) => void;
@@ -42,21 +48,21 @@ export interface FieldViewOptions {
 }
 
 export const PLAYER_ONE_POSITIONS: readonly FieldPositionView[] = [
-  { positionId: 'goalkeeper', x: -490, y: 0 },
-  { positionId: 'defender-1', x: -360, y: -115 },
-  { positionId: 'defender-2', x: -360, y: 115 },
-  { positionId: 'midfielder-1', x: -205, y: -165 },
-  { positionId: 'midfielder-2', x: -205, y: 0 },
-  { positionId: 'midfielder-3', x: -205, y: 165 }
+  { positionId: 'goalkeeper', x: -GOALKEEPER_X_OFFSET, y: 0 },
+  { positionId: 'defender-1', x: -DEFENDER_X_OFFSET, y: -DEFENDER_Y_OFFSET },
+  { positionId: 'defender-2', x: -DEFENDER_X_OFFSET, y: DEFENDER_Y_OFFSET },
+  { positionId: 'midfielder-1', x: -MIDFIELDER_X_OFFSET, y: -MIDFIELDER_Y_OFFSET },
+  { positionId: 'midfielder-2', x: -MIDFIELDER_X_OFFSET, y: 0 },
+  { positionId: 'midfielder-3', x: -MIDFIELDER_X_OFFSET, y: MIDFIELDER_Y_OFFSET }
 ];
 
 export const PLAYER_TWO_POSITIONS: readonly FieldPositionView[] = [
-  { positionId: 'goalkeeper', x: 490, y: 0 },
-  { positionId: 'defender-1', x: 360, y: -115 },
-  { positionId: 'defender-2', x: 360, y: 115 },
-  { positionId: 'midfielder-1', x: 205, y: -165 },
-  { positionId: 'midfielder-2', x: 205, y: 0 },
-  { positionId: 'midfielder-3', x: 205, y: 165 }
+  { positionId: 'goalkeeper', x: GOALKEEPER_X_OFFSET, y: 0 },
+  { positionId: 'defender-1', x: DEFENDER_X_OFFSET, y: -DEFENDER_Y_OFFSET },
+  { positionId: 'defender-2', x: DEFENDER_X_OFFSET, y: DEFENDER_Y_OFFSET },
+  { positionId: 'midfielder-1', x: MIDFIELDER_X_OFFSET, y: -MIDFIELDER_Y_OFFSET },
+  { positionId: 'midfielder-2', x: MIDFIELDER_X_OFFSET, y: 0 },
+  { positionId: 'midfielder-3', x: MIDFIELDER_X_OFFSET, y: MIDFIELDER_Y_OFFSET }
 ];
 
 export class FieldView extends Phaser.GameObjects.Container {
@@ -162,6 +168,7 @@ export class FieldView extends Phaser.GameObjects.Container {
             ? () => options.onMidfielderCommit?.(position.positionId as MidfielderPositionId)
             : undefined
       });
+      cardView.setScale(MATCH_CARD_SCALE);
       cardView.setData('fieldSourcePlayerId', player.id);
       cardView.setData('fieldSourcePositionId', position.positionId);
       this.add(cardView);
@@ -182,7 +189,7 @@ export class FieldView extends Phaser.GameObjects.Container {
     const inner = scene.add.circle(x, y, 6, markerColor, 0.92);
 
     if (options.onClick !== undefined) {
-      const clickTarget = scene.add.rectangle(x, y, CARD_WIDTH, CARD_HEIGHT, 0xffffff, 0.01);
+      const clickTarget = scene.add.rectangle(x, y, CARD_WIDTH * MATCH_CARD_SCALE, CARD_HEIGHT * MATCH_CARD_SCALE, 0xffffff, 0.01);
       clickTarget.setInteractive({ useHandCursor: true });
       clickTarget.on('pointerdown', options.onClick);
       outer.setFillStyle(0xf0c95a, 0.22);

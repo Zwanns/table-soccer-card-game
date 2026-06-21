@@ -1,7 +1,14 @@
 import Phaser from 'phaser';
+import { fitImageContain } from '../assets/teamCover';
 import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
-import { getKitImageLayout, getShirtNumberLayout, KIT_CARD_LAYOUT } from './kitCardFaceModel';
+import {
+  getKitImageLayout,
+  getShirtNumberLayout,
+  KIT_CARD_LAYOUT,
+  type KitCardFaceLayoutVariant,
+  type KitImageLayout
+} from './kitCardFaceModel';
 import { getFallbackKitColors } from './kitFallback';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
@@ -15,6 +22,7 @@ export interface KitCardFaceViewOptions {
   shirtNumber?: number;
   kitTextureKey?: string;
   kitAsset?: ResolvedKitAsset;
+  kitLayoutVariant?: KitCardFaceLayoutVariant;
 }
 
 export interface RankRollOptions {
@@ -43,8 +51,8 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     });
 
     this.add(body);
-    this.addKit(scene, options);
-    this.addShirtNumber(scene, options);
+    const renderedKitLayout = this.addKit(scene, options);
+    this.addShirtNumber(scene, options, renderedKitLayout);
     this.addRank(scene, options);
 
     scene.add.existing(this);
@@ -109,32 +117,36 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     });
   }
 
-  private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
-    const layout = getKitImageLayout();
+  private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): KitImageLayout {
+    const layout = getKitImageLayout(options.kitLayoutVariant);
 
     if (options.kitAsset !== undefined && scene.textures.exists(options.kitAsset.assetKey)) {
       const image = scene.add.image(layout.x, layout.y, options.kitAsset.assetKey);
       image.setOrigin(layout.originX, layout.originY);
-      image.setDisplaySize(layout.width, layout.height);
+      const scale = fitImageContain(image, { width: layout.width, height: layout.height });
       this.add(image);
-      return;
+
+      return createRenderedKitLayout(layout, image.width, image.height, scale);
     }
 
     if (options.kitTextureKey !== undefined && scene.textures.exists(options.kitTextureKey)) {
       const image = scene.add.image(layout.x, layout.y, options.kitTextureKey);
       image.setOrigin(layout.originX, layout.originY);
-      image.setDisplaySize(layout.width, layout.height);
+      const scale = fitImageContain(image, { width: layout.width, height: layout.height });
       this.add(image);
-      return;
+
+      return createRenderedKitLayout(layout, image.width, image.height, scale);
     }
 
     const fallback = createFallbackKitGraphics(scene, getFallbackKitColors(options.teamColor));
     fallback.x = layout.x - layout.width / 2;
     fallback.y = layout.y - layout.height / 2;
     this.add(fallback);
+
+    return layout;
   }
 
-  private addShirtNumber(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
+  private addShirtNumber(scene: Phaser.Scene, options: KitCardFaceViewOptions, kitLayout: KitImageLayout): void {
     if (options.shirtNumber === undefined) {
       return;
     }
@@ -143,7 +155,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       options.kitAsset?.numberColor ??
       getGoalkeeperNumberColor(options.kitTextureKey) ??
       getFallbackKitColors(options.teamColor).number;
-    const position = getShirtNumberLayout();
+    const position = getShirtNumberLayout(options.kitLayoutVariant, kitLayout);
     const number = scene.add
       .text(px(position.x), px(position.y), String(options.shirtNumber), {
         align: 'center',
@@ -176,6 +188,14 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
     this.add(this.rankText);
   }
+}
+
+function createRenderedKitLayout(layout: KitImageLayout, sourceWidth: number, sourceHeight: number, scale: number): KitImageLayout {
+  return {
+    ...layout,
+    width: px(sourceWidth * scale),
+    height: px(sourceHeight * scale)
+  };
 }
 
 function getGoalkeeperNumberColor(kitTextureKey?: string): string | undefined {

@@ -4,12 +4,13 @@ import type { CardColor } from '../cards';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 import { KIT_CARD_LAYOUT } from './kitCardFaceModel';
+import { MATCH_CARD_SCALE } from './matchCardScale';
 
 const DECK_WIDTH = CARD_WIDTH;
 const DECK_HEIGHT = CARD_HEIGHT;
-const DECK_STACK_SCALE = 1.12;
+const DECK_STACK_SCALE = MATCH_CARD_SCALE;
 const DECK_COUNT_OFFSET_Y = DECK_HEIGHT * DECK_STACK_SCALE / 2 + 32;
-const DECK_MARKER_SIZE = 34;
+const DECK_MARKER_SIZE = 42;
 export const DECK_MARKER_BOUNCE_HEIGHT = 20;
 const DECK_MARKER_DECK_OVERLAP_RATIO = 1 / 3;
 const DECK_MARKER_OUTSIDE_CENTER_OFFSET_RATIO = 1 / 2 - DECK_MARKER_DECK_OVERLAP_RATIO;

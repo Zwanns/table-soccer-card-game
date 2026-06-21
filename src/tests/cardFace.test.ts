@@ -100,9 +100,14 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('resolution: SHARP_TEXT_RESOLUTION');
     expect(kitFaceSource).toContain('public setDisplayRank(rank: string): void');
     expect(kitFaceSource).toContain('public animateRankRoll(targetRank: string');
-    expect(kitFaceSource).toContain('getKitImageLayout()');
+    expect(kitFaceSource).toContain('kitLayoutVariant?: KitCardFaceLayoutVariant');
+    expect(kitFaceSource).toContain('getKitImageLayout(options.kitLayoutVariant)');
+    expect(kitFaceSource).toContain('getShirtNumberLayout(options.kitLayoutVariant, kitLayout)');
     expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
-    expect(kitFaceSource).toContain('setDisplaySize(layout.width, layout.height)');
+    expect(kitFaceSource).toContain("import { fitImageContain } from '../assets/teamCover'");
+    expect(kitFaceSource).toContain('fitImageContain(image, { width: layout.width, height: layout.height })');
+    expect(kitFaceSource).toContain('createRenderedKitLayout(layout, image.width, image.height, scale)');
+    expect(kitFaceSource).not.toContain('image.setDisplaySize(layout.width, layout.height)');
     expect(kitFaceSource).toContain('createRoundedCardBackground');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');
     expect(kitFaceSource).not.toContain('fillRoundedRect(-22');
@@ -164,15 +169,48 @@ describe('kit card face rendering contracts', () => {
       originX: 1,
       originY: 1
     });
+
+    expect(getKitImageLayout('teams-preview')).toEqual({
+      x: KIT_CARD_FACE_WIDTH / 2 - 10,
+      y: Math.round(KIT_CARD_FACE_HEIGHT / 2 - 10),
+      width: 80,
+      height: 88,
+      originX: 1,
+      originY: 1
+    });
+
+    const defaultKitLayout = getKitImageLayout();
+    const teamsPreviewKitLayout = getKitImageLayout('teams-preview');
+    const rankSafeBottom = -KIT_CARD_FACE_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop + 42;
+    const teamsPreviewRightPadding = KIT_CARD_FACE_WIDTH / 2 - teamsPreviewKitLayout.x;
+    const teamsPreviewBottomPadding = KIT_CARD_FACE_HEIGHT / 2 - teamsPreviewKitLayout.y;
+
+    expect(teamsPreviewKitLayout.width).toBeGreaterThan(defaultKitLayout.width);
+    expect(teamsPreviewKitLayout.height).toBe(defaultKitLayout.height);
+    expect(teamsPreviewRightPadding).toBeGreaterThan(0);
+    expect(teamsPreviewRightPadding).toBe(10);
+    expect(teamsPreviewBottomPadding).toBeGreaterThanOrEqual(10);
+    expect(teamsPreviewKitLayout.y - teamsPreviewKitLayout.height).toBeGreaterThan(rankSafeBottom);
   });
 
   it('positions the shirt number in the centered upper third of the kit and omits missing numbers', () => {
     const layout = getShirtNumberLayout();
     const kitLayout = getKitImageLayout();
+    const previewKitLayout = getKitImageLayout('teams-preview');
+    const previewRenderedLayout = {
+      ...previewKitLayout,
+      width: 60,
+      height: 88
+    };
+    const previewNumberLayout = getShirtNumberLayout('teams-preview', previewRenderedLayout);
 
     expect(layout.x).toBeCloseTo(kitLayout.x - kitLayout.width * 0.5);
     expect(layout.y).toBeCloseTo(Math.round(kitLayout.y - kitLayout.height * 0.67));
     expect(layout.y).toBeLessThan(kitLayout.y - kitLayout.height / 2);
+    expect(previewNumberLayout.x).toBeCloseTo(previewRenderedLayout.x - previewRenderedLayout.width * 0.5);
+    expect(previewNumberLayout.y).toBeCloseTo(Math.round(previewRenderedLayout.y - previewRenderedLayout.height * 0.7));
+    expect(previewNumberLayout.y).toBeLessThan(previewRenderedLayout.y - previewRenderedLayout.height / 2);
+    expect(previewNumberLayout.x).toBeGreaterThan(layout.x);
     expect(Number.isInteger(layout.x)).toBe(true);
     expect(Number.isInteger(layout.y)).toBe(true);
     expect(prepareKitCardFace({ rank: '9' })).toEqual({
@@ -234,6 +272,8 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('options.faceDown === true');
     expect(cardViewSource).toContain('coverTextureKey');
     expect(cardViewSource).toContain('fitImageContain');
+    expect(cardViewSource).toContain('kitLayoutVariant?: KitCardFaceLayoutVariant');
+    expect(cardViewSource).toContain('kitLayoutVariant: options.kitLayoutVariant');
     expect(cardViewSource).toContain('createRoundedCardBack');
     expect(cardViewSource).toContain('createRoundedCardBorder');
     expect(cardViewSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');

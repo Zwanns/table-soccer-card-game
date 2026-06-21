@@ -76,6 +76,20 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain("this.setControllerType(slot, 'AI')");
   });
 
+  it('keeps the active player selected until the user switches panels manually', () => {
+    const source = readTeamSelectSource();
+    const selectTeamBlock = source.slice(source.indexOf('private selectTeam(teamName: string): void'));
+
+    expect(source).toContain('private activeSlot: TeamSlot = 1');
+    expect(source).toContain("panel.on('pointerdown', () => {");
+    expect(source).toContain('this.activeSlot = slot;');
+    expect(selectTeamBlock).toContain('if (this.activeSlot === 1) {');
+    expect(selectTeamBlock).toContain('this.selectedTeamOne = teamName;');
+    expect(selectTeamBlock).toContain('this.selectedTeamTwo = teamName;');
+    expect(selectTeamBlock).not.toContain('this.activeSlot = 2');
+    expect(selectTeamBlock).not.toContain('this.activeSlot = 1;');
+  });
+
   it('uses mobile layout toggle geometry without changing the desktop toggle branch', () => {
     const source = readTeamSelectSource();
 
@@ -200,6 +214,7 @@ describe('quick match team selection AI controls', () => {
   it('uses selected team cover fans and kit previews in both match modes', () => {
     const source = readTeamSelectSource();
 
+    expect(source).toContain("import { fitImageContain, resolveTeamCoverLoadResult } from '../assets/teamCover'");
     expect(source).toContain('createTeamScreenLayout()');
     expect(source).toContain('this.createCountryGrid(layout.teamGridRect, layout)');
     expect(source).toContain('resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey');
@@ -209,6 +224,10 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('private createTeamKitPreview');
     expect(source).toContain('getTeamKitAssetKey(team.flagCode)');
     expect(source).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
+    expect(source).toContain('fitImageContain(kit, {');
+    expect(source).toContain('width: rect.width - 14');
+    expect(source).toContain('height: rect.height - 10');
+    expect(source).not.toContain('kit.setDisplaySize(rect.width - 14, rect.height - 10)');
   });
 
   it('uses the team selection menu background with a football field fallback', () => {

@@ -23,6 +23,19 @@ export const KIT_CARD_LAYOUT = {
   deckCornerRadius: 8
 } as const;
 
+export type KitCardFaceLayoutVariant = 'default' | 'teams-preview';
+
+const TEAMS_PREVIEW_KIT_CARD_LAYOUT = {
+  kitWidth: 80,
+  kitHeight: 88,
+  kitAnchorX: 1,
+  kitAnchorY: 1,
+  kitOffsetRight: 10,
+  kitOffsetBottom: 10,
+  shirtNumberX: 0.5,
+  shirtNumberY: 0.3
+} as const;
+
 export type PreparedKitCardFace = {
   rank: string;
   shirtNumber?: number;
@@ -59,26 +72,44 @@ export function prepareKitCardFace(options: {
   };
 }
 
-export function getKitImageLayout(): KitImageLayout {
+export function getKitImageLayout(layoutVariant: KitCardFaceLayoutVariant = 'default'): KitImageLayout {
+  const layout = getKitLayoutMetrics(layoutVariant);
+
   return {
-    x: px(KIT_CARD_FACE_WIDTH / 2 - KIT_CARD_LAYOUT.kitOffsetRight),
-    y: px(KIT_CARD_FACE_HEIGHT / 2 - KIT_CARD_LAYOUT.kitOffsetBottom),
-    width: KIT_CARD_LAYOUT.kitWidth,
-    height: KIT_CARD_LAYOUT.kitHeight,
-    originX: KIT_CARD_LAYOUT.kitAnchorX,
-    originY: KIT_CARD_LAYOUT.kitAnchorY
+    x: px(KIT_CARD_FACE_WIDTH / 2 - layout.kitOffsetRight),
+    y: px(KIT_CARD_FACE_HEIGHT / 2 - layout.kitOffsetBottom),
+    width: px(layout.kitWidth),
+    height: px(layout.kitHeight),
+    originX: layout.kitAnchorX,
+    originY: layout.kitAnchorY
   };
 }
 
-export function getShirtNumberLayout(): ShirtNumberLayout {
-  const kit = getKitImageLayout();
+export function getShirtNumberLayout(
+  layoutVariant: KitCardFaceLayoutVariant = 'default',
+  kit = getKitImageLayout(layoutVariant)
+): ShirtNumberLayout {
+  const layout = getKitLayoutMetrics(layoutVariant);
 
   return {
-    x: px(kit.x + (KIT_CARD_LAYOUT.shirtNumberX - KIT_CARD_LAYOUT.kitAnchorX) * kit.width),
-    y: px(kit.y + (KIT_CARD_LAYOUT.shirtNumberY - KIT_CARD_LAYOUT.kitAnchorY) * kit.height)
+    x: px(kit.x + (layout.shirtNumberX - kit.originX) * kit.width),
+    y: px(kit.y + (layout.shirtNumberY - kit.originY) * kit.height)
   };
 }
 
 function isGoalkeeperProfile(profile: CardPlayerProfile): boolean {
   return 'role' in profile && profile.role === 'goalkeeper';
+}
+
+function getKitLayoutMetrics(layoutVariant: KitCardFaceLayoutVariant): {
+  kitWidth: number;
+  kitHeight: number;
+  kitAnchorX: number;
+  kitAnchorY: number;
+  kitOffsetRight: number;
+  kitOffsetBottom: number;
+  shirtNumberX: number;
+  shirtNumberY: number;
+} {
+  return layoutVariant === 'teams-preview' ? TEAMS_PREVIEW_KIT_CARD_LAYOUT : KIT_CARD_LAYOUT;
 }

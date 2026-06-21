@@ -32,6 +32,7 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerPr
 import { CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
+import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
@@ -95,7 +96,7 @@ const PAUSE_BUTTON = {
   gap: 20
 } as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
-const GOALKEEPER_SHOT_BALL_SIZE = 34;
+const GOALKEEPER_SHOT_BALL_SIZE = 42;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
 const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
@@ -1187,14 +1188,14 @@ export class GameScene extends Phaser.Scene {
       kitTextureKey: context.attackerKitTextureKey,
       playerProfile: context.attackerProfile
     });
-    card.setScale(0.92);
+    card.setScale(MATCH_CARD_SCALE * 0.92);
     card.setRotation(context.attackerId === state.players[0].id ? -0.1 : 0.1);
 
     this.tweens.add({
       targets: card,
       x: target.x,
       y: target.y,
-      scale: 1.04,
+      scale: MATCH_CARD_SCALE * 1.04,
       rotation: 0,
       duration: 340,
       ease: 'Cubic.easeIn',
@@ -1234,7 +1235,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: card,
       alpha: 0,
-      scale: 1.12,
+      scale: MATCH_CARD_SCALE * 1.12,
       duration: 180,
       ease: 'Sine.easeOut',
       onComplete: () => this.finishAnimationObject(card, onComplete)
@@ -1328,8 +1329,8 @@ export class GameScene extends Phaser.Scene {
       x: context.startX ?? getPlayerDeckX(state, context.attackerId),
       y: context.startY ?? DECK_Y,
       rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: MATCH_CARD_SCALE,
+      scaleY: MATCH_CARD_SCALE,
       alpha: 1
     };
   }
@@ -1352,6 +1353,7 @@ export class GameScene extends Phaser.Scene {
       tooltipEnabled: false
     });
     card.setDepth(850);
+    card.setScale(MATCH_CARD_SCALE);
 
     return card;
   }
@@ -1646,7 +1648,7 @@ export class GameScene extends Phaser.Scene {
     if (outcome === 'save') {
       this.tweens.add({
         targets: card,
-        scale: 1.1,
+        scale: MATCH_CARD_SCALE * 1.1,
         duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2,
         ease: 'Sine.easeOut',
         yoyo: true,
@@ -1658,7 +1660,7 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: card,
       x: card.x + (activeOnLeft ? 8 : -8),
-      scale: 1.04,
+      scale: MATCH_CARD_SCALE * 1.04,
       alpha: 0,
       duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS,
       ease: 'Sine.easeOut',
@@ -1786,7 +1788,7 @@ export class GameScene extends Phaser.Scene {
             ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
             : getTeamKitAssetKey(setup.flagCode)
     });
-    card.setScale(0.92);
+    card.setScale(MATCH_CARD_SCALE * 0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
 
@@ -1794,7 +1796,7 @@ export class GameScene extends Phaser.Scene {
       targets: card,
       x: target.x,
       y: target.y,
-      scale: 1,
+      scale: MATCH_CARD_SCALE,
       alpha: 1,
       rotation: 0,
       duration: 420,

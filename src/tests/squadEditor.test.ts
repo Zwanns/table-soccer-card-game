@@ -103,10 +103,15 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
     expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
     expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
+    expect(selectSource).toContain('const SQUAD_PANEL_COLORS = {');
+    expect(selectSource).toContain('background: 0x11161a');
+    expect(selectSource).toContain('border: 0xc7cfd6');
+    expect(selectSource).toContain('divider: 0x9aa4ad');
+    expect(selectSource).toContain('header: \'#bfc7ce\'');
     expect(selectSource).toContain(
-      '.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA)'
+      '.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SQUAD_PANEL_COLORS.background, SQUAD_PANEL_COLORS.backgroundAlpha)'
     );
-    expect(selectSource).toContain('background.setStrokeStyle(2, 0xf0c95a, 0.95)');
+    expect(selectSource).toContain('background.setStrokeStyle(2, SQUAD_PANEL_COLORS.border, SQUAD_PANEL_COLORS.borderAlpha)');
     expect(selectSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(selectSource).toContain('SCOREBOARD_METAL_BORDER_COLOR');
     expect(selectSource).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : SCOREBOARD_METAL_BORDER_COLOR');
@@ -116,11 +121,21 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');
     expect(selectSource).toContain('const TEAM_PREVIEW_CARD_SCALE = 1.45');
     expect(selectSource).toContain("const TEAM_PREVIEW_DISPLAY_RANK = 'N'");
+    expect(selectSource).not.toContain('TEAM_PREVIEW_KIT_DISPLAY_SCALE_MULTIPLIER');
     expect(selectSource).toContain('createTeamCardPreview');
     expect(selectSource).toContain('this.createTeamColorSwatches(team.flagCode)');
+    expect(selectSource).toContain("import { createCardPlayerProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile'");
+    expect(selectSource).toContain('private getPreviewFieldPlayerProfile(team: NationalTeam): CardPlayerProfile | undefined');
+    expect(selectSource).toContain('for (const rank of FIELD_SQUAD_RANKS)');
+    expect(selectSource).toContain('const player = this.squad.fieldPlayers[rank]');
+    expect(selectSource).toContain('return createCardPlayerProfile(team.flagCode, player)');
+    expect(selectSource).toContain('return undefined');
+    expect(selectSource).toContain('const previewPlayerProfile = this.getPreviewFieldPlayerProfile(team)');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_FACE_Y');
     expect(selectSource).toContain('rank: TEAM_PREVIEW_DISPLAY_RANK');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
+    expect(selectSource).toContain("kitLayoutVariant: 'teams-preview'");
+    expect(selectSource).toContain('playerProfile: previewPlayerProfile');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
     expect(selectSource).toContain('faceDown: true');
     expect(selectSource).toContain("faceDownVariant: 'squad-preview'");
@@ -132,6 +147,8 @@ describe('read-only squad scenes', () => {
     expect(selectSource).not.toContain('TEAM_PREVIEW_BACK_SCALE');
     expect(selectSource).not.toContain('createTeamKitPreview');
     expect(selectSource).not.toContain('kit.setDisplaySize');
+    expect(selectSource).not.toContain("color: '#9fc5ad'");
+    expect(selectSource).not.toContain('0x5f9572, 0.9');
   });
 
   it('fades team list cards themselves near the viewport edges without dark overlays', () => {

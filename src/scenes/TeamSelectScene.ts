@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { resolveTeamCoverLoadResult } from '../assets/teamCover';
+import { fitImageContain, resolveTeamCoverLoadResult } from '../assets/teamCover';
 import type { PlayerControllerType } from '../ai';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
@@ -274,7 +274,10 @@ export class TeamSelectScene extends Phaser.Scene {
 
     if (this.textures.exists(kitTextureKey)) {
       const kit = this.add.image(center.x, center.y, kitTextureKey);
-      kit.setDisplaySize(rect.width - 14, rect.height - 10);
+      fitImageContain(kit, {
+        width: rect.width - 14,
+        height: rect.height - 10
+      });
     }
   }
 
@@ -474,10 +477,8 @@ export class TeamSelectScene extends Phaser.Scene {
 
     if (this.activeSlot === 1) {
       this.selectedTeamOne = teamName;
-      this.activeSlot = 2;
     } else {
       this.selectedTeamTwo = teamName;
-      this.activeSlot = 1;
     }
 
     this.render();
