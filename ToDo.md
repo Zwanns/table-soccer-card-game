@@ -1,32 +1,30 @@
-# ТЗ для Codex: вернуть полноценную анимацию сообщений GOAL!! и Goalkeeper!!
+# ТЗ для Codex: проверить и стабилизировать звук гола при GOAL_SCORED
 
 ## Контекст
 
-После последней правки сообщения `GOAL!!`, `Goalkeeper!!` и `Post!` были перенесены так, чтобы появляться одновременно со звуком и анимацией удара по воротам.
+Проект: `Total Soccer: Mundial`.
 
-Проблема: `GOAL!!` и `Goalkeeper!!` теперь появляются только на короткое мгновение и потеряли свою нормальную flying-анимацию.
+После последних правок сообщения `GOAL!!`, `Goalkeeper!!`, `Post!` были синхронизированы со звуком и анимацией удара по воротам.
 
-Нужно исправить это поведение.
+Пользователь заметил, что один раз при забитом голе звук гола не проигрался.
+
+Нужно проверить, почему это могло произойти, и сделать запуск звука гола более надежным.
 
 ---
 
 ## Цель
 
-Сохранить правильный timing:
+Гарантировать, что при каждом событии:
 
 ```text
-GOAL!! появляется одновременно со звуком и анимацией гола
-Goalkeeper!! появляется одновременно со звуком и анимацией сэйва
-Post! появляется одновременно со звуком и анимацией штанги
+GOAL_SCORED
 ```
 
-Но при этом вернуть полноценную длительность и анимацию сообщений:
+звук гола запускается стабильно и синхронно с:
 
 ```text
-сообщение появляется
-увеличивается / всплывает / двигается как раньше
-остается видимым достаточно долго
-плавно исчезает
+GOAL!! message
+goal animation / impact pulse
 ```
 
 ---
@@ -38,203 +36,231 @@ Post! появляется одновременно со звуком и ани�
 ```text
 src/scenes/GameScene.ts
 src/scenes/gameSceneEventEffects.ts
+src/audio/playSoundSafe.ts
 src/tests/gameSceneEventEffects.test.ts
 src/tests/gameScene.test.ts
+src/tests/project.test.ts
 ```
 
-Возможные связанные места:
+Также проверить загрузку звуков:
 
 ```text
-showFlyingMessage
-createFlyingMessage
+src/scenes/BootScene.ts
+```
+
+И реальные asset paths:
+
+```text
+public/sounds/
+```
+
+---
+
+## Что проверить
+
+### 1. Загружается ли goal sound стабильно
+
+Проверить, что в `BootScene` загружается правильный audio key для гола.
+
+Проверить:
+
+```text
+sound key
+file path
+file name
+case sensitivity
+```
+
+Особенно убедиться, что в production используется правильный путь с учетом регистра букв.
+
+---
+
+### 2. Используется ли `playSoundSafe()`
+
+Все звуки в `GameScene` должны запускаться через:
+
+```ts
+playSoundSafe(...)
+```
+
+Нужно проверить, что goal sound тоже запускается через него.
+
+Если где-то остался прямой вызов:
+
+```ts
+this.sound.play(...)
+```
+
+заменить на `playSoundSafe()`.
+
+---
+
+### 3. Не привязан ли звук к короткой/уничтожаемой анимации
+
+Проверить свежую логику:
+
+```text
 finishGoalkeeperShotBallImpact
-GOALKEEPER_SAVE
+getGoalkeeperShotSceneEffect
 GOAL_SCORED
-GOALPOST_HIT
-GOALKEEPER_RANK_CHANGED
 ```
 
----
+Звук должен запускаться в начале обработки goal impact, а не в конце promise/tween и не после удаления временных объектов.
 
-## Вероятная причина
-
-Скорее всего, после переноса сообщений в `finishGoalkeeperShotBallImpact` flying message стал запускаться внутри короткого callback/promise/tween, который завершается быстро, либо сообщение уничтожается вместе с временными объектами impact-анимации.
-
-Нужно разделить:
+Правильный порядок:
 
 ```text
-impact animation lifecycle
-```
-
-и
-
-```text
-flying message lifecycle
-```
-
-Сообщение должно стартовать одновременно с impact-анимацией, но жить по собственному tween/duration, а не исчезать сразу после завершения impact.
-
----
-
-## Что нужно сделать
-
-### 1. Проверить старую реализацию flying message
-
-Найти, как до последней правки создавались `GOAL!!` и `Goalkeeper!!`.
-
-Нужно вернуть тот же механизм анимации, но запускать его раньше.
-
-Правильная логика:
-
-```text
-start sound
-start ball/impact animation
-start flying message animation
+start goal sound
+start GOAL!! message
+start goal impact animation
 await impact animation
-then continue next effects
-```
-
-Но не нужно делать так:
-
-```text
-start message
-await impact
-destroy message
+continue turn flow
 ```
 
 ---
 
-### 2. GOAL!!
+### 4. Не подавляется ли повторный звук
 
-Для `GOAL_SCORED`:
+Если голы происходят близко друг к другу или звук предыдущего гола еще играет, Phaser/browser может вести себя нестабильно.
 
-* сообщение `GOAL!!` должно стартовать одновременно со звуком и goal impact;
-* размер `GOAL!!` оставить увеличенным, как после последней правки;
-* сообщение должно использовать полноценную flying-анимацию;
-* сообщение не должно исчезать через долю секунды.
+Проверить:
 
-Ожидаемо:
+* не используется ли один и тот же sound instance;
+* не настроен ли `detune`, `rate`, `volume` некорректно;
+* не вызывается ли `stopByKey()` или `sound.stopAll()` рядом с goal effect;
+* не уничтожается ли scene/audio manager до проигрывания.
 
-```text
-GOAL!! видно достаточно долго, как раньше, но появляется раньше.
-```
+Если нужно, можно перед `playSoundSafe()` для goal sound использовать независимый запуск нового instance.
 
 ---
 
-### 3. Goalkeeper!!
+### 5. Не теряется ли effect из-за `GOALKEEPER_RANK_CHANGED`
 
-Для `GOALKEEPER_SAVE`:
+При голе `GOALKEEPER_RANK_CHANGED` не должен запускаться. Но нужно проверить, что pipeline goal/save/post effect не смешан.
 
-* сообщение `Goalkeeper!!` должно стартовать одновременно со звуком и save impact;
-* затем должна идти анимация смены GK-rank;
-* сообщение не должно повторяться после `GOALKEEPER_RANK_CHANGED`;
-* сообщение не должно исчезать мгновенно.
-
-Ожидаемый порядок:
-
-```text
-save impact + sound + Goalkeeper!! flying message
-затем GK rank roll
-переход хода
-```
-
----
-
-### 4. Post!
-
-Проверить `Post!` тоже.
-
-Если `Post!` работает нормально — не ломать.
-Если тоже исчезает слишком быстро — применить тот же фикс.
-
----
-
-## Важные требования
-
-1. Не возвращать позднее появление `Goalkeeper!!` после `GOALKEEPER_RANK_CHANGED`.
-2. Не создавать второе сообщение `Goalkeeper!!`.
-3. Не задерживать звук до окончания rank-roll.
-4. Не задерживать goal/save/post impact ради сообщения.
-5. Не менять игровую логику.
-6. Не менять `GameEngine`.
-7. Не менять событие `GOALKEEPER_RANK_CHANGED`.
-8. Не менять новую логику `ATTACK_DECK_EMPTY`.
-9. Не менять версию приложения, если пользователь отдельно не попросит.
-
----
-
-## Рекомендованный подход
-
-Если сейчас в `finishGoalkeeperShotBallImpact` есть что-то похожее на:
+Для `GOAL_SCORED` должен быть выбран именно goal effect:
 
 ```ts
-this.showFlyingMessage(effect.flyingMessage);
+getGoalkeeperShotSceneEffect('goal')
 ```
 
-нужно проверить, возвращает ли `showFlyingMessage` Promise и не ожидается ли он неправильно.
+и goal sound должен быть связан с этим effect.
 
-Предпочтительно:
+---
+
+## Возможное улучшение playSoundSafe
+
+Если `playSoundSafe()` сейчас только проверяет наличие key и вызывает `scene.sound.play(key)`, можно аккуратно добавить защитное логирование в dev/test режиме.
+
+Например:
 
 ```ts
-void this.showFlyingMessage(effect.flyingMessage, options);
-await this.playGoalkeeperShotImpact(...);
+if (!scene.cache.audio.exists(key)) {
+  console.warn(...)
+  return false;
+}
+
+scene.sound.play(key, config);
+return true;
 ```
 
-или:
+Если helper уже возвращает boolean — использовать это в тестах.
+
+Если не возвращает — можно рассмотреть добавление return value:
 
 ```ts
-const messageAnimation = this.showFlyingMessage(...);
-await this.playGoalkeeperShotImpact(...);
-// не уничтожать message здесь
+true  = звук был запрошен к проигрыванию
+false = audio key отсутствует или scene не готова
 ```
 
-Если `showFlyingMessage` сама управляет временем жизни сообщения, ее нужно запускать независимо от короткой impact-анимации.
+Важно: не ломать существующие вызовы.
+
+---
+
+## Что можно добавить для надежности
+
+Для goal sound можно использовать отдельную небольшую функцию:
+
+```ts
+private playGoalSound(): void
+```
+
+или общий effect pipeline:
+
+```ts
+playGoalkeeperShotEffectSound(effect)
+```
+
+Главное:
+
+* запускать звук сразу;
+* не ждать окончания message/tween;
+* не привязывать звук к уничтожению ball object;
+* не запускать второй раз.
 
 ---
 
 ## Тесты
 
-Обновить тесты:
+Обновить или добавить тесты.
+
+Вероятные файлы:
 
 ```text
 src/tests/gameSceneEventEffects.test.ts
 src/tests/gameScene.test.ts
+src/tests/project.test.ts
 ```
 
-Добавить/проверить:
+### Проверить:
 
-1. `GOAL_SCORED` запускает `GOAL!!` на событии goal impact.
-2. `GOAL!!` использует flying-message animation lifecycle, а не короткий impact lifecycle.
-3. `GOALKEEPER_SAVE` запускает `Goalkeeper!!` до `GOALKEEPER_RANK_CHANGED`.
-4. `GOALKEEPER_RANK_CHANGED` не запускает `Goalkeeper!!`.
-5. `Goalkeeper!!` не уничтожается сразу после impact tween.
-6. `Post!` продолжает появляться на `GOALPOST_HIT`.
+1. `GOAL_SCORED` выбирает goal scene effect.
+2. goal scene effect содержит правильный sound key / tone.
+3. при `GOAL_SCORED` вызывается `playSoundSafe()` именно в начале impact pipeline.
+4. `GOAL!!` message и goal sound запускаются в одном effect-проходе.
+5. `GOALKEEPER_SAVE` не использует goal sound.
+6. `GOALPOST_HIT` не использует goal sound.
+7. если `playSoundSafe()` возвращает false при отсутствующем key, игра не падает.
 
-Не нужно делать pixel-perfect тест. Достаточно проверить вызовы helper-методов, порядок событий и параметры duration/tween, если они доступны.
+Если есть mock audio manager, проверить, что при двух последовательных `GOAL_SCORED` вызов звука происходит два раза.
 
 ---
 
 ## Ручная проверка
 
-После исправления проверить в браузере:
+После исправления вручную проверить:
 
 ```text
 1. Запустить матч.
 2. Добиться гола.
-3. Проверить:
-   - GOAL!! появляется сразу со звуком/анимацией;
-   - GOAL!! видно не мгновение, а нормально анимируется.
-4. Добиться сэйва GK.
-5. Проверить:
-   - Goalkeeper!! появляется сразу со звуком/анимацией;
-   - затем идет смена GK-rank;
-   - Goalkeeper!! не появляется второй раз;
-   - сообщение не исчезает мгновенно.
-6. Добиться штанги.
-7. Проверить:
-   - Post! появляется сразу;
-   - Post! не потерял анимацию.
+3. Убедиться, что GOAL!! и звук стартуют одновременно.
+4. Повторить несколько голов в одном матче.
+5. Проверить, что звук проигрывается каждый раз.
+6. Проверить сэйв: играет звук сэйва, не гола.
+7. Проверить штангу: играет звук штанги, не гола.
+8. Проверить Console на warnings от playSoundSafe.
 ```
+
+---
+
+## Важные ограничения
+
+Не менять:
+
+```text
+GameEngine
+GameEvent
+правила гола
+GK random rank logic
+GOALKEEPER_RANK_CHANGED
+ATTACK_DECK_EMPTY
+match card scale
+field positions
+```
+
+Если проблема только в `GameScene` / sound pipeline, не трогать игровую логику.
+
+Не поднимать версию приложения, если пользователь отдельно не попросит.
 
 ---
 
@@ -251,11 +277,11 @@ npm run build
 
 ## Финальный ответ Codex должен содержать
 
-1. Какие файлы изменены.
-2. Почему сообщения исчезали слишком быстро.
-3. Как возвращена полноценная flying-анимация.
-4. Как сохранен ранний timing сообщений.
-5. Подтверждение, что `Goalkeeper!!` больше не появляется после `GOALKEEPER_RANK_CHANGED`.
-6. Подтверждение, что `GOAL!!` остался увеличенным.
+1. Что было потенциальной причиной пропуска goal sound.
+2. Какие файлы изменены.
+3. Где теперь запускается goal sound.
+4. Как гарантируется ранний запуск звука при `GOAL_SCORED`.
+5. Проверено ли, что save/post используют свои звуки.
+6. Какие тесты добавлены/обновлены.
 7. Результат `npm test`.
 8. Результат `npm run build`.
