@@ -106,6 +106,7 @@ const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
+const FLYING_MESSAGE_DEPTH = 3000;
 const GOALKEEPER_RANK_ROLL_DURATION_MS = 820;
 const GOALKEEPER_RANK_ROLL_MIN_STEPS = 8;
 const GOALKEEPER_RANK_ROLL_SEQUENCE: readonly GoalkeeperCard['rank'][] = [
@@ -1019,8 +1020,9 @@ export class GameScene extends Phaser.Scene {
     const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
     const textPadding = tone === 'goal' || tone === 'save' ? 28 : 14;
     const isShotOutcomeTone = tone === 'goal' || tone === 'post' || tone === 'save';
-    const fadeDelay = isShotOutcomeTone ? 450 : 0;
-    const duration = isShotOutcomeTone ? 2400 : 900;
+    const popDuration = isShotOutcomeTone ? 220 : 0;
+    const fadeDelay = isShotOutcomeTone ? 520 : 0;
+    const fadeDuration = isShotOutcomeTone ? 1900 : 900;
 
     const text = this.add
       .text(centerX, centerY - 40, message, {
@@ -1032,20 +1034,39 @@ export class GameScene extends Phaser.Scene {
         strokeThickness: 5
       })
       .setPadding(textPadding, textPadding / 2, textPadding, textPadding / 2)
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(FLYING_MESSAGE_DEPTH);
 
-    this.tweens.add({
-      targets: text,
-      y: text.y - 82,
-      alpha: 0,
-      delay: fadeDelay,
-      duration,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        text.destroy();
-        onComplete?.();
-      }
-    });
+    const startFadeTween = (): void => {
+      this.tweens.add({
+        targets: text,
+        y: text.y - 82,
+        alpha: 0,
+        delay: fadeDelay,
+        duration: fadeDuration,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          text.destroy();
+          onComplete?.();
+        }
+      });
+    };
+
+    if (isShotOutcomeTone) {
+      text.setAlpha(0);
+      text.setScale(0.82);
+      this.tweens.add({
+        targets: text,
+        alpha: 1,
+        scale: 1.08,
+        duration: popDuration,
+        ease: 'Back.easeOut',
+        onComplete: () => startFadeTween()
+      });
+      return;
+    }
+
+    startFadeTween();
   }
 
   private createAttackAnimationContext(positionId: FieldPositionId): AttackAnimationContext | null {
