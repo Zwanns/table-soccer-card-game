@@ -7,6 +7,37 @@ export type GoalScoredSceneEffect = {
   flyingMessageTone: 'goal';
 };
 
+export type GoalkeeperShotSceneEffect = {
+  type: 'GOAL_SCORED' | 'GOALPOST_HIT' | 'GOALKEEPER_SAVE';
+  flyingMessage: 'GOAL!!' | 'Post!' | 'Goalkeeper!!';
+  flyingMessageTone: 'goal' | 'post' | 'save';
+};
+
+export function getGoalkeeperShotSceneEffect(
+  outcome: 'goal' | 'post' | 'save'
+): GoalkeeperShotSceneEffect {
+  switch (outcome) {
+    case 'goal':
+      return {
+        type: 'GOAL_SCORED',
+        flyingMessage: 'GOAL!!',
+        flyingMessageTone: 'goal'
+      };
+    case 'post':
+      return {
+        type: 'GOALPOST_HIT',
+        flyingMessage: 'Post!',
+        flyingMessageTone: 'post'
+      };
+    case 'save':
+      return {
+        type: 'GOALKEEPER_SAVE',
+        flyingMessage: 'Goalkeeper!!',
+        flyingMessageTone: 'save'
+      };
+  }
+}
+
 export function getNextGoalScoredSceneEffect(
   events: readonly GameEvent[],
   handledEventCursor: number

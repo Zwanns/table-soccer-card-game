@@ -253,15 +253,17 @@ export class ResultScene extends Phaser.Scene {
       ['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)],
       ['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
     ];
+    const statsStartY = -56;
+    const statsRowGap = 34;
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
-      const rowY = -24 + index * 34;
+      const rowY = statsStartY + index * statsRowGap;
       panel.add(this.createStatsValue(-285, rowY, playerOneValue));
       panel.add(this.createStatsLabel(rowY, label));
       panel.add(this.createStatsValue(285, rowY, playerTwoValue));
     });
 
-    panel.add(this.createStatsLabel(72, 'Goalscorers'));
+    panel.add(this.createStatsLabel(54, 'Goalscorers'));
     this.addScorerTimeline(panel, panelX, panelY, width, playerOneStats, playerTwoStats);
   }
 

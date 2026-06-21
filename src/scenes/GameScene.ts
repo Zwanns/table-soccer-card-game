@@ -38,7 +38,7 @@ import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
-import { getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
+import { getGoalkeeperShotSceneEffect, getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
 
 const FIELD_WIDTH = 1120;
 const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
@@ -472,6 +472,7 @@ export class GameScene extends Phaser.Scene {
     if (state.phase === 'ENDING_TURN') {
       const goalkeeperSave = state.log.slice(-4).some((event) => event.type === 'GOALKEEPER_SAVE');
       const goalkeeperRankChange = getLastGoalkeeperRankChangedEvent(state.log);
+      const attackDeckEmpty = state.log.slice(-5).some((event) => event.type === 'ATTACK_DECK_EMPTY');
       const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
       const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalScoredEventCursor);
       const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);
@@ -486,9 +487,10 @@ export class GameScene extends Phaser.Scene {
         });
       } else if (goalkeeperSave) {
         this.render(state, { hiddenRestoredCards, interactive: false });
-        this.animateGoalkeeperRankChange(goalkeeperRankChange, () => {
-          this.showFlyingMessage('Goalkeeper!!', 'save', () => this.startTurn());
-        });
+        this.animateGoalkeeperRankChange(goalkeeperRankChange, () => this.startTurn());
+      } else if (attackDeckEmpty) {
+        this.render(state, { hiddenRestoredCards, interactive: false });
+        this.showFlyingMessage('No cards!', 'out', () => this.startTurn());
       } else if (missedAttack) {
         this.render(state, { hiddenRestoredCards, interactive: false });
         this.showFlyingMessage('Turnover...', 'out', () => this.startTurn());
@@ -499,12 +501,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const goalpostHit = state.log.at(-1)?.type === 'GOALPOST_HIT';
     this.render(state);
-
-    if (goalpostHit) {
-      this.showFlyingMessage('Post!', 'post');
-    }
   }
 
   private addTeamStats(state: Readonly<GameState>): void {
@@ -1018,7 +1015,7 @@ export class GameScene extends Phaser.Scene {
   private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save', onComplete?: () => void): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
-    const fontSize = tone === 'goal' ? '76px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
+    const fontSize = tone === 'goal' ? '88px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
     const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
     const textPadding = tone === 'goal' || tone === 'save' ? 28 : 14;
 
@@ -1474,6 +1471,12 @@ export class GameScene extends Phaser.Scene {
     baseScaleY: number,
     onComplete: () => void
   ): void {
+    const shotEffect = getGoalkeeperShotSceneEffect(outcome);
+
+    this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);
+    if (shotEffect.type === 'GOAL_SCORED') {
+      this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;
+    }
     this.showGoalkeeperShotTargetImpact(target, outcome);
     this.playGoalkeeperImpactSound('goalkeeper', outcome);
 

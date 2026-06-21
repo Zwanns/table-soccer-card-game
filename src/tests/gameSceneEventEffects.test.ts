@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEvent, Player, ScorerSnapshot } from '../game';
-import { getNextGoalScoredSceneEffect } from '../scenes/gameSceneEventEffects';
+import { getGoalkeeperShotSceneEffect, getNextGoalScoredSceneEffect } from '../scenes/gameSceneEventEffects';
 
 function scorer(playerName: string): ScorerSnapshot {
   return {
@@ -52,5 +52,25 @@ describe('GameScene goal event effects', () => {
 
     expect(firstEffect?.eventIndex).toBe(1);
     expect(duplicateEffect).toBeNull();
+  });
+});
+
+describe('GameScene goalkeeper shot event effects', () => {
+  it('maps goal, post, and save impacts to their flying messages', () => {
+    expect(getGoalkeeperShotSceneEffect('goal')).toEqual({
+      type: 'GOAL_SCORED',
+      flyingMessage: 'GOAL!!',
+      flyingMessageTone: 'goal'
+    });
+    expect(getGoalkeeperShotSceneEffect('post')).toEqual({
+      type: 'GOALPOST_HIT',
+      flyingMessage: 'Post!',
+      flyingMessageTone: 'post'
+    });
+    expect(getGoalkeeperShotSceneEffect('save')).toEqual({
+      type: 'GOALKEEPER_SAVE',
+      flyingMessage: 'Goalkeeper!!',
+      flyingMessageTone: 'save'
+    });
   });
 });

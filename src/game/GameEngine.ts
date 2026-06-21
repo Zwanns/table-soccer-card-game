@@ -259,7 +259,7 @@ export class GameEngine {
     });
 
     if (!this.hasAvailableNextAttackSource()) {
-      this.finishAttack('NO_MORE_ATTACK_CARDS');
+      this.finishAttackBecauseNoMoreAttackCards();
       return this.state;
     }
 
@@ -327,7 +327,7 @@ export class GameEngine {
     });
 
     if (!this.hasAvailableNextAttackSource()) {
-      this.finishAttack('NO_MORE_ATTACK_CARDS');
+      this.finishAttackBecauseNoMoreAttackCards();
       return this.state;
     }
 
@@ -370,7 +370,7 @@ export class GameEngine {
     });
 
     if (!this.hasAvailableNextAttackSource()) {
-      this.finishAttack('NO_MORE_ATTACK_CARDS');
+      this.finishAttackBecauseNoMoreAttackCards();
       return this.state;
     }
 
@@ -643,7 +643,7 @@ export class GameEngine {
       this.appendLog({ type: 'GOALPOST_HIT', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
 
       if (!this.hasAvailableNextAttackSource()) {
-        this.finishAttack('NO_MORE_ATTACK_CARDS');
+        this.finishAttackBecauseNoMoreAttackCards();
         return this.state;
       }
 
@@ -743,6 +743,17 @@ export class GameEngine {
     this.state.phase = 'ENDING_TURN';
     this.appendLog({ type: 'TURN_ENDED', playerId: activePlayer.id });
     this.switchActivePlayer();
+  }
+
+  private finishAttackBecauseNoMoreAttackCards(): void {
+    const activePlayer = this.getActivePlayer();
+
+    this.appendLog({
+      type: 'ATTACK_DECK_EMPTY',
+      playerId: activePlayer.id,
+      turnNumber: this.state.turnNumber
+    });
+    this.finishAttack('NO_MORE_ATTACK_CARDS');
   }
 
   private scoreGoal(activePlayer: Player, scoringCard: Card): void {

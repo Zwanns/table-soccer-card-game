@@ -166,6 +166,55 @@ describe('game engine attacks', () => {
     });
   });
 
+  it('logs ATTACK_DECK_EMPTY before ending the turn when a continued attack has no next source', () => {
+    const engine = createReadyEngine(['A']);
+    setPositions(engine.getState().players[1].field, {
+      'midfielder-1': '6'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-1');
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.activePlayerId).toBe('PLAYER_2');
+    expect(result.log.at(-2)).toEqual({
+      type: 'ATTACK_DECK_EMPTY',
+      playerId: 'PLAYER_1',
+      turnNumber: 1
+    });
+    expect(result.log.at(-1)).toEqual({
+      type: 'TURN_ENDED',
+      playerId: 'PLAYER_1'
+    });
+  });
+
+  it('logs ATTACK_DECK_EMPTY for an AI-side continued attack with no next source', () => {
+    const gameState = state([], ['A']);
+    gameState.activePlayerId = 'PLAYER_2';
+    fillField(gameState.players[1].field);
+    setPositions(gameState.players[0].field, {
+      'midfielder-1': '6'
+    });
+    const engine = new GameEngine(gameState);
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('midfielder-1');
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.activePlayerId).toBe('PLAYER_1');
+    expect(result.log.at(-2)).toEqual({
+      type: 'ATTACK_DECK_EMPTY',
+      playerId: 'PLAYER_2',
+      turnNumber: 1
+    });
+    expect(result.log.at(-1)).toEqual({
+      type: 'TURN_ENDED',
+      playerId: 'PLAYER_2'
+    });
+  });
+
   it('scenario 2: special hit 6 beats A during an attack without revealing that hint in targets', () => {
     const engine = createReadyEngine(['6']);
     setPositions(engine.getState().players[1].field, {
@@ -231,6 +280,7 @@ describe('game engine attacks', () => {
       attackerCard: card('3', '3_0'),
       defenderCard: card('10', 'midfielder-1_10')
     });
+    expect(result.log.some((event) => event.type === 'ATTACK_DECK_EMPTY')).toBe(false);
   });
 
   it('ends the attack when a defender cannot be beaten', () => {
@@ -805,6 +855,25 @@ describe('game engine attacks', () => {
 
     expect(nextShot.phase).toBe('WAITING_FOR_TARGET');
     expect(nextShot.log.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === 'PLAYER_1')).toHaveLength(1);
+  });
+
+  it('ends a goalpost attack with ATTACK_DECK_EMPTY when no follow-up card is available', () => {
+    const engine = createReadyEngine(['6']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const afterPost = engine.selectTarget('goalkeeper');
+
+    expect(afterPost.phase).toBe('ENDING_TURN');
+    expect(afterPost.activePlayerId).toBe('PLAYER_2');
+    expect(afterPost.log.slice(-3).map((event) => event.type)).toEqual([
+      'GOALPOST_HIT',
+      'ATTACK_DECK_EMPTY',
+      'TURN_ENDED'
+    ]);
   });
 
   it('treats equal face-card goalkeeper ranks as a goalpost hit instead of a goal', () => {

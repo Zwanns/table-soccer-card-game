@@ -105,7 +105,10 @@ describe('result scene score line layout', () => {
     expect(source).toContain("['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)]");
     expect(source).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
     expect(source).toContain("['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]");
-    expect(source).toContain("panel.add(this.createStatsLabel(72, 'Goalscorers'))");
+    expect(source).toContain('const statsStartY = -56');
+    expect(source).toContain('const statsRowGap = 34');
+    expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
+    expect(source).toContain("panel.add(this.createStatsLabel(54, 'Goalscorers'))");
     expect(source).toContain('const viewportTop = 92');
     expect(source).toContain('const viewportHeight = 156');
     expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');

@@ -17,6 +17,12 @@ export type GoalkeeperRankChangedEvent = {
   nextCard: GoalkeeperCard;
 };
 
+export type AttackDeckEmptyEvent = {
+  type: 'ATTACK_DECK_EMPTY';
+  playerId: Player['id'];
+  turnNumber: number;
+};
+
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
@@ -58,6 +64,7 @@ export type GameEvent =
   | { type: 'GOALPOST_HIT'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: GoalkeeperCard }
   | { type: 'GOALKEEPER_SAVE'; playerId: Player['id']; attackerCard: Card; goalkeeperCard: GoalkeeperCard }
   | GoalkeeperRankChangedEvent
+  | AttackDeckEmptyEvent
   | {
       type: 'GOALKEEPER_CARD_RECYCLED';
       playerId: Player['id'];
