@@ -1018,6 +1018,9 @@ export class GameScene extends Phaser.Scene {
     const fontSize = tone === 'goal' ? '88px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
     const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
     const textPadding = tone === 'goal' || tone === 'save' ? 28 : 14;
+    const isShotOutcomeTone = tone === 'goal' || tone === 'post' || tone === 'save';
+    const fadeDelay = isShotOutcomeTone ? 450 : 0;
+    const duration = isShotOutcomeTone ? 2400 : 900;
 
     const text = this.add
       .text(centerX, centerY - 40, message, {
@@ -1035,7 +1038,8 @@ export class GameScene extends Phaser.Scene {
       targets: text,
       y: text.y - 82,
       alpha: 0,
-      duration: tone === 'goal' || tone === 'save' ? 1900 : 900,
+      delay: fadeDelay,
+      duration,
       ease: 'Sine.easeOut',
       onComplete: () => {
         text.destroy();

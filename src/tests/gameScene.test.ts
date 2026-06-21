@@ -783,5 +783,10 @@ describe('GameScene visual layout contracts', () => {
       impactBlock.indexOf("this.playGoalkeeperImpactSound('goalkeeper', outcome);")
     );
     expect(source).toContain("const fontSize = tone === 'goal' ? '88px' : tone === 'post' || tone === 'save' ? '48px' : '38px';");
+    expect(source).toContain("const isShotOutcomeTone = tone === 'goal' || tone === 'post' || tone === 'save';");
+    expect(source).toContain('const fadeDelay = isShotOutcomeTone ? 450 : 0;');
+    expect(source).toContain('const duration = isShotOutcomeTone ? 2400 : 900;');
+    expect(source).toContain('delay: fadeDelay,');
+    expect(source).toContain('duration,');
   });
 });
