@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from './touchInput';
+import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 export const TEAM_STATS_VIEW_WIDTH = 200;
 export const TEAM_STATS_VIEW_HEIGHT = 288;
@@ -11,7 +12,7 @@ export interface TeamStatsViewOptions {
 
 export class TeamStatsView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: TeamStatsViewOptions) {
-    super(scene, x, y);
+    super(scene, px(x), px(y));
 
     const width = TEAM_STATS_VIEW_WIDTH;
     const height = TEAM_STATS_VIEW_HEIGHT;
@@ -19,17 +20,18 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const viewportHeight = height - 56;
     const viewportWidth = width - 32;
     const textOriginX = options.align === 'left' ? 0 : 1;
-    const textX = options.align === 'left' ? -width / 2 + 16 : width / 2 - 16;
+    const textX = px(options.align === 'left' ? -width / 2 + 16 : width / 2 - 16);
     const textAlign = options.align;
     const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
 
     const title = scene.add
-      .text(textX, -height / 2 + 18, 'Goals', {
+      .text(textX, px(-height / 2 + 18), 'Goals', {
         align: textAlign,
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(textOriginX, 0.5);
 
@@ -41,6 +43,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         lineSpacing: 3,
+        resolution: SHARP_TEXT_RESOLUTION,
         wordWrap: { width: viewportWidth }
       })
       .setOrigin(textOriginX, 0);
@@ -49,9 +52,11 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const maskGraphics = scene.make.graphics();
     const maskLeft = -width / 2 + 16;
     const maskTop = viewportTop;
+    const maskSceneX = px(x);
+    const maskSceneY = px(y);
     const mask = maskGraphics
       .fillStyle(0xffffff)
-      .fillRect(x + maskLeft, y + maskTop, viewportWidth, viewportHeight)
+      .fillRect(maskSceneX + maskLeft, maskSceneY + maskTop, viewportWidth, viewportHeight)
       .createGeometryMask();
     const scrollZone = scene.add
       .zone(0, viewportTop + viewportHeight / 2, viewportWidth, viewportHeight)
@@ -78,8 +83,8 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       const dragScroll = createDragScrollArea({
         scene,
         viewport: {
-          x: x + maskLeft,
-          y: y + maskTop,
+          x: maskSceneX + maskLeft,
+          y: maskSceneY + maskTop,
           width: viewportWidth,
           height: viewportHeight
         },

@@ -92,11 +92,12 @@ describe('kit card face rendering contracts', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('0xffffff');
-    expect(kitFaceSource).toContain('-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft');
-    expect(kitFaceSource).toContain('-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop');
+    expect(kitFaceSource).toContain('px(-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft)');
+    expect(kitFaceSource).toContain('private rankBaseY = px(-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop)');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankFontFamily');
     expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '26px' : '42px'");
+    expect(kitFaceSource).toContain('resolution: SHARP_TEXT_RESOLUTION');
     expect(kitFaceSource).toContain('public setDisplayRank(rank: string): void');
     expect(kitFaceSource).toContain('public animateRankRoll(targetRank: string');
     expect(kitFaceSource).toContain('getKitImageLayout()');
@@ -157,7 +158,7 @@ describe('kit card face rendering contracts', () => {
 
     expect(getKitImageLayout()).toEqual({
       x: KIT_CARD_FACE_WIDTH / 2 - 6,
-      y: KIT_CARD_FACE_HEIGHT / 2 - 6,
+      y: Math.round(KIT_CARD_FACE_HEIGHT / 2 - 6),
       width: 76,
       height: 88,
       originX: 1,
@@ -170,8 +171,10 @@ describe('kit card face rendering contracts', () => {
     const kitLayout = getKitImageLayout();
 
     expect(layout.x).toBeCloseTo(kitLayout.x - kitLayout.width * 0.5);
-    expect(layout.y).toBeCloseTo(kitLayout.y - kitLayout.height * 0.67);
+    expect(layout.y).toBeCloseTo(Math.round(kitLayout.y - kitLayout.height * 0.67));
     expect(layout.y).toBeLessThan(kitLayout.y - kitLayout.height / 2);
+    expect(Number.isInteger(layout.x)).toBe(true);
+    expect(Number.isInteger(layout.y)).toBe(true);
     expect(prepareKitCardFace({ rank: '9' })).toEqual({
       rank: '9',
       shirtNumber: undefined,
@@ -199,6 +202,7 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('export interface RankRollOptions');
     expect(kitFaceSource).toContain('this.rankText.setText(rank)');
     expect(kitFaceSource).toContain("this.rankText.setFontSize(rank.length > 2 ? '26px' : '42px')");
+    expect(kitFaceSource).not.toContain('this.rankText.setScale');
     expect(kitFaceSource).toContain('steps?: readonly string[]');
     expect(kitFaceSource).toContain('this.scene.tweens.add({');
     expect(kitFaceSource).toContain('this.setDisplayRank(targetRank)');

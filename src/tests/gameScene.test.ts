@@ -317,10 +317,14 @@ describe('GameScene visual layout contracts', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
 
     expect(scoreSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
+    expect(scoreSource).toContain("import { px, SHARP_TEXT_RESOLUTION } from './textRendering'");
     expect(scoreSource).toContain('getTeamScoreboardCode(playerOneFlagCode)');
     expect(scoreSource).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(scoreSource).toContain('fontFamily: SCORE_VIEW_FONT_FAMILY');
     expect(scoreSource.match(/fontFamily: SCORE_VIEW_FONT_FAMILY/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(scoreSource.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(scoreSource).toContain('super(scene, px(x), px(y))');
+    expect(scoreSource).not.toContain('.setScale(');
     expect(scoreSource).not.toContain('fontFamily: \'Arial, sans-serif\'');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, -158, 26, playerOneName)');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, 158, 26, playerTwoName)');

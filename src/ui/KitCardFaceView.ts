@@ -3,6 +3,7 @@ import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
 import { getKitImageLayout, getShirtNumberLayout, KIT_CARD_LAYOUT } from './kitCardFaceModel';
 import { getFallbackKitColors } from './kitFallback';
+import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 const CARD_WIDTH = 108;
 const CARD_HEIGHT = 148.5;
@@ -30,10 +31,10 @@ type RenderedKitColorScheme = {
 
 export class KitCardFaceView extends Phaser.GameObjects.Container {
   private rankText: Phaser.GameObjects.Text | null = null;
-  private rankBaseY = -CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop;
+  private rankBaseY = px(-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop);
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
-    super(scene, x, y);
+    super(scene, px(x), px(y));
 
     const body = createRoundedCardBackground(scene, {
       fillColor: 0xffffff,
@@ -144,12 +145,13 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       getFallbackKitColors(options.teamColor).number;
     const position = getShirtNumberLayout();
     const number = scene.add
-      .text(position.x, position.y, String(options.shirtNumber), {
+      .text(px(position.x), px(position.y), String(options.shirtNumber), {
         align: 'center',
         color,
         fontFamily: KIT_CARD_LAYOUT.shirtNumberFontFamily,
         fontSize: '18px',
-        fontStyle: '600'
+        fontStyle: '600',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -159,14 +161,15 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
     this.rankText = scene.add
       .text(
-        -CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft,
+        px(-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft),
         this.rankBaseY,
         options.rank,
         {
           color: KIT_CARD_LAYOUT.rankColor,
           fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
           fontSize: options.rank.length > 2 ? '26px' : '42px',
-          fontStyle: '400'
+          fontStyle: '400',
+          resolution: SHARP_TEXT_RESOLUTION
         }
       )
       .setOrigin(0, 0);

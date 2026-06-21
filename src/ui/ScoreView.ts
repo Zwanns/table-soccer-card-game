@@ -8,6 +8,7 @@ import {
   SCOREBOARD_BORDER_COLOR,
   SCOREBOARD_FONT_FAMILY
 } from './scoreboardStyle';
+import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH;
 export const SCORE_VIEW_HEIGHT = 78;
@@ -39,7 +40,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
     playerTwoShots: number,
     options: ScoreViewOptions = {}
   ) {
-    super(scene, x, y);
+    super(scene, px(x), px(y));
 
     const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
     background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
@@ -56,7 +57,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
         color: '#f6e06e',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
         fontSize: '64px',
-        fontStyle: '400'
+        fontStyle: '400',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -70,7 +72,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
             color: '#f0c95a',
             fontFamily: SCORE_VIEW_FONT_FAMILY,
             fontSize: '16px',
-            fontStyle: '700'
+            fontStyle: '700',
+            resolution: SHARP_TEXT_RESOLUTION
           })
           .setOrigin(0.5)
       );
@@ -80,33 +83,35 @@ export class ScoreView extends Phaser.GameObjects.Container {
   }
 
   private createFlag(scene: Phaser.Scene, x: number, flagCode: string): Phaser.GameObjects.Image {
-    const flag = scene.add.image(x, -9, getFlagAssetKey(flagCode));
+    const flag = scene.add.image(px(x), -9, getFlagAssetKey(flagCode));
     flag.setDisplaySize(58, 40);
     return flag;
   }
 
   private createPlayerLabel(scene: Phaser.Scene, x: number, y: number, text: string): Phaser.GameObjects.Text {
     return scene.add
-      .text(x, y, text, {
+      .text(px(x), px(y), text, {
         align: 'center',
         color: '#d9eadf',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
         fontSize: '18px',
         fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION,
         wordWrap: { width: 130 }
       })
       .setOrigin(0.5);
   }
 
   private createShotsLabel(scene: Phaser.Scene, x: number, shots: number): Phaser.GameObjects.Container {
-    const container = scene.add.container(x, 0);
+    const container = scene.add.container(px(x), 0);
     const title = scene.add
       .text(0, -13, 'Shots:', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
         fontSize: '17px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
     const value = scene.add
@@ -115,7 +120,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
         color: '#ffffff',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
         fontSize: '22px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 

@@ -38,6 +38,11 @@ const config: Phaser.Types.Core.GameConfig = {
   dom: {
     createContainer: true
   },
+  render: {
+    antialias: true,
+    pixelArt: false,
+    roundPixels: true
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH

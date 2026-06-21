@@ -12,6 +12,7 @@ import {
   SCOREBOARD_BORDER_COLOR,
   SCOREBOARD_FONT_FAMILY
 } from '../ui/scoreboardStyle';
+import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   createTournamentMatchResultFromGameState,
@@ -199,12 +200,13 @@ export class ResultScene extends Phaser.Scene {
   private showMessage(text: string): void {
     this.message?.destroy();
     this.message = this.add
-      .text(SCENE_WIDTH / 2, 604, text, {
+      .text(px(SCENE_WIDTH / 2), 604, text, {
         align: 'center',
         color: '#f7a6a6',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION,
         stroke: '#142231',
         strokeThickness: 4,
         wordWrap: { width: 760 }
@@ -217,7 +219,9 @@ export class ResultScene extends Phaser.Scene {
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = RESULT_SCOREBOARD_WIDTH;
     const height = 500;
-    const panel = this.add.container(x, y);
+    const panelX = px(x);
+    const panelY = px(y);
+    const panel = this.add.container(panelX, panelY);
     const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
     background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
 
@@ -233,11 +237,12 @@ export class ResultScene extends Phaser.Scene {
     );
 
     const title = this.add
-      .text(0, -height / 2 + 120, 'Match statistics', {
+      .text(0, px(-height / 2 + 120), 'Match statistics', {
         color: '#ffffff',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '22px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -260,7 +265,7 @@ export class ResultScene extends Phaser.Scene {
     });
 
     panel.add(this.createStatsLabel(100, 'Goalscorers'));
-    this.addScorerTimeline(panel, x, y, width, playerOneStats, playerTwoStats);
+    this.addScorerTimeline(panel, panelX, panelY, width, playerOneStats, playerTwoStats);
   }
 
   private createScoreLine(
@@ -278,9 +283,9 @@ export class ResultScene extends Phaser.Scene {
     const badgeFlagGap = 10;
     const flagWidth = 76;
     const flagHeight = 50;
-    const scoreLine = this.add.container(x, y);
-    const playerOneNameX = -teamNameInnerGap;
-    const playerTwoNameX = teamNameInnerGap;
+    const scoreLine = this.add.container(px(x), px(y));
+    const playerOneNameX = px(-teamNameInnerGap);
+    const playerTwoNameX = px(teamNameInnerGap);
 
     const playerOneText = this.add
       .text(playerOneNameX, 0, getTeamScoreboardCode(playerOneFlagCode), {
@@ -288,7 +293,8 @@ export class ResultScene extends Phaser.Scene {
         color: '#dfeaf2',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '38px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(1, 0.5);
 
@@ -297,7 +303,8 @@ export class ResultScene extends Phaser.Scene {
         color: '#f0c95a',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '54px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -307,20 +314,21 @@ export class ResultScene extends Phaser.Scene {
         color: '#dfeaf2',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '38px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0, 0.5);
 
-    const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2;
-    const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2;
+    const playerOneFlagX = px(playerOneText.x - playerOneText.width - flagGap - flagWidth / 2);
+    const playerTwoFlagX = px(playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2);
     const playerOneFlag = this.add.image(playerOneFlagX, 0, getFlagAssetKey(playerOneFlagCode));
     playerOneFlag.setDisplaySize(flagWidth, flagHeight);
     const playerTwoFlag = this.add.image(playerTwoFlagX, 0, getFlagAssetKey(playerTwoFlagCode));
     playerTwoFlag.setDisplaySize(flagWidth, flagHeight);
     const playerOneBadge = this.createControllerBadge(0, 0, playerOneControllerType);
-    playerOneBadge.setPosition(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2, 0);
+    playerOneBadge.setPosition(px(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2), 0);
     const playerTwoBadge = this.createControllerBadge(0, 0, playerTwoControllerType);
-    playerTwoBadge.setPosition(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2, 0);
+    playerTwoBadge.setPosition(px(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2), 0);
 
     scoreLine.add([playerOneBadge, playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag, playerTwoBadge]);
 
@@ -330,7 +338,7 @@ export class ResultScene extends Phaser.Scene {
   private createControllerBadge(x: number, y: number, controllerType: PlayerControllerType): Phaser.GameObjects.Container {
     const label = controllerType === 'AI' ? 'AI' : 'P';
     const width = controllerType === 'AI' ? 40 : 32;
-    const badge = this.add.container(x, y);
+    const badge = this.add.container(px(x), px(y));
     const background = this.add.rectangle(0, 0, width, CONTROLLER_BADGE_HEIGHT, 0x08120f, 0.72);
     background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
     const text = this.add
@@ -339,7 +347,8 @@ export class ResultScene extends Phaser.Scene {
         color: '#f0c95a',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '16px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -351,48 +360,52 @@ export class ResultScene extends Phaser.Scene {
 
   private createTeamName(x: number, y: number, name: string): Phaser.GameObjects.Text {
     return this.add
-      .text(x, y, name, {
+      .text(px(x), px(y), name, {
         align: 'center',
         color: '#d9eadf',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '22px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
   }
 
   private createStatsLabel(y: number, text: string): Phaser.GameObjects.Text {
     return this.add
-      .text(0, y, text, {
+      .text(0, px(y), text, {
         align: 'center',
         color: '#ffffff',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '18px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
   }
 
   private createStatsValue(x: number, y: number, text: string): Phaser.GameObjects.Text {
     return this.add
-      .text(x, y, text, {
+      .text(px(x), px(y), text, {
         align: 'center',
         color: '#f0c95a',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '22px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
   }
 
   private createScorersList(x: number, y: number, text: string, width: number): Phaser.GameObjects.Text {
     return this.add
-      .text(x, y, text, {
+      .text(px(x), px(y), text, {
         align: 'left',
         color: '#f0c95a',
         fontFamily: SCOREBOARD_FONT_FAMILY,
         fontSize: '16px',
         fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION,
         wordWrap: { width }
       })
       .setOrigin(0, 0.5);

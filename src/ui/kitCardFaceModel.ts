@@ -1,5 +1,6 @@
 import { type ResolvedKitAsset, resolveTeamKitAsset } from '../game/kitAssetResolver';
 import type { CardPlayerProfile } from './cardPlayerProfile';
+import { px } from './textRendering';
 
 export const KIT_CARD_FACE_WIDTH = 108;
 export const KIT_CARD_FACE_HEIGHT = 148.5;
@@ -60,8 +61,8 @@ export function prepareKitCardFace(options: {
 
 export function getKitImageLayout(): KitImageLayout {
   return {
-    x: KIT_CARD_FACE_WIDTH / 2 - KIT_CARD_LAYOUT.kitOffsetRight,
-    y: KIT_CARD_FACE_HEIGHT / 2 - KIT_CARD_LAYOUT.kitOffsetBottom,
+    x: px(KIT_CARD_FACE_WIDTH / 2 - KIT_CARD_LAYOUT.kitOffsetRight),
+    y: px(KIT_CARD_FACE_HEIGHT / 2 - KIT_CARD_LAYOUT.kitOffsetBottom),
     width: KIT_CARD_LAYOUT.kitWidth,
     height: KIT_CARD_LAYOUT.kitHeight,
     originX: KIT_CARD_LAYOUT.kitAnchorX,
@@ -73,8 +74,8 @@ export function getShirtNumberLayout(): ShirtNumberLayout {
   const kit = getKitImageLayout();
 
   return {
-    x: kit.x + (KIT_CARD_LAYOUT.shirtNumberX - KIT_CARD_LAYOUT.kitAnchorX) * kit.width,
-    y: kit.y + (KIT_CARD_LAYOUT.shirtNumberY - KIT_CARD_LAYOUT.kitAnchorY) * kit.height
+    x: px(kit.x + (KIT_CARD_LAYOUT.shirtNumberX - KIT_CARD_LAYOUT.kitAnchorX) * kit.width),
+    y: px(kit.y + (KIT_CARD_LAYOUT.shirtNumberY - KIT_CARD_LAYOUT.kitAnchorY) * kit.height)
   };
 }
 

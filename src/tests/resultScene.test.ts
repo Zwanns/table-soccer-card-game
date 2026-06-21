@@ -27,8 +27,8 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain('const teamNameInnerGap = 112');
-    expect(source).toContain('const playerOneNameX = -teamNameInnerGap');
-    expect(source).toContain('const playerTwoNameX = teamNameInnerGap');
+    expect(source).toContain('const playerOneNameX = px(-teamNameInnerGap)');
+    expect(source).toContain('const playerTwoNameX = px(teamNameInnerGap)');
     expect(source).toContain('getTeamScoreboardCode(playerOneFlagCode)');
     expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(source).toContain("align: 'left'");
@@ -47,10 +47,10 @@ describe('result scene score line layout', () => {
     expect(source).toContain("fontSize: '38px'");
     expect(source).toContain('const playerOneBadge = this.createControllerBadge(');
     expect(source).toContain('const playerTwoBadge = this.createControllerBadge(');
-    expect(source).toContain('const playerOneFlagX = playerOneText.x - playerOneText.width - flagGap - flagWidth / 2');
-    expect(source).toContain('const playerTwoFlagX = playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2');
-    expect(source).toContain('playerOneBadge.setPosition(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2, 0)');
-    expect(source).toContain('playerTwoBadge.setPosition(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2, 0)');
+    expect(source).toContain('const playerOneFlagX = px(playerOneText.x - playerOneText.width - flagGap - flagWidth / 2)');
+    expect(source).toContain('const playerTwoFlagX = px(playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2)');
+    expect(source).toContain('playerOneBadge.setPosition(px(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2), 0)');
+    expect(source).toContain('playerTwoBadge.setPosition(px(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2), 0)');
   });
 
   it('renders the final score inside the raised result statistics panel', () => {
@@ -89,6 +89,14 @@ describe('result scene score line layout', () => {
     expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(source).not.toContain('playerOne?.name ??');
     expect(source).not.toContain('playerTwo?.name ??');
+  });
+
+  it('renders result text with snapped coordinates and high-resolution text canvases', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain("import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering'");
+    expect(source.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(7);
+    expect(source).not.toContain('.setScale(');
   });
 
   it('creates three quick-match actions aligned to the scoreboard panel width', () => {

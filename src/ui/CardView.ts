@@ -5,6 +5,7 @@ import { CardTooltipView } from './CardTooltipView';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { KitCardFaceView, type RankRollOptions } from './KitCardFaceView';
 import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
+import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 export interface CardViewOptions {
   rank: string;
@@ -29,7 +30,7 @@ export class CardView extends Phaser.GameObjects.Container {
   private faceView: KitCardFaceView | null = null;
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
-    super(scene, x, y);
+    super(scene, px(x), px(y));
 
     const positionLabel = options.label === 'GK' ? options.label : '';
 
@@ -53,11 +54,12 @@ export class CardView extends Phaser.GameObjects.Container {
     }
 
     const label = scene.add
-      .text(0, CARD_HEIGHT / 2 + 18, positionLabel, {
+      .text(0, px(CARD_HEIGHT / 2 + 18), positionLabel, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',
-        fontStyle: '700'
+        fontStyle: '700',
+        resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 

@@ -95,6 +95,15 @@ describe('project scaffold', () => {
     expect(mainSource).not.toContain('game.scale.updateBounds');
   });
 
+  it('uses rounded renderer pixels without switching the whole game to pixel art', () => {
+    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+
+    expect(mainSource).toContain('render: {');
+    expect(mainSource).toContain('antialias: true');
+    expect(mainSource).toContain('pixelArt: false');
+    expect(mainSource).toContain('roundPixels: true');
+  });
+
   it('keeps mobile orientation handling away from forced locks and viewport resize hooks', () => {
     const productionSource = readProductionSource();
     const forcedOrientationLock = ['screen', 'orientation', 'lock'].join('.');
@@ -380,8 +389,8 @@ describe('project scaffold', () => {
     expect(teamStatsViewSource).toContain("options.scorers.join('\\n')");
     expect(teamStatsViewSource).toContain("options.scorers.length === 0 ? '-'");
     expect(teamStatsViewSource).not.toContain('No goals yet');
-    expect(teamStatsViewSource).toContain('x + maskLeft');
-    expect(teamStatsViewSource).toContain('y + maskTop');
+    expect(teamStatsViewSource).toContain('maskSceneX + maskLeft');
+    expect(teamStatsViewSource).toContain('maskSceneY + maskTop');
     expect(teamStatsViewSource).toContain('createGeometryMask');
     expect(teamStatsViewSource).toContain("scrollZone.on('wheel'");
     expect(resultSceneSource).not.toContain('Winner');
