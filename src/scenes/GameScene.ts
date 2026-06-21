@@ -38,7 +38,12 @@ import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
-import { getGoalkeeperShotSceneEffect, getNextGoalScoredSceneEffect } from './gameSceneEventEffects';
+import {
+  getGoalkeeperShotSceneEffect,
+  getNextGoalScoredSceneEffect,
+  type GoalkeeperShotSceneEffect,
+  type GoalScoredSceneEffect
+} from './gameSceneEventEffects';
 
 const FIELD_WIDTH = 1120;
 const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
@@ -482,6 +487,7 @@ export class GameScene extends Phaser.Scene {
         this.handledGoalScoredEventCursor = goalEffect.eventIndex + 1;
         this.render(state, { hiddenRestoredCards, interactive: false });
         this.isMatchEffectInProgress = true;
+        this.playSceneEffectSound(goalEffect);
         this.showFlyingMessage(goalEffect.flyingMessage, goalEffect.flyingMessageTone, () => {
           this.isMatchEffectInProgress = false;
           this.startTurn();
@@ -1498,12 +1504,12 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const shotEffect = getGoalkeeperShotSceneEffect(outcome);
 
+    this.playSceneEffectSound(shotEffect);
     this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);
     if (shotEffect.type === 'GOAL_SCORED') {
       this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;
     }
     this.showGoalkeeperShotTargetImpact(target, outcome);
-    this.playGoalkeeperImpactSound('goalkeeper', outcome);
 
     if (outcome === 'goal') {
       this.animateGoalkeeperShotGoalDisappear(
@@ -1726,19 +1732,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    switch (outcome) {
-      case 'goal':
-        this.playSound('sound-goal', 0.72);
-        return;
-      case 'post':
-        this.playSound('sound-goalpost', 0.72);
-        return;
-      case 'save':
-        this.playSound('sound-goalkeeper-save', 0.72);
-        return;
-      default:
-        return;
+    if (outcome !== 'goal' && outcome !== 'post' && outcome !== 'save') {
+      return;
     }
+
+    this.playSceneEffectSound(getGoalkeeperShotSceneEffect(outcome));
   }
 
   private finishAnimationObject(card: CardView, onComplete: () => void): void {
@@ -1763,6 +1761,10 @@ export class GameScene extends Phaser.Scene {
 
   private playSound(key: string, volume: number): void {
     playSoundSafe(this, key, { volume });
+  }
+
+  private playSceneEffectSound(effect: GoalkeeperShotSceneEffect | GoalScoredSceneEffect): boolean {
+    return playSoundSafe(this, effect.soundKey, { volume: 0.72 });
   }
 
   private handleLoadError(file: Phaser.Loader.File): void {

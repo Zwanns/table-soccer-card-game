@@ -5,12 +5,14 @@ export type GoalScoredSceneEffect = {
   eventIndex: number;
   flyingMessage: 'GOAL!!';
   flyingMessageTone: 'goal';
+  soundKey: 'sound-goal';
 };
 
 export type GoalkeeperShotSceneEffect = {
   type: 'GOAL_SCORED' | 'GOALPOST_HIT' | 'GOALKEEPER_SAVE';
   flyingMessage: 'GOAL!!' | 'Post!' | 'Goalkeeper!!';
   flyingMessageTone: 'goal' | 'post' | 'save';
+  soundKey: 'sound-goal' | 'sound-goalpost' | 'sound-goalkeeper-save';
 };
 
 export function getGoalkeeperShotSceneEffect(
@@ -21,19 +23,22 @@ export function getGoalkeeperShotSceneEffect(
       return {
         type: 'GOAL_SCORED',
         flyingMessage: 'GOAL!!',
-        flyingMessageTone: 'goal'
+        flyingMessageTone: 'goal',
+        soundKey: 'sound-goal'
       };
     case 'post':
       return {
         type: 'GOALPOST_HIT',
         flyingMessage: 'Post!',
-        flyingMessageTone: 'post'
+        flyingMessageTone: 'post',
+        soundKey: 'sound-goalpost'
       };
     case 'save':
       return {
         type: 'GOALKEEPER_SAVE',
         flyingMessage: 'Goalkeeper!!',
-        flyingMessageTone: 'save'
+        flyingMessageTone: 'save',
+        soundKey: 'sound-goalkeeper-save'
       };
   }
 }
@@ -52,7 +57,8 @@ export function getNextGoalScoredSceneEffect(
         type: 'GOAL_SCORED',
         eventIndex,
         flyingMessage: 'GOAL!!',
-        flyingMessageTone: 'goal'
+        flyingMessageTone: 'goal',
+        soundKey: 'sound-goal'
       };
     }
   }

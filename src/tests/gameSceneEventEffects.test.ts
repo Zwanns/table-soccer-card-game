@@ -31,7 +31,8 @@ describe('GameScene goal event effects', () => {
       type: 'GOAL_SCORED',
       eventIndex: 0,
       flyingMessage: 'GOAL!!',
-      flyingMessageTone: 'goal'
+      flyingMessageTone: 'goal',
+      soundKey: 'sound-goal'
     });
   });
 
@@ -60,17 +61,20 @@ describe('GameScene goalkeeper shot event effects', () => {
     expect(getGoalkeeperShotSceneEffect('goal')).toEqual({
       type: 'GOAL_SCORED',
       flyingMessage: 'GOAL!!',
-      flyingMessageTone: 'goal'
+      flyingMessageTone: 'goal',
+      soundKey: 'sound-goal'
     });
     expect(getGoalkeeperShotSceneEffect('post')).toEqual({
       type: 'GOALPOST_HIT',
       flyingMessage: 'Post!',
-      flyingMessageTone: 'post'
+      flyingMessageTone: 'post',
+      soundKey: 'sound-goalpost'
     });
     expect(getGoalkeeperShotSceneEffect('save')).toEqual({
       type: 'GOALKEEPER_SAVE',
       flyingMessage: 'Goalkeeper!!',
-      flyingMessageTone: 'save'
+      flyingMessageTone: 'save',
+      soundKey: 'sound-goalkeeper-save'
     });
   });
 });

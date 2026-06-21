@@ -375,6 +375,8 @@ describe('project scaffold', () => {
     expect(source).not.toContain('referees-whistle_finish');
     expect(source).toContain("'/cards/ball.webp'");
     expect(source).toContain("'/sounds/referees-whistle-start.mp3'");
+    expect(source).toContain("goal: '/sounds/bolely-goal.mp3'");
+    expect(source).toContain("this.load.audio('sound-goal', ASSET_PATHS.sounds.goal)");
     expect(source).toContain('playSoundSafe');
   });
 
@@ -411,17 +413,28 @@ describe('project scaffold', () => {
 
   it('starts goalkeeper outcome sounds at attack-card impact time', () => {
     const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
-
-    expect(gameSceneSource).toMatch(
-      /this\.showImpactPulse\(target\.x, target\.y, outcome\);\s+this\.playGoalkeeperImpactSound\(context\.positionId, outcome\);/
+    const effectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'gameSceneEventEffects.ts'), 'utf8');
+    const audioHelperSource = readFileSync(join(process.cwd(), 'src', 'audio', 'playSoundSafe.ts'), 'utf8');
+    const impactBlock = gameSceneSource.slice(
+      gameSceneSource.indexOf('private finishGoalkeeperShotBallImpact('),
+      gameSceneSource.indexOf('private animateGoalkeeperShotGoalDisappear(')
     );
-    expect(gameSceneSource).toContain("case 'goal':");
-    expect(gameSceneSource).toContain("this.playSound('sound-goal', 0.72)");
-    expect(gameSceneSource).toContain("case 'post':");
-    expect(gameSceneSource).toContain("this.playSound('sound-goalpost', 0.72)");
-    expect(gameSceneSource).toContain("case 'save':");
-    expect(gameSceneSource).toContain("this.playSound('sound-goalkeeper-save', 0.72)");
-    expect(gameSceneSource).not.toContain('this.playSound(goalEffect.soundKey');
+
+    expect(effectSource).toContain("soundKey: 'sound-goal'");
+    expect(effectSource).toContain("soundKey: 'sound-goalpost'");
+    expect(effectSource).toContain("soundKey: 'sound-goalkeeper-save'");
+    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
+      impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')
+    );
+    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
+      impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')
+    );
+    expect(gameSceneSource).toContain('this.playSceneEffectSound(goalEffect);');
+    expect(gameSceneSource).toContain('return playSoundSafe(this, effect.soundKey, { volume: 0.72 });');
+    expect(audioHelperSource).toContain('): boolean');
+    expect(audioHelperSource).toContain('return false;');
+    expect(audioHelperSource).toContain('return true;');
+    expect(gameSceneSource).not.toContain("this.playSound('sound-goal', 0.72)");
   });
 
   it('keeps the advantage bar active at match start and neutral 50/50', () => {
