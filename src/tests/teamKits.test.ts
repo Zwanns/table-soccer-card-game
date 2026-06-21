@@ -31,8 +31,10 @@ import {
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
 const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
+  ['am', '#FFFFFF'],
   ['ar', '#111111'],
   ['by', '#FFFFFF'],
+  ['gr', '#0D5EAF'],
   ['ng', '#000000'],
   ['no', '#FFFFFF']
 ]);

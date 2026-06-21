@@ -161,7 +161,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         align: 'center',
         color,
         fontFamily: KIT_CARD_LAYOUT.shirtNumberFontFamily,
-        fontSize: '18px',
+        fontSize: `${KIT_CARD_LAYOUT.shirtNumberFontSize}px`,
         fontStyle: '600',
         resolution: SHARP_TEXT_RESOLUTION
       })
