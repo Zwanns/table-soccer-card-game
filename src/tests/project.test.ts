@@ -46,7 +46,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.3.5');
+    expect(GAME_VERSION).toBe('1.3.6');
   });
 
   it('uses the configured game author', () => {

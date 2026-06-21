@@ -758,10 +758,7 @@ export class GameEngine {
 
   private changeGoalkeeperCardAfterSave(player: Player, goalkeeperCard: GoalkeeperCard): void {
     const previousCard = player.field.goalkeeper ?? goalkeeperCard;
-
-    recycleGoalkeeperCard(player, previousCard);
-
-    const nextCard = player.goalkeeperDeck.drawTop();
+    const nextCard = player.goalkeeperDeck.drawRandomExcludingRank(previousCard.rank, this.random);
 
     if (nextCard === undefined) {
       player.field.goalkeeper = previousCard;
@@ -769,6 +766,7 @@ export class GameEngine {
     }
 
     player.field.goalkeeper = nextCard;
+    recycleGoalkeeperCard(player, previousCard);
     this.appendLog({
       type: 'GOALKEEPER_RANK_CHANGED',
       playerId: player.id,

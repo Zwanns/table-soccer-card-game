@@ -832,13 +832,13 @@ describe('game engine attacks', () => {
     expect(afterPost.log.at(-1)?.type).toBe('GOALPOST_HIT');
   });
 
-  it('ends the attack with a goalkeeper save and changes the goalkeeper card through the goalkeeper deck', () => {
+  it('ends the attack with a goalkeeper save and randomly changes to a different goalkeeper rank', () => {
     const engine = createReadyEngine(['5']);
     setPositions(engine.getState().players[1].field, {
       goalkeeper: '6'
     });
     const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
-    engine.getState().players[1].goalkeeperDeck = goalkeeperDeck(['7', '8']);
+    engine.getState().players[1].goalkeeperDeck = goalkeeperDeck(['7']);
 
     engine.startNextTurn();
     engine.drawAttackCard();
@@ -849,7 +849,8 @@ describe('game engine attacks', () => {
     expect(result.activePlayerId).toBe('PLAYER_2');
     expect(result.players[1].field.goalkeeper).toEqual(goalkeeperCard('7'));
     expect(result.players[1].field.goalkeeper).not.toEqual(originalGoalkeeper);
-    expect(result.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['8', '6']);
+    expect(result.players[1].field.goalkeeper?.rank).not.toBe(originalGoalkeeper?.rank);
+    expect(result.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['6']);
     expect(result.attackBank).toEqual([]);
     expect(result.players[0].deck.cards.map((deckCard) => deckCard.rank)).toEqual(['5']);
     expect(result.players[0].deck.cards.some((deckCard) => deckCard.id.startsWith('ENGINE_GK_'))).toBe(false);
@@ -862,6 +863,26 @@ describe('game engine attacks', () => {
       previousCard: { rank: '6' },
       nextCard: { rank: '7' }
     });
+    expect(rankChange?.previousCard.rank).not.toBe(rankChange?.nextCard.rank);
+  });
+
+  it('keeps the current goalkeeper and skips rank change when no different goalkeeper rank is available', () => {
+    const engine = createReadyEngine(['5']);
+    setPositions(engine.getState().players[1].field, {
+      goalkeeper: '6'
+    });
+    const originalGoalkeeper = engine.getState().players[1].field.goalkeeper;
+    engine.getState().players[1].goalkeeperDeck = goalkeeperDeck(['6']);
+
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    const result = engine.selectTarget('goalkeeper');
+
+    expect(result.phase).toBe('ENDING_TURN');
+    expect(result.players[1].field.goalkeeper).toEqual(originalGoalkeeper);
+    expect(result.players[1].goalkeeperDeck.toArray().map((deckCard) => deckCard.rank)).toEqual(['6']);
+    expect(result.log.some((event) => event.type === 'GOALKEEPER_SAVE')).toBe(true);
+    expect(result.log.some((event) => event.type === 'GOALKEEPER_RANK_CHANGED')).toBe(false);
   });
 
   it('scenario 6: not enough cards to restore the field ends the game', () => {
