@@ -36,9 +36,9 @@ import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
-import { TUTORIAL_MATCH_V1_SETUP_PRESET } from '../tutorial/tutorialScenario';
+import { TUTORIAL_MATCH_V2_SETUP_PRESET } from '../tutorial/tutorialScenario';
 import { TutorialController } from '../tutorial/TutorialController';
-import type { MatchMode, TutorialAction, TutorialHighlightTarget } from '../tutorial/tutorialTypes';
+import type { MatchMode, TutorialAction, TutorialHighlightTarget, TutorialMidfielderSlot } from '../tutorial/tutorialTypes';
 import { TutorialOverlay, type TutorialHighlightRect } from '../ui/TutorialOverlay';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
@@ -278,7 +278,7 @@ export class GameScene extends Phaser.Scene {
       player2FlagCode: this.player2FlagCode,
       player1ControllerType: this.player1ControllerType,
       player2ControllerType: this.player2ControllerType,
-      setupPreset: this.matchMode === 'tutorial' ? TUTORIAL_MATCH_V1_SETUP_PRESET : undefined
+      setupPreset: this.matchMode === 'tutorial' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined
     });
     this.startTurn();
   }
@@ -384,6 +384,10 @@ export class GameScene extends Phaser.Scene {
         hiddenCards: hiddenRestoredCards,
         interactive: gameInteractive,
         onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
+        onOwnMidfielderSelect:
+          this.tutorialController === null || this.tutorialController.isComplete()
+            ? undefined
+            : (positionId) => this.commitMidfielder(positionId),
         onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
       })
     );
@@ -433,17 +437,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   private commitMidfielder(positionId: MidfielderPositionId): void {
-    if (this.blockTutorialUnsupportedAction()) {
+    const engine = this.requireEngine();
+    const midfielderAction = this.createTutorialCommitMidfielderAction(engine.getState(), positionId);
+
+    if (!this.allowTutorialAction(midfielderAction)) {
       return;
     }
-
-    const engine = this.requireEngine();
 
     if (!engine.canCommitMidfielder(positionId)) {
       return;
     }
 
     const animationContext = this.createMidfielderCommitAnimationContext(positionId);
+    const previousLogLength = engine.getState().log.length;
     let state: GameState;
 
     try {
@@ -452,6 +458,9 @@ export class GameScene extends Phaser.Scene {
       this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid midfielder.');
       return;
     }
+
+    this.recordTutorialAction(midfielderAction);
+    this.recordTutorialEvents(state, previousLogLength);
 
     if (animationContext !== null) {
       this.animateAttackSelection(state, animationContext, getAttackAnimationOutcome(state, positionId), () =>
@@ -464,12 +473,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private useMidfieldGap(positionId: MidfielderPositionId): void {
-    if (this.blockTutorialUnsupportedAction()) {
+    const engine = this.requireEngine();
+    const gapAction = this.createTutorialMidfieldGapAction(positionId);
+
+    if (!this.allowTutorialAction(gapAction)) {
       return;
     }
 
-    const engine = this.requireEngine();
     const animationContext = this.createMidfieldGapAnimationContext(positionId);
+    const previousLogLength = engine.getState().log.length;
     let state: GameState;
 
     try {
@@ -478,6 +490,9 @@ export class GameScene extends Phaser.Scene {
       this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid midfield gap.');
       return;
     }
+
+    this.recordTutorialAction(gapAction);
+    this.recordTutorialEvents(state, previousLogLength);
 
     if (animationContext !== null) {
       this.animateAttackSelection(state, animationContext, 'defeat', () => this.handleSelectedTargetState(state));
@@ -648,6 +663,39 @@ export class GameScene extends Phaser.Scene {
     state: Readonly<GameState>,
     target: TutorialHighlightTarget
   ): TutorialHighlightRect | null {
+    if (target.type === 'own-midfielder' || target.type === 'opponent-midfielder') {
+      const owner = target.type === 'own-midfielder' ? 'active' : 'opponent';
+      return this.getTutorialHighlightRect(state, {
+        type: 'field-card',
+        owner,
+        positionId: getMidfielderPositionId(target.slot),
+        rank: target.rank
+      });
+    }
+
+    if (target.type === 'open-zone') {
+      const playerId = this.getTutorialTargetPlayerId(state, target.owner);
+
+      if (playerId === null) {
+        return null;
+      }
+
+      const position = getFieldCardPosition(
+        SCENE_WIDTH / 2,
+        FIELD_CENTER_Y,
+        state,
+        playerId,
+        getMidfielderPositionId(target.slot)
+      );
+
+      return {
+        x: position.x,
+        y: position.y,
+        width: CARD_WIDTH * MATCH_CARD_SCALE,
+        height: CARD_HEIGHT * MATCH_CARD_SCALE
+      };
+    }
+
     if (target.type === 'active-deck') {
       const activePlayerId = state.activePlayerId;
 
@@ -724,7 +772,7 @@ export class GameScene extends Phaser.Scene {
     return state.players.find((player) => player.id !== activePlayerId)?.id ?? null;
   }
 
-  private createTutorialDrawAction(state: Readonly<GameState>): TutorialAction {
+  private createTutorialDrawAction(state: Readonly<GameState>): Extract<TutorialAction, { type: 'draw-attack-card' }> {
     const activePlayer = state.players.find((player) => player.id === state.activePlayerId);
 
     return {
@@ -742,6 +790,29 @@ export class GameScene extends Phaser.Scene {
       type: 'select-target',
       positionId,
       rank: targetCard?.rank
+    };
+  }
+
+  private createTutorialCommitMidfielderAction(
+    state: Readonly<GameState>,
+    positionId: MidfielderPositionId
+  ): TutorialAction {
+    const activePlayer = state.players.find((player) => player.id === state.activePlayerId);
+    const card = activePlayer?.field[positionId] ?? null;
+
+    return {
+      type: 'commit-midfielder',
+      positionId,
+      slot: getMidfielderSlot(positionId),
+      rank: card?.rank
+    };
+  }
+
+  private createTutorialMidfieldGapAction(positionId: MidfielderPositionId): TutorialAction {
+    return {
+      type: 'use-midfield-gap',
+      positionId,
+      slot: getMidfielderSlot(positionId)
     };
   }
 
@@ -2179,6 +2250,28 @@ function createPlayerDeck(
 
 function getPlayerDeckX(state: Readonly<GameState>, playerId: Player['id']): number {
   return playerId === state.players[0].id ? 115 : 1485;
+}
+
+function getMidfielderPositionId(slot: TutorialMidfielderSlot): MidfielderPositionId {
+  switch (slot) {
+    case 'left':
+      return 'midfielder-1';
+    case 'center':
+      return 'midfielder-2';
+    case 'right':
+      return 'midfielder-3';
+  }
+}
+
+function getMidfielderSlot(positionId: MidfielderPositionId): TutorialMidfielderSlot {
+  switch (positionId) {
+    case 'midfielder-1':
+      return 'left';
+    case 'midfielder-2':
+      return 'center';
+    case 'midfielder-3':
+      return 'right';
+  }
 }
 
 function findCardView(

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { TUTORIAL_MATCH_V1_TEAMS } from '../tutorial/tutorialScenario';
+import { TUTORIAL_MATCH_V2_TEAMS } from '../tutorial/tutorialScenario';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
@@ -543,7 +543,7 @@ export class MenuScene extends Phaser.Scene {
         'Tutorial Match',
         () =>
           this.scene.start('GameScene', {
-            ...TUTORIAL_MATCH_V1_TEAMS,
+            ...TUTORIAL_MATCH_V2_TEAMS,
             matchMode: 'tutorial'
           }),
         buttonOptions

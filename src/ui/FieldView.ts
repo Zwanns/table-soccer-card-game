@@ -44,6 +44,7 @@ export interface FieldViewOptions {
   hiddenCards?: readonly HiddenFieldCard[];
   interactive?: boolean;
   onMidfielderCommit?: MidfielderCommitHandler;
+  onOwnMidfielderSelect?: MidfielderCommitHandler;
   onMidfieldGapSelect?: MidfieldGapSelectHandler;
 }
 
@@ -144,6 +145,11 @@ export class FieldView extends Phaser.GameObjects.Container {
         player.id === state.activePlayerId &&
         isMidfielderPositionId(position.positionId) &&
         (state.committableMidfielderPositionIds ?? []).includes(position.positionId);
+      const tutorialSelectableOwnMidfielder =
+        options.interactive !== false &&
+        player.id === state.activePlayerId &&
+        isMidfielderPositionId(position.positionId) &&
+        options.onOwnMidfielderSelect !== undefined;
       const setup = state.matchSetups[player.id];
       const isGoalkeeper = position.positionId === 'goalkeeper';
       const cardView = new CardView(scene, position.x, position.y, {
@@ -166,6 +172,8 @@ export class FieldView extends Phaser.GameObjects.Container {
           ? () => onTargetSelect(position.positionId)
           : committable && options.onMidfielderCommit !== undefined
             ? () => options.onMidfielderCommit?.(position.positionId as MidfielderPositionId)
+            : tutorialSelectableOwnMidfielder
+              ? () => options.onOwnMidfielderSelect?.(position.positionId as MidfielderPositionId)
             : undefined
       });
       cardView.setScale(MATCH_CARD_SCALE);

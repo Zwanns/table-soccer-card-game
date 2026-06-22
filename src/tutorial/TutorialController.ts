@@ -1,6 +1,6 @@
 import type { GameEvent, TargetLine } from '../game';
 import {
-  TUTORIAL_MATCH_V1_STEPS
+  TUTORIAL_MATCH_V2_STEPS
 } from './tutorialScenario';
 import type {
   TutorialAction,
@@ -16,7 +16,7 @@ export class TutorialController {
   private currentStepIndex = 0;
   private completed = false;
 
-  public constructor(steps: readonly TutorialStep[] = TUTORIAL_MATCH_V1_STEPS) {
+  public constructor(steps: readonly TutorialStep[] = TUTORIAL_MATCH_V2_STEPS) {
     this.steps = steps;
     this.completed = steps.length === 0;
   }
@@ -62,7 +62,7 @@ export class TutorialController {
 
     return {
       allowed: false,
-      message: step.allowedAction.type === 'draw-attack-card' ? 'Use the highlighted deck.' : DEFAULT_BLOCKED_MESSAGE
+      message: step.blockedMessage ?? getDefaultBlockedMessage(step.allowedAction.type)
     };
   }
 
@@ -121,15 +121,64 @@ function isActionAllowed(action: TutorialAction, allowedAction: TutorialAllowedA
     return false;
   }
 
-  if (allowedAction.type === 'select-target') {
-    if (allowedAction.positionId !== undefined && action.type === 'select-target' && action.positionId !== allowedAction.positionId) {
-      return false;
-    }
+  switch (allowedAction.type) {
+    case 'draw-attack-card':
+      if (action.type !== 'draw-attack-card') {
+        return false;
+      }
+
+      return allowedAction.rank === undefined || action.rank === allowedAction.rank;
+    case 'select-target':
+      if (action.type !== 'select-target') {
+        return false;
+      }
+
+      if (allowedAction.positionId !== undefined && action.positionId !== allowedAction.positionId) {
+        return false;
+      }
+
+      return allowedAction.rank === undefined || action.rank === allowedAction.rank;
+    case 'commit-midfielder':
+      if (action.type !== 'commit-midfielder') {
+        return false;
+      }
+
+      if (allowedAction.positionId !== undefined && action.positionId !== allowedAction.positionId) {
+        return false;
+      }
+
+      if (allowedAction.slot !== undefined && action.slot !== allowedAction.slot) {
+        return false;
+      }
+
+      return allowedAction.rank === undefined || action.rank === allowedAction.rank;
+    case 'use-midfield-gap':
+      if (action.type !== 'use-midfield-gap') {
+        return false;
+      }
+
+      if (allowedAction.positionId !== undefined && action.positionId !== allowedAction.positionId) {
+        return false;
+      }
+
+      return allowedAction.slot === undefined || action.slot === allowedAction.slot;
   }
 
-  if (allowedAction.rank !== undefined && action.rank !== allowedAction.rank) {
-    return false;
+  return false;
+}
+
+function getDefaultBlockedMessage(actionType: TutorialAllowedAction['type']): string {
+  if (actionType === 'draw-attack-card') {
+    return 'Use the highlighted deck.';
   }
 
-  return true;
+  if (actionType === 'commit-midfielder') {
+    return 'Try the highlighted midfielder.';
+  }
+
+  if (actionType === 'use-midfield-gap') {
+    return 'Pass through the highlighted open zone.';
+  }
+
+  return DEFAULT_BLOCKED_MESSAGE;
 }
