@@ -14,6 +14,7 @@ import {
   GameEngine,
   getFieldPlayerForCard,
   formatGoalScorerMatchLabel,
+  getCurrentTargetLine,
   getMatchStats,
   getStartingGoalkeeper,
   getTeamAdvantage,
@@ -29,12 +30,16 @@ import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
 import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
-import { CardView } from '../ui/CardView';
+import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
+import { TUTORIAL_MATCH_V1_SETUP_PRESET } from '../tutorial/tutorialScenario';
+import { TutorialController } from '../tutorial/TutorialController';
+import type { MatchMode, TutorialAction, TutorialHighlightTarget } from '../tutorial/tutorialTypes';
+import { TutorialOverlay, type TutorialHighlightRect } from '../ui/TutorialOverlay';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
@@ -171,9 +176,16 @@ type AttackAnimationOutcome = 'defeat' | 'miss' | 'goal' | 'post' | 'save';
 type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>;
 type GoalkeeperRankChangedSceneEvent = Extract<GameEvent, { type: 'GOALKEEPER_RANK_CHANGED' }>;
 
+type GameSceneInitData = Partial<TeamSelectionData> & {
+  launchContext?: MatchLaunchContext;
+  matchMode?: MatchMode;
+};
+
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private aiTurnController: AiTurnController | null = null;
+  private tutorialController: TutorialController | null = null;
+  private tutorialOverlay: TutorialOverlay | null = null;
   private dynamicLayer: Phaser.GameObjects.Container | null = null;
   private message: Phaser.GameObjects.Container | null = null;
   private exitConfirmModal: Phaser.GameObjects.Container | null = null;
@@ -193,6 +205,7 @@ export class GameScene extends Phaser.Scene {
   private player1CoverTextureKey = getFallbackCoverTextureKey();
   private player2CoverTextureKey = getFallbackCoverTextureKey();
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
+  private matchMode: MatchMode = 'quick';
   private handledGoalScoredEventCursor = 0;
   private isMatchEffectInProgress = false;
   private isAttackAnimationInProgress = false;
@@ -202,7 +215,7 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  public init(data: Partial<TeamSelectionData> & { launchContext?: MatchLaunchContext }): void {
+  public init(data: GameSceneInitData): void {
     this.player1Name = data.player1Name ?? 'France';
     this.player2Name = data.player2Name ?? 'Spain';
     this.player1FlagCode = data.player1FlagCode ?? 'fr';
@@ -210,6 +223,7 @@ export class GameScene extends Phaser.Scene {
     this.player1ControllerType = data.player1ControllerType ?? 'HUMAN';
     this.player2ControllerType = data.player2ControllerType ?? 'HUMAN';
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
+    this.matchMode = data.matchMode ?? 'quick';
     this.aiMatchSeed = createAiMatchSeed(
       this.launchContext,
       this.player1FlagCode,
@@ -232,6 +246,9 @@ export class GameScene extends Phaser.Scene {
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = null;
+    this.tutorialController = this.matchMode === 'tutorial' ? new TutorialController() : null;
   }
 
   public preload(): void {
@@ -260,7 +277,8 @@ export class GameScene extends Phaser.Scene {
       player1FlagCode: this.player1FlagCode,
       player2FlagCode: this.player2FlagCode,
       player1ControllerType: this.player1ControllerType,
-      player2ControllerType: this.player2ControllerType
+      player2ControllerType: this.player2ControllerType,
+      setupPreset: this.matchMode === 'tutorial' ? TUTORIAL_MATCH_V1_SETUP_PRESET : undefined
     });
     this.startTurn();
   }
@@ -375,6 +393,8 @@ export class GameScene extends Phaser.Scene {
       })
     );
     this.addTeamStats(state);
+    this.recordTutorialTargetLine(state);
+    this.refreshTutorialOverlay(state);
 
     if (interactive && pendingRestores.length > 0) {
       this.isRestoreAnimationInProgress = true;
@@ -390,6 +410,13 @@ export class GameScene extends Phaser.Scene {
 
   private drawAttackCard(): void {
     const engine = this.requireEngine();
+    const drawAction = this.createTutorialDrawAction(engine.getState());
+
+    if (!this.allowTutorialAction(drawAction)) {
+      return;
+    }
+
+    const previousLogLength = engine.getState().log.length;
     const state = engine.drawAttackCard();
 
     if (state.phase === 'GAME_OVER') {
@@ -397,10 +424,19 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.recordTutorialAction({
+      type: 'draw-attack-card',
+      rank: state.attackCard?.rank ?? drawAction.rank
+    });
+    this.recordTutorialEvents(state, previousLogLength);
     this.render(state);
   }
 
   private commitMidfielder(positionId: MidfielderPositionId): void {
+    if (this.blockTutorialUnsupportedAction()) {
+      return;
+    }
+
     const engine = this.requireEngine();
 
     if (!engine.canCommitMidfielder(positionId)) {
@@ -428,6 +464,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private useMidfieldGap(positionId: MidfielderPositionId): void {
+    if (this.blockTutorialUnsupportedAction()) {
+      return;
+    }
+
     const engine = this.requireEngine();
     const animationContext = this.createMidfieldGapAnimationContext(positionId);
     let state: GameState;
@@ -449,7 +489,14 @@ export class GameScene extends Phaser.Scene {
 
   private selectTarget(positionId: FieldPositionId): void {
     const engine = this.requireEngine();
+    const targetAction = this.createTutorialTargetAction(engine.getState(), positionId);
+
+    if (!this.allowTutorialAction(targetAction)) {
+      return;
+    }
+
     const animationContext = this.createAttackAnimationContext(positionId);
+    const previousLogLength = engine.getState().log.length;
     let state: GameState;
 
     try {
@@ -458,6 +505,9 @@ export class GameScene extends Phaser.Scene {
       this.showTemporaryMessage(error instanceof Error ? error.message : 'Invalid target.');
       return;
     }
+
+    this.recordTutorialAction(targetAction);
+    this.recordTutorialEvents(state, previousLogLength);
 
     if (animationContext !== null) {
       this.animateAttackSelection(state, animationContext, getAttackAnimationOutcome(state, positionId), () =>
@@ -509,6 +559,190 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.render(state);
+  }
+
+  private allowTutorialAction(action: TutorialAction): boolean {
+    const result = this.tutorialController?.checkAction(action) ?? { allowed: true };
+
+    if (result.allowed) {
+      return true;
+    }
+
+    this.showTemporaryMessage(result.message);
+    return false;
+  }
+
+  private blockTutorialUnsupportedAction(): boolean {
+    const step = this.tutorialController?.getCurrentStep();
+
+    if (step === undefined || step === null || this.tutorialController?.isComplete() === true) {
+      return false;
+    }
+
+    if (step.waitFor === 'line-reached') {
+      return false;
+    }
+
+    this.showTemporaryMessage(step.waitFor === 'next' ? 'Press Continue first.' : 'Try this card.');
+    return true;
+  }
+
+  private recordTutorialAction(action: TutorialAction): void {
+    this.tutorialController?.recordAction(action);
+  }
+
+  private recordTutorialEvents(state: Readonly<GameState>, previousLogLength: number): void {
+    this.tutorialController?.recordEvents(state.log.slice(previousLogLength));
+  }
+
+  private recordTutorialTargetLine(state: Readonly<GameState>): void {
+    const controller = this.tutorialController;
+
+    if (controller === null || controller.isComplete()) {
+      return;
+    }
+
+    const activePlayer = state.players.find((player) => player.id === state.activePlayerId);
+    const opponent = activePlayer === undefined ? undefined : state.players.find((player) => player.id !== activePlayer.id);
+
+    controller.recordTargetLine(opponent === undefined ? null : getCurrentTargetLine(opponent.field));
+  }
+
+  private refreshTutorialOverlay(state: Readonly<GameState>): void {
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = null;
+
+    const step = this.tutorialController?.getCurrentStep();
+
+    if (step === undefined || step === null) {
+      return;
+    }
+
+    this.tutorialOverlay = new TutorialOverlay(this, {
+      step,
+      highlightRects: this.getTutorialHighlightRects(state, step.highlight ?? []),
+      onContinue: () => this.continueTutorial()
+    });
+  }
+
+  private continueTutorial(): void {
+    if (this.tutorialController?.continue() !== true || this.engine === null) {
+      return;
+    }
+
+    this.render(this.engine.getState());
+  }
+
+  private getTutorialHighlightRects(
+    state: Readonly<GameState>,
+    targets: readonly TutorialHighlightTarget[]
+  ): TutorialHighlightRect[] {
+    return targets.flatMap((target) => {
+      const rect = this.getTutorialHighlightRect(state, target);
+
+      return rect === null ? [] : [rect];
+    });
+  }
+
+  private getTutorialHighlightRect(
+    state: Readonly<GameState>,
+    target: TutorialHighlightTarget
+  ): TutorialHighlightRect | null {
+    if (target.type === 'active-deck') {
+      const activePlayerId = state.activePlayerId;
+
+      if (activePlayerId === null) {
+        return null;
+      }
+
+      return {
+        x: getPlayerDeckX(state, activePlayerId),
+        y: DECK_Y,
+        width: CARD_WIDTH * MATCH_CARD_SCALE + 28,
+        height: CARD_HEIGHT * MATCH_CARD_SCALE + 28
+      };
+    }
+
+    if (target.type === 'attack-card') {
+      const cardView = findCardView(
+        this.dynamicLayer,
+        (candidate) => candidate.getData('attackDeckSourcePlayerId') === state.activePlayerId
+      );
+
+      if (cardView !== null) {
+        const position = getCardViewWorldCenter(cardView);
+
+        return {
+          x: position.x,
+          y: position.y,
+          width: CARD_WIDTH * MATCH_CARD_SCALE,
+          height: CARD_HEIGHT * MATCH_CARD_SCALE
+        };
+      }
+
+      return state.activePlayerId === null
+        ? null
+        : {
+            x: getPlayerDeckX(state, state.activePlayerId),
+            y: DECK_Y,
+            width: CARD_WIDTH * MATCH_CARD_SCALE,
+            height: CARD_HEIGHT * MATCH_CARD_SCALE
+          };
+    }
+
+    const playerId = this.getTutorialTargetPlayerId(state, target.owner);
+
+    if (playerId === null) {
+      return null;
+    }
+
+    const cardView = this.findFieldCardView(playerId, target.positionId as FieldPositionId);
+    const position =
+      cardView === null
+        ? getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, playerId, target.positionId as FieldPositionId)
+        : getCardViewWorldCenter(cardView);
+
+    return {
+      x: position.x,
+      y: position.y,
+      width: CARD_WIDTH * MATCH_CARD_SCALE,
+      height: CARD_HEIGHT * MATCH_CARD_SCALE
+    };
+  }
+
+  private getTutorialTargetPlayerId(state: Readonly<GameState>, owner: 'active' | 'opponent'): Player['id'] | null {
+    const activePlayerId = state.activePlayerId;
+
+    if (activePlayerId === null) {
+      return null;
+    }
+
+    if (owner === 'active') {
+      return activePlayerId;
+    }
+
+    return state.players.find((player) => player.id !== activePlayerId)?.id ?? null;
+  }
+
+  private createTutorialDrawAction(state: Readonly<GameState>): TutorialAction {
+    const activePlayer = state.players.find((player) => player.id === state.activePlayerId);
+
+    return {
+      type: 'draw-attack-card',
+      rank: activePlayer?.deck.cards[0]?.rank
+    };
+  }
+
+  private createTutorialTargetAction(state: Readonly<GameState>, positionId: FieldPositionId): TutorialAction {
+    const activePlayer = state.players.find((player) => player.id === state.activePlayerId);
+    const opponent = activePlayer === undefined ? undefined : state.players.find((player) => player.id !== activePlayer.id);
+    const targetCard = opponent?.field[positionId] ?? null;
+
+    return {
+      type: 'select-target',
+      positionId,
+      rank: targetCard?.rank
+    };
   }
 
   private addTeamStats(state: Readonly<GameState>): void {
@@ -1858,6 +2092,7 @@ export class GameScene extends Phaser.Scene {
       this.exitConfirmModal === null &&
       this.pauseModal === null &&
       this.infoModal === null &&
+      (this.tutorialController === null || this.tutorialController.isComplete()) &&
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
       !this.isMatchEffectInProgress
@@ -1893,6 +2128,9 @@ export class GameScene extends Phaser.Scene {
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = null;
+    this.tutorialController = null;
     this.aiTurnController?.dispose();
     this.aiTurnController = null;
   }
@@ -1966,6 +2204,16 @@ function findCardView(
   }
 
   return null;
+}
+
+function getCardViewWorldCenter(cardView: CardView): { x: number; y: number } {
+  const position = new Phaser.Math.Vector2();
+
+  cardView.getWorldTransformMatrix().transformPoint(0, 0, position);
+  return {
+    x: position.x,
+    y: position.y
+  };
 }
 
 function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, card: Card): CardPlayerProfile | undefined {

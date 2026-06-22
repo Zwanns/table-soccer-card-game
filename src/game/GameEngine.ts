@@ -6,6 +6,7 @@ import {
   createPlayerDecks,
   createSeededRandom,
   drawTopCard,
+  GoalkeeperDeck,
   getRankValue,
   shuffleDeck,
   type Card,
@@ -24,6 +25,7 @@ import { getOptionalFieldPlayerForCard } from './squadResolver';
 import {
   createEmptyField,
   MIDFIELDER_POSITION_IDS,
+  isOutfieldPosition,
   RESTORE_ORDER,
   TARGET_LINE_POSITIONS,
   type FieldPositionId,
@@ -44,6 +46,17 @@ export interface StartNewGameOptions {
   player2FlagCode?: string;
   player1ControllerType?: PlayerControllerType;
   player2ControllerType?: PlayerControllerType;
+  setupPreset?: GameSetupPreset;
+}
+
+export interface GameSetupPreset {
+  player1Deck?: readonly Card[];
+  player2Deck?: readonly Card[];
+  player1GoalkeeperDeck?: readonly GoalkeeperCard[];
+  player2GoalkeeperDeck?: readonly GoalkeeperCard[];
+  player1Field?: Partial<PlayerField>;
+  player2Field?: Partial<PlayerField>;
+  activePlayerId?: Player['id'];
 }
 
 type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS';
@@ -66,6 +79,7 @@ export class GameEngine {
     const playerTwoTeamId = options.player2FlagCode ?? 'es';
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
+    const setupPreset = options.setupPreset;
     const [playerOneGoalkeeperKitId, playerTwoGoalkeeperKitId] = createGoalkeeperKitPair(setupRandom);
     const players: [Player, Player] = [
       createPlayer(
@@ -73,20 +87,24 @@ export class GameEngine {
         options.player1Name ?? 'Player 1',
         playerOneTeamId,
         'RED',
-        shuffleDeck(playerOneDeck, this.random),
-        createGoalkeeperDeck(
-          options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_1:gk-deck`))
-        )
+        setupPreset?.player1Deck === undefined ? shuffleDeck(playerOneDeck, this.random) : cloneDeck(setupPreset.player1Deck),
+        setupPreset?.player1GoalkeeperDeck === undefined
+          ? createGoalkeeperDeck(
+              options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_1:gk-deck`))
+            )
+          : createGoalkeeperDeckFromPreset(setupPreset.player1GoalkeeperDeck)
       ),
       createPlayer(
         'PLAYER_2',
         options.player2Name ?? 'Player 2',
         playerTwoTeamId,
         'BLACK',
-        shuffleDeck(playerTwoDeck, this.random),
-        createGoalkeeperDeck(
-          options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_2:gk-deck`))
-        )
+        setupPreset?.player2Deck === undefined ? shuffleDeck(playerTwoDeck, this.random) : cloneDeck(setupPreset.player2Deck),
+        setupPreset?.player2GoalkeeperDeck === undefined
+          ? createGoalkeeperDeck(
+              options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:PLAYER_2:gk-deck`))
+            )
+          : createGoalkeeperDeckFromPreset(setupPreset.player2GoalkeeperDeck)
       )
     ];
     const matchSetups: MatchTeamSetups = {
@@ -107,7 +125,18 @@ export class GameEngine {
     this.state = createInitialState(players, matchSetups);
     this.appendLog({ type: 'GAME_STARTED' });
     this.setupInitialFields();
-    this.determineFirstPlayer();
+
+    if (setupPreset !== undefined) {
+      applyFieldPreset(this.state.players[0], setupPreset.player1Field);
+      applyFieldPreset(this.state.players[1], setupPreset.player2Field);
+    }
+
+    if (setupPreset?.activePlayerId === undefined) {
+      this.determineFirstPlayer();
+    } else {
+      this.state.activePlayerId = setupPreset.activePlayerId;
+      this.appendLog({ type: 'FIRST_PLAYER_SELECTED', playerId: setupPreset.activePlayerId });
+    }
 
     if (this.state.phase !== 'GAME_OVER') {
       this.state.phase = 'ENDING_TURN';
@@ -883,6 +912,36 @@ function createDefaultMatchSetups(players: [Player, Player]): MatchTeamSetups {
       goalkeeperKitId: 'gk2'
     })
   };
+}
+
+function cloneDeck(cards: readonly Card[]): Deck {
+  return {
+    cards: cards.map((card) => ({ ...card }))
+  };
+}
+
+function createGoalkeeperDeckFromPreset(cards: readonly GoalkeeperCard[]): GoalkeeperDeck {
+  return new GoalkeeperDeck(cards);
+}
+
+function applyFieldPreset(player: Player, fieldPreset?: Partial<PlayerField>): void {
+  if (fieldPreset === undefined) {
+    return;
+  }
+
+  for (const positionId of RESTORE_ORDER) {
+    const card = fieldPreset[positionId];
+
+    if (card === undefined) {
+      continue;
+    }
+
+    if (positionId === 'goalkeeper') {
+      player.field.goalkeeper = card === null ? null : { ...(card as GoalkeeperCard) };
+    } else if (isOutfieldPosition(positionId)) {
+      player.field[positionId] = card === null ? null : { ...(card as Card) };
+    }
+  }
 }
 
 function createPlayer(

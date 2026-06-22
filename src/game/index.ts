@@ -1,6 +1,6 @@
 export type { Player } from './Player';
 export { GameEngine } from './GameEngine';
-export type { StartNewGameOptions } from './GameEngine';
+export type { GameSetupPreset, StartNewGameOptions } from './GameEngine';
 export type { GameEvent, ScorerSnapshot } from './GameEvent';
 export type { GamePhase } from './GamePhase';
 export type { AttackCardSource, CounterattackMidfieldGap, GameState } from './GameState';

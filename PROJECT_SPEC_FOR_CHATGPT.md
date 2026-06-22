@@ -1,12 +1,14 @@
 # Total Soccer: Mundial - описание и спецификация проекта
 
-Этот документ предназначен для переноса контекста проекта в отдельный чат GPT. Он описывает текущее состояние приложения после этапов с реальными составами, WebP-экипировками, командными рубашками колод, новым layout открытых карт, локальными игровыми шрифтами, отдельной GK-колодой, подключением полузащитников к атаке, единой открытой зоной для контратаки, режимом игры против AI, безопасным аудио, обновленной статистикой голов и строгими правилами подключенных полузащитников.
+Этот документ предназначен для переноса контекста проекта в отдельный чат GPT. Он описывает текущее состояние приложения после этапов с реальными составами, WebP-экипировками, командными рубашками колод, новым layout открытых карт, локальными игровыми шрифтами, отдельной GK-колодой, подключением полузащитников к атаке, единой открытой зоной для контратаки, режимом игры против AI, Tutorial Match v1, безопасным аудио, обновленной статистикой голов и строгими правилами подключенных полузащитников.
 
 ## 1. Краткое описание
 
 `Total Soccer: Mundial` - браузерная карточная футбольная игра на Phaser 3, TypeScript и Vite.
 
 Игроки выбирают две национальные сборные и проводят матч карточными колодами. Каждая команда может управляться человеком или встроенным AI, поэтому поддерживаются матчи HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI. Поле каждой команды состоит из линии полузащиты, линии защиты и позиции вратаря. Атака проходит линии соперника строго по порядку: полузащита, защита, вратарь. Во время атаки на линию полузащиты игрок может вместо карты из колоды подключать собственных полузащитников строго по соответствующим коридорам. Подключенный полузащитник бьет только строго меньший rank, кроме специальных правил. При пробитии вратаря засчитывается гол.
+
+Tutorial Match v1 запускается из меню режимов как отдельный guided quick match. Он использует обычный `GameScene`, фиксированные команды Brazil vs Germany, scripted setup/preset карт, `TutorialController` для шагов и `TutorialOverlay` для подсказок/подсветки. Tutorial v1 обучает базовому циклу: выбрать карту, пробить карту соперника, использовать пример special rule `6 beats Ace`, выйти на GK, ударить, забить и увидеть смену владения. Он не меняет правила `GameEngine`, карточные правила, GK-логику, AI, tournament flow или penalty flow.
 
 Текущая версия приложения в коде: `1.3.7`.
 
@@ -72,6 +74,7 @@ src/scenes/
 - Team selection background uses the preloaded `public/menu/menu-2-bg.webp` asset, stretched to the scene size, with the muted striped Phaser Graphics football field kept only as a missing-texture fallback. No main.ts, index.html, global CSS scale/input, GameEngine, AI, Penalty AI, or TournamentEngine changes are part of this screen layout contract.
 - `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа цвета выбранной сборной и две preview-карты: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
+- `tutorial/` - `TutorialController`, декларативные steps и scripted setup для Tutorial Match v1.
 - `ResultScene.ts` - финальный экран матча.
 - `TournamentSetupScene.ts`, `TournamentHubScene.ts`, `TournamentPenaltyScene.ts`, `TournamentCompleteScene.ts` - турнирный контур и пенальти. В setup-экране слоты групп, AI-checkboxes и кнопки удаления используют интерактивные зоны, совпадающие с видимыми прямоугольниками строк.
 
@@ -164,6 +167,7 @@ Phaser UI:
 - `cardPlayerProfile.ts` - профиль игрока для карты и tooltip.
 - `CardTooltipView.ts` - tooltip.
 - `DeckView.ts`, `FieldView.ts`, `ScoreView.ts`, `TeamStatsView.ts`, `AdvantageView.ts`, `EventLogView.ts`.
+- `TutorialOverlay.ts` - overlay обучающего матча с затемнением, панелью подсказки, кнопкой Continue и золотой подсветкой целевых карт/зон.
 
 ### Главное меню
 
