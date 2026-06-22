@@ -8,8 +8,9 @@ import type {
   TutorialAllowedAction,
   TutorialStep
 } from './tutorialTypes';
+import type { TutorialTextKey } from './tutorialTexts';
 
-const DEFAULT_BLOCKED_MESSAGE = 'Try this card.';
+const DEFAULT_BLOCKED_MESSAGE_KEY: TutorialTextKey = 'tutorial.guard.tryCard';
 
 export class TutorialController {
   private readonly steps: readonly TutorialStep[];
@@ -52,7 +53,7 @@ export class TutorialController {
         ? { allowed: true }
         : {
             allowed: false,
-            message: step.waitFor === 'next' ? 'Press Continue first.' : DEFAULT_BLOCKED_MESSAGE
+            messageKey: step.waitFor === 'next' ? 'tutorial.guard.pressContinue' : DEFAULT_BLOCKED_MESSAGE_KEY
           };
     }
 
@@ -62,7 +63,7 @@ export class TutorialController {
 
     return {
       allowed: false,
-      message: step.blockedMessage ?? getDefaultBlockedMessage(step.allowedAction.type)
+      messageKey: step.blockedMessageKey ?? getDefaultBlockedMessageKey(step.allowedAction.type)
     };
   }
 
@@ -167,18 +168,18 @@ function isActionAllowed(action: TutorialAction, allowedAction: TutorialAllowedA
   return false;
 }
 
-function getDefaultBlockedMessage(actionType: TutorialAllowedAction['type']): string {
+function getDefaultBlockedMessageKey(actionType: TutorialAllowedAction['type']): TutorialTextKey {
   if (actionType === 'draw-attack-card') {
-    return 'Use the highlighted deck.';
+    return 'tutorial.guard.useDeck';
   }
 
   if (actionType === 'commit-midfielder') {
-    return 'Try the highlighted midfielder.';
+    return 'tutorial.guard.tryMidfielder';
   }
 
   if (actionType === 'use-midfield-gap') {
-    return 'Pass through the highlighted open zone.';
+    return 'tutorial.guard.passOpenZone';
   }
 
-  return DEFAULT_BLOCKED_MESSAGE;
+  return DEFAULT_BLOCKED_MESSAGE_KEY;
 }

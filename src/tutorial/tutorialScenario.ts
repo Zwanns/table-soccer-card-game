@@ -48,26 +48,26 @@ export const TUTORIAL_MATCH_V2_SETUP_PRESET: GameSetupPreset = {
 export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [
   {
     id: 'welcome',
-    title: 'Tutorial Match',
-    message: 'Build an attack by beating opponent cards line by line. Reach the goalkeeper to take a shot.',
+    titleKey: 'tutorial.welcome.title',
+    messageKey: 'tutorial.welcome.message',
     waitFor: 'next'
   },
   {
     id: 'basic-rule',
-    title: 'Basic rule',
-    message: 'Your card can beat an opponent card if its rank is equal or higher.',
+    titleKey: 'tutorial.basicRule.title',
+    messageKey: 'tutorial.basicRule.message',
     waitFor: 'next'
   },
   {
     id: 'draw-nine',
-    message: 'Draw your 9.',
+    messageKey: 'tutorial.drawNine.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
     allowedAction: { type: 'draw-attack-card', rank: '9' }
   },
   {
     id: 'beat-seven',
-    message: "Now beat the opponent's 7.",
+    messageKey: 'tutorial.beatSeven.message',
     waitFor: 'action',
     highlight: [
       { type: 'attack-card' },
@@ -77,26 +77,26 @@ export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'turnover-rule',
-    title: 'Turnover',
-    message: 'If your card cannot beat a target, the attack ends and the other team gets the ball.',
+    titleKey: 'tutorial.turnoverRule.title',
+    messageKey: 'tutorial.turnoverRule.message',
     waitFor: 'next'
   },
   {
     id: 'special-rule',
-    title: 'Special rule',
-    message: 'Some cards beat stronger ranks. For example, 6 can beat Ace.',
+    titleKey: 'tutorial.specialRule.title',
+    messageKey: 'tutorial.specialRule.message',
     waitFor: 'next'
   },
   {
     id: 'draw-six',
-    message: 'Draw your 6.',
+    messageKey: 'tutorial.drawSix.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
     allowedAction: { type: 'draw-attack-card', rank: '6' }
   },
   {
     id: 'beat-ace',
-    message: 'Use your 6 against Ace.',
+    messageKey: 'tutorial.beatAce.message',
     waitFor: 'action',
     highlight: [
       { type: 'attack-card' },
@@ -106,28 +106,28 @@ export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'clear-defense',
-    title: 'Keep going',
-    message: 'Clear the defense line, then you will reach the goalkeeper.',
+    titleKey: 'tutorial.clearDefense.title',
+    messageKey: 'tutorial.clearDefense.message',
     waitFor: 'line-reached',
     expectedLine: 'GOALKEEPER'
   },
   {
     id: 'goalkeeper',
-    title: 'Goalkeeper',
-    message: 'You reached the goalkeeper. Beat the goalkeeper card to score.',
+    titleKey: 'tutorial.goalkeeper.title',
+    messageKey: 'tutorial.goalkeeper.message',
     waitFor: 'next',
     highlight: [{ type: 'field-card', owner: 'opponent', positionId: 'goalkeeper', rank: '5' }]
   },
   {
     id: 'draw-shot',
-    message: 'Draw a shot card.',
+    messageKey: 'tutorial.drawShot.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
     allowedAction: { type: 'draw-attack-card', rank: 'Q' }
   },
   {
     id: 'take-shot',
-    message: 'Take the shot!',
+    messageKey: 'tutorial.takeShot.message',
     waitFor: 'engine-event',
     highlight: [
       { type: 'attack-card' },
@@ -138,90 +138,90 @@ export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'turnover-after-goal',
-    title: 'Turnover',
-    message: 'After an attack ends, the other team gets the ball. Now you defend.',
+    titleKey: 'tutorial.turnoverAfterGoal.title',
+    messageKey: 'tutorial.turnoverAfterGoal.message',
     waitFor: 'next'
   },
   {
     id: 'midfield-support-intro',
-    title: 'Midfield support',
-    message: 'During the midfield line, your midfielders can help the attack. They can only play against the opposite slot.',
+    titleKey: 'tutorial.midfieldSupport.title',
+    messageKey: 'tutorial.midfieldSupport.message',
     waitFor: 'next'
   },
   {
     id: 'select-left-midfielder',
-    message: 'Select your left midfielder.',
+    messageKey: 'tutorial.selectLeftMidfielder.message',
     waitFor: 'action',
     highlight: [{ type: 'own-midfielder', slot: 'left', rank: 'A' }],
     allowedAction: { type: 'commit-midfielder', slot: 'left', rank: 'A' },
-    blockedMessage: 'Try the highlighted midfielder.'
+    blockedMessageKey: 'tutorial.guard.tryMidfielder'
   },
   {
     id: 'opposite-midfielder-beaten',
-    title: 'Opposite lane',
-    message: 'He helps only in the same lane and beats the opposite midfielder.',
+    titleKey: 'tutorial.oppositeMidfielderBeaten.title',
+    messageKey: 'tutorial.oppositeMidfielderBeaten.message',
     waitFor: 'next',
     highlight: [{ type: 'opponent-midfielder', slot: 'left' }]
   },
   {
     id: 'opposite-slot-rule',
-    title: 'Opposite slot only',
-    message: 'A midfielder can help only in the same lane. Left vs left, center vs center, right vs right.',
+    titleKey: 'tutorial.oppositeSlotRule.title',
+    messageKey: 'tutorial.oppositeSlotRule.message',
     waitFor: 'next'
   },
   {
     id: 'empty-slot',
-    title: 'Empty slot',
-    message: 'You cannot use a midfielder against an empty slot. Open zones are passed through by the attacker.',
+    titleKey: 'tutorial.emptySlot.title',
+    messageKey: 'tutorial.emptySlot.message',
     waitFor: 'next',
     highlight: [{ type: 'open-zone', owner: 'active', slot: 'left' }]
   },
   {
     id: 'draw-low-after-midfielder',
-    message: 'Draw a low card and see what happens after midfield support.',
+    messageKey: 'tutorial.drawLowAfterMidfielder.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
     allowedAction: { type: 'draw-attack-card', rank: '3' }
   },
   {
     id: 'lose-after-midfielder',
-    message: "Use the 3 against Brazil's center midfielder.",
+    messageKey: 'tutorial.loseAfterMidfielder.message',
     waitFor: 'engine-event',
     highlight: [
       { type: 'attack-card' },
       { type: 'opponent-midfielder', slot: 'center', rank: '10' }
     ],
     allowedAction: { type: 'select-target', positionId: 'midfielder-2', rank: '10' },
-    blockedMessage: 'Use the opposite lane.',
+    blockedMessageKey: 'tutorial.guard.useOppositeLane',
     expectedEventType: 'ATTACK_MISSED'
   },
   {
     id: 'open-zone',
-    title: 'Open zone',
-    message: 'Because a midfielder joined the attack, losing the ball leaves one open zone for the counter-attack.',
+    titleKey: 'tutorial.openZone.title',
+    messageKey: 'tutorial.openZone.message',
     waitFor: 'next',
     highlight: [{ type: 'open-zone', owner: 'opponent', slot: 'left' }]
   },
   {
     id: 'draw-counterattack-card',
-    message: 'Draw a card for the counter-attack.',
+    messageKey: 'tutorial.drawCounterattackCard.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
     allowedAction: { type: 'draw-attack-card', rank: '3' }
   },
   {
     id: 'pass-through-open-zone',
-    title: 'Pass through',
-    message: 'This is an open zone. No card is here - move through it and continue the attack.',
+    titleKey: 'tutorial.passThroughOpenZone.title',
+    messageKey: 'tutorial.passThroughOpenZone.message',
     waitFor: 'action',
     highlight: [{ type: 'open-zone', owner: 'opponent', slot: 'left' }],
     allowedAction: { type: 'use-midfield-gap', slot: 'left' },
-    blockedMessage: 'Pass through the highlighted open zone.'
+    blockedMessageKey: 'tutorial.guard.passOpenZone'
   },
   {
     id: 'ready',
-    title: 'You are ready!',
-    message: 'Now play the rest of the match yourself.',
+    titleKey: 'tutorial.ready.title',
+    messageKey: 'tutorial.ready.message',
     waitFor: 'next'
   }
 ];

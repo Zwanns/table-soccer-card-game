@@ -9,6 +9,7 @@ import {
 import { AiTurnController, type AiAction, type AiTurnCheckReason, type PlayerControllerType } from '../ai';
 import type { Card } from '../cards';
 import { GAME_AUTHOR, GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { getLanguageCode, getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
 import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
 import {
   GameEngine,
@@ -38,6 +39,7 @@ import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView'
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { TUTORIAL_MATCH_V2_SETUP_PRESET } from '../tutorial/tutorialScenario';
 import { TutorialController } from '../tutorial/TutorialController';
+import { getTutorialText } from '../tutorial/tutorialTexts';
 import type { MatchMode, TutorialAction, TutorialHighlightTarget, TutorialMidfielderSlot } from '../tutorial/tutorialTypes';
 import { TutorialOverlay, type TutorialHighlightRect } from '../ui/TutorialOverlay';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
@@ -192,7 +194,7 @@ export class GameScene extends Phaser.Scene {
   private pauseModal: Phaser.GameObjects.Container | null = null;
   private infoModal: Phaser.GameObjects.Container | null = null;
   private activeInfoModal: InfoModalKind | null = null;
-  private infoLanguage: AboutLanguage = 'en';
+  private infoLanguage: AboutLanguage = getPreferredLanguage();
   private animatedRestoreCount = 0;
   private startWhistlePlayed = false;
   private player1Name = 'France';
@@ -246,6 +248,7 @@ export class GameScene extends Phaser.Scene {
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
+    this.infoLanguage = getPreferredLanguage();
     this.tutorialOverlay?.destroy();
     this.tutorialOverlay = null;
     this.tutorialController = this.matchMode === 'tutorial' ? new TutorialController() : null;
@@ -583,7 +586,7 @@ export class GameScene extends Phaser.Scene {
       return true;
     }
 
-    this.showTemporaryMessage(result.message);
+    this.showTemporaryMessage(getTutorialText(this.infoLanguage, result.messageKey));
     return false;
   }
 
@@ -598,7 +601,9 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
 
-    this.showTemporaryMessage(step.waitFor === 'next' ? 'Press Continue first.' : 'Try this card.');
+    this.showTemporaryMessage(
+      getTutorialText(this.infoLanguage, step.waitFor === 'next' ? 'tutorial.guard.pressContinue' : 'tutorial.guard.tryCard')
+    );
     return true;
   }
 
@@ -635,8 +640,10 @@ export class GameScene extends Phaser.Scene {
 
     this.tutorialOverlay = new TutorialOverlay(this, {
       step,
+      language: this.infoLanguage,
       highlightRects: this.getTutorialHighlightRects(state, step.highlight ?? []),
-      onContinue: () => this.continueTutorial()
+      onContinue: () => this.continueTutorial(),
+      onLanguageChange: (language) => this.switchTutorialLanguage(language)
     });
   }
 
@@ -646,6 +653,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.render(this.engine.getState());
+  }
+
+  private switchTutorialLanguage(language: AboutLanguage): void {
+    this.infoLanguage = language;
+    setPreferredLanguage(language);
+
+    if (this.engine !== null) {
+      this.refreshTutorialOverlay(this.engine.getState());
+    }
   }
 
   private getTutorialHighlightRects(
@@ -1317,6 +1333,7 @@ export class GameScene extends Phaser.Scene {
   private switchMatchInfoLanguage(language: AboutLanguage): void {
     const activeInfoModal = this.activeInfoModal;
     this.infoLanguage = language;
+    setPreferredLanguage(language);
     this.closeMatchInfoModal();
 
     if (activeInfoModal !== null) {
@@ -2475,12 +2492,5 @@ function createAiMatchSeed(
 }
 
 function getInfoLanguageCode(language: AboutLanguage): string {
-  switch (language) {
-    case 'en':
-      return 'EN';
-    case 'pl':
-      return 'PL';
-    case 'uk':
-      return 'UA';
-  }
+  return getLanguageCode(language);
 }

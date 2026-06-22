@@ -1,5 +1,6 @@
 import type { CardRank } from '../cards';
 import type { GameEvent, TargetLine } from '../game';
+import type { TutorialTextKey } from './tutorialTexts';
 
 export type MatchMode = 'quick' | 'tutorial';
 export type TutorialMidfielderSlot = 'left' | 'center' | 'right';
@@ -28,19 +29,19 @@ export type TutorialHighlightTarget =
 
 export interface TutorialStep {
   id: string;
-  title?: string;
-  message: string;
+  titleKey?: TutorialTextKey;
+  messageKey: TutorialTextKey;
   waitFor: TutorialWaitFor;
   highlight?: readonly TutorialHighlightTarget[];
   allowedAction?: TutorialAllowedAction;
-  blockedMessage?: string;
+  blockedMessageKey?: TutorialTextKey;
   expectedEventType?: GameEvent['type'];
   expectedLine?: TargetLine;
 }
 
 export interface TutorialBlockedAction {
   allowed: false;
-  message: string;
+  messageKey: TutorialTextKey;
 }
 
 export interface TutorialAllowedActionResult {

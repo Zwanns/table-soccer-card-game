@@ -1,31 +1,26 @@
-# ТЗ для Codex: проверить и стабилизировать звук гола при GOAL_SCORED
+# ТЗ для Codex: расширить окно TutorialOverlay для длинных текстов
 
 ## Контекст
 
-Проект: `Total Soccer: Mundial`.
+В `Tutorial Match` добавлена локализация EN / PL / UA.
 
-После последних правок сообщения `GOAL!!`, `Goalkeeper!!`, `Post!` были синхронизированы со звуком и анимацией удара по воротам.
+После ручной проверки видно, что некоторые тексты, особенно украинские и польские, не всегда аккуратно помещаются в окно tutorial-подсказки.
 
-Пользователь заметил, что один раз при забитом голе звук гола не проигрался.
+Проблема на примере шага:
 
-Нужно проверить, почему это могло произойти, и сделать запуск звука гола более надежным.
+```text
+Підключення півзахисника до атаки
+```
+
+Текст помещается слишком плотно, а language switch `EN | PL | UA` расположен близко к заголовку/текстовой области.
 
 ---
 
 ## Цель
 
-Гарантировать, что при каждом событии:
+Расширить окно `TutorialOverlay`, чтобы в нем комфортно помещалось больше текста.
 
-```text
-GOAL_SCORED
-```
-
-звук гола запускается стабильно и синхронно с:
-
-```text
-GOAL!! message
-goal animation / impact pulse
-```
+Нужно улучшить читаемость tutorial-панели без изменения логики туториала.
 
 ---
 
@@ -34,212 +29,130 @@ goal animation / impact pulse
 Основные файлы:
 
 ```text
-src/scenes/GameScene.ts
-src/scenes/gameSceneEventEffects.ts
-src/audio/playSoundSafe.ts
-src/tests/gameSceneEventEffects.test.ts
-src/tests/gameScene.test.ts
+src/ui/TutorialOverlay.ts
+src/tests/tutorialIntegration.test.ts
+```
+
+Возможные связанные файлы:
+
+```text
+src/tutorial/tutorialTexts.ts
+src/tests/tutorialTexts.test.ts
 src/tests/project.test.ts
 ```
 
-Также проверить загрузку звуков:
+---
+
+## Что нужно изменить
+
+### 1. Увеличить ширину tutorial panel
+
+Сейчас панель выглядит слишком узкой для локализованных текстов.
+
+Нужно увеличить ширину примерно на:
 
 ```text
-src/scenes/BootScene.ts
+20% ... 30%
 ```
 
-И реальные asset paths:
+Например, если сейчас ширина около `650–700 px`, попробовать:
+
+```ts
+panelWidth: 850
+```
+
+или значение около:
+
+```ts
+panelWidth: 880
+```
+
+Точное значение подобрать по текущей сцене `1600 x 720`.
+
+Панель должна оставаться визуально аккуратной и не перекрывать слишком много игрового поля.
+
+---
+
+### 2. При необходимости увеличить высоту панели
+
+Если текущая высота слишком мала для 3–4 строк текста, увеличить высоту примерно на:
 
 ```text
-public/sounds/
+40 ... 70 px
 ```
+
+Важно: кнопка `Continue / Dalej / Далі` не должна пересекаться с текстом.
 
 ---
 
-## Что проверить
+### 3. Развести зоны заголовка и language switch
 
-### 1. Загружается ли goal sound стабильно
+Сейчас language switch справа может визуально конфликтовать с заголовком.
 
-Проверить, что в `BootScene` загружается правильный audio key для гола.
-
-Проверить:
+Нужно сделать layout так:
 
 ```text
-sound key
-file path
-file name
-case sensitivity
+[ Title area                                        EN | PL | UA ]
+
+[ Message text area                                      ]
+
+[                         Continue button                ]
 ```
 
-Особенно убедиться, что в production используется правильный путь с учетом регистра букв.
-
----
-
-### 2. Используется ли `playSoundSafe()`
-
-Все звуки в `GameScene` должны запускаться через:
-
-```ts
-playSoundSafe(...)
-```
-
-Нужно проверить, что goal sound тоже запускается через него.
-
-Если где-то остался прямой вызов:
-
-```ts
-this.sound.play(...)
-```
-
-заменить на `playSoundSafe()`.
-
----
-
-### 3. Не привязан ли звук к короткой/уничтожаемой анимации
-
-Проверить свежую логику:
+Требования:
 
 ```text
-finishGoalkeeperShotBallImpact
-getGoalkeeperShotSceneEffect
-GOAL_SCORED
+- title не должен заходить под language switch;
+- language switch должен оставаться в правом верхнем углу панели;
+- active language должен подсвечиваться как сейчас;
+- клики по языкам должны работать как раньше.
 ```
 
-Звук должен запускаться в начале обработки goal impact, а не в конце promise/tween и не после удаления временных объектов.
+Если заголовок длинный, он должен иметь ограниченную ширину или переноситься, но не перекрываться с языками.
 
-Правильный порядок:
+---
+
+### 4. Улучшить text wrapping
+
+Проверить параметры текста в Phaser:
 
 ```text
-start goal sound
-start GOAL!! message
-start goal impact animation
-await impact animation
-continue turn flow
+wordWrap
+wordWrapWidth
+fixedWidth
+lineSpacing
+fontSize
 ```
 
----
+Нужно, чтобы текст переносился внутри панели и не выходил за ее границы.
 
-### 4. Не подавляется ли повторный звук
-
-Если голы происходят близко друг к другу или звук предыдущего гола еще играет, Phaser/browser может вести себя нестабильно.
-
-Проверить:
-
-* не используется ли один и тот же sound instance;
-* не настроен ли `detune`, `rate`, `volume` некорректно;
-* не вызывается ли `stopByKey()` или `sound.stopAll()` рядом с goal effect;
-* не уничтожается ли scene/audio manager до проигрывания.
-
-Если нужно, можно перед `playSoundSafe()` для goal sound использовать независимый запуск нового instance.
-
----
-
-### 5. Не теряется ли effect из-за `GOALKEEPER_RANK_CHANGED`
-
-При голе `GOALKEEPER_RANK_CHANGED` не должен запускаться. Но нужно проверить, что pipeline goal/save/post effect не смешан.
-
-Для `GOAL_SCORED` должен быть выбран именно goal effect:
-
-```ts
-getGoalkeeperShotSceneEffect('goal')
-```
-
-и goal sound должен быть связан с этим effect.
-
----
-
-## Возможное улучшение playSoundSafe
-
-Если `playSoundSafe()` сейчас только проверяет наличие key и вызывает `scene.sound.play(key)`, можно аккуратно добавить защитное логирование в dev/test режиме.
-
-Например:
-
-```ts
-if (!scene.cache.audio.exists(key)) {
-  console.warn(...)
-  return false;
-}
-
-scene.sound.play(key, config);
-return true;
-```
-
-Если helper уже возвращает boolean — использовать это в тестах.
-
-Если не возвращает — можно рассмотреть добавление return value:
-
-```ts
-true  = звук был запрошен к проигрыванию
-false = audio key отсутствует или scene не готова
-```
-
-Важно: не ломать существующие вызовы.
-
----
-
-## Что можно добавить для надежности
-
-Для goal sound можно использовать отдельную небольшую функцию:
-
-```ts
-private playGoalSound(): void
-```
-
-или общий effect pipeline:
-
-```ts
-playGoalkeeperShotEffectSound(effect)
-```
-
-Главное:
-
-* запускать звук сразу;
-* не ждать окончания message/tween;
-* не привязывать звук к уничтожению ball object;
-* не запускать второй раз.
-
----
-
-## Тесты
-
-Обновить или добавить тесты.
-
-Вероятные файлы:
+Рекомендация:
 
 ```text
-src/tests/gameSceneEventEffects.test.ts
-src/tests/gameScene.test.ts
-src/tests/project.test.ts
+messageWordWrapWidth = panelWidth - leftPadding - rightPadding
 ```
 
-### Проверить:
+Но с учетом language switch и полей.
 
-1. `GOAL_SCORED` выбирает goal scene effect.
-2. goal scene effect содержит правильный sound key / tone.
-3. при `GOAL_SCORED` вызывается `playSoundSafe()` именно в начале impact pipeline.
-4. `GOAL!!` message и goal sound запускаются в одном effect-проходе.
-5. `GOALKEEPER_SAVE` не использует goal sound.
-6. `GOALPOST_HIT` не использует goal sound.
-7. если `playSoundSafe()` возвращает false при отсутствующем key, игра не падает.
+Для message text можно использовать почти всю ширину панели:
 
-Если есть mock audio manager, проверить, что при двух последовательных `GOAL_SCORED` вызов звука происходит два раза.
+```text
+panelWidth - 80 px
+```
+
+Для title text лучше оставить место справа под language switch:
+
+```text
+panelWidth - 260 px
+```
 
 ---
 
-## Ручная проверка
+### 5. Не уменьшать текст без необходимости
 
-После исправления вручную проверить:
+Основная задача — расширить окно, а не делать шрифт мелким.
 
-```text
-1. Запустить матч.
-2. Добиться гола.
-3. Убедиться, что GOAL!! и звук стартуют одновременно.
-4. Повторить несколько голов в одном матче.
-5. Проверить, что звук проигрывается каждый раз.
-6. Проверить сэйв: играет звук сэйва, не гола.
-7. Проверить штангу: играет звук штанги, не гола.
-8. Проверить Console на warnings от playSoundSafe.
-```
+Можно немного уменьшить размер только если после расширения всё равно есть проблемы. Но сначала попробовать решить через ширину, высоту и wordWrap.
 
 ---
 
@@ -248,19 +161,84 @@ src/tests/project.test.ts
 Не менять:
 
 ```text
+TutorialController
+tutorial step order
+tutorial logic
 GameEngine
-GameEvent
-правила гола
-GK random rank logic
-GOALKEEPER_RANK_CHANGED
-ATTACK_DECK_EMPTY
-match card scale
-field positions
+GameScene input guard
+Rules overlay logic
+languageStore behavior
+TUTORIAL_TEXTS content, если не требуется исправить перенос
+Quick Match behavior
+card scale
+field layout
 ```
 
-Если проблема только в `GameScene` / sound pipeline, не трогать игровую логику.
+Эта задача должна быть только про визуальный layout `TutorialOverlay`.
 
-Не поднимать версию приложения, если пользователь отдельно не попросит.
+---
+
+## Требования к результату
+
+После правки:
+
+```text
+1. Украинский текст помещается аккуратно.
+2. Польский текст помещается аккуратно.
+3. Английский текст не выглядит слишком растянутым или потерянным.
+4. Заголовок не перекрывает EN | PL | UA.
+5. Кнопка Continue / Dalej / Далі остается внутри панели.
+6. Панель остается по центру нижней части экрана.
+7. Подсветка tutorial targets продолжает работать.
+8. Смена языка не сбрасывает tutorial progress.
+```
+
+---
+
+## Ручная проверка
+
+Проверить в dev:
+
+```text
+1. Запустить Tutorial Match.
+2. Переключить язык на UA.
+3. Дойти до шага "Підключення півзахисника до атаки".
+4. Проверить, что весь текст помещается аккуратно.
+5. Переключить на PL.
+6. Проверить длинные польские подсказки.
+7. Переключить на EN.
+8. Проверить, что английский layout выглядит нормально.
+9. Проверить клики по EN | PL | UA.
+10. Проверить кнопку Continue.
+11. Проверить, что неправильные клики всё еще показывают guard-сообщение внутри новой панели.
+```
+
+---
+
+## Тесты
+
+Обновить тесты, если они проверяют размеры или layout `TutorialOverlay`.
+
+Вероятные файлы:
+
+```text
+src/tests/tutorialIntegration.test.ts
+src/tests/project.test.ts
+```
+
+Если есть unit-тесты для `TutorialOverlay`, обновить их.
+
+Проверить:
+
+```text
+1. TutorialOverlay создается с новым panel width.
+2. Title wordWrapWidth учитывает место под language switch.
+3. Message wordWrapWidth больше старого значения.
+4. Language switch сохраняется и работает.
+5. Current step не меняется при смене языка.
+```
+
+Не нужно делать pixel-perfect screenshot test.
 
 ---
 
@@ -277,11 +255,11 @@ npm run build
 
 ## Финальный ответ Codex должен содержать
 
-1. Что было потенциальной причиной пропуска goal sound.
-2. Какие файлы изменены.
-3. Где теперь запускается goal sound.
-4. Как гарантируется ранний запуск звука при `GOAL_SCORED`.
-5. Проверено ли, что save/post используют свои звуки.
-6. Какие тесты добавлены/обновлены.
+1. Какие файлы изменены.
+2. Какой была ширина/высота tutorial panel и какой стала.
+3. Как изменены wordWrapWidth / padding / layout.
+4. Подтверждение, что EN | PL | UA не перекрывает заголовок.
+5. Подтверждение, что логика туториала не менялась.
+6. Какие тесты обновлены.
 7. Результат `npm test`.
 8. Результат `npm run build`.

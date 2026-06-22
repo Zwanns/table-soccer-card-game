@@ -26,7 +26,7 @@ describe('TutorialController', () => {
 
     expect(controller.checkAction({ type: 'draw-attack-card', rank: '6' })).toEqual({
       allowed: false,
-      message: 'Use the highlighted deck.'
+      messageKey: 'tutorial.guard.useDeck'
     });
     expect(controller.checkAction({ type: 'draw-attack-card', rank: '9' })).toEqual({ allowed: true });
     expect(controller.recordAction({ type: 'draw-attack-card', rank: '9' })).toBe(true);
@@ -55,23 +55,23 @@ describe('TutorialController', () => {
     const controller = new TutorialController([
       {
         id: 'select-left-midfielder',
-        message: 'Select your left midfielder.',
+        messageKey: 'tutorial.selectLeftMidfielder.message',
         waitFor: 'action',
         allowedAction: { type: 'commit-midfielder', slot: 'left', rank: 'A' },
-        blockedMessage: 'Try the highlighted midfielder.'
+        blockedMessageKey: 'tutorial.guard.tryMidfielder'
       },
       {
         id: 'pass-through-open-zone',
-        message: 'Pass through.',
+        messageKey: 'tutorial.passThroughOpenZone.message',
         waitFor: 'action',
         allowedAction: { type: 'use-midfield-gap', slot: 'left' },
-        blockedMessage: 'Pass through the highlighted open zone.'
+        blockedMessageKey: 'tutorial.guard.passOpenZone'
       }
     ]);
 
     expect(controller.checkAction({ type: 'commit-midfielder', positionId: 'midfielder-3', slot: 'right', rank: '10' })).toEqual({
       allowed: false,
-      message: 'Try the highlighted midfielder.'
+      messageKey: 'tutorial.guard.tryMidfielder'
     });
     expect(controller.checkAction({ type: 'commit-midfielder', positionId: 'midfielder-1', slot: 'left', rank: 'A' })).toEqual({
       allowed: true
@@ -79,7 +79,7 @@ describe('TutorialController', () => {
     expect(controller.recordAction({ type: 'commit-midfielder', positionId: 'midfielder-1', slot: 'left', rank: 'A' })).toBe(true);
     expect(controller.checkAction({ type: 'use-midfield-gap', positionId: 'midfielder-2', slot: 'center' })).toEqual({
       allowed: false,
-      message: 'Pass through the highlighted open zone.'
+      messageKey: 'tutorial.guard.passOpenZone'
     });
     expect(controller.recordAction({ type: 'use-midfield-gap', positionId: 'midfielder-1', slot: 'left' })).toBe(true);
     expect(controller.isComplete()).toBe(true);
@@ -89,13 +89,13 @@ describe('TutorialController', () => {
     const controller = new TutorialController([
       {
         id: 'reach-gk',
-        message: 'Reach GK.',
+        messageKey: 'tutorial.clearDefense.message',
         waitFor: 'line-reached',
         expectedLine: 'GOALKEEPER'
       },
       {
         id: 'score',
-        message: 'Score.',
+        messageKey: 'tutorial.takeShot.message',
         waitFor: 'engine-event',
         expectedEventType: 'GOAL_SCORED'
       }

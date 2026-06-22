@@ -235,9 +235,9 @@ describe('project scaffold', () => {
     );
     expect(menuSceneSource).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(menuSceneSource).toContain('openRulesModal');
-    expect(menuSceneSource).toContain("return 'EN'");
-    expect(menuSceneSource).toContain("return 'PL'");
-    expect(menuSceneSource).toContain("return 'UA'");
+    expect(menuSceneSource).toContain('getPreferredLanguage()');
+    expect(menuSceneSource).toContain('setPreferredLanguage(language)');
+    expect(menuSceneSource).toContain('getLanguageCode(language)');
     expect(menuSceneSource).toContain('createInfoBackButton');
     expect(menuSceneSource).toContain('const INFO_BACK_BUTTON = {');
     expect(menuSceneSource).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal()");

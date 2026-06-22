@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
 import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import {
+  GAME_LANGUAGES,
+  getLanguageCode,
+  getPreferredLanguage,
+  setPreferredLanguage,
+  type GameLanguage
+} from '../i18n/languageStore';
 import { TUTORIAL_MATCH_V2_TEAMS } from '../tutorial/tutorialScenario';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
@@ -53,7 +60,7 @@ const INFO_BACK_BUTTON = {
 
 type MenuAnimatedObject = Phaser.GameObjects.Container | Phaser.GameObjects.Image | Phaser.GameObjects.Text;
 type MenuView = 'main' | 'modes';
-export type AboutLanguage = 'en' | 'pl' | 'uk';
+export type AboutLanguage = GameLanguage;
 export type InfoModalKind = 'about' | 'rules';
 
 const LOGO_BLINK_INITIAL_DELAY_MS = 1800;
@@ -64,7 +71,7 @@ const LOGO_BLINK_PATTERN: ReadonlyArray<{ textureKey: string; delay: number }> =
   { textureKey: MENU_ASSETS.logoOn, delay: 2600 }
 ];
 
-export const ABOUT_LANGUAGES: readonly AboutLanguage[] = ['en', 'pl', 'uk'];
+export const ABOUT_LANGUAGES: readonly AboutLanguage[] = GAME_LANGUAGES;
 export const ABOUT_CONTENT: Record<
   AboutLanguage,
   {
@@ -357,7 +364,7 @@ export class MenuScene extends Phaser.Scene {
   private logoBlinkTimer?: Phaser.Time.TimerEvent;
   private logoBlinkStepIndex = 0;
   private currentView: MenuView = 'main';
-  private aboutLanguage: AboutLanguage = 'en';
+  private aboutLanguage: AboutLanguage = getPreferredLanguage();
 
   public constructor() {
     super('MenuScene');
@@ -1073,6 +1080,7 @@ export class MenuScene extends Phaser.Scene {
   private switchAboutLanguage(language: AboutLanguage): void {
     const activeInfoModal = this.activeInfoModal;
     this.aboutLanguage = language;
+    setPreferredLanguage(language);
     this.closeAboutModal();
     if (activeInfoModal === 'rules') {
       this.openRulesModal();
@@ -1085,14 +1093,7 @@ export class MenuScene extends Phaser.Scene {
 }
 
 function getAboutLanguageCode(language: AboutLanguage): string {
-  switch (language) {
-    case 'en':
-      return 'EN';
-    case 'pl':
-      return 'PL';
-    case 'uk':
-      return 'UA';
-  }
+  return getLanguageCode(language);
 }
 
 function confirmTournamentSaveOverwrite(): boolean {

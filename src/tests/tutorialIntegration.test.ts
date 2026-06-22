@@ -47,9 +47,19 @@ describe('Tutorial Match launch and GameScene integration', () => {
     const overlaySource = readSource('src/ui/TutorialOverlay.ts');
 
     expect(overlaySource).toContain('export class TutorialOverlay');
+    expect(overlaySource).toContain('const PANEL_WIDTH = 840');
+    expect(overlaySource).toContain('const PANEL_HEIGHT = 230');
     expect(overlaySource).toContain('0x06130e, 0.48');
     expect(overlaySource).toContain('0xf0c95a');
-    expect(overlaySource).toContain("'Continue'");
+    expect(overlaySource).not.toContain('background.setStrokeStyle');
+    expect(overlaySource).toContain('const TITLE_WORD_WRAP_WIDTH = PANEL_WIDTH - 260');
+    expect(overlaySource).toContain('const MESSAGE_WORD_WRAP_WIDTH = PANEL_WIDTH - PANEL_PADDING_X * 2');
+    expect(overlaySource).toContain('fixedWidth: TITLE_WORD_WRAP_WIDTH');
+    expect(overlaySource).toContain('fixedWidth: MESSAGE_WORD_WRAP_WIDTH');
+    expect(overlaySource).toContain("getTutorialText(options.language, 'tutorial.button.continue')");
+    expect(overlaySource).toContain('createLanguageSelector');
+    expect(overlaySource).toContain('LANGUAGE_SELECTOR_RIGHT');
+    expect(overlaySource).toContain('GAME_LANGUAGES');
     expect(overlaySource).toContain('highlightRects');
   });
 
@@ -65,5 +75,20 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(gameSource).toContain("if (target.type === 'open-zone')");
     expect(fieldViewSource).toContain('onOwnMidfielderSelect?: MidfielderCommitHandler');
     expect(fieldViewSource).toContain('tutorialSelectableOwnMidfielder');
+  });
+
+  it('shares language state between Rules and Tutorial without resetting the current step', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const menuSource = readSource('src/scenes/MenuScene.ts');
+    const overlaySource = readSource('src/ui/TutorialOverlay.ts');
+
+    expect(menuSource).toContain('getPreferredLanguage()');
+    expect(menuSource).toContain('setPreferredLanguage(language)');
+    expect(gameSource).toContain('private infoLanguage: AboutLanguage = getPreferredLanguage()');
+    expect(gameSource).toContain('setPreferredLanguage(language)');
+    expect(gameSource).toContain('onLanguageChange: (language) => this.switchTutorialLanguage(language)');
+    expect(gameSource).toContain('this.refreshTutorialOverlay(this.engine.getState())');
+    expect(gameSource).not.toContain('new TutorialController() : null;\n    this.infoLanguage');
+    expect(overlaySource).toContain('options.onLanguageChange(language)');
   });
 });

@@ -8,7 +8,7 @@
 
 Игроки выбирают две национальные сборные и проводят матч карточными колодами. Каждая команда может управляться человеком или встроенным AI, поэтому поддерживаются матчи HUMAN vs HUMAN, HUMAN vs AI, AI vs HUMAN и AI vs AI. Поле каждой команды состоит из линии полузащиты, линии защиты и позиции вратаря. Атака проходит линии соперника строго по порядку: полузащита, защита, вратарь. Во время атаки на линию полузащиты игрок может вместо карты из колоды подключать собственных полузащитников строго по соответствующим коридорам. Подключенный полузащитник бьет только строго меньший rank, кроме специальных правил. При пробитии вратаря засчитывается гол.
 
-Tutorial Match v2 запускается из меню режимов как отдельный guided quick match. Он использует обычный `GameScene`, фиксированные команды Brazil vs Germany, scripted setup/preset карт, `TutorialController` для шагов и `TutorialOverlay` для подсказок/подсветки. Tutorial v2 обучает базовому циклу: выбрать карту, пробить карту соперника, использовать пример special rule `6 beats Ace`, выйти на GK, ударить, забить и увидеть смену владения. После первого гола он показывает подключение полузащитника, правило `opposite slot only`, запрет игры полузащитником против пустого слота, потерю мяча после подключения полузащитника и единую open zone для контратаки. Он не меняет правила `GameEngine`, карточные правила, GK-логику, AI, tournament flow или penalty flow.
+Tutorial Match v2 запускается из меню режимов как отдельный guided quick match. Он использует обычный `GameScene`, фиксированные команды Brazil vs Germany, scripted setup/preset карт, `TutorialController` для шагов и `TutorialOverlay` для подсказок/подсветки. Tutorial v2 обучает базовому циклу: выбрать карту, пробить карту соперника, использовать пример special rule `6 beats Ace`, выйти на GK, ударить, забить и увидеть смену владения. После первого гола он показывает подключение полузащитника, правило `opposite slot only`, запрет игры полузащитником против пустого слота, потерю мяча после подключения полузащитника и единую open zone для контратаки. Тексты Tutorial Match локализованы на EN / PL / UA через `src/tutorial/tutorialTexts.ts`, а выбранный язык общий с Rules через `src/i18n/languageStore.ts`. Он не меняет правила `GameEngine`, карточные правила, GK-логику, AI, tournament flow или penalty flow.
 
 Текущая версия приложения в коде: `1.3.7`.
 
@@ -74,7 +74,7 @@ src/scenes/
 - Team selection background uses the preloaded `public/menu/menu-2-bg.webp` asset, stretched to the scene size, with the muted striped Phaser Graphics football field kept only as a missing-texture fallback. No main.ts, index.html, global CSS scale/input, GameEngine, AI, Penalty AI, or TournamentEngine changes are part of this screen layout contract.
 - `SquadSelectScene.ts` и `SquadEditorScene.ts` - просмотр состава. `Teams` показывает справа цвета выбранной сборной и две preview-карты: лицевую карту с экипировкой и rank `N`, а ниже одиночную face-down карту с рубашкой выбранной команды.
 - `GameScene.ts` - основной матч.
-- `tutorial/` - `TutorialController`, декларативные steps и scripted setup для Tutorial Match v2.
+- `tutorial/` - `TutorialController`, декларативные steps, localized text keys и scripted setup для Tutorial Match v2.
 - `ResultScene.ts` - финальный экран матча.
 - `TournamentSetupScene.ts`, `TournamentHubScene.ts`, `TournamentPenaltyScene.ts`, `TournamentCompleteScene.ts` - турнирный контур и пенальти. В setup-экране слоты групп, AI-checkboxes и кнопки удаления используют интерактивные зоны, совпадающие с видимыми прямоугольниками строк.
 
@@ -96,6 +96,14 @@ src/game/
 - `squadResolver.ts` - связь карт с игроками состава.
 - `matchStats.ts` - статистика матча, scorer snapshots и форматирование подписей авторов голов.
 - `advantage.ts` - шкала текущего преимущества.
+
+```text
+src/i18n/
+```
+
+Общая локализация:
+
+- `languageStore.ts` - общий тип языка `en | pl | uk`, отображаемые коды `EN | PL | UA`, чтение/запись выбранного языка в `localStorage`. Используется Rules/About overlay и Tutorial Match overlay.
 
 ```text
 src/ai/

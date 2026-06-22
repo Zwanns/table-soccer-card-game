@@ -287,7 +287,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene'");
     expect(source).toContain('private infoModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private activeInfoModal: InfoModalKind | null = null');
-    expect(source).toContain("private infoLanguage: AboutLanguage = 'en'");
+    expect(source).toContain('private infoLanguage: AboutLanguage = getPreferredLanguage()');
+    expect(source).toContain('setPreferredLanguage(language)');
+    expect(source).toContain('return getLanguageCode(language)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
     expect(source).toContain('overlay.setInteractive()');
     expect(source).toContain('const INFO_BACK_BUTTON = {');
