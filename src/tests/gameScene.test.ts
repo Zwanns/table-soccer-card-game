@@ -315,11 +315,47 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('export const FIELD_GRASS_BASE_COLOR = 0x157a43');
     expect(source).toContain('export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a');
     expect(source).toContain('export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c');
-    expect(source).toContain('this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), centerLine, centerCircle])');
+    expect(source).toContain('export const FIELD_OUTER_GRASS_MARGIN_X = 56');
+    expect(source).toContain('export const FIELD_OUTER_GRASS_MARGIN_Y = 26');
+    expect(source).toContain('export const FIELD_OUTER_GRASS_COLOR = 0x105f36');
+    expect(source).toContain('this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), this.createGoals(scene), centerLine, centerCircle])');
+    expect(source).toContain('const outerPitchWidth = FIELD_VIEW_WIDTH + FIELD_OUTER_GRASS_MARGIN_X * 2');
+    expect(source).toContain('const outerPitchHeight = FIELD_VIEW_HEIGHT + FIELD_OUTER_GRASS_MARGIN_Y * 2');
+    expect(source).toContain('const outerStripeWidth = outerPitchWidth / FIELD_GRASS_STRIPE_COUNT');
+    expect(source).toContain('pitch.fillRect(outerPitchLeft, outerPitchTop, outerPitchWidth, outerPitchHeight)');
+    expect(source).toContain('pitch.fillStyle(stripeColor, 0.28)');
+    expect(source).toContain('pitch.fillRect(outerPitchLeft + stripeIndex * outerStripeWidth, outerPitchTop, outerStripeWidth, outerPitchHeight)');
     expect(source).toContain('for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1)');
     expect(source).toContain('pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, pitchTop, stripeWidth, FIELD_VIEW_HEIGHT)');
     expect(source).toContain('pitch.strokeRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT)');
+    expect(source).toContain('const FIELD_GOAL_DEPTH = 42');
+    expect(source).toContain('const FIELD_GOAL_HEIGHT = 131');
+    expect(source).toContain('const FIELD_GOAL_FRAME_WIDTH = 4');
+    expect(source).toContain('const FIELD_GOAL_NET_WIDTH = 1');
+    expect(source).toContain('const FIELD_GOAL_NET_CELL_SIZE = 7');
+    expect(source).toContain('private createGoals(scene: Phaser.Scene): Phaser.GameObjects.Graphics');
+    expect(source).toContain('drawGoal(');
+    expect(source).toContain('graphics.lineStyle(FIELD_GOAL_NET_WIDTH, FIELD_MARKING_COLOR, FIELD_GOAL_NET_ALPHA)');
+    expect(source).toContain('graphics.lineStyle(FIELD_GOAL_FRAME_WIDTH, FIELD_MARKING_COLOR, FIELD_GOAL_FRAME_ALPHA)');
+    expect(source).toContain('graphics.strokeRect(x, y, width, height)');
+    expect(source).toContain('const FIELD_CORNER_ARC_RADIUS = 22');
+    expect(source.match(/FIELD_CORNER_ARC_RADIUS/g)?.length).toBeGreaterThanOrEqual(5);
     expect(source).not.toContain('scene.add.rectangle(0, 0, 1120, 600');
+  });
+
+  it('keeps the expanded field background behind match UI controls', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const fieldIndex = source.indexOf('new FieldView(this, centerX, FIELD_CENTER_Y');
+    const pauseIndex = source.indexOf("new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause'");
+    const rulesIndex = source.indexOf("new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Rules'");
+    const scoreIndex = source.indexOf('new ScoreView(');
+    const deckIndex = source.indexOf('createPlayerDeck(');
+
+    expect(fieldIndex).toBeGreaterThan(-1);
+    expect(pauseIndex).toBeGreaterThan(fieldIndex);
+    expect(rulesIndex).toBeGreaterThan(fieldIndex);
+    expect(scoreIndex).toBeGreaterThan(fieldIndex);
+    expect(deckIndex).toBeGreaterThan(fieldIndex);
   });
 
   it('aligns transparent taller Goals panels with the field top', () => {

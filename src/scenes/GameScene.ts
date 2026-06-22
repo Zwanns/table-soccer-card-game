@@ -326,6 +326,18 @@ export class GameScene extends Phaser.Scene {
 
     this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
+      new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
+        hiddenCards: hiddenRestoredCards,
+        interactive: gameInteractive,
+        onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
+        onOwnMidfielderSelect:
+          this.tutorialController === null || this.tutorialController.isComplete()
+            ? undefined
+            : (positionId) => this.commitMidfielder(positionId),
+        onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
+      })
+    );
+    this.dynamicLayer.add(
       new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause', () => this.openPauseModal(state), {
         fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
         height: MATCH_ACTION_BUTTON_STACK_HEIGHT,
@@ -381,18 +393,6 @@ export class GameScene extends Phaser.Scene {
         () => this.drawAttackCard(),
         options.hideActiveTurnBall !== true
       )
-    );
-    this.dynamicLayer.add(
-      new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
-        hiddenCards: hiddenRestoredCards,
-        interactive: gameInteractive,
-        onMidfielderCommit: (positionId) => this.commitMidfielder(positionId),
-        onOwnMidfielderSelect:
-          this.tutorialController === null || this.tutorialController.isComplete()
-            ? undefined
-            : (positionId) => this.commitMidfielder(positionId),
-        onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
-      })
     );
     this.dynamicLayer.add(
       new AdvantageView(this, centerX, ADVANTAGE_CENTER_Y, {

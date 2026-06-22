@@ -19,6 +19,20 @@ export const FIELD_GRASS_STRIPE_COUNT = 14;
 export const FIELD_GRASS_BASE_COLOR = 0x157a43;
 export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a;
 export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c;
+export const FIELD_OUTER_GRASS_MARGIN_X = 56;
+export const FIELD_OUTER_GRASS_MARGIN_Y = 26;
+export const FIELD_OUTER_GRASS_COLOR = 0x105f36;
+const FIELD_MARKING_COLOR = 0xe2efe6;
+const FIELD_MARKING_ALPHA = 0.42;
+const FIELD_MARKING_WIDTH = 2;
+const FIELD_GOAL_DEPTH = 42;
+const FIELD_GOAL_HEIGHT = 131;
+const FIELD_GOAL_FRAME_WIDTH = 4;
+const FIELD_GOAL_FRAME_ALPHA = 0.55;
+const FIELD_GOAL_NET_WIDTH = 1;
+const FIELD_GOAL_NET_ALPHA = 0.24;
+const FIELD_GOAL_NET_CELL_SIZE = 7;
+const FIELD_CORNER_ARC_RADIUS = 22;
 const GOALKEEPER_X_OFFSET = 490;
 const DEFENDER_X_OFFSET = 360;
 const DEFENDER_Y_OFFSET = 115;
@@ -81,7 +95,7 @@ export class FieldView extends Phaser.GameObjects.Container {
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), centerLine, centerCircle]);
+    this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), this.createGoals(scene), centerLine, centerCircle]);
 
     this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
     this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
@@ -93,7 +107,21 @@ export class FieldView extends Phaser.GameObjects.Container {
     const pitch = scene.add.graphics();
     const pitchLeft = -FIELD_VIEW_WIDTH / 2;
     const pitchTop = -FIELD_VIEW_HEIGHT / 2;
+    const outerPitchLeft = pitchLeft - FIELD_OUTER_GRASS_MARGIN_X;
+    const outerPitchTop = pitchTop - FIELD_OUTER_GRASS_MARGIN_Y;
+    const outerPitchWidth = FIELD_VIEW_WIDTH + FIELD_OUTER_GRASS_MARGIN_X * 2;
+    const outerPitchHeight = FIELD_VIEW_HEIGHT + FIELD_OUTER_GRASS_MARGIN_Y * 2;
+    const outerStripeWidth = outerPitchWidth / FIELD_GRASS_STRIPE_COUNT;
     const stripeWidth = FIELD_VIEW_WIDTH / FIELD_GRASS_STRIPE_COUNT;
+
+    pitch.fillStyle(FIELD_OUTER_GRASS_COLOR, 1);
+    pitch.fillRect(outerPitchLeft, outerPitchTop, outerPitchWidth, outerPitchHeight);
+
+    for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1) {
+      const stripeColor = stripeIndex % 2 === 0 ? FIELD_GRASS_DARK_STRIPE_COLOR : FIELD_GRASS_LIGHT_STRIPE_COLOR;
+      pitch.fillStyle(stripeColor, 0.28);
+      pitch.fillRect(outerPitchLeft + stripeIndex * outerStripeWidth, outerPitchTop, outerStripeWidth, outerPitchHeight);
+    }
 
     pitch.fillStyle(FIELD_GRASS_BASE_COLOR, 1);
     pitch.fillRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT);
@@ -104,7 +132,7 @@ export class FieldView extends Phaser.GameObjects.Container {
       pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, pitchTop, stripeWidth, FIELD_VIEW_HEIGHT);
     }
 
-    pitch.lineStyle(3, 0xe2efe6, 1);
+    pitch.lineStyle(3, FIELD_MARKING_COLOR, 1);
     pitch.strokeRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT);
 
     return pitch;
@@ -211,17 +239,18 @@ export class FieldView extends Phaser.GameObjects.Container {
 
   private createPitchMarkings(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
     const markings = scene.add.graphics();
-    const lineColor = 0xe2efe6;
-    const lineAlpha = 0.42;
-    const lineWidth = 2;
+    const pitchLeft = -FIELD_VIEW_WIDTH / 2;
+    const pitchRight = FIELD_VIEW_WIDTH / 2;
+    const pitchTop = -FIELD_VIEW_HEIGHT / 2;
+    const pitchBottom = FIELD_VIEW_HEIGHT / 2;
 
-    markings.lineStyle(lineWidth, lineColor, lineAlpha);
+    markings.lineStyle(FIELD_MARKING_WIDTH, FIELD_MARKING_COLOR, FIELD_MARKING_ALPHA);
 
-    markings.strokeRect(-FIELD_VIEW_WIDTH / 2, -180, 150, 360);
-    markings.strokeRect(FIELD_VIEW_WIDTH / 2 - 150, -180, 150, 360);
+    markings.strokeRect(pitchLeft, -180, 150, 360);
+    markings.strokeRect(pitchRight - 150, -180, 150, 360);
 
-    markings.strokeRect(-FIELD_VIEW_WIDTH / 2, -95, 70, 190);
-    markings.strokeRect(FIELD_VIEW_WIDTH / 2 - 70, -95, 70, 190);
+    markings.strokeRect(pitchLeft, -95, 70, 190);
+    markings.strokeRect(pitchRight - 70, -95, 70, 190);
 
     markings.strokeCircle(-450, 0, 4);
     markings.strokeCircle(450, 0, 4);
@@ -234,8 +263,65 @@ export class FieldView extends Phaser.GameObjects.Container {
     markings.arc(450, 0, 72, Phaser.Math.DegToRad(124), Phaser.Math.DegToRad(236), false);
     markings.strokePath();
 
+    markings.beginPath();
+    markings.arc(pitchLeft, pitchTop, FIELD_CORNER_ARC_RADIUS, Phaser.Math.DegToRad(0), Phaser.Math.DegToRad(90), false);
+    markings.strokePath();
+
+    markings.beginPath();
+    markings.arc(pitchRight, pitchTop, FIELD_CORNER_ARC_RADIUS, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false);
+    markings.strokePath();
+
+    markings.beginPath();
+    markings.arc(pitchRight, pitchBottom, FIELD_CORNER_ARC_RADIUS, Phaser.Math.DegToRad(180), Phaser.Math.DegToRad(270), false);
+    markings.strokePath();
+
+    markings.beginPath();
+    markings.arc(pitchLeft, pitchBottom, FIELD_CORNER_ARC_RADIUS, Phaser.Math.DegToRad(270), Phaser.Math.DegToRad(360), false);
+    markings.strokePath();
+
     return markings;
   }
+
+  private createGoals(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
+    const goals = scene.add.graphics();
+    const pitchLeft = -FIELD_VIEW_WIDTH / 2;
+    const pitchRight = FIELD_VIEW_WIDTH / 2;
+    const goalTop = -FIELD_GOAL_HEIGHT / 2;
+
+    drawGoal(
+      goals,
+      pitchLeft - FIELD_GOAL_DEPTH,
+      goalTop,
+      FIELD_GOAL_DEPTH,
+      FIELD_GOAL_HEIGHT,
+      FIELD_GOAL_NET_CELL_SIZE
+    );
+    drawGoal(goals, pitchRight, goalTop, FIELD_GOAL_DEPTH, FIELD_GOAL_HEIGHT, FIELD_GOAL_NET_CELL_SIZE);
+
+    return goals;
+  }
+}
+
+function drawGoal(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  netCellSize: number
+): void {
+  graphics.lineStyle(FIELD_GOAL_NET_WIDTH, FIELD_MARKING_COLOR, FIELD_GOAL_NET_ALPHA);
+
+  for (let netX = x + netCellSize; netX < x + width; netX += netCellSize) {
+    graphics.lineBetween(netX, y, netX, y + height);
+  }
+
+  for (let netY = y + netCellSize; netY < y + height; netY += netCellSize) {
+    graphics.lineBetween(x, netY, x + width, netY);
+  }
+
+  graphics.lineStyle(FIELD_GOAL_FRAME_WIDTH, FIELD_MARKING_COLOR, FIELD_GOAL_FRAME_ALPHA);
+  graphics.strokeRect(x, y, width, height);
 }
 
 export function getFieldCardPosition(
