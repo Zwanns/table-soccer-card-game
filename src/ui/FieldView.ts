@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions';
 import {
   getFieldPlayerForCard,
@@ -19,9 +20,6 @@ export const FIELD_GRASS_STRIPE_COUNT = 14;
 export const FIELD_GRASS_BASE_COLOR = 0x157a43;
 export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a;
 export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c;
-export const FIELD_OUTER_GRASS_MARGIN_X = 56;
-export const FIELD_OUTER_GRASS_MARGIN_Y = 26;
-export const FIELD_OUTER_GRASS_COLOR = 0x105f36;
 const FIELD_MARKING_COLOR = 0xe2efe6;
 const FIELD_MARKING_ALPHA = 0.42;
 const FIELD_MARKING_WIDTH = 2;
@@ -91,11 +89,11 @@ export class FieldView extends Phaser.GameObjects.Container {
   ) {
     super(scene, x, y);
 
-    const centerLine = scene.add.rectangle(0, 0, 2, 580, 0xe2efe6, 0.42);
+    const centerLine = scene.add.rectangle(0, 0, 2, FIELD_VIEW_HEIGHT, 0xe2efe6, 0.42);
     const centerCircle = scene.add.circle(0, 0, 80);
     centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
 
-    this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), this.createGoals(scene), centerLine, centerCircle]);
+    this.add([this.createStripedPitch(scene, x, y), this.createPitchMarkings(scene), this.createGoals(scene), centerLine, centerCircle]);
 
     this.addPlayerCards(scene, state.players[0], PLAYER_ONE_POSITIONS, state, onTargetSelect, options);
     this.addPlayerCards(scene, state.players[1], PLAYER_TWO_POSITIONS, state, onTargetSelect, options);
@@ -103,33 +101,23 @@ export class FieldView extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  private createStripedPitch(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
+  private createStripedPitch(scene: Phaser.Scene, centerX: number, centerY: number): Phaser.GameObjects.Graphics {
     const pitch = scene.add.graphics();
     const pitchLeft = -FIELD_VIEW_WIDTH / 2;
     const pitchTop = -FIELD_VIEW_HEIGHT / 2;
-    const outerPitchLeft = pitchLeft - FIELD_OUTER_GRASS_MARGIN_X;
-    const outerPitchTop = pitchTop - FIELD_OUTER_GRASS_MARGIN_Y;
-    const outerPitchWidth = FIELD_VIEW_WIDTH + FIELD_OUTER_GRASS_MARGIN_X * 2;
-    const outerPitchHeight = FIELD_VIEW_HEIGHT + FIELD_OUTER_GRASS_MARGIN_Y * 2;
-    const outerStripeWidth = outerPitchWidth / FIELD_GRASS_STRIPE_COUNT;
+    const grassLeft = -centerX;
+    const grassTop = -centerY;
     const stripeWidth = FIELD_VIEW_WIDTH / FIELD_GRASS_STRIPE_COUNT;
-
-    pitch.fillStyle(FIELD_OUTER_GRASS_COLOR, 1);
-    pitch.fillRect(outerPitchLeft, outerPitchTop, outerPitchWidth, outerPitchHeight);
-
-    for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1) {
-      const stripeColor = stripeIndex % 2 === 0 ? FIELD_GRASS_DARK_STRIPE_COLOR : FIELD_GRASS_LIGHT_STRIPE_COLOR;
-      pitch.fillStyle(stripeColor, 0.28);
-      pitch.fillRect(outerPitchLeft + stripeIndex * outerStripeWidth, outerPitchTop, outerStripeWidth, outerPitchHeight);
-    }
+    const firstStripeIndex = Math.floor((grassLeft - pitchLeft) / stripeWidth);
+    const lastStripeIndex = Math.ceil((grassLeft + SCENE_WIDTH - pitchLeft) / stripeWidth);
 
     pitch.fillStyle(FIELD_GRASS_BASE_COLOR, 1);
-    pitch.fillRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT);
+    pitch.fillRect(grassLeft, grassTop, SCENE_WIDTH, SCENE_HEIGHT);
 
-    for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1) {
+    for (let stripeIndex = firstStripeIndex; stripeIndex < lastStripeIndex; stripeIndex += 1) {
       const stripeColor = stripeIndex % 2 === 0 ? FIELD_GRASS_LIGHT_STRIPE_COLOR : FIELD_GRASS_DARK_STRIPE_COLOR;
       pitch.fillStyle(stripeColor, 0.28);
-      pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, pitchTop, stripeWidth, FIELD_VIEW_HEIGHT);
+      pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, grassTop, stripeWidth, SCENE_HEIGHT);
     }
 
     pitch.lineStyle(3, FIELD_MARKING_COLOR, 1);

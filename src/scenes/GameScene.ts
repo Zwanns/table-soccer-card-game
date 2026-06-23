@@ -311,7 +311,6 @@ export class GameScene extends Phaser.Scene {
 
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
     const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
     const interactive = options.interactive !== false;
     const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
@@ -324,7 +323,6 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer?.destroy();
     this.dynamicLayer = this.add.container(0, 0);
 
-    this.dynamicLayer.add(this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a));
     this.dynamicLayer.add(
       new FieldView(this, centerX, FIELD_CENTER_Y, state, (positionId) => this.selectTarget(positionId), {
         hiddenCards: hiddenRestoredCards,

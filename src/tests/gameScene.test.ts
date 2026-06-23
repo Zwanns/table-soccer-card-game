@@ -318,19 +318,19 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('export const FIELD_GRASS_BASE_COLOR = 0x157a43');
     expect(source).toContain('export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a');
     expect(source).toContain('export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c');
-    expect(source).toContain('export const FIELD_OUTER_GRASS_MARGIN_X = 56');
-    expect(source).toContain('export const FIELD_OUTER_GRASS_MARGIN_Y = 26');
-    expect(source).toContain('export const FIELD_OUTER_GRASS_COLOR = 0x105f36');
-    expect(source).toContain('this.add([this.createStripedPitch(scene), this.createPitchMarkings(scene), this.createGoals(scene), centerLine, centerCircle])');
-    expect(source).toContain('const outerPitchWidth = FIELD_VIEW_WIDTH + FIELD_OUTER_GRASS_MARGIN_X * 2');
-    expect(source).toContain('const outerPitchHeight = FIELD_VIEW_HEIGHT + FIELD_OUTER_GRASS_MARGIN_Y * 2');
-    expect(source).toContain('const outerStripeWidth = outerPitchWidth / FIELD_GRASS_STRIPE_COUNT');
-    expect(source).toContain('pitch.fillRect(outerPitchLeft, outerPitchTop, outerPitchWidth, outerPitchHeight)');
+    expect(source).toContain("import { SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
+    expect(source).toContain('this.createStripedPitch(scene, x, y)');
+    expect(source).toContain('const grassLeft = -centerX');
+    expect(source).toContain('const grassTop = -centerY');
+    expect(source).toContain('const stripeWidth = FIELD_VIEW_WIDTH / FIELD_GRASS_STRIPE_COUNT');
+    expect(source).toContain('const firstStripeIndex = Math.floor((grassLeft - pitchLeft) / stripeWidth)');
+    expect(source).toContain('const lastStripeIndex = Math.ceil((grassLeft + SCENE_WIDTH - pitchLeft) / stripeWidth)');
+    expect(source).toContain('pitch.fillRect(grassLeft, grassTop, SCENE_WIDTH, SCENE_HEIGHT)');
     expect(source).toContain('pitch.fillStyle(stripeColor, 0.28)');
-    expect(source).toContain('pitch.fillRect(outerPitchLeft + stripeIndex * outerStripeWidth, outerPitchTop, outerStripeWidth, outerPitchHeight)');
-    expect(source).toContain('for (let stripeIndex = 0; stripeIndex < FIELD_GRASS_STRIPE_COUNT; stripeIndex += 1)');
-    expect(source).toContain('pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, pitchTop, stripeWidth, FIELD_VIEW_HEIGHT)');
+    expect(source).toContain('for (let stripeIndex = firstStripeIndex; stripeIndex < lastStripeIndex; stripeIndex += 1)');
+    expect(source).toContain('pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, grassTop, stripeWidth, SCENE_HEIGHT)');
     expect(source).toContain('pitch.strokeRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT)');
+    expect(source).toContain('scene.add.rectangle(0, 0, 2, FIELD_VIEW_HEIGHT, 0xe2efe6, 0.42)');
     expect(source).toContain('const FIELD_GOAL_DEPTH = 42');
     expect(source).toContain('const FIELD_GOAL_HEIGHT = 131');
     expect(source).toContain('const FIELD_GOAL_FRAME_WIDTH = 4');
@@ -344,9 +344,10 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const FIELD_CORNER_ARC_RADIUS = 22');
     expect(source.match(/FIELD_CORNER_ARC_RADIUS/g)?.length).toBeGreaterThanOrEqual(5);
     expect(source).not.toContain('scene.add.rectangle(0, 0, 1120, 600');
+    expect(source).not.toContain('FIELD_OUTER_GRASS_');
   });
 
-  it('keeps the expanded field background behind match UI controls', () => {
+  it('keeps the full-screen grass background behind match UI controls', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const fieldIndex = source.indexOf('new FieldView(this, centerX, FIELD_CENTER_Y');
     const pauseIndex = source.indexOf("new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause'");
@@ -359,6 +360,7 @@ describe('GameScene visual layout contracts', () => {
     expect(rulesIndex).toBeGreaterThan(fieldIndex);
     expect(scoreIndex).toBeGreaterThan(fieldIndex);
     expect(deckIndex).toBeGreaterThan(fieldIndex);
+    expect(source).not.toContain('this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a)');
   });
 
   it('aligns transparent taller Goals panels with the field top', () => {
