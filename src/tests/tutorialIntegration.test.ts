@@ -50,6 +50,22 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(menuSource).toContain("matchMode: 'tutorial'");
   });
 
+  it('places Tutorial Match after Penalty shootout without changing either launch action', () => {
+    const menuSource = readSource('src/scenes/MenuScene.ts');
+    const gameModesSource = menuSource.slice(
+      menuSource.indexOf('private createGameModeButtons(): void'),
+      menuSource.indexOf('private getMenuButtonWidth(): number')
+    );
+
+    expect(gameModesSource.indexOf("'Penalty shootout'")).toBeLessThan(
+      gameModesSource.indexOf("'Tutorial Match'")
+    );
+    expect(gameModesSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
+    expect(gameModesSource).toContain("this.scene.start('GameScene', {");
+    expect(gameModesSource).toContain('...TUTORIAL_MATCH_V2_TEAMS');
+    expect(gameModesSource).toContain("matchMode: 'tutorial'");
+  });
+
   it('creates tutorial controller and setup preset only for matchMode tutorial', () => {
     const gameSource = readSource('src/scenes/GameScene.ts');
 

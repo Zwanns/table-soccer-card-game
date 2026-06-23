@@ -542,22 +542,6 @@ export class MenuScene extends Phaser.Scene {
     );
     buttonIndex += 1;
 
-    buttons.push(
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Tutorial Match',
-        () =>
-          this.scene.start('GameScene', {
-            ...TUTORIAL_MATCH_V2_TEAMS,
-            matchMode: 'tutorial'
-          }),
-        buttonOptions
-      )
-    );
-    buttonIndex += 1;
-
     if (hasTournamentSave) {
       buttons.push(
         new Button(
@@ -591,6 +575,22 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
+        buttonOptions
+      )
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Tutorial Match',
+        () =>
+          this.scene.start('GameScene', {
+            ...TUTORIAL_MATCH_V2_TEAMS,
+            matchMode: 'tutorial'
+          }),
         buttonOptions
       )
     );
