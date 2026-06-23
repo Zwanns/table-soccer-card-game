@@ -23,6 +23,7 @@ export const TUTORIAL_MATCH_V2_SETUP_PRESET: GameSetupPreset = {
     '6',
     '10',
     'J',
+    'K',
     'Q'
   ]),
   player2Deck: createTutorialPlayerDeck('BLACK', [
@@ -39,10 +40,7 @@ export const TUTORIAL_MATCH_V2_SETUP_PRESET: GameSetupPreset = {
     '3'
   ]),
   player1GoalkeeperDeck: createTutorialGoalkeeperDeck(['A']),
-  player2GoalkeeperDeck: createTutorialGoalkeeperDeck(['5']),
-  player2Field: {
-    'midfielder-3': null
-  }
+  player2GoalkeeperDeck: createTutorialGoalkeeperDeck(['5'])
 };
 
 export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [

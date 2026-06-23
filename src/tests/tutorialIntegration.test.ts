@@ -1,12 +1,45 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { GameEngine } from '../game';
+import {
+  TUTORIAL_MATCH_V2_SETUP_PRESET,
+  TUTORIAL_MATCH_V2_TEAMS
+} from '../tutorial/tutorialScenario';
 
 function readSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
 describe('Tutorial Match launch and GameScene integration', () => {
+  it('starts Tutorial Match with every Germany midfield slot filled', () => {
+    const engine = new GameEngine();
+    const state = engine.startNewGame({
+      ...TUTORIAL_MATCH_V2_TEAMS,
+      setupPreset: TUTORIAL_MATCH_V2_SETUP_PRESET
+    });
+    const germany = state.players[1];
+
+    expect([
+      germany.field['midfielder-1']?.rank,
+      germany.field['midfielder-2']?.rank,
+      germany.field['midfielder-3']?.rank
+    ]).toEqual(['7', 'A', '5']);
+  });
+
+  it('keeps the regular Quick Match initial midfield setup unaffected', () => {
+    const engine = new GameEngine();
+    const state = engine.startNewGame({ seed: 'quick-match-initial-midfield' });
+
+    for (const player of state.players) {
+      expect([
+        player.field['midfielder-1'],
+        player.field['midfielder-2'],
+        player.field['midfielder-3']
+      ]).not.toContain(null);
+    }
+  });
+
   it('adds Tutorial Match as a direct GameScene launch without changing Quick Match team selection', () => {
     const menuSource = readSource('src/scenes/MenuScene.ts');
 
@@ -48,7 +81,8 @@ describe('Tutorial Match launch and GameScene integration', () => {
     const layoutSource = readSource('src/ui/tutorialOverlayLayout.ts');
 
     expect(overlaySource).toContain('export class TutorialOverlay');
-    expect(overlaySource).toContain('getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT)');
+    expect(overlaySource).toContain('getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT, undefined, {');
+    expect(overlaySource).toContain("hasContinueButton: options.step.waitFor === 'next'");
     expect(layoutSource).toContain('const DESKTOP_PANEL_WIDTH = 840');
     expect(layoutSource).toContain('const DESKTOP_PANEL_HEIGHT = 230');
     expect(overlaySource).toContain('layout.mobile ? 0.26 : 0.48');
@@ -61,6 +95,11 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(overlaySource).toContain('layout.languageHitWidth');
     expect(overlaySource).toContain('GAME_LANGUAGES');
     expect(overlaySource).toContain('highlightRects');
+    expect(overlaySource).toContain('panelBackground.setInteractive()');
+    expect(overlaySource).not.toContain('dim.setInteractive()');
+    expect(overlaySource).toContain('scene.add.container(layout.panelX, layout.panelY)');
+    expect(layoutSource).not.toContain('resolveTutorialPanelY');
+    expect(layoutSource).not.toContain('getPanelOverlapArea');
   });
 
   it('adds highlight targets for own midfielders, opponent midfielders, and open zones', () => {

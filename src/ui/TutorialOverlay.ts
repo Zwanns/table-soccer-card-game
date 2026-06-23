@@ -7,7 +7,6 @@ import { Button } from './Button';
 import {
   formatTutorialOverlayMessage,
   getTutorialOverlayLayout,
-  resolveTutorialPanelY,
   type TutorialOverlayLayout
 } from './tutorialOverlayLayout';
 
@@ -32,7 +31,13 @@ export class TutorialOverlay extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, options: TutorialOverlayOptions) {
     super(scene, 0, 0);
 
-    const layout = getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT);
+    const titleText = getTutorialTitle(options);
+    const messageText = getTutorialText(options.language, options.step.messageKey);
+    const layout = getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT, undefined, {
+      hasContinueButton: options.step.waitFor === 'next',
+      title: titleText,
+      message: messageText
+    });
     const dim = scene.add.rectangle(
       SCENE_WIDTH / 2,
       SCENE_HEIGHT / 2,
@@ -47,7 +52,7 @@ export class TutorialOverlay extends Phaser.GameObjects.Container {
       this.add(createHighlight(scene, rect));
     }
 
-    this.add(createPanel(scene, options, layout));
+    this.add(createPanel(scene, options, layout, titleText, messageText));
     this.setDepth(OVERLAY_DEPTH);
     scene.add.existing(this);
   }
@@ -80,18 +85,13 @@ function createHighlight(scene: Phaser.Scene, rect: TutorialHighlightRect): Phas
 function createPanel(
   scene: Phaser.Scene,
   options: TutorialOverlayOptions,
-  layout: TutorialOverlayLayout
+  layout: TutorialOverlayLayout,
+  titleText: string,
+  messageText: string
 ): Phaser.GameObjects.Container {
-  const panel = scene.add.container(
-    layout.panelX,
-    resolveTutorialPanelY(layout, options.highlightRects ?? [])
-  );
+  const panel = scene.add.container(layout.panelX, layout.panelY);
   const panelBackground = scene.add.rectangle(0, 0, layout.panelWidth, layout.panelHeight, 0x0b2118, 0.97);
-  const titleText =
-    options.step.titleKey === undefined
-      ? getTutorialText(options.language, 'tutorial.welcome.title')
-      : getTutorialText(options.language, options.step.titleKey);
-
+  panelBackground.setInteractive();
   const title = scene.add
     .text(-layout.panelWidth / 2 + layout.panelPaddingX, -layout.panelHeight / 2 + layout.titleTop, titleText, {
       color: '#f0c95a',
@@ -108,7 +108,7 @@ function createPanel(
     .text(
       -layout.panelWidth / 2 + layout.panelPaddingX,
       -layout.panelHeight / 2 + layout.messageTop,
-      formatTutorialOverlayMessage(getTutorialText(options.language, options.step.messageKey), layout.mobile),
+      formatTutorialOverlayMessage(messageText, layout.mobile),
       {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -140,6 +140,12 @@ function createPanel(
   }
 
   return panel;
+}
+
+function getTutorialTitle(options: TutorialOverlayOptions): string {
+  return options.step.titleKey === undefined
+    ? getTutorialText(options.language, 'tutorial.welcome.title')
+    : getTutorialText(options.language, options.step.titleKey);
 }
 
 function createLanguageSelector(

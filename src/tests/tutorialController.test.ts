@@ -145,9 +145,12 @@ describe('Tutorial Match v2 scenario', () => {
 
     state = engine.drawAttackCard();
     expect(state.attackCard?.rank).toBe('10');
-    state = engine.selectTarget('defender-1');
+    state = engine.selectTarget('midfielder-3');
     state = engine.drawAttackCard();
     expect(state.attackCard?.rank).toBe('J');
+    state = engine.selectTarget('defender-1');
+    state = engine.drawAttackCard();
+    expect(state.attackCard?.rank).toBe('K');
     state = engine.selectTarget('defender-2');
     expect(getCurrentTargetLine(state.players[1].field)).toBe('GOALKEEPER');
 
@@ -171,6 +174,8 @@ describe('Tutorial Match v2 scenario', () => {
     state = engine.drawAttackCard();
     state = engine.selectTarget('midfielder-2');
     state = engine.drawAttackCard();
+    state = engine.selectTarget('midfielder-3');
+    state = engine.drawAttackCard();
     state = engine.selectTarget('defender-1');
     state = engine.drawAttackCard();
     state = engine.selectTarget('defender-2');
@@ -179,12 +184,19 @@ describe('Tutorial Match v2 scenario', () => {
     state = engine.startNextTurn();
 
     expect(state.activePlayerId).toBe('PLAYER_2');
+    expect([
+      state.players[1].field['midfielder-1'],
+      state.players[1].field['midfielder-2'],
+      state.players[1].field['midfielder-3']
+    ]).not.toContain(null);
     expect(state.players[1].field['midfielder-1']?.rank).toBe('A');
     expect(engine.canCommitMidfielder('midfielder-1')).toBe(true);
 
     state = engine.commitMidfielder('midfielder-1');
     expect(state.log).toContainEqual(expect.objectContaining({ type: 'MIDFIELDER_COMMITTED', positionId: 'midfielder-1' }));
     expect(state.players[1].field['midfielder-1']).toBeNull();
+    expect(state.players[1].field['midfielder-2']).not.toBeNull();
+    expect(state.players[1].field['midfielder-3']).not.toBeNull();
 
     state = engine.drawAttackCard();
     expect(state.attackCard?.rank).toBe('3');
