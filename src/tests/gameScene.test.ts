@@ -131,10 +131,11 @@ describe('GameScene visual layout contracts', () => {
 
   it('keeps enlarged midfield cards separated with symmetric field offsets', () => {
     const fieldSource = readSource('src/ui/FieldView.ts');
+    const dimensionsSource = readSource('src/ui/fieldDimensions.ts');
     const matchCardScaleSource = readSource('src/ui/matchCardScale.ts');
 
     const matchCardScale = Number(matchCardScaleSource.match(/export const MATCH_CARD_SCALE = ([\d.]+);/)?.[1]);
-    const fieldViewHeight = Number(fieldSource.match(/export const FIELD_VIEW_HEIGHT = (\d+);/)?.[1]);
+    const fieldViewHeight = Number(dimensionsSource.match(/export const FIELD_VIEW_HEIGHT = (\d+);/)?.[1]);
     const midfieldOffset = Number(fieldSource.match(/const MIDFIELDER_Y_OFFSET = (\d+);/)?.[1]);
     const defenderOffset = Number(fieldSource.match(/const DEFENDER_Y_OFFSET = (\d+);/)?.[1]);
     const scaledCardHeight = 148.5 * matchCardScale;
@@ -308,9 +309,11 @@ describe('GameScene visual layout contracts', () => {
 
   it('draws a striped grass pitch under the field markings', () => {
     const source = readSource('src/ui/FieldView.ts');
+    const dimensionsSource = readSource('src/ui/fieldDimensions.ts');
 
-    expect(source).toContain('export const FIELD_VIEW_WIDTH = 1120');
-    expect(source).toContain('export const FIELD_VIEW_HEIGHT = 600');
+    expect(dimensionsSource).toContain('export const FIELD_VIEW_WIDTH = 1120');
+    expect(dimensionsSource).toContain('export const FIELD_VIEW_HEIGHT = 600');
+    expect(source).toContain("export { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions'");
     expect(source).toContain('export const FIELD_GRASS_STRIPE_COUNT = 14');
     expect(source).toContain('export const FIELD_GRASS_BASE_COLOR = 0x157a43');
     expect(source).toContain('export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a');
@@ -704,8 +707,10 @@ describe('GameScene visual layout contracts', () => {
 
     expect(source).toContain('if (isGoalkeeperShotAnimationOutcome(context, outcome)) {');
     expect(source).toContain(
-      "this.render(state, {\n        hiddenRestoredCards,\n        interactive: false,\n        hideActiveTurnBall: true\n      });\n      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));"
+      "this.render(state, {\n        hiddenRestoredCards,\n        interactive: false,\n        hideActiveTurnBall: true\n      });"
     );
+    expect(source).toContain('this.playGoalkeeperShotBallFlight(');
+    expect(source).toContain('() => this.finishAttackAnimationSequence(onComplete),\n        onEffectStarted');
     expect(source).toContain('function isGoalkeeperShotAnimationOutcome(');
     expect(source).toContain("return context.positionId === 'goalkeeper' && (outcome === 'goal' || outcome === 'save' || outcome === 'post')");
     expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
@@ -828,6 +833,9 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')).toBeLessThan(
       impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')
+    );
+    expect(impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')).toBeLessThan(
+      impactBlock.indexOf('onEffectStarted?.();')
     );
     expect(impactBlock).not.toContain("this.playGoalkeeperImpactSound('goalkeeper', outcome);");
     expect(source).toContain('this.playSceneEffectSound(goalEffect);');

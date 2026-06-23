@@ -525,11 +525,29 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.recordTutorialAction(targetAction);
-    this.recordTutorialEvents(state, previousLogLength);
+    const animationOutcome = getAttackAnimationOutcome(state, positionId);
+    const deferTutorialGoalEvent =
+      animationContext !== null &&
+      animationOutcome === 'goal' &&
+      this.tutorialController !== null &&
+      !this.tutorialController.isComplete();
+
+    if (!deferTutorialGoalEvent) {
+      this.recordTutorialEvents(state, previousLogLength);
+    }
 
     if (animationContext !== null) {
-      this.animateAttackSelection(state, animationContext, getAttackAnimationOutcome(state, positionId), () =>
-        this.handleSelectedTargetState(state)
+      this.animateAttackSelection(
+        state,
+        animationContext,
+        animationOutcome,
+        () => this.handleSelectedTargetState(state),
+        deferTutorialGoalEvent
+          ? () => {
+              this.recordTutorialEvents(state, previousLogLength);
+              this.refreshTutorialOverlay(state);
+            }
+          : undefined
       );
       return;
     }
@@ -1516,7 +1534,8 @@ export class GameScene extends Phaser.Scene {
     state: Readonly<GameState>,
     context: AttackAnimationContext,
     outcome: AttackAnimationOutcome,
-    onComplete: () => void
+    onComplete: () => void,
+    onEffectStarted?: () => void
   ): void {
     this.isAttackAnimationInProgress = true;
     this.input.enabled = false;
@@ -1533,7 +1552,14 @@ export class GameScene extends Phaser.Scene {
         interactive: false,
         hideActiveTurnBall: true
       });
-      this.playGoalkeeperShotBallFlight(state, context, target, outcome, () => this.finishAttackAnimationSequence(onComplete));
+      this.playGoalkeeperShotBallFlight(
+        state,
+        context,
+        target,
+        outcome,
+        () => this.finishAttackAnimationSequence(onComplete),
+        onEffectStarted
+      );
       return;
     }
 
@@ -1625,7 +1651,8 @@ export class GameScene extends Phaser.Scene {
     context: AttackAnimationContext,
     target: { x: number; y: number },
     outcome: GoalkeeperShotAnimationOutcome,
-    onComplete: () => void
+    onComplete: () => void,
+    onEffectStarted?: () => void
   ): void {
     const start = this.getTurnBallStartPosition(state, context.attackerId);
     const goalkeeperImpactCard = this.createGoalkeeperShotImpactCard(context, target, outcome);
@@ -1639,7 +1666,8 @@ export class GameScene extends Phaser.Scene {
         goalkeeperImpactCard,
         sourceSnapshot,
         outcome,
-        onComplete
+        onComplete,
+        onEffectStarted
       });
     });
   }
@@ -1777,6 +1805,7 @@ export class GameScene extends Phaser.Scene {
     sourceSnapshot: CardView;
     outcome: GoalkeeperShotAnimationOutcome;
     onComplete: () => void;
+    onEffectStarted?: () => void;
   }): void {
     const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY);
     ball.setDisplaySize(GOALKEEPER_SHOT_BALL_SIZE, GOALKEEPER_SHOT_BALL_SIZE);
@@ -1813,6 +1842,7 @@ export class GameScene extends Phaser.Scene {
           options.goalkeeperImpactCard,
           baseScaleX,
           baseScaleY,
+          options.onEffectStarted,
           () => this.finishGoalkeeperShotSourceSnapshot(options.sourceSnapshot, options.onComplete)
         )
     });
@@ -1831,6 +1861,7 @@ export class GameScene extends Phaser.Scene {
     goalkeeperImpactCard: CardView | null,
     baseScaleX: number,
     baseScaleY: number,
+    onEffectStarted: (() => void) | undefined,
     onComplete: () => void
   ): void {
     const shotEffect = getGoalkeeperShotSceneEffect(outcome);
@@ -1841,6 +1872,7 @@ export class GameScene extends Phaser.Scene {
       this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;
     }
     this.showGoalkeeperShotTargetImpact(target, outcome);
+    onEffectStarted?.();
 
     if (outcome === 'goal') {
       this.animateGoalkeeperShotGoalDisappear(

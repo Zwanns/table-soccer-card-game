@@ -76,6 +76,44 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(teamSelectSource).not.toContain("matchMode: 'tutorial'");
   });
 
+  it('starts the shared goal effect before advancing the tutorial goal step', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const selectTargetBlock = gameSource.slice(
+      gameSource.indexOf('private selectTarget('),
+      gameSource.indexOf('private handleSelectedTargetState(')
+    );
+    const impactBlock = gameSource.slice(
+      gameSource.indexOf('private finishGoalkeeperShotBallImpact('),
+      gameSource.indexOf('private animateGoalkeeperShotGoalDisappear(')
+    );
+
+    expect(selectTargetBlock).toContain("animationOutcome === 'goal'");
+    expect(selectTargetBlock).toContain('!this.tutorialController.isComplete()');
+    expect(selectTargetBlock).toContain('if (!deferTutorialGoalEvent)');
+    expect(selectTargetBlock).toContain('this.recordTutorialEvents(state, previousLogLength);');
+    expect(selectTargetBlock).toContain('this.refreshTutorialOverlay(state);');
+    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
+      impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')
+    );
+    expect(impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')).toBeLessThan(
+      impactBlock.indexOf('onEffectStarted?.();')
+    );
+  });
+
+  it('uses one shared goal sound path and marks the event handled before fallback processing', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const impactBlock = gameSource.slice(
+      gameSource.indexOf('private finishGoalkeeperShotBallImpact('),
+      gameSource.indexOf('private animateGoalkeeperShotGoalDisappear(')
+    );
+
+    expect(impactBlock).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
+    expect(impactBlock).toContain('this.playSceneEffectSound(shotEffect);');
+    expect(impactBlock).toContain('this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;');
+    expect(gameSource).not.toContain("this.matchMode === 'tutorial' ? 'sound-goal'");
+    expect(gameSource).not.toContain("playSound('sound-goal'");
+  });
+
   it('blocks Rules and Pause logically while a tutorial step is active', () => {
     const gameSource = readSource('src/scenes/GameScene.ts');
     const pauseHandler = gameSource.slice(
@@ -116,8 +154,9 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(overlaySource).toContain('export class TutorialOverlay');
     expect(overlaySource).toContain('getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT, undefined, {');
     expect(overlaySource).toContain("hasContinueButton: options.step.waitFor === 'next'");
-    expect(layoutSource).toContain('const DESKTOP_PANEL_WIDTH = 840');
-    expect(layoutSource).toContain('const DESKTOP_PANEL_HEIGHT = 230');
+    expect(layoutSource).toContain("import { FIELD_VIEW_WIDTH } from './fieldDimensions'");
+    expect(layoutSource).toContain('const panelWidth = FIELD_VIEW_WIDTH');
+    expect(layoutSource).toContain('getDesktopPanelHeight(content, messageTop, messageLines, height)');
     expect(overlaySource).toContain('layout.mobile ? 0.26 : 0.48');
     expect(overlaySource).toContain('0xf0c95a');
     expect(overlaySource).not.toContain('panelBackground.setStrokeStyle');
