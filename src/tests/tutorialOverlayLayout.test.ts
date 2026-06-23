@@ -5,27 +5,90 @@ import {
   isMobileTutorialLayout
 } from '../ui/tutorialOverlayLayout';
 import { getTutorialText } from '../tutorial/tutorialTexts';
+import { FIELD_VIEW_WIDTH } from '../ui/fieldDimensions';
 
 describe('tutorial overlay responsive layout', () => {
-  it('keeps the original desktop layout at 1600 x 720', () => {
+  it('matches the football field width and bottom edge on desktop', () => {
     const layout = getTutorialOverlayLayout(1600, 720, false, {
       hasContinueButton: false,
-      title: 'A title that would wrap on a narrow mobile panel',
-      message: 'A long message must not affect the desktop layout.'
+      title: 'Tutorial Match',
+      message: 'Draw a card from the deck.'
     });
 
     expect(layout.mobile).toBe(false);
     expect(layout).toMatchObject({
-      panelWidth: 840,
-      panelHeight: 230,
+      panelWidth: FIELD_VIEW_WIDTH,
+      panelHeight: 110,
       panelX: 800,
-      panelY: 579,
+      panelY: 645,
       titleFontSize: 24,
       messageFontSize: 18,
       messageLineSpacing: 6,
       buttonWidth: 190,
       buttonHeight: 42
     });
+    expect(layout.panelY + layout.panelHeight / 2).toBe(700);
+    expect(layout.messageWordWrapWidth).toBe(layout.panelWidth - layout.panelPaddingX * 2);
+  });
+
+  it('grows desktop action steps with localized text without reserving Continue space', () => {
+    const shortStep = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: false,
+      title: 'Навчальний матч',
+      message: 'Візьми карту з колоди.'
+    });
+    const longStep = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: false,
+      title: 'Навчальний матч',
+      message:
+        'Вибери свого правого півзахисника. ВАЖЛИВО: карта твого півзахисника має бути вищою за карту півзахисника суперника, або підпадати під спеціальне правило.'
+    });
+
+    expect(shortStep.panelHeight).toBe(110);
+    expect(longStep.panelHeight).toBeGreaterThan(shortStep.panelHeight);
+    expect(longStep.panelHeight).toBeLessThanOrEqual(190);
+    expect(longStep.panelY + longStep.panelHeight / 2).toBe(700);
+  });
+
+  it('reserves desktop button space only for Continue steps', () => {
+    const withoutContinue = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: false,
+      title: 'Basic rule',
+      message: 'Short message.'
+    });
+    const withContinue = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: true,
+      title: 'Basic rule',
+      message: 'Short message.'
+    });
+    const buttonTop = withContinue.buttonY - withContinue.buttonHeight / 2;
+    const buttonBottom = withContinue.buttonY + withContinue.buttonHeight / 2;
+
+    expect(withContinue.panelHeight).toBe(175);
+    expect(withContinue.panelHeight).toBeGreaterThan(withoutContinue.panelHeight);
+    expect(buttonTop).toBeGreaterThan(-withContinue.panelHeight / 2);
+    expect(buttonBottom).toBeLessThan(withContinue.panelHeight / 2);
+  });
+
+  it('keeps the desktop language switch inside the header and recalculates localized height', () => {
+    const english = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: true,
+      title: getTutorialText('en', 'tutorial.basicRule.title'),
+      message: getTutorialText('en', 'tutorial.basicRule.message')
+    });
+    const polish = getTutorialOverlayLayout(1600, 720, false, {
+      hasContinueButton: true,
+      title: getTutorialText('pl', 'tutorial.basicRule.title'),
+      message: getTutorialText('pl', 'tutorial.basicRule.message')
+    });
+    const firstLanguageX = polish.languageSelectorX + polish.languageStartX;
+    const lastLanguageX = firstLanguageX + polish.languageItemSpacing * 2;
+
+    expect(firstLanguageX).toBeGreaterThan(-polish.panelWidth / 2);
+    expect(lastLanguageX).toBeLessThan(polish.panelWidth / 2);
+    expect(polish.languageSelectorY).toBeGreaterThan(-polish.panelHeight / 2);
+    expect(polish.languageSelectorY).toBeLessThan(-polish.panelHeight / 2 + polish.messageTop);
+    expect(polish.panelHeight).toBeGreaterThanOrEqual(english.panelHeight);
   });
 
   it('selects mobile layout for phone geometry and touch landscape canvases', () => {

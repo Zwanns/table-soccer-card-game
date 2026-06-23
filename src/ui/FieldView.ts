@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions';
 import {
   getFieldPlayerForCard,
   getStartingGoalkeeper,
@@ -13,8 +14,7 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlay
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 import { MATCH_CARD_SCALE } from './matchCardScale';
 
-export const FIELD_VIEW_WIDTH = 1120;
-export const FIELD_VIEW_HEIGHT = 600;
+export { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions';
 export const FIELD_GRASS_STRIPE_COUNT = 14;
 export const FIELD_GRASS_BASE_COLOR = 0x157a43;
 export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a;

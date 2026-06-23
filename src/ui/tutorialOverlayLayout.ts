@@ -1,4 +1,5 @@
 import { isMobileLandscapeLayout } from './mobileLayout';
+import { FIELD_VIEW_WIDTH } from './fieldDimensions';
 
 export interface TutorialOverlayLayout {
   mobile: boolean;
@@ -34,10 +35,23 @@ export interface TutorialOverlayLayoutContent {
   message: string;
 }
 
-const DESKTOP_PANEL_WIDTH = 840;
-const DESKTOP_PANEL_HEIGHT = 230;
-const DESKTOP_PANEL_BOTTOM_MARGIN = 26;
+const DESKTOP_FALLBACK_PANEL_HEIGHT = 230;
+const DESKTOP_FIELD_BOTTOM_MARGIN = 20;
 const DESKTOP_PANEL_PADDING_X = 34;
+const DESKTOP_PANEL_PADDING_Y = 18;
+const DESKTOP_MIN_HEIGHT_WITHOUT_BUTTON = 110;
+const DESKTOP_MAX_HEIGHT_WITHOUT_BUTTON = 190;
+const DESKTOP_MIN_HEIGHT_WITH_BUTTON = 175;
+const DESKTOP_MAX_HEIGHT_WITH_BUTTON = 245;
+const DESKTOP_TITLE_FONT_SIZE = 24;
+const DESKTOP_TITLE_LINE_HEIGHT = 28;
+const DESKTOP_MESSAGE_FONT_SIZE = 18;
+const DESKTOP_MESSAGE_LINE_HEIGHT = 24;
+const DESKTOP_TITLE_MESSAGE_GAP = 6;
+const DESKTOP_MESSAGE_BUTTON_GAP = 10;
+const DESKTOP_BUTTON_WIDTH = 190;
+const DESKTOP_BUTTON_HEIGHT = 42;
+const DESKTOP_LANGUAGE_RESERVED_WIDTH = 176;
 const MOBILE_PANEL_HEIGHT = 190;
 const MOBILE_PANEL_PADDING_X = 32;
 const MOBILE_PANEL_PADDING_Y = 18;
@@ -68,27 +82,39 @@ export function getTutorialOverlayLayout(
   content?: TutorialOverlayLayoutContent
 ): TutorialOverlayLayout {
   if (!isMobileTutorialLayout(width, height, mobileLandscape)) {
+    const panelWidth = FIELD_VIEW_WIDTH;
+    const titleWordWrapWidth = panelWidth - DESKTOP_PANEL_PADDING_X * 2 - DESKTOP_LANGUAGE_RESERVED_WIDTH;
+    const messageWordWrapWidth = panelWidth - DESKTOP_PANEL_PADDING_X * 2;
+    const titleLines = estimateWrappedLineCount(content?.title ?? '', titleWordWrapWidth, DESKTOP_TITLE_FONT_SIZE);
+    const messageLines = estimateWrappedLineCount(
+      formatTutorialOverlayMessage(content?.message ?? '', false),
+      messageWordWrapWidth,
+      DESKTOP_MESSAGE_FONT_SIZE
+    );
+    const messageTop = DESKTOP_PANEL_PADDING_Y + titleLines * DESKTOP_TITLE_LINE_HEIGHT + DESKTOP_TITLE_MESSAGE_GAP;
+    const panelHeight = getDesktopPanelHeight(content, messageTop, messageLines, height);
+
     return {
       mobile: false,
-      panelWidth: DESKTOP_PANEL_WIDTH,
-      panelHeight: DESKTOP_PANEL_HEIGHT,
+      panelWidth,
+      panelHeight,
       panelX: width / 2,
-      panelY: height - DESKTOP_PANEL_BOTTOM_MARGIN - DESKTOP_PANEL_HEIGHT / 2,
+      panelY: height - DESKTOP_FIELD_BOTTOM_MARGIN - panelHeight / 2,
       panelPaddingX: DESKTOP_PANEL_PADDING_X,
-      titleTop: 24,
-      titleFontSize: 24,
-      titleWordWrapWidth: DESKTOP_PANEL_WIDTH - 260,
-      messageTop: 76,
-      messageFontSize: 18,
+      titleTop: DESKTOP_PANEL_PADDING_Y,
+      titleFontSize: DESKTOP_TITLE_FONT_SIZE,
+      titleWordWrapWidth,
+      messageTop,
+      messageFontSize: DESKTOP_MESSAGE_FONT_SIZE,
       messageLineSpacing: 6,
-      messageWordWrapWidth: DESKTOP_PANEL_WIDTH - DESKTOP_PANEL_PADDING_X * 2,
-      buttonX: DESKTOP_PANEL_WIDTH / 2 - 126,
-      buttonY: DESKTOP_PANEL_HEIGHT / 2 - 36,
-      buttonWidth: 190,
-      buttonHeight: 42,
+      messageWordWrapWidth,
+      buttonX: panelWidth / 2 - DESKTOP_PANEL_PADDING_X - DESKTOP_BUTTON_WIDTH / 2,
+      buttonY: panelHeight / 2 - DESKTOP_PANEL_PADDING_Y - DESKTOP_BUTTON_HEIGHT / 2,
+      buttonWidth: DESKTOP_BUTTON_WIDTH,
+      buttonHeight: DESKTOP_BUTTON_HEIGHT,
       buttonFontSize: 18,
-      languageSelectorX: DESKTOP_PANEL_WIDTH / 2 - 118,
-      languageSelectorY: -DESKTOP_PANEL_HEIGHT / 2 + 34,
+      languageSelectorX: panelWidth / 2 - 118,
+      languageSelectorY: -panelHeight / 2 + 32,
       languageStartX: -54,
       languageItemSpacing: 48,
       languageHitWidth: 0,
@@ -144,6 +170,30 @@ export function getTutorialOverlayLayout(
 
 export function formatTutorialOverlayMessage(message: string, mobile: boolean): string {
   return mobile ? message.replace(/\s*\n\s*/g, ' ') : message;
+}
+
+function getDesktopPanelHeight(
+  content: TutorialOverlayLayoutContent | undefined,
+  messageTop: number,
+  messageLines: number,
+  canvasHeight: number
+): number {
+  if (content === undefined) {
+    return Math.min(DESKTOP_FALLBACK_PANEL_HEIGHT, canvasHeight);
+  }
+
+  const messageBottom = messageTop + messageLines * DESKTOP_MESSAGE_LINE_HEIGHT;
+  const desiredHeight = content.hasContinueButton
+    ? messageBottom + DESKTOP_MESSAGE_BUTTON_GAP + DESKTOP_BUTTON_HEIGHT + DESKTOP_PANEL_PADDING_Y
+    : messageBottom + DESKTOP_PANEL_PADDING_Y;
+  const minHeight = content.hasContinueButton
+    ? DESKTOP_MIN_HEIGHT_WITH_BUTTON
+    : DESKTOP_MIN_HEIGHT_WITHOUT_BUTTON;
+  const maxHeight = content.hasContinueButton
+    ? DESKTOP_MAX_HEIGHT_WITH_BUTTON
+    : DESKTOP_MAX_HEIGHT_WITHOUT_BUTTON;
+
+  return Math.min(clamp(desiredHeight, minHeight, maxHeight), canvasHeight);
 }
 
 function getMobilePanelHeight(
