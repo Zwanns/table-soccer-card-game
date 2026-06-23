@@ -76,6 +76,39 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(teamSelectSource).not.toContain("matchMode: 'tutorial'");
   });
 
+  it('blocks Rules and Pause logically while a tutorial step is active', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const pauseHandler = gameSource.slice(
+      gameSource.indexOf('private openPauseModal('),
+      gameSource.indexOf('private closePauseModal(')
+    );
+    const infoHandler = gameSource.slice(
+      gameSource.indexOf('private openMatchInfoModal('),
+      gameSource.indexOf('private closeMatchInfoModal(')
+    );
+
+    expect(gameSource).toContain('private isTutorialBlockingSystemUi(): boolean');
+    expect(gameSource).toContain("this.matchMode === 'tutorial'");
+    expect(gameSource).toContain('this.tutorialController !== null');
+    expect(gameSource).toContain('!this.tutorialController.isComplete()');
+    expect(pauseHandler).toContain('this.isTutorialBlockingSystemUi()');
+    expect(infoHandler).toContain("kind === 'rules' && this.isTutorialBlockingSystemUi()");
+  });
+
+  it('keeps Quick Match and completed-tutorial system UI paths available', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const guard = gameSource.slice(
+      gameSource.indexOf('private isTutorialBlockingSystemUi(): boolean'),
+      gameSource.indexOf('private openResult(')
+    );
+
+    expect(guard).toContain("this.matchMode === 'tutorial'");
+    expect(guard).toContain('!this.tutorialController.isComplete()');
+    expect(guard).not.toContain("this.matchMode === 'quick'");
+    expect(gameSource).toContain("'Pause', () => this.openPauseModal(state)");
+    expect(gameSource).toContain("'Rules', () => this.openMatchInfoModal('rules')");
+  });
+
   it('keeps overlay rendering isolated in TutorialOverlay', () => {
     const overlaySource = readSource('src/ui/TutorialOverlay.ts');
     const layoutSource = readSource('src/ui/tutorialOverlayLayout.ts');

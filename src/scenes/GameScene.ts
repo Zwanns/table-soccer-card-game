@@ -968,7 +968,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openPauseModal(state: Readonly<GameState>): void {
-    if (this.pauseModal !== null || this.infoModal !== null || this.exitConfirmModal !== null) {
+    if (
+      this.isTutorialBlockingSystemUi() ||
+      this.pauseModal !== null ||
+      this.infoModal !== null ||
+      this.exitConfirmModal !== null
+    ) {
       return;
     }
 
@@ -1037,7 +1042,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openMatchInfoModal(kind: InfoModalKind): void {
-    if (this.infoModal !== null || this.pauseModal !== null) {
+    if (
+      (kind === 'rules' && this.isTutorialBlockingSystemUi()) ||
+      this.infoModal !== null ||
+      this.pauseModal !== null
+    ) {
       return;
     }
 
@@ -2184,6 +2193,14 @@ export class GameScene extends Phaser.Scene {
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
       !this.isMatchEffectInProgress
+    );
+  }
+
+  private isTutorialBlockingSystemUi(): boolean {
+    return (
+      this.matchMode === 'tutorial' &&
+      this.tutorialController !== null &&
+      !this.tutorialController.isComplete()
     );
   }
 
