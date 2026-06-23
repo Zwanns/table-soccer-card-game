@@ -4,6 +4,12 @@ import { GAME_LANGUAGES, getLanguageCode, type GameLanguage } from '../i18n/lang
 import { getTutorialText } from '../tutorial/tutorialTexts';
 import type { TutorialStep } from '../tutorial/tutorialTypes';
 import { Button } from './Button';
+import {
+  formatTutorialOverlayMessage,
+  getTutorialOverlayLayout,
+  resolveTutorialPanelY,
+  type TutorialOverlayLayout
+} from './tutorialOverlayLayout';
 
 export interface TutorialHighlightRect {
   x: number;
@@ -21,29 +27,27 @@ export interface TutorialOverlayOptions {
 }
 
 const OVERLAY_DEPTH = 5000;
-const PANEL_WIDTH = 840;
-const PANEL_HEIGHT = 230;
-const PANEL_BOTTOM_MARGIN = 26;
-const PANEL_PADDING_X = 34;
-const TITLE_TOP = 24;
-const TITLE_WORD_WRAP_WIDTH = PANEL_WIDTH - 260;
-const MESSAGE_TOP = 76;
-const MESSAGE_WORD_WRAP_WIDTH = PANEL_WIDTH - PANEL_PADDING_X * 2;
-const LANGUAGE_SELECTOR_RIGHT = 118;
-const LANGUAGE_SELECTOR_TOP = 34;
 
 export class TutorialOverlay extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, options: TutorialOverlayOptions) {
     super(scene, 0, 0);
 
-    const dim = scene.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x06130e, 0.48);
+    const layout = getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT);
+    const dim = scene.add.rectangle(
+      SCENE_WIDTH / 2,
+      SCENE_HEIGHT / 2,
+      SCENE_WIDTH,
+      SCENE_HEIGHT,
+      0x06130e,
+      layout.mobile ? 0.26 : 0.48
+    );
     this.add(dim);
 
     for (const rect of options.highlightRects ?? []) {
       this.add(createHighlight(scene, rect));
     }
 
-    this.add(createPanel(scene, options));
+    this.add(createPanel(scene, options, layout));
     this.setDepth(OVERLAY_DEPTH);
     scene.add.existing(this);
   }
@@ -73,56 +77,63 @@ function createHighlight(scene: Phaser.Scene, rect: TutorialHighlightRect): Phas
   return highlight;
 }
 
-function createPanel(scene: Phaser.Scene, options: TutorialOverlayOptions): Phaser.GameObjects.Container {
-  const panel = scene.add.container(SCENE_WIDTH / 2, SCENE_HEIGHT - PANEL_BOTTOM_MARGIN - PANEL_HEIGHT / 2);
-  const background = scene.add.rectangle(0, 0, PANEL_WIDTH, PANEL_HEIGHT, 0x0b2118, 0.94);
+function createPanel(
+  scene: Phaser.Scene,
+  options: TutorialOverlayOptions,
+  layout: TutorialOverlayLayout
+): Phaser.GameObjects.Container {
+  const panel = scene.add.container(
+    layout.panelX,
+    resolveTutorialPanelY(layout, options.highlightRects ?? [])
+  );
+  const panelBackground = scene.add.rectangle(0, 0, layout.panelWidth, layout.panelHeight, 0x0b2118, 0.97);
   const titleText =
     options.step.titleKey === undefined
       ? getTutorialText(options.language, 'tutorial.welcome.title')
       : getTutorialText(options.language, options.step.titleKey);
 
   const title = scene.add
-    .text(-PANEL_WIDTH / 2 + PANEL_PADDING_X, -PANEL_HEIGHT / 2 + TITLE_TOP, titleText, {
+    .text(-layout.panelWidth / 2 + layout.panelPaddingX, -layout.panelHeight / 2 + layout.titleTop, titleText, {
       color: '#f0c95a',
       fontFamily: 'Arial, sans-serif',
-      fontSize: '24px',
+      fontSize: `${layout.titleFontSize}px`,
       fontStyle: '700',
-      fixedWidth: TITLE_WORD_WRAP_WIDTH,
-      wordWrap: { width: TITLE_WORD_WRAP_WIDTH }
+      fixedWidth: layout.titleWordWrapWidth,
+      wordWrap: { width: layout.titleWordWrapWidth }
     })
     .setOrigin(0, 0);
 
-  const languageSelector = createLanguageSelector(scene, options);
+  const languageSelector = createLanguageSelector(scene, options, layout);
   const message = scene.add
     .text(
-      -PANEL_WIDTH / 2 + PANEL_PADDING_X,
-      -PANEL_HEIGHT / 2 + MESSAGE_TOP,
-      getTutorialText(options.language, options.step.messageKey),
+      -layout.panelWidth / 2 + layout.panelPaddingX,
+      -layout.panelHeight / 2 + layout.messageTop,
+      formatTutorialOverlayMessage(getTutorialText(options.language, options.step.messageKey), layout.mobile),
       {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        lineSpacing: 6,
-        fixedWidth: MESSAGE_WORD_WRAP_WIDTH,
-        wordWrap: { width: MESSAGE_WORD_WRAP_WIDTH }
+        fontSize: `${layout.messageFontSize}px`,
+        lineSpacing: layout.messageLineSpacing,
+        fixedWidth: layout.messageWordWrapWidth,
+        wordWrap: { width: layout.messageWordWrapWidth }
       }
     )
     .setOrigin(0, 0);
 
-  panel.add([background, title, languageSelector, message]);
+  panel.add([panelBackground, title, languageSelector, message]);
 
   if (options.step.waitFor === 'next') {
     panel.add(
       new Button(
         scene,
-        PANEL_WIDTH / 2 - 126,
-        PANEL_HEIGHT / 2 - 36,
+        layout.buttonX,
+        layout.buttonY,
         getTutorialText(options.language, 'tutorial.button.continue'),
         options.onContinue,
         {
-          fontSize: '18px',
-          height: 42,
-          width: 190
+          fontSize: `${layout.buttonFontSize}px`,
+          height: layout.buttonHeight,
+          width: layout.buttonWidth
         }
       )
     );
@@ -131,21 +142,59 @@ function createPanel(scene: Phaser.Scene, options: TutorialOverlayOptions): Phas
   return panel;
 }
 
-function createLanguageSelector(scene: Phaser.Scene, options: TutorialOverlayOptions): Phaser.GameObjects.Container {
-  const selector = scene.add.container(
-    PANEL_WIDTH / 2 - LANGUAGE_SELECTOR_RIGHT,
-    -PANEL_HEIGHT / 2 + LANGUAGE_SELECTOR_TOP
-  );
-  const startX = -54;
+function createLanguageSelector(
+  scene: Phaser.Scene,
+  options: TutorialOverlayOptions,
+  layout: TutorialOverlayLayout
+): Phaser.GameObjects.Container {
+  const selector = scene.add.container(layout.languageSelectorX, layout.languageSelectorY);
 
   GAME_LANGUAGES.forEach((language, index) => {
     const isActive = language === options.language;
+    const itemX = layout.languageStartX + index * layout.languageItemSpacing;
+
+    if (layout.mobile) {
+      const touchTarget = scene.add.container(itemX, 0);
+      const touchBackground = scene.add.rectangle(
+        0,
+        0,
+        layout.languageHitWidth,
+        layout.languageHitHeight,
+        isActive ? 0xf0c95a : 0x163c2c,
+        isActive ? 0.2 : 0.72
+      );
+      touchBackground.setStrokeStyle(1, isActive ? 0xf0c95a : 0x5f9572, isActive ? 0.9 : 0.55);
+
+      const label = scene.add
+        .text(0, 0, getLanguageCode(language), {
+          align: 'center',
+          color: isActive ? '#f0c95a' : '#d9eadf',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: `${layout.languageFontSize}px`,
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+
+      touchTarget.add([touchBackground, label]);
+      touchTarget.setSize(layout.languageHitWidth, layout.languageHitHeight);
+
+      if (!isActive) {
+        touchTarget.setInteractive({ useHandCursor: true });
+        touchTarget.on('pointerover', () => label.setColor('#ffffff'));
+        touchTarget.on('pointerout', () => label.setColor('#d9eadf'));
+        touchTarget.on('pointerdown', () => options.onLanguageChange(language));
+      }
+
+      selector.add(touchTarget);
+      return;
+    }
+
     const label = scene.add
-      .text(startX + index * 48, 0, getLanguageCode(language), {
+      .text(itemX, 0, getLanguageCode(language), {
         align: 'center',
         color: isActive ? '#f0c95a' : '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: `${layout.languageFontSize}px`,
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -162,7 +211,7 @@ function createLanguageSelector(scene: Phaser.Scene, options: TutorialOverlayOpt
     if (index < GAME_LANGUAGES.length - 1) {
       selector.add(
         scene.add
-          .text(startX + index * 48 + 24, 0, '|', {
+          .text(itemX + layout.languageItemSpacing / 2, 0, '|', {
             color: '#5f9572',
             fontFamily: 'Arial, sans-serif',
             fontSize: '16px',

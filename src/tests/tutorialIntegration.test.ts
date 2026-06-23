@@ -45,20 +45,20 @@ describe('Tutorial Match launch and GameScene integration', () => {
 
   it('keeps overlay rendering isolated in TutorialOverlay', () => {
     const overlaySource = readSource('src/ui/TutorialOverlay.ts');
+    const layoutSource = readSource('src/ui/tutorialOverlayLayout.ts');
 
     expect(overlaySource).toContain('export class TutorialOverlay');
-    expect(overlaySource).toContain('const PANEL_WIDTH = 840');
-    expect(overlaySource).toContain('const PANEL_HEIGHT = 230');
-    expect(overlaySource).toContain('0x06130e, 0.48');
+    expect(overlaySource).toContain('getTutorialOverlayLayout(SCENE_WIDTH, SCENE_HEIGHT)');
+    expect(layoutSource).toContain('const DESKTOP_PANEL_WIDTH = 840');
+    expect(layoutSource).toContain('const DESKTOP_PANEL_HEIGHT = 230');
+    expect(overlaySource).toContain('layout.mobile ? 0.26 : 0.48');
     expect(overlaySource).toContain('0xf0c95a');
-    expect(overlaySource).not.toContain('background.setStrokeStyle');
-    expect(overlaySource).toContain('const TITLE_WORD_WRAP_WIDTH = PANEL_WIDTH - 260');
-    expect(overlaySource).toContain('const MESSAGE_WORD_WRAP_WIDTH = PANEL_WIDTH - PANEL_PADDING_X * 2');
-    expect(overlaySource).toContain('fixedWidth: TITLE_WORD_WRAP_WIDTH');
-    expect(overlaySource).toContain('fixedWidth: MESSAGE_WORD_WRAP_WIDTH');
+    expect(overlaySource).not.toContain('panelBackground.setStrokeStyle');
+    expect(overlaySource).toContain('fixedWidth: layout.titleWordWrapWidth');
+    expect(overlaySource).toContain('fixedWidth: layout.messageWordWrapWidth');
     expect(overlaySource).toContain("getTutorialText(options.language, 'tutorial.button.continue')");
     expect(overlaySource).toContain('createLanguageSelector');
-    expect(overlaySource).toContain('LANGUAGE_SELECTOR_RIGHT');
+    expect(overlaySource).toContain('layout.languageHitWidth');
     expect(overlaySource).toContain('GAME_LANGUAGES');
     expect(overlaySource).toContain('highlightRects');
   });
