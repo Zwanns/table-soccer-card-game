@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { createTournamentBackground } from '../ui/tournamentBackground';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   changeTournamentSetupFormat,
@@ -78,7 +79,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     const selectedCount = getSelectedTournamentTeamIds(this.draft).length;
     const totalCount = this.draft.slots.length;
 
-    this.add.rectangle(centerX, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
+    createTournamentBackground(this);
     this.add
       .text(centerX, 30, GAME_TITLE, {
         color: '#ffffff',

@@ -37,6 +37,16 @@ describe('tournament hub scene integration', () => {
     expect(setupSource).toContain("this.scene.start('TournamentHubScene')");
   });
 
+  it('uses the shared tournament background on the tournament hub', () => {
+    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+
+    expect(hubSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
+    expect(hubSource).toContain('createTournamentBackground(this)');
+    expect(hubSource).not.toContain(
+      'this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a)'
+    );
+  });
+
   it('passes tournament launch context through match and result scenes', () => {
     const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
     const gameSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');

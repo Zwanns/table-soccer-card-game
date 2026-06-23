@@ -20,6 +20,7 @@ import {
   type TournamentTeamStatsRankingKey
 } from '../tournament';
 import { Button } from '../ui/Button';
+import { createTournamentBackground } from '../ui/tournamentBackground';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
@@ -136,7 +137,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     const tournament = this.getTournament();
 
-    this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
+    createTournamentBackground(this);
 
     if (tournament === null) {
       this.renderMissingTournament();

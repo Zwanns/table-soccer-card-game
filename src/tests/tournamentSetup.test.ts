@@ -54,6 +54,21 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).not.toContain('changePage');
     expect(setupSource).not.toContain('page + 1');
   });
+
+  it('uses the shared tournament background without changing the main menu background', () => {
+    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
+    const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentBackground.ts'), 'utf8');
+
+    expect(setupSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
+    expect(setupSource).toContain('createTournamentBackground(this)');
+    expect(backgroundSource).toContain('scene.textures.exists(TOURNAMENT_ASSETS.background)');
+    expect(backgroundSource).toContain('Math.max(SCENE_WIDTH / background.width, SCENE_HEIGHT / background.height)');
+    expect(backgroundSource).toContain('TOURNAMENT_BACKGROUND_FALLBACK_COLOR');
+    expect(backgroundSource).toContain('.setDepth(TOURNAMENT_BACKGROUND_DEPTH)');
+    expect(menuSource).toContain('MENU_ASSETS.background');
+    expect(menuSource).not.toContain('TOURNAMENT_ASSETS.background');
+  });
 });
 
 describe('tournament setup draft helpers', () => {

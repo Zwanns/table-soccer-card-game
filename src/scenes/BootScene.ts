@@ -6,7 +6,7 @@ import {
   getTeamCoverPath,
   getTeamCoverTextureKey
 } from '../assets/teamCover';
-import { MENU_ASSETS, MENU_ASSET_PATHS } from '../config';
+import { MENU_ASSETS, MENU_ASSET_PATHS, TOURNAMENT_ASSETS, TOURNAMENT_ASSET_PATHS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
 import { getRegisteredKitAssetsToLoad } from './bootKitAssets';
 
@@ -33,6 +33,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image(MENU_ASSETS.teamSelectBackground, MENU_ASSET_PATHS.teamSelectBackground);
     this.load.image(MENU_ASSETS.resultDrawBackground, MENU_ASSET_PATHS.resultDrawBackground);
     this.load.image(MENU_ASSETS.resultWinBackground, MENU_ASSET_PATHS.resultWinBackground);
+    this.load.image(TOURNAMENT_ASSETS.background, TOURNAMENT_ASSET_PATHS.background);
     this.load.image(MENU_ASSETS.logoOn, MENU_ASSET_PATHS.logoOn);
     this.load.image(MENU_ASSETS.logoOff, MENU_ASSET_PATHS.logoOff);
     this.load.image('turn-ball', ASSET_PATHS.ball);

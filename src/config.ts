@@ -26,3 +26,11 @@ export const MENU_ASSET_PATHS = {
   logoOff: 'menu/menu-logo2.png',
   flags: 'menu/menu-flags.png'
 } as const;
+
+export const TOURNAMENT_ASSETS = {
+  background: 'tournaments-bg'
+} as const;
+
+export const TOURNAMENT_ASSET_PATHS = {
+  background: '/menu/tournaments-bg.webp'
+} as const;
