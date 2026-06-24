@@ -659,7 +659,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         }
 
         this.render();
-        this.showPenaltyOutcome(kick.outcome);
       }
     );
   }
@@ -994,7 +993,22 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     shooterSide: PenaltyShootoutState['nextShooter'],
     onComplete: () => void
   ): void {
-    this.showPenaltyImpact(target.x, target.y, outcome);
+    let cardAnimationComplete = false;
+    let impactMessageComplete = false;
+    let resultFlowContinued = false;
+    const continueResultFlow = (): void => {
+      if (!cardAnimationComplete || !impactMessageComplete || resultFlowContinued) {
+        return;
+      }
+
+      resultFlowContinued = true;
+      onComplete();
+    };
+
+    this.showPenaltyImpact(target.x, target.y, outcome, () => {
+      impactMessageComplete = true;
+      continueResultFlow();
+    });
 
     if (outcome === 'post' || outcome === 'save') {
       const reboundX = target.x + (shooterSide === 'home' ? -180 : 180);
@@ -1010,7 +1024,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         ease: 'Cubic.easeOut',
         onComplete: () => {
           card.destroy();
-          onComplete();
+          cardAnimationComplete = true;
+          continueResultFlow();
         }
       });
       return;
@@ -1024,15 +1039,22 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => {
         card.destroy();
-        onComplete();
+        cardAnimationComplete = true;
+        continueResultFlow();
       }
     });
   }
 
-  private showPenaltyImpact(x: number, y: number, outcome: PenaltySceneOutcome): void {
+  private showPenaltyImpact(
+    x: number,
+    y: number,
+    outcome: PenaltySceneOutcome,
+    onMessageComplete: () => void
+  ): void {
     const effect = getPenaltyImpactSceneEffect(outcome);
 
     this.playPenaltyImpactSound(effect);
+    this.showPenaltyOutcome(effect, onMessageComplete);
     this.showImpactPulse(x, y, outcome);
   }
 
@@ -1055,13 +1077,11 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private showPenaltyOutcome(outcome: PenaltySceneOutcome): void {
-    const effect = getPenaltyImpactSceneEffect(outcome);
-
-    this.showFlyingMessage(effect.flyingMessage, effect.flyingMessageTone);
+  private showPenaltyOutcome(effect: PenaltyImpactSceneEffect, onComplete: () => void): void {
+    this.showFlyingMessage(effect.flyingMessage, effect.flyingMessageTone, onComplete);
   }
 
-  private showFlyingMessage(message: string, tone: PenaltySceneOutcome): void {
+  private showFlyingMessage(message: string, tone: PenaltySceneOutcome, onComplete: () => void): void {
     const fontSize = tone === 'goal' ? '76px' : '48px';
     const color = tone === 'save' ? '#ffffff' : '#f0c95a';
     const text = this.add
@@ -1084,6 +1104,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => {
         text.destroy();
+        onComplete();
         this.inputLocked = false;
         this.input.enabled = true;
         this.schedulePenaltyAiAction();
