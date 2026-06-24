@@ -163,6 +163,10 @@ describe('tournament hub scene integration', () => {
 
   it('renders penalty shootouts on the match-style field layout', () => {
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+    const gameSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+    const fieldSource = readFileSync(join(process.cwd(), 'src', 'ui', 'FieldView.ts'), 'utf8');
+    const matchFieldSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchFieldView.ts'), 'utf8');
+    const layoutSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchScreenLayout.ts'), 'utf8');
     const bootSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
     const scoreSource = readFileSync(join(process.cwd(), 'src', 'ui', 'ScoreView.ts'), 'utf8');
     const teamSelectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TeamSelectScene.ts'), 'utf8');
@@ -180,7 +184,10 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('createMenuButton');
     expect(penaltySource).toContain("new Button(this, 120, 34, 'Menu'");
     expect(penaltySource).toContain("this.scene.start('MenuScene')");
-    expect(penaltySource).toContain('const PENALTY_FIELD_CENTER_Y = 400');
+    expect(fieldSource).toContain('export class FieldView extends MatchFieldView');
+    expect(penaltySource).toContain('new MatchFieldView(this, MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y)');
+    expect(gameSource).toContain('const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y');
+    expect(layoutSource).toContain('export const MATCH_FIELD_CENTER_Y = 400');
     expect(penaltySource).toContain('const PENALTY_GOALKEEPER_HOME_X = -490');
     expect(penaltySource).toContain('const PENALTY_GOALKEEPER_AWAY_X = 490');
     expect(penaltySource).toContain('queueTeamCoverLoad(this, this.matchResult.homeTeamId)');
@@ -204,10 +211,15 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('const SHOOTOUT_MARKER_Y = 148');
     expect(penaltySource).toContain('this.createShootoutMarkers(this.shootoutState)');
     expect(penaltySource).toContain('PENALTY_SELECTED_CARD_SCALE');
-    expect(penaltySource).toContain('const PENALTY_CARD_SCALE = 0.78');
-    expect(penaltySource).toContain('const PENALTY_SELECTED_CARD_SCALE = 0.9');
+    expect(penaltySource).toContain('const PENALTY_CARD_SCALE = MATCH_CARD_SCALE');
+    expect(penaltySource).toContain('const PENALTY_SELECTED_CARD_SCALE = MATCH_CARD_SCALE');
+    expect(penaltySource).toContain('card.setScale(options.scale ?? MATCH_CARD_SCALE)');
     expect(penaltySource).toContain('const PENALTY_ATTACK_CARD_GAP = 60');
-    expect(penaltySource).toContain('markings.strokeRect');
+    expect(matchFieldSource).toContain('private createPitchMarkings');
+    expect(matchFieldSource).toContain('private createGoals');
+    expect(penaltySource).not.toContain('createPenaltyPitchMarkings');
+    expect(penaltySource).not.toContain('PENALTY_FIELD_WIDTH');
+    expect(penaltySource).not.toContain('0x0d6a42');
     expect(penaltySource).not.toContain('createPenaltyGoalFrame');
   });
 

@@ -308,29 +308,30 @@ describe('GameScene visual layout contracts', () => {
   });
 
   it('draws a striped grass pitch under the field markings', () => {
-    const source = readSource('src/ui/FieldView.ts');
+    const fieldSource = readSource('src/ui/FieldView.ts');
+    const source = readSource('src/ui/MatchFieldView.ts');
     const dimensionsSource = readSource('src/ui/fieldDimensions.ts');
 
     expect(dimensionsSource).toContain('export const FIELD_VIEW_WIDTH = 1120');
     expect(dimensionsSource).toContain('export const FIELD_VIEW_HEIGHT = 600');
-    expect(source).toContain("export { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions'");
+    expect(fieldSource).toContain('export class FieldView extends MatchFieldView');
+    expect(fieldSource).toContain('super(scene, x, y)');
     expect(source).toContain('export const FIELD_GRASS_STRIPE_COUNT = 14');
     expect(source).toContain('export const FIELD_GRASS_BASE_COLOR = 0x157a43');
     expect(source).toContain('export const FIELD_GRASS_LIGHT_STRIPE_COLOR = 0x19864a');
     expect(source).toContain('export const FIELD_GRASS_DARK_STRIPE_COLOR = 0x126d3c');
-    expect(source).toContain("import { SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
     expect(source).toContain('this.createStripedPitch(scene, x, y)');
     expect(source).toContain('const grassLeft = -centerX');
     expect(source).toContain('const grassTop = -centerY');
     expect(source).toContain('const stripeWidth = FIELD_VIEW_WIDTH / FIELD_GRASS_STRIPE_COUNT');
     expect(source).toContain('const firstStripeIndex = Math.floor((grassLeft - pitchLeft) / stripeWidth)');
-    expect(source).toContain('const lastStripeIndex = Math.ceil((grassLeft + SCENE_WIDTH - pitchLeft) / stripeWidth)');
-    expect(source).toContain('pitch.fillRect(grassLeft, grassTop, SCENE_WIDTH, SCENE_HEIGHT)');
+    expect(source).toContain('const lastStripeIndex = Math.ceil((grassLeft + MATCH_SCREEN_WIDTH - pitchLeft) / stripeWidth)');
+    expect(source).toContain('pitch.fillRect(grassLeft, grassTop, MATCH_SCREEN_WIDTH, MATCH_SCREEN_HEIGHT)');
     expect(source).toContain('pitch.fillStyle(stripeColor, 0.28)');
     expect(source).toContain('for (let stripeIndex = firstStripeIndex; stripeIndex < lastStripeIndex; stripeIndex += 1)');
-    expect(source).toContain('pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, grassTop, stripeWidth, SCENE_HEIGHT)');
+    expect(source).toContain('pitch.fillRect(pitchLeft + stripeIndex * stripeWidth, grassTop, stripeWidth, MATCH_SCREEN_HEIGHT)');
     expect(source).toContain('pitch.strokeRect(pitchLeft, pitchTop, FIELD_VIEW_WIDTH, FIELD_VIEW_HEIGHT)');
-    expect(source).toContain('scene.add.rectangle(0, 0, 2, FIELD_VIEW_HEIGHT, 0xe2efe6, 0.42)');
+    expect(source).toContain('scene.add.rectangle(0, 0, 2, FIELD_VIEW_HEIGHT, FIELD_MARKING_COLOR, FIELD_MARKING_ALPHA)');
     expect(source).toContain('const FIELD_GOAL_DEPTH = 42');
     expect(source).toContain('const FIELD_GOAL_HEIGHT = 131');
     expect(source).toContain('const FIELD_GOAL_FRAME_WIDTH = 4');
@@ -342,7 +343,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('graphics.lineStyle(FIELD_GOAL_FRAME_WIDTH, FIELD_MARKING_COLOR, FIELD_GOAL_FRAME_ALPHA)');
     expect(source).toContain('graphics.strokeRect(x, y, width, height)');
     expect(source).toContain('const FIELD_CORNER_ARC_RADIUS = 22');
-    expect(source.match(/FIELD_CORNER_ARC_RADIUS/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(source).toContain('drawCornerArc(markings, pitchLeft, pitchTop, 0, 90)');
     expect(source).not.toContain('scene.add.rectangle(0, 0, 1120, 600');
     expect(source).not.toContain('FIELD_OUTER_GRASS_');
   });

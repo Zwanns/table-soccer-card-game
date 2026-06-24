@@ -36,6 +36,15 @@ import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
+import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
+import { MatchFieldView } from '../ui/MatchFieldView';
+import {
+  MATCH_ADVANTAGE_CENTER_Y,
+  MATCH_FIELD_CENTER_X,
+  MATCH_FIELD_CENTER_Y,
+  MATCH_SCOREBOARD_CENTER_X,
+  MATCH_SCOREBOARD_CENTER_Y
+} from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
 
 interface TournamentPenaltySceneData {
@@ -48,16 +57,12 @@ interface TournamentPenaltySceneData {
   awayControllerType?: PlayerControllerType;
 }
 
-const PENALTY_FIELD_CENTER_X = SCENE_WIDTH / 2;
-const PENALTY_FIELD_CENTER_Y = 400;
-const PENALTY_FIELD_WIDTH = 1120;
-const PENALTY_FIELD_HEIGHT = 600;
 const PENALTY_GOALKEEPER_HOME_X = -490;
 const PENALTY_GOALKEEPER_AWAY_X = 490;
 const PENALTY_GOALKEEPER_FIELD_Y = 0;
 const PENALTY_ATTACK_CARD_Y = 0;
-const PENALTY_CARD_SCALE = 0.78;
-const PENALTY_SELECTED_CARD_SCALE = 0.9;
+const PENALTY_CARD_SCALE = MATCH_CARD_SCALE;
+const PENALTY_SELECTED_CARD_SCALE = MATCH_CARD_SCALE;
 const PENALTY_ATTACK_COLUMN_X = 92;
 const PENALTY_ATTACK_CARD_GAP = 60;
 const PENALTY_ATTACK_CARD_ROTATION = Math.PI / 2;
@@ -158,13 +163,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
   private render(): void {
     this.children.removeAll(true);
-    this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
 
     if ((this.tournamentId === null && !this.standalone) || this.matchResult === null || this.shootoutState === null) {
+      this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
       this.renderMissingPenaltyData();
       return;
     }
 
+    new MatchFieldView(this, MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y);
     this.createPenaltyMatchHeader(this.matchResult, this.shootoutState);
     this.createMenuButton();
     this.createPenaltyField(this.shootoutState);
@@ -229,8 +235,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     new ScoreView(
       this,
-      SCENE_WIDTH / 2,
-      42,
+      MATCH_SCOREBOARD_CENTER_X,
+      MATCH_SCOREBOARD_CENTER_Y,
       homeTeam?.name ?? matchResult.homeTeamId,
       awayTeam?.name ?? matchResult.awayTeamId,
       matchResult.homeTeamId,
@@ -246,7 +252,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         }
       }
     );
-    new AdvantageView(this, SCENE_WIDTH / 2, 94, {
+    new AdvantageView(this, MATCH_SCOREBOARD_CENTER_X, MATCH_ADVANTAGE_CENTER_Y, {
       advantage: {
         playerOnePoints: 0,
         playerTwoPoints: 0,
@@ -296,39 +302,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private createPenaltyField(shootoutState: PenaltyShootoutState): void {
-    const field = this.add.container(PENALTY_FIELD_CENTER_X, PENALTY_FIELD_CENTER_Y);
-    const pitch = this.add.rectangle(0, 0, PENALTY_FIELD_WIDTH, PENALTY_FIELD_HEIGHT, 0x0d6a42, 1);
-    pitch.setStrokeStyle(3, 0xe2efe6);
-
-    const centerLine = this.add.rectangle(0, 0, 2, PENALTY_FIELD_HEIGHT - 20, 0xe2efe6, 0.42);
-    const centerCircle = this.add.circle(0, 0, 80);
-    centerCircle.setStrokeStyle(2, 0xe2efe6, 0.45);
-
-    field.add([pitch, this.createPenaltyPitchMarkings(), centerLine, centerCircle]);
+    const field = this.add.container(MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y);
     this.createPenaltyGoalkeeperCards(field, shootoutState);
     this.createPenaltyCardColumns(field, shootoutState);
-  }
-
-  private createPenaltyPitchMarkings(): Phaser.GameObjects.Graphics {
-    const markings = this.add.graphics();
-    const lineColor = 0xe2efe6;
-    const lineAlpha = 0.42;
-
-    markings.lineStyle(2, lineColor, lineAlpha);
-    markings.strokeRect(-560, -180, 150, 360);
-    markings.strokeRect(410, -180, 150, 360);
-    markings.strokeRect(-560, -95, 70, 190);
-    markings.strokeRect(490, -95, 70, 190);
-    markings.strokeCircle(-450, 0, 4);
-    markings.strokeCircle(450, 0, 4);
-    markings.beginPath();
-    markings.arc(-450, 0, 72, Phaser.Math.DegToRad(-56), Phaser.Math.DegToRad(56), false);
-    markings.strokePath();
-    markings.beginPath();
-    markings.arc(450, 0, 72, Phaser.Math.DegToRad(124), Phaser.Math.DegToRad(236), false);
-    markings.strokePath();
-
-    return markings;
   }
 
   private createPenaltyGoalkeeperCards(
@@ -722,7 +698,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       tooltipEnabled: false
     });
 
-    card.setScale(options.scale ?? 1);
+    card.setScale(options.scale ?? MATCH_CARD_SCALE);
     return card;
   }
 
@@ -748,7 +724,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       tooltipEnabled: false
     });
 
-    card.setScale(options.scale ?? 1);
+    card.setScale(options.scale ?? MATCH_CARD_SCALE);
     return card;
   }
 
@@ -974,8 +950,8 @@ function getPenaltyAttackCardWorldPosition(
   const localY = startY + cardIndex * PENALTY_ATTACK_CARD_GAP;
 
   return {
-    x: PENALTY_FIELD_CENTER_X + localX,
-    y: PENALTY_FIELD_CENTER_Y + localY
+    x: MATCH_FIELD_CENTER_X + localX,
+    y: MATCH_FIELD_CENTER_Y + localY
   };
 }
 
@@ -993,8 +969,8 @@ function getPenaltyGoalkeeperWorldPosition(shootoutState: PenaltyShootoutState):
   const sideX = getPenaltyTargetSideX(getGoalkeeperTeamId(shootoutState, shootoutState.nextShooter), shootoutState);
 
   return {
-    x: PENALTY_FIELD_CENTER_X + sideX,
-    y: PENALTY_FIELD_CENTER_Y + PENALTY_GOALKEEPER_FIELD_Y
+    x: MATCH_FIELD_CENTER_X + sideX,
+    y: MATCH_FIELD_CENTER_Y + PENALTY_GOALKEEPER_FIELD_Y
   };
 }
 

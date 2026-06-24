@@ -1,0 +1,15 @@
+import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions';
+
+export const MATCH_SCREEN_WIDTH = SCENE_WIDTH;
+export const MATCH_SCREEN_HEIGHT = SCENE_HEIGHT;
+
+export const MATCH_FIELD_WIDTH = FIELD_VIEW_WIDTH;
+export const MATCH_FIELD_HEIGHT = FIELD_VIEW_HEIGHT;
+export const MATCH_FIELD_CENTER_X = MATCH_SCREEN_WIDTH / 2;
+export const MATCH_FIELD_CENTER_Y = 400;
+
+export const MATCH_SCOREBOARD_CENTER_X = MATCH_SCREEN_WIDTH / 2;
+export const MATCH_SCOREBOARD_CENTER_Y = 42;
+export const MATCH_ADVANTAGE_CENTER_Y = 94;
+export const MATCH_DECK_Y = 560;
