@@ -62,6 +62,11 @@ import {
 } from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
 import { ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage } from './MenuScene';
+import {
+  getPenaltyImpactSceneEffect,
+  type PenaltyImpactSceneEffect,
+  type PenaltySceneOutcome
+} from './penaltySceneEffects';
 
 interface TournamentPenaltySceneData {
   tournamentId?: string;
@@ -100,11 +105,9 @@ const MATCH_STATS_VIEWPORT = {
   height: 242
 } as const;
 
-type PenaltyAnimationOutcome = 'goal' | 'post' | 'save';
-
 interface PenaltyAnimationContext {
   attackerRank: CardRank;
-  outcome: PenaltyAnimationOutcome;
+  outcome: PenaltySceneOutcome;
   shooterSide: PenaltyShootoutState['nextShooter'];
   shooterTeamId: TournamentTeamId;
   startPosition: { x: number; y: number };
@@ -925,11 +928,11 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private finishPenaltyKickAnimation(
     card: CardView,
     target: { x: number; y: number },
-    outcome: PenaltyAnimationOutcome,
+    outcome: PenaltySceneOutcome,
     shooterSide: PenaltyShootoutState['nextShooter'],
     onComplete: () => void
   ): void {
-    this.showImpactPulse(target.x, target.y, outcome);
+    this.showPenaltyImpact(target.x, target.y, outcome);
 
     if (outcome === 'post' || outcome === 'save') {
       const reboundX = target.x + (shooterSide === 'home' ? -180 : 180);
@@ -964,7 +967,18 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private showImpactPulse(x: number, y: number, outcome: PenaltyAnimationOutcome): void {
+  private showPenaltyImpact(x: number, y: number, outcome: PenaltySceneOutcome): void {
+    const effect = getPenaltyImpactSceneEffect(outcome);
+
+    this.playPenaltyImpactSound(effect);
+    this.showImpactPulse(x, y, outcome);
+  }
+
+  private playPenaltyImpactSound(effect: PenaltyImpactSceneEffect): boolean {
+    return playSoundSafe(this, effect.soundKey, { volume: 0.72 });
+  }
+
+  private showImpactPulse(x: number, y: number, outcome: PenaltySceneOutcome): void {
     const color = outcome === 'save' ? 0xffffff : outcome === 'post' ? 0xf0c95a : 0x93f0b2;
     const pulse = this.add.circle(x, y, 20, color, 0.2);
     pulse.setStrokeStyle(4, color, 0.86);
@@ -979,24 +993,13 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private showPenaltyOutcome(outcome: PenaltyAnimationOutcome): void {
-    if (outcome === 'goal') {
-      playSoundSafe(this, 'sound-penalty-goal', { volume: 0.72 });
-      this.showFlyingMessage('GOAL!!', 'goal');
-      return;
-    }
+  private showPenaltyOutcome(outcome: PenaltySceneOutcome): void {
+    const effect = getPenaltyImpactSceneEffect(outcome);
 
-    if (outcome === 'post') {
-      playSoundSafe(this, 'sound-goalpost', { volume: 0.72 });
-      this.showFlyingMessage('Post!', 'post');
-      return;
-    }
-
-    playSoundSafe(this, 'sound-goalkeeper-save', { volume: 0.72 });
-    this.showFlyingMessage('Goalkeeper!!', 'save');
+    this.showFlyingMessage(effect.flyingMessage, effect.flyingMessageTone);
   }
 
-  private showFlyingMessage(message: string, tone: PenaltyAnimationOutcome): void {
+  private showFlyingMessage(message: string, tone: PenaltySceneOutcome): void {
     const fontSize = tone === 'goal' ? '76px' : '48px';
     const color = tone === 'save' ? '#ffffff' : '#f0c95a';
     const text = this.add
