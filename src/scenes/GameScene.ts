@@ -35,15 +35,17 @@ import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
+import { createMatchControlButtons } from '../ui/matchControlButtons';
+import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
+import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import {
   MATCH_ADVANTAGE_CENTER_Y,
   MATCH_DECK_Y,
   MATCH_FIELD_CENTER_X,
   MATCH_FIELD_CENTER_Y,
-  MATCH_FIELD_WIDTH,
   MATCH_SCOREBOARD_CENTER_Y
 } from '../ui/matchScreenLayout';
-import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
+import { ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { TUTORIAL_MATCH_V2_SETUP_PRESET } from '../tutorial/tutorialScenario';
 import { TutorialController } from '../tutorial/TutorialController';
@@ -60,32 +62,11 @@ import {
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
 
-const FIELD_WIDTH = MATCH_FIELD_WIDTH;
-const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
-const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH;
 const FIELD_TOP = 100;
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
 const DECK_Y = MATCH_DECK_Y;
 const SCOREBOARD_CENTER_Y = MATCH_SCOREBOARD_CENTER_Y;
-const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2;
-const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2;
 const ADVANTAGE_CENTER_Y = MATCH_ADVANTAGE_CENTER_Y;
-const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14;
-const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT;
-const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
-const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
-const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT;
-const LEFT_ACTION_BUTTONS_WIDTH = LEFT_ACTION_BUTTONS_RIGHT - LEFT_ACTION_BUTTONS_LEFT;
-const RIGHT_ACTION_BUTTONS_WIDTH = RIGHT_ACTION_BUTTONS_RIGHT - RIGHT_ACTION_BUTTONS_LEFT;
-const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH);
-const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2;
-const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2;
-const MATCH_ACTION_BUTTON_HEIGHT = 38;
-const MATCH_ACTION_BUTTON_FONT_SIZE = '28px';
-const MATCH_ACTION_BUTTON_GAP = 10;
-const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3;
-const MATCH_ACTION_BUTTON_STACK_HEIGHT = MATCH_ACTION_BUTTON_HEIGHT * 2 + MATCH_ACTION_BUTTON_GAP;
-const MATCH_ACTION_BUTTON_CENTER_Y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_STACK_HEIGHT / 2;
 const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2;
 const INFO_MODAL = {
   width: 960,
@@ -104,16 +85,6 @@ const INFO_BACK_BUTTON = {
   width: 190,
   height: 42,
   fontSize: '18px'
-} as const;
-const PAUSE_MODAL = {
-  width: 460,
-  height: 500
-} as const;
-const PAUSE_BUTTON = {
-  width: 300,
-  height: 64,
-  fontSize: '26px',
-  gap: 20
 } as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const GOALKEEPER_SHOT_BALL_SIZE = 42;
@@ -343,20 +314,12 @@ export class GameScene extends Phaser.Scene {
         onMidfieldGapSelect: (positionId) => this.useMidfieldGap(positionId)
       })
     );
-    this.dynamicLayer.add(
-      new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause', () => this.openPauseModal(state), {
-        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_STACK_HEIGHT,
-        width: SIDE_ACTION_BUTTON_WIDTH
-      })
-    );
-    this.dynamicLayer.add(
-      new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Rules', () => this.openMatchInfoModal('rules'), {
-        fontSize: MATCH_ACTION_BUTTON_FONT_SIZE,
-        height: MATCH_ACTION_BUTTON_STACK_HEIGHT,
-        width: SIDE_ACTION_BUTTON_WIDTH
-      })
-    );
+    const matchControls = createMatchControlButtons({
+      scene: this,
+      onPause: () => this.openPauseModal(state),
+      onRules: () => this.openMatchInfoModal('rules')
+    });
+    this.dynamicLayer.add([matchControls.pauseButton, matchControls.rulesButton]);
     this.dynamicLayer.add(
       new ScoreView(
         this,
@@ -1001,51 +964,30 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
-    const modal = this.add.container(0, 0).setDepth(1000);
-    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
-    overlay.setInteractive();
-
-    const panel = this.add.container(centerX, centerY);
-    const background = this.add.rectangle(
-      0,
-      0,
-      PAUSE_MODAL.width,
-      PAUSE_MODAL.height,
-      INFO_MODAL_BACKGROUND_COLOR,
-      INFO_MODAL_BACKGROUND_ALPHA
-    );
-
-    const title = this.add
-      .text(0, -160, 'Pause', {
-        align: 'center',
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
-    const firstButtonY = -84;
-    const buttonStep = PAUSE_BUTTON.height + PAUSE_BUTTON.gap;
-    const continueButton = this.createPauseButton(0, firstButtonY, 'Continue', () => this.closePauseModal());
-    const menuButton = this.createPauseButton(0, firstButtonY + buttonStep, 'Menu', () => {
-      this.closePauseModal();
-      this.openExitConfirmModal();
-    });
-    const resultButton = this.createPauseButton(0, firstButtonY + buttonStep * 2, 'Result', () => {
-      this.closePauseModal();
-      this.openResult(state);
-    });
-    const aboutButton = this.createPauseButton(0, firstButtonY + buttonStep * 3, 'About', () => {
-      this.closePauseModal();
-      this.openMatchInfoModal('about');
-    });
-
-    panel.add([background, title, continueButton, menuButton, resultButton, aboutButton]);
-    modal.add([overlay, panel]);
-    this.pauseModal = modal;
+    this.pauseModal = createMatchPauseOverlay(this, [
+      { label: 'Continue', onClick: () => this.closePauseModal() },
+      {
+        label: 'Menu',
+        onClick: () => {
+          this.closePauseModal();
+          this.openExitConfirmModal();
+        }
+      },
+      {
+        label: 'Result',
+        onClick: () => {
+          this.closePauseModal();
+          this.openResult(state);
+        }
+      },
+      {
+        label: 'About',
+        onClick: () => {
+          this.closePauseModal();
+          this.openMatchInfoModal('about');
+        }
+      }
+    ]);
   }
 
   private closePauseModal(): void {
@@ -1055,14 +997,6 @@ export class GameScene extends Phaser.Scene {
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
     }
-  }
-
-  private createPauseButton(x: number, y: number, label: string, onClick: () => void): Phaser.GameObjects.Container {
-    return new Button(this, x, y, label, onClick, {
-      fontSize: PAUSE_BUTTON.fontSize,
-      height: PAUSE_BUTTON.height,
-      width: PAUSE_BUTTON.width
-    });
   }
 
   private openMatchInfoModal(kind: InfoModalKind): void {
@@ -1075,11 +1009,22 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.activeInfoModal = kind;
+    if (kind === 'rules') {
+      this.infoModal = createMatchRulesOverlay({
+        scene: this,
+        language: this.infoLanguage,
+        languages: ABOUT_LANGUAGES,
+        content: RULES_CONTENT,
+        onClose: () => this.closeMatchInfoModal(),
+        onLanguageChange: (language) => this.switchMatchInfoLanguage(language)
+      });
+      return;
+    }
+
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
     const aboutContent = ABOUT_CONTENT[this.infoLanguage];
-    const rulesContent = RULES_CONTENT[this.infoLanguage];
-    const titleText = kind === 'about' ? aboutContent.title : rulesContent.title;
+    const titleText = aboutContent.title;
     const modal = this.add.container(0, 0).setDepth(1000);
     const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
     overlay.setInteractive();
@@ -1126,14 +1071,9 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const viewport =
-      kind === 'about' ? this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent);
+    const viewport = this.createMatchAboutViewport(aboutContent);
 
-    panel.add(
-      kind === 'about'
-        ? [background, backButton, languageSelector, title, subtitle, author, viewport]
-        : [background, backButton, languageSelector, title, subtitle, viewport]
-    );
+    panel.add([background, backButton, languageSelector, title, subtitle, author, viewport]);
     modal.add([overlay, panel]);
     this.infoModal = modal;
   }
@@ -1248,50 +1188,6 @@ export class GameScene extends Phaser.Scene {
 
         scrollContent.add(text);
         contentHeight += text.height + 10;
-      });
-
-      contentHeight += 12;
-    });
-
-    this.applyMatchInfoScrollableViewport(wrapper, scrollContent, contentHeight);
-
-    return wrapper;
-  }
-
-  private createMatchRulesViewport(content: (typeof RULES_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
-    const wrapper = this.add.container(0, 0);
-    const scrollContent = this.add.container(0, INFO_VIEWPORT.y);
-    let contentHeight = 0;
-
-    content.sections.forEach((section, index) => {
-      const heading = this.add
-        .text(INFO_VIEWPORT.x, contentHeight, section.heading, {
-          align: 'left',
-          color: index === 0 ? '#f0c95a' : '#ffffff',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: index === 0 ? '22px' : '19px',
-          fontStyle: '700',
-          wordWrap: { width: INFO_VIEWPORT.width }
-        })
-        .setOrigin(0, 0);
-
-      scrollContent.add(heading);
-      contentHeight += heading.height + 8;
-
-      section.body.forEach((paragraph) => {
-        const body = this.add
-          .text(INFO_VIEWPORT.x, contentHeight, paragraph, {
-            align: 'left',
-            color: '#d9eadf',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
-            lineSpacing: 8,
-            wordWrap: { width: INFO_VIEWPORT.width }
-          })
-          .setOrigin(0, 0);
-
-        scrollContent.add(body);
-        contentHeight += body.height + 6;
       });
 
       contentHeight += 12;

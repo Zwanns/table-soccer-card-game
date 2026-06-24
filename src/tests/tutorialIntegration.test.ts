@@ -159,8 +159,8 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(guard).toContain("this.matchMode === 'tutorial'");
     expect(guard).toContain('!this.tutorialController.isComplete()');
     expect(guard).not.toContain("this.matchMode === 'quick'");
-    expect(gameSource).toContain("'Pause', () => this.openPauseModal(state)");
-    expect(gameSource).toContain("'Rules', () => this.openMatchInfoModal('rules')");
+    expect(gameSource).toContain('onPause: () => this.openPauseModal(state)');
+    expect(gameSource).toContain("onRules: () => this.openMatchInfoModal('rules')");
   });
 
   it('keeps overlay rendering isolated in TutorialOverlay', () => {

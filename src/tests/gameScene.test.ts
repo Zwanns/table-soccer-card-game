@@ -156,25 +156,15 @@ describe('GameScene visual layout contracts', () => {
 
   it('replaces the left match actions with one tall Pause button', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const controlsSource = readSource('src/ui/matchControlButtons.ts');
 
-    expect(source).toContain('const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2');
-    expect(source).toContain('const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH');
-    expect(source).toContain('const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2');
-    expect(source).toContain('const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2');
-    expect(source).toContain("const MATCH_ACTION_BUTTON_FONT_SIZE = '28px'");
-    expect(source).toContain('const MATCH_ACTION_BUTTON_HEIGHT = 38');
-    expect(source).toContain('const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14');
-    expect(source).toContain('const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT');
-    expect(source).toContain('const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const SIDE_ACTION_BUTTON_WIDTH = Math.min(LEFT_ACTION_BUTTONS_WIDTH, RIGHT_ACTION_BUTTONS_WIDTH)');
-    expect(source).toContain('const LEFT_ACTION_BUTTON_X = LEFT_ACTION_BUTTONS_LEFT + SIDE_ACTION_BUTTON_WIDTH / 2');
-    expect(source).toContain('const MATCH_ACTION_BUTTON_TOP = SCOREBOARD_CENTER_Y - SCORE_VIEW_HEIGHT / 2 + 3');
-    expect(source).toContain('const MATCH_ACTION_BUTTON_STACK_HEIGHT = MATCH_ACTION_BUTTON_HEIGHT * 2 + MATCH_ACTION_BUTTON_GAP');
-    expect(source).toContain('const MATCH_ACTION_BUTTON_CENTER_Y = MATCH_ACTION_BUTTON_TOP + MATCH_ACTION_BUTTON_STACK_HEIGHT / 2');
-    expect(source).toContain("'Pause', () => this.openPauseModal(state)");
-    expect(source).toContain('height: MATCH_ACTION_BUTTON_STACK_HEIGHT');
-    expect(source).toContain('fontSize: MATCH_ACTION_BUTTON_FONT_SIZE');
-    expect(source).toContain('width: SIDE_ACTION_BUTTON_WIDTH');
+    expect(source).toContain('const matchControls = createMatchControlButtons({');
+    expect(source).toContain('onPause: () => this.openPauseModal(state)');
+    expect(controlsSource).toContain("export const MATCH_CONTROL_BUTTON_FONT_SIZE = '28px'");
+    expect(controlsSource).toContain('export const MATCH_CONTROL_BUTTON_HEIGHT = 86');
+    expect(controlsSource).toContain('export const MATCH_CONTROL_BUTTON_WIDTH = Math.min');
+    expect(controlsSource).toContain('MATCH_CONTROL_BUTTON_LEFT_X');
+    expect(controlsSource).toContain("config.labels?.pause ?? 'Pause'");
     expect(source).not.toContain("'Menu', () => this.openExitConfirmModal()");
     expect(source).not.toContain("'Result',\n        () => this.openResult(state)");
     expect(source).not.toContain("new Button(this, 120, 34, 'Menu'");
@@ -183,14 +173,14 @@ describe('GameScene visual layout contracts', () => {
 
   it('keeps one tall Rules button on the right side of the match UI', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const controlsSource = readSource('src/ui/matchControlButtons.ts');
 
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_LEFT = SCOREBOARD_RIGHT + SIDE_ACTION_BUTTON_HORIZONTAL_GAP');
-    expect(source).toContain('const RIGHT_ACTION_BUTTONS_RIGHT = FIELD_RIGHT');
-    expect(source).toContain('const RIGHT_ACTION_BUTTON_X = RIGHT_ACTION_BUTTONS_RIGHT - SIDE_ACTION_BUTTON_WIDTH / 2');
-    expect(source).toContain("'Rules', () => this.openMatchInfoModal('rules')");
-    expect(source.match(/width: SIDE_ACTION_BUTTON_WIDTH/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(source.match(/height: MATCH_ACTION_BUTTON_STACK_HEIGHT/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(source.match(/fontSize: MATCH_ACTION_BUTTON_FONT_SIZE/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("onRules: () => this.openMatchInfoModal('rules')");
+    expect(controlsSource).toContain('MATCH_CONTROL_BUTTON_RIGHT_X');
+    expect(controlsSource).toContain("config.labels?.rules ?? 'Rules'");
+    expect(controlsSource).toContain('height: MATCH_CONTROL_BUTTON_HEIGHT');
+    expect(controlsSource).toContain('fontSize: MATCH_CONTROL_BUTTON_FONT_SIZE');
+    expect(controlsSource).toContain('width: MATCH_CONTROL_BUTTON_WIDTH');
     expect(source).not.toContain("() => this.openMatchInfoModal('about')");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'rules' })");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
@@ -198,78 +188,43 @@ describe('GameScene visual layout contracts', () => {
 
   it('opens a Pause overlay with Continue, Menu, Result and About actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
     expect(source).toContain('private pauseModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private openPauseModal(state: Readonly<GameState>): void');
-    expect(source).toContain('const modal = this.add.container(0, 0).setDepth(1000)');
-    expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
-    expect(source).toContain('overlay.setInteractive()');
-    expect(source).toContain('const PAUSE_MODAL = {');
-    expect(source).toContain('width: 460');
-    expect(source).toContain('height: 500');
-    expect(source).toContain('PAUSE_MODAL.width,\n      PAUSE_MODAL.height,\n      INFO_MODAL_BACKGROUND_COLOR,\n      INFO_MODAL_BACKGROUND_ALPHA');
-    expect(source).toContain("text(0, -160, 'Pause'");
-    expect(source).toContain('const PAUSE_BUTTON = {');
-    expect(source).toContain('width: 300');
-    expect(source).toContain('height: 64');
-    expect(source).toContain("fontSize: '26px'");
-    expect(source).toContain('gap: 20');
-    expect(source).toContain('const buttonStep = PAUSE_BUTTON.height + PAUSE_BUTTON.gap');
-    expect(source).toContain("this.createPauseButton(0, firstButtonY, 'Continue', () => this.closePauseModal())");
-    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep, 'Menu', () => {");
+    expect(source).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
+    expect(source).toContain("{ label: 'Continue', onClick: () => this.closePauseModal() }");
+    expect(source).toContain("label: 'Menu'");
     expect(source).toContain('this.openExitConfirmModal()');
-    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep * 2, 'Result', () => {");
+    expect(source).toContain("label: 'Result'");
     expect(source).toContain('this.openResult(state)');
-    expect(source).toContain("this.createPauseButton(0, firstButtonY + buttonStep * 3, 'About', () => {");
+    expect(source).toContain("label: 'About'");
     expect(source).toContain("this.openMatchInfoModal('about')");
     expect(source).toContain('private closePauseModal(): void');
     expect(source).toContain('this.pauseModal === null');
+    expect(overlaySource).toContain('setDepth(MATCH_OVERLAY_DEPTH)');
+    expect(overlaySource).toContain('overlay.setInteractive()');
   });
 
   it('keeps enlarged pause buttons inside a roomier panel', () => {
-    const source = readSource('src/scenes/GameScene.ts');
-    const modalMatch = source.match(/const PAUSE_MODAL = {\n  width: (\d+),\n  height: (\d+)\n} as const;/);
-    const buttonMatch = source.match(
-      /const PAUSE_BUTTON = {\n  width: (\d+),\n  height: (\d+),\n  fontSize: '(\d+)px',\n  gap: (\d+)\n} as const;/
-    );
-    const firstButtonYMatch = source.match(/const firstButtonY = (-?\d+);/);
+    const source = readSource('src/ui/matchPauseOverlay.ts');
 
-    expect(modalMatch).not.toBeNull();
-    expect(buttonMatch).not.toBeNull();
-    expect(firstButtonYMatch).not.toBeNull();
-
-    const [, modalWidthText, modalHeightText] = modalMatch!;
-    const [, buttonWidthText, buttonHeightText, fontSizeText, gapText] = buttonMatch!;
-    const [, firstButtonYText] = firstButtonYMatch!;
-    const modalWidth = Number(modalWidthText);
-    const modalHeight = Number(modalHeightText);
-    const buttonWidth = Number(buttonWidthText);
-    const buttonHeight = Number(buttonHeightText);
-    const fontSize = Number(fontSizeText);
-    const gap = Number(gapText);
-    const firstButtonY = Number(firstButtonYText);
-    const buttonStep = buttonHeight + gap;
-    const sidePadding = (modalWidth - buttonWidth) / 2;
-    const buttonsBottom = firstButtonY + buttonStep * 3 + buttonHeight / 2;
-    const bottomPadding = modalHeight / 2 - buttonsBottom;
-
-    expect(buttonWidth).toBe(300);
-    expect(buttonHeight).toBe(64);
-    expect(fontSize).toBe(26);
-    expect(gap).toBe(20);
-    expect(sidePadding).toBeGreaterThanOrEqual(70);
-    expect(bottomPadding).toBeGreaterThanOrEqual(40);
-    expect(modalHeight).toBeGreaterThan(buttonHeight * 4 + gap * 3);
+    expect(source).toContain('const PAUSE_MODAL_WIDTH = 460');
+    expect(source).toContain('const PAUSE_BUTTON_WIDTH = 300');
+    expect(source).toContain('const PAUSE_BUTTON_HEIGHT = 64');
+    expect(source).toContain("const PAUSE_BUTTON_FONT_SIZE = '26px'");
+    expect(source).toContain('const PAUSE_BUTTON_GAP = 20');
+    expect(source).toContain('184 + actions.length * PAUSE_BUTTON_HEIGHT');
   });
 
   it('keeps pause action hit areas tied to the visible Button size', () => {
-    const gameSceneSource = readSource('src/scenes/GameScene.ts');
+    const pauseSource = readSource('src/ui/matchPauseOverlay.ts');
     const buttonSource = readSource('src/ui/Button.ts');
 
-    expect(gameSceneSource).toContain('return new Button(this, x, y, label, onClick, {');
-    expect(gameSceneSource).toContain('fontSize: PAUSE_BUTTON.fontSize');
-    expect(gameSceneSource).toContain('height: PAUSE_BUTTON.height');
-    expect(gameSceneSource).toContain('width: PAUSE_BUTTON.width');
+    expect(pauseSource).toContain('new Button(scene, 0, firstButtonY + index *');
+    expect(pauseSource).toContain('fontSize: PAUSE_BUTTON_FONT_SIZE');
+    expect(pauseSource).toContain('height: PAUSE_BUTTON_HEIGHT');
+    expect(pauseSource).toContain('width: PAUSE_BUTTON_WIDTH');
     expect(buttonSource).toContain('const width = options.width ?? 220');
     expect(buttonSource).toContain('const height = options.height ?? 54');
     expect(buttonSource).toContain('const background = scene.add.rectangle(0, 0, width, height');
@@ -280,6 +235,7 @@ describe('GameScene visual layout contracts', () => {
 
   it('keeps match info overlays localized, scrollable and non-resetting', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const rulesSource = readSource('src/ui/MatchRulesOverlay.ts');
     const menuSource = readSource('src/scenes/MenuScene.ts');
 
     expect(menuSource).toContain('export const ABOUT_LANGUAGES');
@@ -291,15 +247,17 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private infoLanguage: AboutLanguage = getPreferredLanguage()');
     expect(source).toContain('setPreferredLanguage(language)');
     expect(source).toContain('return getLanguageCode(language)');
-    expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
-    expect(source).toContain('overlay.setInteractive()');
+    expect(source).toContain('this.infoModal = createMatchRulesOverlay({');
+    expect(rulesSource).toContain('scene.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
+    expect(rulesSource).toContain('overlay.setInteractive()');
+    expect(rulesSource).toContain('getLanguageCode(language)');
     expect(source).toContain('const INFO_BACK_BUTTON = {');
     expect(source).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeMatchInfoModal()");
     expect(source).toContain('height: 360');
     expect(source).not.toContain("'Close'");
     expect(source).not.toContain("text(0, -1, '<'");
-    expect(source).toContain('this.createMatchAboutViewport(aboutContent) : this.createMatchRulesViewport(rulesContent)');
-    expect(source).toContain("scrollZone.on('wheel'");
+    expect(source).toContain('const viewport = this.createMatchAboutViewport(aboutContent)');
+    expect(rulesSource).toContain("scrollZone.on('wheel'");
     expect(source).toContain('this.infoModal === null');
     expect(source).toContain('this.pauseModal === null');
     expect(source).toContain("this.aiTurnController?.requestTurnCheck('STATE_RENDERED')");
@@ -351,14 +309,12 @@ describe('GameScene visual layout contracts', () => {
   it('keeps the full-screen grass background behind match UI controls', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const fieldIndex = source.indexOf('new FieldView(this, centerX, FIELD_CENTER_Y');
-    const pauseIndex = source.indexOf("new Button(this, LEFT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Pause'");
-    const rulesIndex = source.indexOf("new Button(this, RIGHT_ACTION_BUTTON_X, MATCH_ACTION_BUTTON_CENTER_Y, 'Rules'");
+    const controlsIndex = source.indexOf('const matchControls = createMatchControlButtons({');
     const scoreIndex = source.indexOf('new ScoreView(');
     const deckIndex = source.indexOf('createPlayerDeck(');
 
     expect(fieldIndex).toBeGreaterThan(-1);
-    expect(pauseIndex).toBeGreaterThan(fieldIndex);
-    expect(rulesIndex).toBeGreaterThan(fieldIndex);
+    expect(controlsIndex).toBeGreaterThan(fieldIndex);
     expect(scoreIndex).toBeGreaterThan(fieldIndex);
     expect(deckIndex).toBeGreaterThan(fieldIndex);
     expect(source).not.toContain('this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a)');
@@ -424,8 +380,9 @@ describe('GameScene visual layout contracts', () => {
 
   it('uses a transparent black background without borders for in-game info panels', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const rulesSource = readSource('src/ui/MatchRulesOverlay.ts');
 
-    expect(source).toContain("import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView'");
+    expect(source).toContain("import { ScoreView } from '../ui/ScoreView'");
     expect(source).toContain('const INFO_MODAL_BACKGROUND_COLOR = 0x000000');
     expect(source).toContain('const INFO_MODAL_BACKGROUND_ALPHA = 0.82');
     expect(source).toContain(
@@ -433,6 +390,7 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(source).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
+    expect(rulesSource).toContain('scene.add.rectangle(0, 0, MODAL_WIDTH, MODAL_HEIGHT, 0x000000, 0.82)');
   });
 
   it('restores failed move card animation while leaving field success on card flight', () => {

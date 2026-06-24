@@ -17,6 +17,7 @@ import type { CardColor, CardRank, GoalkeeperRank } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getGoalkeeperKitAssetKey, getTeamKitAssetKey, type GoalkeeperKitId } from '../data/teamKits';
 import { NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
 import { loadSquad } from '../services/squadStorage';
 import {
   createPenaltyShootoutState,
@@ -37,7 +38,10 @@ import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
+import { createMatchControlButtons, MATCH_CONTROL_BUTTON_DEPTH } from '../ui/matchControlButtons';
 import { MatchFieldView } from '../ui/MatchFieldView';
+import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
+import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import {
   MATCH_ADVANTAGE_CENTER_Y,
   MATCH_FIELD_CENTER_X,
@@ -46,6 +50,7 @@ import {
   MATCH_SCOREBOARD_CENTER_Y
 } from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
+import { ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage } from './MenuScene';
 
 interface TournamentPenaltySceneData {
   tournamentId?: string;
@@ -104,6 +109,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private homeControllerType: PlayerControllerType = 'HUMAN';
   private awayControllerType: PlayerControllerType = 'HUMAN';
   private penaltyAiController: PenaltyAiController | null = null;
+  private pauseModal: Phaser.GameObjects.Container | null = null;
+  private rulesModal: Phaser.GameObjects.Container | null = null;
+  private infoLanguage: AboutLanguage = getPreferredLanguage();
   private homeCoverTextureKey = getFallbackCoverTextureKey();
   private awayCoverTextureKey = getFallbackCoverTextureKey();
 
@@ -120,6 +128,9 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.standalone = data.standalone === true;
     this.homeControllerType = data.homeControllerType ?? data.player1ControllerType ?? 'HUMAN';
     this.awayControllerType = data.awayControllerType ?? data.player2ControllerType ?? 'HUMAN';
+    this.pauseModal = null;
+    this.rulesModal = null;
+    this.infoLanguage = getPreferredLanguage();
     this.homeCoverTextureKey = getFallbackCoverTextureKey();
     this.awayCoverTextureKey = getFallbackCoverTextureKey();
     this.input.enabled = true;
@@ -171,10 +182,10 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     new MatchFieldView(this, MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y);
-    this.createPenaltyMatchHeader(this.matchResult, this.shootoutState);
-    this.createMenuButton();
     this.createPenaltyField(this.shootoutState);
     this.createShootoutMarkers(this.shootoutState);
+    this.createPenaltyMatchHeader(this.matchResult, this.shootoutState);
+    this.createMatchControls();
 
     if (this.shootoutState.status === 'complete') {
       this.createCompletedShootoutPanel(this.matchResult);
@@ -223,10 +234,65 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private createMenuButton(): void {
-    new Button(this, 120, 34, 'Menu', () => this.scene.start('MenuScene'), {
-      fontSize: '20px'
+  private createMatchControls(): void {
+    createMatchControlButtons({
+      scene: this,
+      onPause: () => this.openPauseModal(),
+      onRules: () => this.openRulesModal()
     });
+  }
+
+  private openPauseModal(): void {
+    if (this.pauseModal !== null || this.rulesModal !== null || this.inputLocked) {
+      return;
+    }
+
+    this.penaltyAiController?.cancelPendingAction();
+    this.pauseModal = createMatchPauseOverlay(this, [
+      { label: 'Continue', onClick: () => this.closePauseModal() },
+      {
+        label: 'Menu',
+        onClick: () => {
+          this.closePauseModal();
+          this.scene.start('MenuScene');
+        }
+      }
+    ]);
+  }
+
+  private closePauseModal(): void {
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    this.schedulePenaltyAiAction();
+  }
+
+  private openRulesModal(): void {
+    if (this.rulesModal !== null || this.pauseModal !== null || this.inputLocked) {
+      return;
+    }
+
+    this.penaltyAiController?.cancelPendingAction();
+    this.rulesModal = createMatchRulesOverlay({
+      scene: this,
+      language: this.infoLanguage,
+      languages: ABOUT_LANGUAGES,
+      content: RULES_CONTENT,
+      onClose: () => this.closeRulesModal(),
+      onLanguageChange: (language) => this.switchRulesLanguage(language)
+    });
+  }
+
+  private closeRulesModal(): void {
+    this.rulesModal?.destroy();
+    this.rulesModal = null;
+    this.schedulePenaltyAiAction();
+  }
+
+  private switchRulesLanguage(language: AboutLanguage): void {
+    this.infoLanguage = language;
+    setPreferredLanguage(language);
+    this.closeRulesModal();
+    this.openRulesModal();
   }
 
   private createPenaltyMatchHeader(matchResult: TournamentMatchResult, shootoutState: PenaltyShootoutState): void {
@@ -251,7 +317,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
           playerTwo: shootoutState.awayGoals
         }
       }
-    );
+    ).setDepth(MATCH_CONTROL_BUTTON_DEPTH);
     new AdvantageView(this, MATCH_SCOREBOARD_CENTER_X, MATCH_ADVANTAGE_CENTER_Y, {
       advantage: {
         playerOnePoints: 0,
@@ -263,7 +329,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         windowStartTurn: 1,
         windowEndTurn: 1
       }
-    });
+    }).setDepth(MATCH_CONTROL_BUTTON_DEPTH);
     this.add
       .text(SCENE_WIDTH / 2, PENALTY_STATUS_Y, `Penalties ${shootoutState.homeGoals}:${shootoutState.awayGoals}`, {
         align: 'center',
@@ -274,7 +340,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         stroke: '#123b2a',
         strokeThickness: 4
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(MATCH_CONTROL_BUTTON_DEPTH);
 
   }
 
@@ -878,7 +945,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private schedulePenaltyAiAction(): void {
-    if (this.inputLocked || this.shootoutState?.status === 'complete') {
+    if (this.inputLocked || this.pauseModal !== null || this.rulesModal !== null || this.shootoutState?.status === 'complete') {
       return;
     }
 
