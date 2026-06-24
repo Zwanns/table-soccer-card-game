@@ -159,6 +159,7 @@ describe('kit card face rendering contracts', () => {
       shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
       shirtNumberFontSize: 16,
       shirtNumberScaleY: 0.88,
+      shirtNumberStrokeThickness: 2,
       cardCornerRadius: 8,
       deckCornerRadius: 8
     });
@@ -255,12 +256,13 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('options.faceDown === true');
   });
 
-  it('uses resolver number colors without strokes and keeps closed cards unchanged', () => {
+  it('uses resolver number colors and outlines while keeping closed cards unchanged', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
     const deckViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'DeckView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('options.kitAsset?.numberColor');
+    expect(kitFaceSource).toContain('options.kitAsset?.numberStrokeColor');
     expect(kitFaceSource).not.toContain('options.kitAsset?.shirtNumberColor');
     expect(kitFaceSource).not.toContain('options.kitAsset?.shirtNumberStrokeColor');
     expect(kitFaceSource).toContain('getGoalkeeperNumberColor(options.kitTextureKey)');
@@ -272,8 +274,10 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
     expect(kitFaceSource).not.toContain('this.rankText.setScale');
     expect(kitFaceSource).not.toContain('image.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
-    expect(kitFaceSource).not.toContain('strokeThickness');
-    expect(kitFaceSource).not.toContain('stroke,');
+    expect(kitFaceSource).toContain('stroke,');
+    expect(kitFaceSource).toContain(
+      'strokeThickness: stroke === undefined ? 0 : KIT_CARD_LAYOUT.shirtNumberStrokeThickness'
+    );
     expect(deckViewSource).toContain('createRoundedDeckCard');
     expect(deckViewSource).toContain('createRoundedDeckBorder');
     expect(deckViewSource).toContain('KIT_CARD_LAYOUT.deckCornerRadius');

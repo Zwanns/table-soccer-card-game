@@ -53,7 +53,7 @@ describe('team kit data contract', () => {
       secondaryColor: string;
       accentColor?: string;
       shirtNumberColor: string;
-      shirtNumberStrokeColor: string;
+      shirtNumberStrokeColor?: string;
     }>();
     expectTypeOf<GoalkeeperKitId>().toEqualTypeOf<'gk1' | 'gk2'>();
     expectTypeOf<GoalkeeperKitStyle>().toMatchTypeOf<{
@@ -64,7 +64,7 @@ describe('team kit data contract', () => {
       secondaryColor: string;
       accentColor?: string;
       shirtNumberColor: string;
-      shirtNumberStrokeColor: string;
+      shirtNumberStrokeColor?: string;
     }>();
 
     expect(SHIRT_NUMBER_ANCHOR).toEqual({ x: 0.5, y: 0.31 });
@@ -106,7 +106,9 @@ describe('team kit data contract', () => {
         expect(style.accentColor).toMatch(HEX_COLOR_PATTERN);
       }
       expect(style.shirtNumberColor).toMatch(HEX_COLOR_PATTERN);
-      expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
+      if (style.shirtNumberStrokeColor !== undefined) {
+        expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
+      }
       expect(style.shirtNumberColor).toBe(
         EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES.get(style.flagCode) ?? style.secondaryColor
       );

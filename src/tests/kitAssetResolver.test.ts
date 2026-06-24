@@ -24,7 +24,8 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('pl')).toEqual({
       assetKey: 'kit-pl',
-      numberColor: '#DC143C'
+      numberColor: '#DC143C',
+      numberStrokeColor: '#FFFFFF'
     });
   });
 
@@ -33,7 +34,8 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('ar')).toEqual({
       assetKey: 'kit-ar',
-      numberColor: '#111111'
+      numberColor: '#111111',
+      numberStrokeColor: '#FFFFFF'
     });
   });
 
@@ -42,7 +44,18 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('ng')).toEqual({
       assetKey: 'kit-ng',
-      numberColor: '#000000'
+      numberColor: '#000000',
+      numberStrokeColor: '#FFFFFF'
+    });
+  });
+
+  it('uses a blue shirt number with a white outline for Chile', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('cl');
+
+    expect(resolveTeamKitAsset('cl')).toEqual({
+      assetKey: 'kit-cl',
+      numberColor: '#0039A6',
+      numberStrokeColor: '#FFFFFF'
     });
   });
 
@@ -57,11 +70,13 @@ describe('kit asset resolver', () => {
   it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
-      numberColor: '#009C3B'
+      numberColor: '#009C3B',
+      numberStrokeColor: '#FFFFFF'
     });
     expect(resolveTeamKitAsset('ar')).toEqual({
       assetKey: 'kit-none',
-      numberColor: '#111111'
+      numberColor: '#111111',
+      numberStrokeColor: '#FFFFFF'
     });
   });
 
@@ -82,11 +97,13 @@ describe('kit asset resolver', () => {
     });
     expect(resolveGoalkeeperKitAsset('gk1')).toEqual({
       assetKey: 'kit-gk1',
-      numberColor: '#3A3A3A'
+      numberColor: '#3A3A3A',
+      numberStrokeColor: '#111111'
     });
     expect(resolveGoalkeeperKitAsset('gk2')).toEqual({
       assetKey: 'kit-gk2',
-      numberColor: '#111111'
+      numberColor: '#111111',
+      numberStrokeColor: '#111111'
     });
   });
 

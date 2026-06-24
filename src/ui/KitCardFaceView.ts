@@ -155,6 +155,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       options.kitAsset?.numberColor ??
       getGoalkeeperNumberColor(options.kitTextureKey) ??
       getFallbackKitColors(options.teamColor).number;
+    const stroke = options.kitAsset?.numberStrokeColor;
     const position = getShirtNumberLayout(options.kitLayoutVariant, kitLayout);
     const number = scene.add
       .text(px(position.x), px(position.y), String(options.shirtNumber), {
@@ -163,6 +164,8 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         fontFamily: KIT_CARD_LAYOUT.shirtNumberFontFamily,
         fontSize: `${KIT_CARD_LAYOUT.shirtNumberFontSize}px`,
         fontStyle: '600',
+        stroke,
+        strokeThickness: stroke === undefined ? 0 : KIT_CARD_LAYOUT.shirtNumberStrokeThickness,
         resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5)

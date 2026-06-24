@@ -19,7 +19,7 @@ export type TeamKitStyle = {
   accentColor?: string;
 
   shirtNumberColor: string;
-  shirtNumberStrokeColor: string;
+  shirtNumberStrokeColor?: string;
 };
 
 export type GoalkeeperKitId =
@@ -37,7 +37,7 @@ export type GoalkeeperKitStyle = {
   accentColor?: string;
 
   shirtNumberColor: string;
-  shirtNumberStrokeColor: string;
+  shirtNumberStrokeColor?: string;
 };
 
 export const SHIRT_NUMBER_ANCHOR: ShirtNumberAnchor = {
@@ -61,6 +61,14 @@ export const DEFAULT_SHIRT_NUMBER_STYLE = {
   strokeThickness: 0
 } as const;
 
+// Row format:
+// [flagCode, primaryColor, secondaryColor, accentColor, shirtNumberStrokeColor?, shirtNumberColor?]
+// primaryColor — основной цвет формы;
+// secondaryColor — дополнительный цвет формы и цвет номера по умолчанию;
+// accentColor — акцентный цвет деталей формы;
+// shirtNumberStrokeColor — необязательный цвет обводки номера; без значения обводки нет;
+// shirtNumberColor — цвет номера (необязательный, по умолчанию используется secondaryColor).
+// Чтобы задать shirtNumberColor без обводки, укажите undefined на месте shirtNumberStrokeColor.
 const TEAM_KIT_STYLE_ROWS = [
   ['al', '#D71920', '#111111', '#FFFFFF', '#111111'],
   ['dz', '#FFFFFF', '#00843D', '#00843D', '#FFFFFF'],
@@ -127,7 +135,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['uz', '#FFFFFF', '#0099B5', '#006B8F', '#FFFFFF'],
   ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
   ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', '#111111']
-] as const satisfies readonly (readonly [string, string, string, string, string, string?])[];
+] as const satisfies readonly (readonly [string, string, string, string, string?, string?])[];
 
 export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
   ([
@@ -296,15 +304,14 @@ function validateKitStyleShape(
     secondaryColor: string;
     accentColor?: string;
     shirtNumberColor: string;
-    shirtNumberStrokeColor: string;
+    shirtNumberStrokeColor?: string;
   },
   label: string
 ): void {
   for (const [field, value] of [
     ['primaryColor', style.primaryColor],
     ['secondaryColor', style.secondaryColor],
-    ['shirtNumberColor', style.shirtNumberColor],
-    ['shirtNumberStrokeColor', style.shirtNumberStrokeColor]
+    ['shirtNumberColor', style.shirtNumberColor]
   ] as const) {
     if (!isHexColor(value)) {
       errors.push(`${label} ${field} must be #RRGGBB, got "${value}".`);
@@ -313,6 +320,12 @@ function validateKitStyleShape(
 
   if (style.accentColor !== undefined && !isHexColor(style.accentColor)) {
     errors.push(`${label} accentColor must be #RRGGBB, got "${style.accentColor}".`);
+  }
+
+  if (style.shirtNumberStrokeColor !== undefined && !isHexColor(style.shirtNumberStrokeColor)) {
+    errors.push(
+      `${label} shirtNumberStrokeColor must be #RRGGBB, got "${style.shirtNumberStrokeColor}".`
+    );
   }
 
   if (!style.path.startsWith('kits/images/')) {
