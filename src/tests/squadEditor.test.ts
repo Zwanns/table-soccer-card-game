@@ -101,8 +101,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('const SQUAD_CARD_WIDTH = RIGHT_PANEL_WIDTH / 2');
     expect(selectSource).toContain('const RIGHT_PANEL_HEIGHT = 571');
     expect(selectSource).toContain('const SQUAD_TABLE_Y = 94');
-    expect(selectSource).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
-    expect(selectSource).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
+    expect(selectSource).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
     expect(selectSource).toContain('const SQUAD_PANEL_COLORS = {');
     expect(selectSource).toContain('background: 0x11161a');
     expect(selectSource).toContain('border: 0xc7cfd6');
@@ -112,10 +111,12 @@ describe('read-only squad scenes', () => {
       '.rectangle(0, 0, SQUAD_CARD_WIDTH, RIGHT_PANEL_HEIGHT, SQUAD_PANEL_COLORS.background, SQUAD_PANEL_COLORS.backgroundAlpha)'
     );
     expect(selectSource).toContain('background.setStrokeStyle(2, SQUAD_PANEL_COLORS.border, SQUAD_PANEL_COLORS.borderAlpha)');
-    expect(selectSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
-    expect(selectSource).toContain('SCOREBOARD_METAL_BORDER_COLOR');
-    expect(selectSource).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : SCOREBOARD_METAL_BORDER_COLOR');
-    expect(selectSource).toContain('isSelected ? 1 : SCOREBOARD_METAL_BORDER_ALPHA');
+    expect(selectSource).toContain(
+      'const style = isSelected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal'
+    );
+    expect(selectSource).toContain('style.backgroundColor');
+    expect(selectSource).toContain('style.borderColor');
+    expect(selectSource).toContain('TEAM_CARD_STYLE.hover.backgroundAlpha');
     expect(selectSource).toContain('const TEAM_PREVIEW_OFFSET_X = 190');
     expect(selectSource).toContain('const TEAM_COLORS_SWATCH_Y = 62');
     expect(selectSource).toContain('const TEAM_COLOR_SWATCH_RADIUS = 10');

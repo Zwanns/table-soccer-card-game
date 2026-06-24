@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
@@ -107,14 +108,15 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createFormatButtons(): void {
     FORMAT_IDS.forEach((formatId, index) => {
       const selected = this.draft.formatId === formatId;
+      const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
       const x = SCENE_WIDTH / 2 - 250 + index * 250;
       const button = this.add.container(x, 112);
-      const background = this.add.rectangle(0, 0, 210, 48, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.94);
-      background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.95);
+      const background = this.add.rectangle(0, 0, 210, 48, style.backgroundColor, style.backgroundAlpha);
+      background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
       const label = this.add
         .text(0, 0, FORMAT_LABELS[formatId], {
           align: 'center',
-          color: selected ? '#1f2a2e' : '#ffffff',
+          color: style.textColor,
           fontFamily: 'Arial, sans-serif',
           fontSize: '20px',
           fontStyle: '700'
@@ -127,12 +129,14 @@ export class TournamentSetupScene extends Phaser.Scene {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
-          background.setFillStyle(0x1d5b3f, 0.96);
+          this.applyTeamCardStyle(background, TEAM_CARD_STYLE.hover);
+          label.setColor(TEAM_CARD_STYLE.hover.textColor);
         }
       });
       button.on('pointerout', () => {
         if (!selected) {
-          background.setFillStyle(0x143f2c, 0.94);
+          this.applyTeamCardStyle(background, TEAM_CARD_STYLE.normal);
+          label.setColor(TEAM_CARD_STYLE.normal.textColor);
         }
       });
       button.on('pointerdown', () => this.changeFormat(formatId));
@@ -176,9 +180,20 @@ export class TournamentSetupScene extends Phaser.Scene {
 
   private createGroupPanel(x: number, y: number, groupId: string, groupIndex: number): void {
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, GROUP_PANEL_WIDTH, GROUP_PANEL_HEIGHT, 0x0b2118, 0.86);
+    const background = this.add.rectangle(
+      0,
+      0,
+      GROUP_PANEL_WIDTH,
+      GROUP_PANEL_HEIGHT,
+      TEAM_CARD_STYLE.panel.backgroundColor,
+      TEAM_CARD_STYLE.panel.backgroundAlpha
+    );
     background.setOrigin(0);
-    background.setStrokeStyle(2, 0x5f9572, 0.92);
+    background.setStrokeStyle(
+      TEAM_CARD_STYLE.panel.borderWidth,
+      TEAM_CARD_STYLE.panel.borderColor,
+      TEAM_CARD_STYLE.panel.borderAlpha
+    );
     const title = this.add
       .text(14, 16, `Group ${groupId}`, {
         color: '#f0c95a',
@@ -201,10 +216,11 @@ export class TournamentSetupScene extends Phaser.Scene {
     const teamId = this.draft.slots[slotIndex];
     const team = teamId === null ? undefined : findTeam(teamId);
     const selected = this.activeSlotIndex === slotIndex;
+    const style = selected ? TEAM_CARD_STYLE.selected : team === undefined ? TEAM_CARD_STYLE.muted : TEAM_CARD_STYLE.normal;
     const slot = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.92);
+    const background = this.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, style.backgroundColor, style.backgroundAlpha);
     background.setOrigin(0);
-    background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.92);
+    background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
     background.setInteractive({ useHandCursor: true });
     background.on('pointerdown', () => {
       this.activeSlotIndex = slotIndex;
@@ -213,7 +229,7 @@ export class TournamentSetupScene extends Phaser.Scene {
 
     const name = this.add
       .text(team === undefined ? 12 : 42, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
-        color: selected ? '#1f2a2e' : team === undefined ? '#8fb39d' : '#ffffff',
+        color: style.textColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
         fontStyle: '700',
@@ -226,11 +242,11 @@ export class TournamentSetupScene extends Phaser.Scene {
     if (team !== undefined) {
       const flag = this.add.image(24, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(24, 18);
-      const aiCheckbox = this.createAiCheckbox(154, SLOT_HEIGHT / 2, slotIndex, selected);
+      const aiCheckbox = this.createAiCheckbox(154, SLOT_HEIGHT / 2, slotIndex);
       const remove = this.add
         .text(188, SLOT_HEIGHT / 2, 'x', {
           align: 'center',
-          color: selected ? '#1f2a2e' : '#f0c95a',
+          color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
           fontSize: '16px',
           fontStyle: '700'
@@ -253,13 +269,12 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createAiCheckbox(
     x: number,
     y: number,
-    slotIndex: number,
-    selected: boolean
+    slotIndex: number
   ): Phaser.GameObjects.Container {
     const isAi = this.draft.controllerTypes[slotIndex] === 'AI';
     const checkbox = this.add.container(x, y);
     const box = this.add.rectangle(-12, 0, 12, 12, isAi ? 0xf0c95a : 0x0b2118, 1);
-    box.setStrokeStyle(2, selected ? 0x1f2a2e : 0xf0c95a, 0.95);
+    box.setStrokeStyle(2, 0xf0c95a, 0.95);
     const mark = this.add
       .text(-12, 0, isAi ? '✓' : '', {
         align: 'center',
@@ -271,7 +286,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       .setOrigin(0.5);
     const label = this.add
       .text(-1, 0, 'AI', {
-        color: selected ? '#1f2a2e' : '#d9eadf',
+        color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         fontStyle: '700'
@@ -391,9 +406,17 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
     const selectedSlotIndex = this.draft.slots.findIndex((teamId) => teamId === team.flagCode);
     const isSelected = selectedSlotIndex !== -1;
+    const style = isSelected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
     const option = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT, isSelected ? 0xf0c95a : 0x143f2c, 0.94);
-    background.setStrokeStyle(2, isSelected ? 0x2d382f : 0x5f9572, 0.94);
+    const background = this.add.rectangle(
+      0,
+      0,
+      TEAM_BUTTON_WIDTH,
+      TEAM_BUTTON_HEIGHT,
+      style.backgroundColor,
+      style.backgroundAlpha
+    );
+    background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
     // Position flag and name to avoid overlap; center vertically
     const flag = this.add.image(-TEAM_BUTTON_WIDTH / 2 + 18, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(30, 22);
@@ -401,7 +424,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     const name = this.add
       .text(-TEAM_BUTTON_WIDTH / 2 + 48, 0, team.name, {
         align: 'left',
-        color: isSelected ? '#1f2a2e' : '#ffffff',
+        color: style.textColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         fontStyle: '700',
@@ -414,15 +437,25 @@ export class TournamentSetupScene extends Phaser.Scene {
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(0x1d5b3f, 0.96);
+        this.applyTeamCardStyle(background, TEAM_CARD_STYLE.hover);
+        name.setColor(TEAM_CARD_STYLE.hover.textColor);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(0x143f2c, 0.94);
+        this.applyTeamCardStyle(background, TEAM_CARD_STYLE.normal);
+        name.setColor(TEAM_CARD_STYLE.normal.textColor);
       }
     });
     return option;
+  }
+
+  private applyTeamCardStyle(
+    background: Phaser.GameObjects.Rectangle,
+    style: TeamCardVisualStyle
+  ): void {
+    background.setFillStyle(style.backgroundColor, style.backgroundAlpha);
+    background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
   }
 
   private createBottomButtons(): void {

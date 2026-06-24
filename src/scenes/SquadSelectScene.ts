@@ -9,16 +9,9 @@ import type { NationalTeamSquad } from '../data/squadTypes';
 import { Button } from '../ui/Button';
 import { CardView } from '../ui/CardView';
 import { createCardPlayerProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
-import {
-  SCOREBOARD_BACKGROUND_ALPHA,
-  SCOREBOARD_BACKGROUND_COLOR,
-  SCOREBOARD_BORDER_COLOR,
-  SCOREBOARD_METAL_BORDER_ALPHA,
-  SCOREBOARD_METAL_BORDER_COLOR,
-  SCOREBOARD_TEXT_COLOR
-} from '../ui/scoreboardStyle';
 import { createTeamFieldBackground } from '../ui/teamFieldBackground';
 import { createTeamScreenLayout, rectCenter, type TeamScreenRect } from '../ui/teamScreenLayout';
+import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
@@ -44,8 +37,6 @@ const TEAM_PREVIEW_BACK_Y = 432;
 const TEAM_PREVIEW_CARD_SCALE = 1.45;
 const TEAM_PREVIEW_DISPLAY_RANK = 'N';
 const SQUAD_SECTION_ROW_GAP = 28;
-const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
-const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
 const TEAM_LIST_FADE_HEIGHT = 52;
 const TEAM_LIST_FADE_MIN_ALPHA = 0.22;
 const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5;
@@ -250,26 +241,27 @@ export class SquadSelectScene extends Phaser.Scene {
 
   private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
     const isSelected = team.flagCode === this.selectedTeamId;
+    const style = isSelected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
     const option = this.add.container(x, y);
     const background = this.add.rectangle(
       0,
       0,
       CARD_WIDTH,
       CARD_HEIGHT,
-      SCOREBOARD_BACKGROUND_COLOR,
-      isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
+      style.backgroundColor,
+      style.backgroundAlpha
     );
     background.setStrokeStyle(
-      isSelected ? 3 : 2,
-      isSelected ? SCOREBOARD_BORDER_COLOR : SCOREBOARD_METAL_BORDER_COLOR,
-      isSelected ? 1 : SCOREBOARD_METAL_BORDER_ALPHA
+      style.borderWidth,
+      style.borderColor,
+      style.borderAlpha
     );
 
     const flag = this.add.image(-CARD_WIDTH / 2 + 25, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(36, 27);
     const nameText = this.add
       .text(-CARD_WIDTH / 2 + 56, 0, team.name, {
-        color: SCOREBOARD_TEXT_COLOR,
+        color: style.textColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700',
@@ -282,12 +274,24 @@ export class SquadSelectScene extends Phaser.Scene {
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
+        background.setFillStyle(TEAM_CARD_STYLE.hover.backgroundColor, TEAM_CARD_STYLE.hover.backgroundAlpha);
+        background.setStrokeStyle(
+          TEAM_CARD_STYLE.hover.borderWidth,
+          TEAM_CARD_STYLE.hover.borderColor,
+          TEAM_CARD_STYLE.hover.borderAlpha
+        );
+        nameText.setColor(TEAM_CARD_STYLE.hover.textColor);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA);
+        background.setFillStyle(TEAM_CARD_STYLE.normal.backgroundColor, TEAM_CARD_STYLE.normal.backgroundAlpha);
+        background.setStrokeStyle(
+          TEAM_CARD_STYLE.normal.borderWidth,
+          TEAM_CARD_STYLE.normal.borderColor,
+          TEAM_CARD_STYLE.normal.borderAlpha
+        );
+        nameText.setColor(TEAM_CARD_STYLE.normal.textColor);
       }
     });
 

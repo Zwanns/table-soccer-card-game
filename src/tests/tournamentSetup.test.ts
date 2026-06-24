@@ -69,6 +69,31 @@ describe('tournament setup scene integration', () => {
     expect(menuSource).toContain('MENU_ASSETS.background');
     expect(menuSource).not.toContain('TOURNAMENT_ASSETS.background');
   });
+
+  it('shares the Teams card palette across tournament setup cards without changing setup actions', () => {
+    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const teamsSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadSelectScene.ts'), 'utf8');
+
+    expect(teamsSource).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
+    expect(setupSource).toContain(
+      "import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle'"
+    );
+    expect(setupSource).toContain(
+      'const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal'
+    );
+    expect(setupSource).toContain('TEAM_CARD_STYLE.panel.backgroundColor');
+    expect(setupSource).toContain(
+      'const style = selected ? TEAM_CARD_STYLE.selected : team === undefined ? TEAM_CARD_STYLE.muted : TEAM_CARD_STYLE.normal'
+    );
+    expect(setupSource).toContain(
+      'const style = isSelected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal'
+    );
+    expect(setupSource).toContain('this.applyTeamCardStyle(background, TEAM_CARD_STYLE.hover)');
+    expect(setupSource).toContain('changeTournamentSetupFormat(this.draft, formatId)');
+    expect(setupSource).toContain('fillTournamentSetupRandom(this.draft');
+    expect(setupSource).toContain('shuffleTournamentSetupGroups(this.draft');
+    expect(setupSource).toContain('createTournamentFromSetupDraft(this.draft');
+  });
 });
 
 describe('tournament setup draft helpers', () => {
