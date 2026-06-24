@@ -50,7 +50,6 @@ import {
 } from '../ui/PenaltyAttemptListView';
 import {
   createPenaltyAttemptSummaries,
-  formatPenaltyAttempt,
   getPenaltyAttemptsForTeam
 } from '../ui/penaltyAttempts';
 import {
@@ -260,13 +259,59 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.pauseModal = createMatchPauseOverlay(this, [
       { label: 'Continue', onClick: () => this.closePauseModal() },
       {
-        label: 'Menu',
+        label: 'Exit to Menu',
         onClick: () => {
           this.closePauseModal();
           this.scene.start('MenuScene');
         }
+      },
+      {
+        label: 'Results',
+        onClick: () => this.completeShootoutFromPause()
       }
     ]);
+  }
+
+  private completeShootoutFromPause(): void {
+    if (this.shootoutState === null || this.shootoutState.status === 'complete') {
+      return;
+    }
+
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    this.penaltyAiController?.cancelPendingAction();
+
+    let simulatedState = this.shootoutState;
+    const maxSimulationSteps = 300;
+
+    try {
+      for (let step = 0; simulatedState.status !== 'complete' && step < maxSimulationSteps; step += 1) {
+        if (simulatedState.phase === 'selecting-goalkeeper') {
+          simulatedState = drawPenaltyGoalkeeperCard(simulatedState);
+        } else if (simulatedState.phase === 'selecting-attacker') {
+          simulatedState = revealPenaltyAttackCard(simulatedState, 0);
+        } else {
+          simulatedState = takePenaltyKick(simulatedState);
+        }
+      }
+
+      if (simulatedState.status !== 'complete') {
+        throw new Error('Could not simulate the penalty shootout result.');
+      }
+    } catch (error) {
+      this.message = error instanceof Error ? error.message : 'Could not simulate the penalty shootout result.';
+      this.inputLocked = false;
+      this.input.enabled = true;
+      this.render();
+      return;
+    }
+
+    this.shootoutState = simulatedState;
+    this.penaltyAiController?.destroy();
+    this.inputLocked = false;
+    this.input.enabled = true;
+    this.completeTournamentMatch();
+    this.render();
   }
 
   private closePauseModal(): void {
@@ -363,20 +408,25 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private createCompletedShootoutActions(): void {
-    createResultActionButtons(this, SCENE_WIDTH / 2, [
-      {
-        label: this.standalone ? 'Play Again' : 'Continue',
-        onClick: () =>
-          this.standalone
-            ? this.startStandalonePenaltyReplay()
-            : this.scene.start(this.getCompletedShootoutReturnScene())
-      },
-      {
-        label: 'New Match',
-        onClick: () => this.scene.start('TeamSelectScene', this.standalone ? { mode: 'penalty' } : undefined)
-      },
-      { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
-    ]);
+    createResultActionButtons(
+      this,
+      SCENE_WIDTH / 2,
+      [
+        {
+          label: this.standalone ? 'Play Again' : 'Continue',
+          onClick: () =>
+            this.standalone
+              ? this.startStandalonePenaltyReplay()
+              : this.scene.start(this.getCompletedShootoutReturnScene())
+        },
+        {
+          label: 'New Match',
+          onClick: () => this.scene.start('TeamSelectScene', this.standalone ? { mode: 'penalty' } : undefined)
+        },
+        { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
+      ],
+      { totalWidth: PENALTY_COMPLETE_PANEL_WIDTH }
+    );
   }
 
   private startStandalonePenaltyReplay(): void {
@@ -740,18 +790,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     content.add(this.createStatsDetailColumn(-330, contentHeight, homeGoalscorers));
     content.add(this.createStatsDetailColumn(30, contentHeight, awayGoalscorers));
     contentHeight += Math.max(getDetailLineCount(homeGoalscorers), getDetailLineCount(awayGoalscorers)) * 22 + 18;
-
-    const attempts = createPenaltyAttemptSummaries(this.shootoutState?.kicks ?? []);
-    const homePenalties = getPenaltyAttemptsForTeam(attempts, matchResult.homeTeamId).map(formatPenaltyAttempt).join('\n');
-    const awayPenalties = getPenaltyAttemptsForTeam(attempts, matchResult.awayTeamId).map(formatPenaltyAttempt).join('\n');
-
-    if (homePenalties !== '' || awayPenalties !== '') {
-      content.add(this.createStatsSectionTitle(contentHeight, 'Penalties'));
-      contentHeight += 30;
-      content.add(this.createStatsDetailColumn(-330, contentHeight, homePenalties));
-      content.add(this.createStatsDetailColumn(30, contentHeight, awayPenalties));
-      contentHeight += Math.max(getDetailLineCount(homePenalties), getDetailLineCount(awayPenalties)) * 22 + 12;
-    }
 
     const maxScroll = Math.max(0, contentHeight - MATCH_STATS_VIEWPORT.height);
     const maskGraphics = this.make.graphics();

@@ -186,7 +186,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
 
-  it('opens a Pause overlay with Continue, Menu, Result and About actions', () => {
+  it('opens a Pause overlay with Continue, Exit to Menu, Results and About actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
@@ -194,9 +194,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private openPauseModal(state: Readonly<GameState>): void');
     expect(source).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
     expect(source).toContain("{ label: 'Continue', onClick: () => this.closePauseModal() }");
-    expect(source).toContain("label: 'Menu'");
+    expect(source).toContain("label: 'Exit to Menu'");
     expect(source).toContain('this.openExitConfirmModal()');
-    expect(source).toContain("label: 'Result'");
+    expect(source).toContain("label: 'Results'");
     expect(source).toContain('this.openResult(state)');
     expect(source).toContain("label: 'About'");
     expect(source).toContain("this.openMatchInfoModal('about')");

@@ -138,9 +138,12 @@ describe('result scene score line layout', () => {
     expect(actionsSource).toContain(
       'export const RESULT_ACTION_BUTTON_WIDTH = (RESULT_ACTION_PANEL_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3'
     );
-    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 62');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
+    expect(actionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
+    expect(actionsSource).toContain('const totalWidth = options.totalWidth ?? RESULT_ACTION_PANEL_WIDTH');
+    expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * 2) / 3');
     expect(actionsSource).toContain(
-      'const firstButtonX = centerX - RESULT_ACTION_PANEL_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2'
+      'const firstButtonX = centerX - totalWidth / 2 + buttonWidth / 2'
     );
     expect(source).not.toContain("'Play again', () => this.scene.start('TeamSelectScene')");
     expect(source).toContain("new Button(this, centerX + 150, 650, 'Menu', () => this.scene.start('MenuScene'), { width: 230 })");

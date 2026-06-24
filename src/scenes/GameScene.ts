@@ -967,14 +967,14 @@ export class GameScene extends Phaser.Scene {
     this.pauseModal = createMatchPauseOverlay(this, [
       { label: 'Continue', onClick: () => this.closePauseModal() },
       {
-        label: 'Menu',
+        label: 'Exit to Menu',
         onClick: () => {
           this.closePauseModal();
           this.openExitConfirmModal();
         }
       },
       {
-        label: 'Result',
+        label: 'Results',
         onClick: () => {
           this.closePauseModal();
           this.openResult(state);

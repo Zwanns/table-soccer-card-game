@@ -200,6 +200,9 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).not.toContain('createMenuButton');
     expect(penaltySource).not.toContain("new Button(this, 120, 34, 'Menu'");
     expect(penaltySource).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
+    expect(penaltySource).toContain("label: 'Exit to Menu'");
+    expect(penaltySource).toContain("label: 'Results'");
+    expect(penaltySource).toContain('onClick: () => this.completeShootoutFromPause()');
     expect(penaltySource).toContain('this.rulesModal = createMatchRulesOverlay({');
     expect(pauseSource).toContain('export function createMatchPauseOverlay');
     expect(rulesSource).toContain('export function createMatchRulesOverlay');
@@ -217,10 +220,33 @@ describe('tournament hub scene integration', () => {
       'const PENALTY_COMPLETE_PANEL_Y = PENALTY_COMPLETE_PANEL_TOP_Y + PENALTY_COMPLETE_PANEL_HEIGHT / 2'
     );
     expect(penaltySource).toContain('height: 420');
-    expect(penaltySource).toContain('createResultActionButtons(this, SCENE_WIDTH / 2, [');
+    expect(penaltySource).toContain('{ totalWidth: PENALTY_COMPLETE_PANEL_WIDTH }');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
-    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 62');
-    const pauseHandler = penaltySource.slice(penaltySource.indexOf('private openPauseModal()'), penaltySource.indexOf('private closePauseModal()'));
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
+    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
+    expect(resultActionsSource).toContain('const totalWidth = options.totalWidth ?? RESULT_ACTION_PANEL_WIDTH');
+    expect(resultActionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * 2) / 3');
+    const completedStatsHandler = penaltySource.slice(
+      penaltySource.indexOf('private createMatchStatsPanel('),
+      penaltySource.indexOf('private createStatsLabel(')
+    );
+    expect(completedStatsHandler).not.toContain("'Penalties'");
+    expect(completedStatsHandler).not.toContain('formatPenaltyAttempt');
+    expect(penaltySource).toContain('this.createPenaltyAttemptLists(this.shootoutState)');
+    const resultsHandler = penaltySource.slice(
+      penaltySource.indexOf('private completeShootoutFromPause()'),
+      penaltySource.indexOf('private closePauseModal()')
+    );
+    expect(resultsHandler).toContain("simulatedState.phase === 'selecting-goalkeeper'");
+    expect(resultsHandler).toContain('drawPenaltyGoalkeeperCard(simulatedState)');
+    expect(resultsHandler).toContain('revealPenaltyAttackCard(simulatedState, 0)');
+    expect(resultsHandler).toContain('takePenaltyKick(simulatedState)');
+    expect(resultsHandler).toContain('this.completeTournamentMatch()');
+    expect(resultsHandler).toContain('this.render()');
+    const pauseHandler = penaltySource.slice(
+      penaltySource.indexOf('private openPauseModal()'),
+      penaltySource.indexOf('private completeShootoutFromPause()')
+    );
     const rulesHandler = penaltySource.slice(penaltySource.indexOf('private openRulesModal()'), penaltySource.indexOf('private closeRulesModal()'));
     expect(pauseHandler).toContain("this.shootoutState?.status === 'complete'");
     expect(rulesHandler).toContain("this.shootoutState?.status === 'complete'");
