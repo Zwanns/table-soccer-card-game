@@ -57,11 +57,21 @@ export type PenaltyKickResult = {
   outcome: 'goal' | 'save' | 'post';
 };
 
+export type PenaltyAttemptSummary = {
+  teamId: TournamentTeamId;
+  shooterRank: CardRank;
+  shooterLabel: string;
+  success: boolean;
+  outcome: PenaltyKickResult['outcome'];
+  roundIndex: number;
+};
+
 export type TournamentPenaltyResult = {
   homeGoals: number;
   awayGoals: number;
   winnerTeamId: TournamentTeamId;
   kicks: PenaltyKickResult[];
+  attempts?: PenaltyAttemptSummary[];
 };
 
 export type TournamentMatchResult = {

@@ -52,7 +52,7 @@ export function getCardTooltipText(profile: CardPlayerProfile): string {
   return getPlayerSurname(profile.playerName);
 }
 
-function getPlayerSurname(playerName: string): string {
+export function getPlayerSurname(playerName: string): string {
   const trimmedName = playerName.trim();
   const nameParts = trimmedName.split(/\s+/);
 

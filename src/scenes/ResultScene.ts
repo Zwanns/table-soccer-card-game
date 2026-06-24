@@ -14,6 +14,7 @@ import {
 } from '../ui/scoreboardStyle';
 import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
+import { formatPenaltyAttempt, getPenaltyAttemptsForTeam, getPenaltyAttemptSummaries } from '../ui/penaltyAttempts';
 import {
   createTournamentMatchResultFromGameState,
   getTournamentTeamControllerType,
@@ -21,6 +22,7 @@ import {
   saveTournament,
   submitTournamentMatchResultObject,
   type MatchLaunchContext,
+  type PenaltyAttemptSummary,
   type TournamentMatchResult,
   type TournamentState
 } from '../tournament';
@@ -66,7 +68,7 @@ export class ResultScene extends Phaser.Scene {
     this.createResultBackground(centerX, centerY, playerOneGoals, playerTwoGoals);
 
     if (this.state !== null) {
-      this.createMatchStatsPanel(centerX, 360, this.state);
+      this.createMatchStatsPanel(centerX, 360, this.state, this.getPostMatchPenaltyAttempts());
     }
 
     this.createActions(centerX);
@@ -214,7 +216,26 @@ export class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private createMatchStatsPanel(x: number, y: number, state: Readonly<GameState>): void {
+  private getPostMatchPenaltyAttempts(): PenaltyAttemptSummary[] {
+    const launchContext = this.launchContext;
+
+    if (launchContext.mode !== 'tournament') {
+      return [];
+    }
+
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+    const match = tournament?.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
+    const penaltyShootout = match?.result?.penaltyShootout;
+
+    return penaltyShootout === undefined ? [] : getPenaltyAttemptSummaries(penaltyShootout);
+  }
+
+  private createMatchStatsPanel(
+    x: number,
+    y: number,
+    state: Readonly<GameState>,
+    penaltyAttempts: readonly PenaltyAttemptSummary[]
+  ): void {
     const [playerOne, playerTwo] = state.players;
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = RESULT_SCOREBOARD_WIDTH;
@@ -264,7 +285,17 @@ export class ResultScene extends Phaser.Scene {
     });
 
     panel.add(this.createStatsLabel(54, 'Goalscorers'));
-    this.addScorerTimeline(panel, panelX, panelY, width, playerOneStats, playerTwoStats);
+    this.addScorerTimeline(
+      panel,
+      panelX,
+      panelY,
+      width,
+      playerOneStats,
+      playerTwoStats,
+      playerOne.flagCode,
+      playerTwo.flagCode,
+      penaltyAttempts
+    );
   }
 
   private createScoreLine(
@@ -403,9 +434,13 @@ export class ResultScene extends Phaser.Scene {
     panelY: number,
     panelWidth: number,
     playerOneStats: PlayerMatchStats,
-    playerTwoStats: PlayerMatchStats
+    playerTwoStats: PlayerMatchStats,
+    playerOneTeamId: string,
+    playerTwoTeamId: string,
+    penaltyAttempts: readonly PenaltyAttemptSummary[]
   ): void {
     const rows = createScorerTimeline(playerOneStats, playerTwoStats);
+    const penaltyRows = createPenaltyTimeline(penaltyAttempts, playerOneTeamId, playerTwoTeamId);
     const viewportTop = 92;
     const viewportHeight = 156;
     const viewportLeft = -panelWidth / 2 + 56;
@@ -414,7 +449,8 @@ export class ResultScene extends Phaser.Scene {
     const playerOneScorerX = viewportLeft;
     const playerTwoScorerX = panelWidth / 2 - 56 - scorerColumnWidth;
     const rowHeight = 24;
-    const contentHeight = rows.length * rowHeight;
+    const penaltySectionHeight = penaltyRows.length === 0 ? 0 : 36 + penaltyRows.length * rowHeight;
+    const contentHeight = rows.length * rowHeight + penaltySectionHeight;
     const maxScroll = Math.max(0, contentHeight - viewportHeight);
     const timelineContent = this.add.container(0, viewportTop);
     const maskGraphics = this.make.graphics();
@@ -440,6 +476,28 @@ export class ResultScene extends Phaser.Scene {
       timelineContent.add(this.createScorersList(playerOneScorerX, y, row.playerOneText, scorerColumnWidth));
       timelineContent.add(this.createScorersList(playerTwoScorerX, y, row.playerTwoText, scorerColumnWidth));
     });
+
+    if (penaltyRows.length > 0) {
+      const penaltyTitleY = 12 + rows.length * rowHeight + 8;
+      timelineContent.add(
+        this.add
+          .text(0, penaltyTitleY, 'Penalties', {
+            align: 'center',
+            color: '#ffffff',
+            fontFamily: SCOREBOARD_FONT_FAMILY,
+            fontSize: '18px',
+            fontStyle: '700',
+            resolution: SHARP_TEXT_RESOLUTION
+          })
+          .setOrigin(0.5, 0)
+      );
+
+      penaltyRows.forEach((row, index) => {
+        const y = penaltyTitleY + 30 + index * rowHeight;
+        timelineContent.add(this.createScorersList(playerOneScorerX, y, row.playerOneText, scorerColumnWidth));
+        timelineContent.add(this.createScorersList(playerTwoScorerX, y, row.playerTwoText, scorerColumnWidth));
+      });
+    }
 
     if (maxScroll === 0) {
       scrollbarTrack.setVisible(false);
@@ -529,4 +587,19 @@ function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: Go
     text: `${formatGoalScorerLabel(scorer)} (turn ${scorer.turnNumber})`,
     turnNumber: scorer.turnNumber
   };
+}
+
+function createPenaltyTimeline(
+  attempts: readonly PenaltyAttemptSummary[],
+  playerOneTeamId: string,
+  playerTwoTeamId: string
+): Array<{ playerOneText: string; playerTwoText: string }> {
+  const playerOneAttempts = getPenaltyAttemptsForTeam(attempts, playerOneTeamId);
+  const playerTwoAttempts = getPenaltyAttemptsForTeam(attempts, playerTwoTeamId);
+  const rowCount = Math.max(playerOneAttempts.length, playerTwoAttempts.length);
+
+  return Array.from({ length: rowCount }, (_unused, index) => ({
+    playerOneText: playerOneAttempts[index] === undefined ? '' : formatPenaltyAttempt(playerOneAttempts[index]),
+    playerTwoText: playerTwoAttempts[index] === undefined ? '' : formatPenaltyAttempt(playerTwoAttempts[index])
+  }));
 }

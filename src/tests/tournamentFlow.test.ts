@@ -169,6 +169,7 @@ describe('tournament hub scene integration', () => {
     const controlsSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchControlButtons.ts'), 'utf8');
     const pauseSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchPauseOverlay.ts'), 'utf8');
     const rulesSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchRulesOverlay.ts'), 'utf8');
+    const attemptListSource = readFileSync(join(process.cwd(), 'src', 'ui', 'PenaltyAttemptListView.ts'), 'utf8');
     const layoutSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchScreenLayout.ts'), 'utf8');
     const bootSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
     const scoreSource = readFileSync(join(process.cwd(), 'src', 'ui', 'ScoreView.ts'), 'utf8');
@@ -231,8 +232,16 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('const PENALTY_ATTACK_CARD_ROTATION = Math.PI / 2');
     expect(penaltySource).toContain('card.setRotation(isRevealed ? 0 : PENALTY_ATTACK_CARD_ROTATION)');
     expect(penaltySource).toContain('.setPadding(24, 18, 24, 20)');
-    expect(penaltySource).toContain('const SHOOTOUT_MARKER_Y = 148');
+    expect(penaltySource).toContain('const PENALTY_MARKER_SCORE_GAP = 54');
+    expect(penaltySource).toContain('const SHOOTOUT_MARKER_Y = PENALTY_STATUS_Y + PENALTY_MARKER_SCORE_GAP');
     expect(penaltySource).toContain('this.createShootoutMarkers(this.shootoutState)');
+    expect(penaltySource).toContain('this.createPenaltyAttemptLists(this.shootoutState)');
+    expect(penaltySource).toContain('new PenaltyAttemptListView(');
+    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_LEFT_X = 120');
+    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_RIGHT_X = 1480');
+    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS = 13');
+    expect(attemptListSource).toContain("attempt.success ? '#71e48b' : '#ff788a'");
+    expect(penaltySource).toContain('attempts: createPenaltyAttemptSummaries(penaltyResult.kicks)');
     expect(penaltySource).toContain('PENALTY_SELECTED_CARD_SCALE');
     expect(penaltySource).toContain('const PENALTY_CARD_SCALE = MATCH_CARD_SCALE');
     expect(penaltySource).toContain('const PENALTY_SELECTED_CARD_SCALE = MATCH_CARD_SCALE');

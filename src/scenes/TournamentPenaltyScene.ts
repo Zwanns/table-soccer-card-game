@@ -35,13 +35,24 @@ import {
 } from '../tournament';
 import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
-import { createCardPlayerProfile, createGoalkeeperCardProfile } from '../ui/cardPlayerProfile';
+import { createCardPlayerProfile, createGoalkeeperCardProfile, getPlayerSurname } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons, MATCH_CONTROL_BUTTON_DEPTH } from '../ui/matchControlButtons';
 import { MatchFieldView } from '../ui/MatchFieldView';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
+import {
+  PENALTY_ATTEMPT_LIST_LEFT_X,
+  PENALTY_ATTEMPT_LIST_RIGHT_X,
+  PENALTY_ATTEMPT_LIST_TOP_Y,
+  PenaltyAttemptListView
+} from '../ui/PenaltyAttemptListView';
+import {
+  createPenaltyAttemptSummaries,
+  formatPenaltyAttempt,
+  getPenaltyAttemptsForTeam
+} from '../ui/penaltyAttempts';
 import {
   MATCH_ADVANTAGE_CENTER_Y,
   MATCH_FIELD_CENTER_X,
@@ -73,7 +84,8 @@ const PENALTY_ATTACK_CARD_GAP = 60;
 const PENALTY_ATTACK_CARD_ROTATION = Math.PI / 2;
 const PENALTY_STATUS_Y = 124;
 const PENALTY_PHASE_MESSAGE_Y = 662;
-const SHOOTOUT_MARKER_Y = 148;
+const PENALTY_MARKER_SCORE_GAP = 54;
+const SHOOTOUT_MARKER_Y = PENALTY_STATUS_Y + PENALTY_MARKER_SCORE_GAP;
 const PENALTY_COMPLETE_PANEL_X = SCENE_WIDTH / 2;
 const PENALTY_COMPLETE_PANEL_Y = 442;
 const PENALTY_COMPLETE_PANEL_WIDTH = 900;
@@ -183,6 +195,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     new MatchFieldView(this, MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y);
     this.createPenaltyField(this.shootoutState);
+    this.createPenaltyAttemptLists(this.shootoutState);
     this.createShootoutMarkers(this.shootoutState);
     this.createPenaltyMatchHeader(this.matchResult, this.shootoutState);
     this.createMatchControls();
@@ -372,6 +385,25 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const field = this.add.container(MATCH_FIELD_CENTER_X, MATCH_FIELD_CENTER_Y);
     this.createPenaltyGoalkeeperCards(field, shootoutState);
     this.createPenaltyCardColumns(field, shootoutState);
+  }
+
+  private createPenaltyAttemptLists(shootoutState: PenaltyShootoutState): void {
+    const attempts = createPenaltyAttemptSummaries(shootoutState.kicks);
+
+    new PenaltyAttemptListView(
+      this,
+      PENALTY_ATTEMPT_LIST_LEFT_X,
+      PENALTY_ATTEMPT_LIST_TOP_Y,
+      shootoutState.homeTeamId,
+      getPenaltyAttemptsForTeam(attempts, shootoutState.homeTeamId)
+    );
+    new PenaltyAttemptListView(
+      this,
+      PENALTY_ATTEMPT_LIST_RIGHT_X,
+      PENALTY_ATTEMPT_LIST_TOP_Y,
+      shootoutState.awayTeamId,
+      getPenaltyAttemptsForTeam(attempts, shootoutState.awayTeamId)
+    );
   }
 
   private createPenaltyGoalkeeperCards(
@@ -571,7 +603,11 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     try {
-      const penaltyShootout = createTournamentPenaltyResult(this.shootoutState);
+      const penaltyResult = createTournamentPenaltyResult(this.shootoutState);
+      const penaltyShootout = {
+        ...penaltyResult,
+        attempts: createPenaltyAttemptSummaries(penaltyResult.kicks)
+      };
       const updatedTournament = submitTournamentMatchResultObject(tournament, {
         ...this.matchResult,
         winnerTeamId: penaltyShootout.winnerTeamId,
@@ -669,7 +705,27 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       content.add(this.createStatsValue(220, y, String(awayValue)));
     });
 
-    contentHeight += rows.length * 38 + 12;
+    contentHeight += rows.length * 38 + 18;
+    const homeGoalscorers = formatMatchGoalscorers(matchResult, matchResult.homeTeamId);
+    const awayGoalscorers = formatMatchGoalscorers(matchResult, matchResult.awayTeamId);
+    content.add(this.createStatsSectionTitle(contentHeight, 'Goalscorers'));
+    contentHeight += 30;
+    content.add(this.createStatsDetailColumn(-330, contentHeight, homeGoalscorers));
+    content.add(this.createStatsDetailColumn(30, contentHeight, awayGoalscorers));
+    contentHeight += Math.max(getDetailLineCount(homeGoalscorers), getDetailLineCount(awayGoalscorers)) * 22 + 18;
+
+    const attempts = createPenaltyAttemptSummaries(this.shootoutState?.kicks ?? []);
+    const homePenalties = getPenaltyAttemptsForTeam(attempts, matchResult.homeTeamId).map(formatPenaltyAttempt).join('\n');
+    const awayPenalties = getPenaltyAttemptsForTeam(attempts, matchResult.awayTeamId).map(formatPenaltyAttempt).join('\n');
+
+    if (homePenalties !== '' || awayPenalties !== '') {
+      content.add(this.createStatsSectionTitle(contentHeight, 'Penalties'));
+      contentHeight += 30;
+      content.add(this.createStatsDetailColumn(-330, contentHeight, homePenalties));
+      content.add(this.createStatsDetailColumn(30, contentHeight, awayPenalties));
+      contentHeight += Math.max(getDetailLineCount(homePenalties), getDetailLineCount(awayPenalties)) * 22 + 12;
+    }
+
     const maxScroll = Math.max(0, contentHeight - MATCH_STATS_VIEWPORT.height);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
@@ -742,6 +798,32 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
+  }
+
+  private createStatsSectionTitle(y: number, text: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(0, y, text, {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5, 0);
+  }
+
+  private createStatsDetailColumn(x: number, y: number, text: string): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, text === '' ? '-' : text, {
+        align: 'left',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: '700',
+        lineSpacing: 4,
+        wordWrap: { width: 300 }
+      })
+      .setOrigin(0, 0);
   }
 
   private createAttackCardView(
@@ -1135,5 +1217,16 @@ function getGoalkeeperKitId(teamId: TournamentTeamId, shootoutState: PenaltyShoo
   }
 
   return teamId === shootoutState.homeTeamId ? 'gk1' : 'gk2';
+}
+
+function formatMatchGoalscorers(matchResult: TournamentMatchResult, teamId: TournamentTeamId): string {
+  return matchResult.playerStats
+    .filter((stats) => stats.teamId === teamId && stats.goals > 0)
+    .map((stats) => `${getPlayerSurname(stats.playerName)}${stats.goals > 1 ? ` ×${stats.goals}` : ''}`)
+    .join('\n');
+}
+
+function getDetailLineCount(text: string): number {
+  return text === '' ? 1 : text.split('\n').length;
 }
 

@@ -57,7 +57,7 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).not.toContain('this.createScoreLine(\n      centerX,\n      92,');
-    expect(source).toContain('this.createMatchStatsPanel(centerX, 360, this.state)');
+    expect(source).toContain('this.createMatchStatsPanel(centerX, 360, this.state, this.getPostMatchPenaltyAttempts())');
     expect(source).toContain('const height = 500');
     expect(source).toContain('const finalScore = this.createScoreLine(');
     expect(source).toContain('panel.add([background, finalScore, title])');
@@ -176,5 +176,17 @@ describe('result scene score line layout', () => {
     expect(source).not.toContain("this.createScorersList(285, y, row.playerTwoText, 'right')");
     expect(source).not.toContain("align: side");
     expect(source).not.toContain("setOrigin(side === 'left' ? 0 : 1, 0.5)");
+  });
+
+  it('keeps post-match penalty attempts in a separate block below goalscorers', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('private getPostMatchPenaltyAttempts(): PenaltyAttemptSummary[]');
+    expect(source).toContain('getPenaltyAttemptSummaries(penaltyShootout)');
+    expect(source).toContain('const penaltyRows = createPenaltyTimeline(');
+    expect(source).toContain(".text(0, penaltyTitleY, 'Penalties'");
+    expect(source).toContain('formatPenaltyAttempt(playerOneAttempts[index])');
+    expect(source).toContain('const penaltySectionHeight = penaltyRows.length === 0 ? 0');
+    expect(source).toContain('if (penaltyRows.length > 0)');
   });
 });

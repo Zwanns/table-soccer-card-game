@@ -54,6 +54,7 @@ export {
 } from './TournamentStorage';
 export { createTournamentRandom, hashTournamentSeed, shuffleValues, takeRandomUnique } from './tournamentRandom';
 export type {
+  PenaltyAttemptSummary,
   PenaltyKickResult,
   TournamentFormatId,
   TournamentGroup,
