@@ -21,6 +21,12 @@ export const MATCH_SIDE_PANEL_BACKGROUND_ALPHA = 0.82;
 export const MATCH_SIDE_PANEL_BORDER_COLOR = 0x284438;
 export const MATCH_SIDE_PANEL_BORDER_ALPHA = 0.8;
 export const MATCH_SIDE_PANEL_HORIZONTAL_PADDING = 12;
+export const MATCH_SIDE_PANEL_TEXT_STYLE = {
+  titleFontFamily: 'Arial, sans-serif',
+  titleFontSize: '20px',
+  itemFontFamily: 'Arial, sans-serif',
+  itemFontSize: '19px'
+} as const;
 
 export function createMatchSidePanelBackground(
   scene: Phaser.Scene,

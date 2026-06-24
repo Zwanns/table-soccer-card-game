@@ -22,15 +22,21 @@ describe('TeamStatsView scorer list', () => {
     expect(source).toContain('this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb])');
   });
 
-  it('uses the shared match side-panel frame without changing scorer typography', () => {
+  it('uses the shared match side-panel frame and enlarged text style', () => {
     const source = readTeamStatsViewSource();
+    const styleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchSidePanelStyle.ts'), 'utf8');
 
     expect(source).toContain('createMatchSidePanelBackground');
     expect(source).toContain('export const TEAM_STATS_VIEW_WIDTH = MATCH_SIDE_PANEL_WIDTH');
     expect(source).toContain('export const TEAM_STATS_VIEW_HEIGHT = MATCH_SIDE_PANEL_HEIGHT');
-    expect(source).toContain("fontFamily: 'Arial, sans-serif'");
-    expect(source).toContain("fontSize: '18px'");
-    expect(source).toContain("fontSize: '17px'");
+    expect(source).toContain('fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontFamily');
+    expect(source).toContain('fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontSize');
+    expect(source).toContain('fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontFamily');
+    expect(source).toContain('fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontSize');
+    expect(styleSource).toContain("titleFontFamily: 'Arial, sans-serif'");
+    expect(styleSource).toContain("titleFontSize: '20px'");
+    expect(styleSource).toContain("itemFontFamily: 'Arial, sans-serif'");
+    expect(styleSource).toContain("itemFontSize: '19px'");
   });
 
   it('renders scorer text at snapped coordinates with high-resolution text canvases', () => {

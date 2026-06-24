@@ -3,6 +3,7 @@ import {
   createMatchSidePanelBackground,
   MATCH_SIDE_PANEL_HEIGHT,
   MATCH_SIDE_PANEL_HORIZONTAL_PADDING,
+  MATCH_SIDE_PANEL_TEXT_STYLE,
   MATCH_SIDE_PANEL_WIDTH
 } from './matchSidePanelStyle';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from './touchInput';
@@ -39,8 +40,8 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       .text(textX, px(-height / 2 + 18), 'Goals', {
         align: textAlign,
         color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontFamily,
+        fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
@@ -51,8 +52,8 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       .text(textX, 0, scorersText, {
         align: textAlign,
         color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
+        fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontFamily,
+        fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontSize,
         lineSpacing: 3,
         resolution: SHARP_TEXT_RESOLUTION,
         wordWrap: { width: viewportWidth }

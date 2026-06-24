@@ -7,10 +7,10 @@ import {
   MATCH_SIDE_PANEL_HORIZONTAL_PADDING,
   MATCH_SIDE_PANEL_LEFT_X,
   MATCH_SIDE_PANEL_RIGHT_X,
+  MATCH_SIDE_PANEL_TEXT_STYLE,
   MATCH_SIDE_PANEL_TOP_Y,
   MATCH_SIDE_PANEL_WIDTH
 } from './matchSidePanelStyle';
-import { SCOREBOARD_FONT_FAMILY } from './scoreboardStyle';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 export const PENALTY_ATTEMPT_LIST_LEFT_X = MATCH_SIDE_PANEL_LEFT_X;
@@ -20,9 +20,6 @@ export const PENALTY_ATTEMPT_LIST_WIDTH = MATCH_SIDE_PANEL_WIDTH;
 export const PENALTY_ATTEMPT_LIST_HEIGHT = MATCH_SIDE_PANEL_HEIGHT;
 export const PENALTY_ATTEMPT_LIST_ROW_GAP = 27;
 export const PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS = 6;
-export const PENALTY_ATTEMPT_LIST_PLAYER_FONT_SIZE = '20px';
-export const PENALTY_ATTEMPT_LIST_TITLE_FONT_SIZE = '22px';
-export const PENALTY_ATTEMPT_LIST_MARKER_FONT_SIZE = '22px';
 const RESULT_MARKER_X = PENALTY_ATTEMPT_LIST_WIDTH / 2 - MATCH_SIDE_PANEL_HORIZONTAL_PADDING - 1;
 const PLAYER_NAME_MAX_LENGTH = 14;
 const FIRST_ATTEMPT_ROW_Y = 54;
@@ -43,8 +40,8 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
       .text(0, 12, getTeamScoreboardCode(teamId), {
         align: 'center',
         color: '#ffffff',
-        fontFamily: SCOREBOARD_FONT_FAMILY,
-        fontSize: PENALTY_ATTEMPT_LIST_TITLE_FONT_SIZE,
+        fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontFamily,
+        fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.titleFontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
@@ -63,8 +60,8 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
           {
             align: 'left',
             color: '#dfeaf2',
-            fontFamily: SCOREBOARD_FONT_FAMILY,
-            fontSize: PENALTY_ATTEMPT_LIST_PLAYER_FONT_SIZE,
+            fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontFamily,
+            fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontSize,
             fontStyle: '700',
             resolution: SHARP_TEXT_RESOLUTION,
             wordWrap: {
@@ -78,8 +75,8 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
         .text(RESULT_MARKER_X, rowY, attempt.success ? '✓' : '✗', {
           align: 'right',
           color,
-          fontFamily: 'Arial, sans-serif',
-          fontSize: PENALTY_ATTEMPT_LIST_MARKER_FONT_SIZE,
+          fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontFamily,
+          fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontSize,
           fontStyle: '700',
           resolution: SHARP_TEXT_RESOLUTION
         })
