@@ -48,8 +48,11 @@ describe('penalty impact scene effects', () => {
     expect(source.match(/playSoundSafe\(this/g)).toHaveLength(1);
     expect(kickCompletionBlock).not.toContain('this.showPenaltyOutcome(kick.outcome)');
     expect(animationBlock).toContain('let cardAnimationComplete = false');
+    expect(animationBlock).toContain("let goalkeeperAnimationComplete = outcome !== 'goal'");
     expect(animationBlock).toContain('let impactMessageComplete = false');
-    expect(animationBlock).toContain('if (!cardAnimationComplete || !impactMessageComplete || resultFlowContinued)');
+    expect(animationBlock).toContain(
+      'if (!cardAnimationComplete || !goalkeeperAnimationComplete || !impactMessageComplete || resultFlowContinued)'
+    );
     expect(animationBlock.indexOf('this.showPenaltyImpact(')).toBeLessThan(animationBlock.indexOf("if (outcome === 'post'"));
     expect(animationBlock).toContain('onComplete();');
   });
@@ -81,5 +84,45 @@ describe('penalty impact scene effects', () => {
       takeKickBlock.indexOf('this.shootoutState = nextState;')
     );
     expect(animationBlock.match(/card\.destroy\(\)/g)).toHaveLength(2);
+  });
+
+  it('flies the active goalkeeper card away only after a goal impact', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+    const goalkeeperRenderBlock = source.slice(
+      source.indexOf('private createPenaltyGoalkeeperCard('),
+      source.indexOf('private createPenaltyCardColumns(')
+    );
+    const finishBlock = source.slice(
+      source.indexOf('private finishPenaltyKickAnimation('),
+      source.indexOf('private animatePenaltyGoalkeeperDefeat(')
+    );
+    const defeatBlock = source.slice(
+      source.indexOf('private animatePenaltyGoalkeeperDefeat('),
+      source.indexOf('private showPenaltyImpact(')
+    );
+
+    expect(source).toContain('private activePenaltyGoalkeeperCard: CardView | null = null');
+    expect(goalkeeperRenderBlock).toContain('if (goalkeeperIsActive)');
+    expect(goalkeeperRenderBlock).toContain('this.activePenaltyGoalkeeperCard = card');
+    expect(finishBlock).toContain("let goalkeeperAnimationComplete = outcome !== 'goal'");
+    expect(finishBlock).toContain("if (outcome === 'goal') {");
+    expect(finishBlock).toContain('this.animatePenaltyGoalkeeperDefeat(shooterSide, () => {');
+    expect(finishBlock).toContain('goalkeeperAnimationComplete = true');
+    expect(finishBlock).toContain(
+      'if (!cardAnimationComplete || !goalkeeperAnimationComplete || !impactMessageComplete || resultFlowContinued)'
+    );
+    expect(finishBlock.indexOf('this.showPenaltyImpact(')).toBeLessThan(
+      finishBlock.indexOf('this.animatePenaltyGoalkeeperDefeat(')
+    );
+    expect(finishBlock.slice(finishBlock.indexOf("if (outcome === 'post'"))).not.toContain(
+      'this.animatePenaltyGoalkeeperDefeat('
+    );
+    expect(defeatBlock.indexOf('const goalkeeperCard = this.activePenaltyGoalkeeperCard')).toBeLessThan(
+      defeatBlock.indexOf('this.tweens.add({')
+    );
+    expect(defeatBlock.indexOf('this.tweens.add({')).toBeLessThan(
+      defeatBlock.indexOf('goalkeeperCard.destroy()')
+    );
+    expect(defeatBlock).toContain('goalkeeperCard.destroy();\n        onComplete();');
   });
 });

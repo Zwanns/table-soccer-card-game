@@ -136,6 +136,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private homeCoverTextureKey = getFallbackCoverTextureKey();
   private awayCoverTextureKey = getFallbackCoverTextureKey();
   private inFlightPenaltyCard: InFlightPenaltyCard | null = null;
+  private activePenaltyGoalkeeperCard: CardView | null = null;
 
   public constructor() {
     super('TournamentPenaltyScene');
@@ -156,6 +157,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.homeCoverTextureKey = getFallbackCoverTextureKey();
     this.awayCoverTextureKey = getFallbackCoverTextureKey();
     this.inFlightPenaltyCard = null;
+    this.activePenaltyGoalkeeperCard = null;
     this.input.enabled = true;
   }
 
@@ -197,6 +199,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
   private render(): void {
     this.children.removeAll(true);
+    this.activePenaltyGoalkeeperCard = null;
 
     if ((this.tournamentId === null && !this.standalone) || this.matchResult === null || this.shootoutState === null) {
       this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
@@ -509,13 +512,17 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const inputControlledByAi = this.isPenaltyDecisionControlledByAi(shootoutState);
     const goalkeeperRank = goalkeeperIsActive ? shootoutState.currentGoalkeeperRank : null;
 
-    field.add(
-      this.createGoalkeeperCardView(x, PENALTY_GOALKEEPER_FIELD_Y, goalkeeperRank, goalkeeperTeamId, {
-        faceDown: goalkeeperRank === null,
-        highlighted: goalkeeperIsActive,
-        onClick: canDrawGoalkeeper && !inputControlledByAi ? () => this.handleGoalkeeperAction() : undefined
-      })
-    );
+    const card = this.createGoalkeeperCardView(x, PENALTY_GOALKEEPER_FIELD_Y, goalkeeperRank, goalkeeperTeamId, {
+      faceDown: goalkeeperRank === null,
+      highlighted: goalkeeperIsActive,
+      onClick: canDrawGoalkeeper && !inputControlledByAi ? () => this.handleGoalkeeperAction() : undefined
+    });
+
+    if (goalkeeperIsActive) {
+      this.activePenaltyGoalkeeperCard = card;
+    }
+
+    field.add(card);
   }
 
   private createPenaltyCardColumns(
@@ -1019,10 +1026,11 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     let cardAnimationComplete = false;
+    let goalkeeperAnimationComplete = outcome !== 'goal';
     let impactMessageComplete = false;
     let resultFlowContinued = false;
     const continueResultFlow = (): void => {
-      if (!cardAnimationComplete || !impactMessageComplete || resultFlowContinued) {
+      if (!cardAnimationComplete || !goalkeeperAnimationComplete || !impactMessageComplete || resultFlowContinued) {
         return;
       }
 
@@ -1034,6 +1042,13 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       impactMessageComplete = true;
       continueResultFlow();
     });
+
+    if (outcome === 'goal') {
+      this.animatePenaltyGoalkeeperDefeat(shooterSide, () => {
+        goalkeeperAnimationComplete = true;
+        continueResultFlow();
+      });
+    }
 
     if (outcome === 'post' || outcome === 'save') {
       const reboundX = target.x + (shooterSide === 'home' ? -180 : 180);
@@ -1066,6 +1081,36 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         card.destroy();
         cardAnimationComplete = true;
         continueResultFlow();
+      }
+    });
+  }
+
+  private animatePenaltyGoalkeeperDefeat(
+    shooterSide: PenaltyShootoutState['nextShooter'],
+    onComplete: () => void
+  ): void {
+    const goalkeeperCard = this.activePenaltyGoalkeeperCard;
+
+    if (goalkeeperCard === null || !goalkeeperCard.active) {
+      onComplete();
+      return;
+    }
+
+    this.activePenaltyGoalkeeperCard = null;
+    const direction = shooterSide === 'home' ? 1 : -1;
+
+    this.tweens.add({
+      targets: goalkeeperCard,
+      x: goalkeeperCard.x + direction * 190,
+      y: goalkeeperCard.y - 118,
+      alpha: 0,
+      rotation: direction * 0.72,
+      scale: goalkeeperCard.scaleX * 0.82,
+      duration: 360,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        goalkeeperCard.destroy();
+        onComplete();
       }
     });
   }
