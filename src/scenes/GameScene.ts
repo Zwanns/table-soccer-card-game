@@ -34,6 +34,7 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerPr
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
+import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons } from '../ui/matchControlButtons';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
@@ -94,7 +95,6 @@ const GOALKEEPER_SHOT_BALL_SIZE = 42;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
 const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
-const GOALKEEPER_SHOT_GOAL_SPIN_DEGREES = 1080;
 const SHOT_SOURCE_KICK_FORWARD_MS = 90;
 const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
@@ -1831,32 +1831,31 @@ export class GameScene extends Phaser.Scene {
     baseScaleY: number,
     onComplete: () => void
   ): void {
-    const exit = getGoalkeeperShotBallExit(target, 'goal', activeOnLeft);
-    const spin = (activeOnLeft ? 1 : -1) * GOALKEEPER_SHOT_GOAL_SPIN_DEGREES;
+    const goalAnimation = getGoalkeeperGoalAnimation(target, activeOnLeft ? 'right' : 'left');
 
     if (goalkeeperImpactCard !== null) {
       this.tweens.add({
         targets: goalkeeperImpactCard,
-        x: exit.x,
-        y: exit.y,
-        angle: spin,
-        scale: 0.18,
-        alpha: 0,
-        duration: 300,
-        ease: 'Cubic.easeIn'
+        x: goalAnimation.target.x,
+        y: goalAnimation.target.y,
+        angle: goalAnimation.angle,
+        scale: goalAnimation.scale,
+        alpha: goalAnimation.alpha,
+        duration: goalAnimation.duration,
+        ease: goalAnimation.ease
       });
     }
 
     this.tweens.add({
       targets: ball,
-      x: exit.x,
-      y: exit.y,
-      angle: ball.angle + spin,
+      x: goalAnimation.target.x,
+      y: goalAnimation.target.y,
+      angle: ball.angle + goalAnimation.angle,
       alpha: 0,
       scaleX: baseScaleX * 0.35,
       scaleY: baseScaleY * 0.35,
-      duration: 300,
-      ease: 'Cubic.easeIn',
+      duration: goalAnimation.duration,
+      ease: goalAnimation.ease,
       onComplete: () => {
         ball.destroy();
         goalkeeperImpactCard?.destroy();
@@ -2386,10 +2385,7 @@ function getGoalkeeperShotBallExit(
   activeOnLeft: boolean
 ): { x: number; y: number } {
   if (outcome === 'goal') {
-    return {
-      x: target.x + (activeOnLeft ? 120 : -120),
-      y: target.y
-    };
+    return getGoalkeeperGoalAnimation(target, activeOnLeft ? 'right' : 'left').target;
   }
 
   const awayFromCenter = new Phaser.Math.Vector2(target.x - SCENE_WIDTH / 2, target.y - FIELD_CENTER_Y);

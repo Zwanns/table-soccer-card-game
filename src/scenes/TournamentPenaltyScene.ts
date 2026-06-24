@@ -37,6 +37,7 @@ import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, getPlayerSurname } from '../ui/cardPlayerProfile';
 import { CardView } from '../ui/CardView';
+import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons, MATCH_CONTROL_BUTTON_DEPTH } from '../ui/matchControlButtons';
 import { MatchFieldView } from '../ui/MatchFieldView';
@@ -1044,7 +1045,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
 
     if (outcome === 'goal') {
-      this.animatePenaltyGoalkeeperDefeat(shooterSide, () => {
+      this.animatePenaltyGoalkeeperDefeat(() => {
         goalkeeperAnimationComplete = true;
         continueResultFlow();
       });
@@ -1085,10 +1086,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
   }
 
-  private animatePenaltyGoalkeeperDefeat(
-    shooterSide: PenaltyShootoutState['nextShooter'],
-    onComplete: () => void
-  ): void {
+  private animatePenaltyGoalkeeperDefeat(onComplete: () => void): void {
     const goalkeeperCard = this.activePenaltyGoalkeeperCard;
 
     if (goalkeeperCard === null || !goalkeeperCard.active) {
@@ -1097,17 +1095,18 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     this.activePenaltyGoalkeeperCard = null;
-    const direction = shooterSide === 'home' ? 1 : -1;
+    const goalkeeperSide = goalkeeperCard.x < 0 ? 'left' : 'right';
+    const goalAnimation = getGoalkeeperGoalAnimation(goalkeeperCard, goalkeeperSide);
 
     this.tweens.add({
       targets: goalkeeperCard,
-      x: goalkeeperCard.x + direction * 190,
-      y: goalkeeperCard.y - 118,
-      alpha: 0,
-      rotation: direction * 0.72,
-      scale: goalkeeperCard.scaleX * 0.82,
-      duration: 360,
-      ease: 'Cubic.easeOut',
+      x: goalAnimation.target.x,
+      y: goalAnimation.target.y,
+      alpha: goalAnimation.alpha,
+      angle: goalAnimation.angle,
+      scale: goalAnimation.scale,
+      duration: goalAnimation.duration,
+      ease: goalAnimation.ease,
       onComplete: () => {
         goalkeeperCard.destroy();
         onComplete();

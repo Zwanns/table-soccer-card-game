@@ -106,7 +106,7 @@ describe('penalty impact scene effects', () => {
     expect(goalkeeperRenderBlock).toContain('this.activePenaltyGoalkeeperCard = card');
     expect(finishBlock).toContain("let goalkeeperAnimationComplete = outcome !== 'goal'");
     expect(finishBlock).toContain("if (outcome === 'goal') {");
-    expect(finishBlock).toContain('this.animatePenaltyGoalkeeperDefeat(shooterSide, () => {');
+    expect(finishBlock).toContain('this.animatePenaltyGoalkeeperDefeat(() => {');
     expect(finishBlock).toContain('goalkeeperAnimationComplete = true');
     expect(finishBlock).toContain(
       'if (!cardAnimationComplete || !goalkeeperAnimationComplete || !impactMessageComplete || resultFlowContinued)'
@@ -120,6 +120,12 @@ describe('penalty impact scene effects', () => {
     expect(defeatBlock.indexOf('const goalkeeperCard = this.activePenaltyGoalkeeperCard')).toBeLessThan(
       defeatBlock.indexOf('this.tweens.add({')
     );
+    expect(defeatBlock).toContain("const goalkeeperSide = goalkeeperCard.x < 0 ? 'left' : 'right'");
+    expect(defeatBlock).toContain('const goalAnimation = getGoalkeeperGoalAnimation(goalkeeperCard, goalkeeperSide)');
+    expect(defeatBlock).toContain('x: goalAnimation.target.x');
+    expect(defeatBlock).toContain('y: goalAnimation.target.y');
+    expect(defeatBlock).toContain('angle: goalAnimation.angle');
+    expect(defeatBlock).toContain('scale: goalAnimation.scale');
     expect(defeatBlock.indexOf('this.tweens.add({')).toBeLessThan(
       defeatBlock.indexOf('goalkeeperCard.destroy()')
     );
