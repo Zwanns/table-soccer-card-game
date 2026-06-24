@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { PenaltyAttemptSummary } from '../tournament';
 import { getTeamScoreboardCode } from '../data/nationalTeams';
-import { FIELD_GOAL_DEPTH } from './MatchFieldView';
+import { FIELD_GOAL_AREA_HALF_HEIGHT, FIELD_GOAL_DEPTH } from './MatchFieldView';
 import {
   MATCH_FIELD_CENTER_X,
   MATCH_FIELD_CENTER_Y,
@@ -16,16 +16,20 @@ const SIDE_CORRIDOR_WIDTH = MATCH_FIELD_CENTER_X - MATCH_FIELD_WIDTH / 2 - FIELD
 export const PENALTY_ATTEMPT_LIST_LEFT_X = SIDE_CORRIDOR_WIDTH / 2;
 export const PENALTY_ATTEMPT_LIST_RIGHT_X = MATCH_SCREEN_WIDTH - PENALTY_ATTEMPT_LIST_LEFT_X;
 export const PENALTY_ATTEMPT_LIST_TOP_Y = MATCH_FIELD_CENTER_Y - MATCH_FIELD_HEIGHT / 2;
-export const PENALTY_ATTEMPT_LIST_WIDTH = SIDE_CORRIDOR_WIDTH - 20;
-export const PENALTY_ATTEMPT_LIST_HEIGHT = 390;
-export const PENALTY_ATTEMPT_LIST_ROW_GAP = 25;
-export const PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS = 13;
-export const PENALTY_ATTEMPT_LIST_PLAYER_FONT_SIZE = '18px';
+export const PENALTY_ATTEMPT_LIST_BOTTOM_Y = MATCH_FIELD_CENTER_Y - FIELD_GOAL_AREA_HALF_HEIGHT;
+export const PENALTY_ATTEMPT_LIST_WIDTH = SIDE_CORRIDOR_WIDTH - 8;
+export const PENALTY_ATTEMPT_LIST_HEIGHT = PENALTY_ATTEMPT_LIST_BOTTOM_Y - PENALTY_ATTEMPT_LIST_TOP_Y;
+export const PENALTY_ATTEMPT_LIST_ROW_GAP = 27;
+export const PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS = 6;
+export const PENALTY_ATTEMPT_LIST_PLAYER_FONT_SIZE = '20px';
+export const PENALTY_ATTEMPT_LIST_TITLE_FONT_SIZE = '22px';
+export const PENALTY_ATTEMPT_LIST_MARKER_FONT_SIZE = '22px';
 const PANEL_BACKGROUND_ALPHA = 0.82;
 const PANEL_BORDER_COLOR = 0x284438;
 const PANEL_HORIZONTAL_PADDING = 12;
 const RESULT_MARKER_X = PENALTY_ATTEMPT_LIST_WIDTH / 2 - PANEL_HORIZONTAL_PADDING - 1;
 const PLAYER_NAME_MAX_LENGTH = 14;
+const FIRST_ATTEMPT_ROW_Y = 54;
 
 export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
   public constructor(
@@ -48,11 +52,11 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
     background.setStrokeStyle(1, PANEL_BORDER_COLOR, 0.8);
 
     const title = scene.add
-      .text(0, 14, getTeamScoreboardCode(teamId), {
+      .text(0, 12, getTeamScoreboardCode(teamId), {
         align: 'center',
         color: '#ffffff',
         fontFamily: SCOREBOARD_FONT_FAMILY,
-        fontSize: '20px',
+        fontSize: PENALTY_ATTEMPT_LIST_TITLE_FONT_SIZE,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
@@ -62,7 +66,7 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
     const visibleAttempts = attempts.slice(-PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS);
     visibleAttempts.forEach((attempt, index) => {
       const color = attempt.success ? '#71e48b' : '#ff788a';
-      const rowY = px(48 + index * PENALTY_ATTEMPT_LIST_ROW_GAP);
+      const rowY = px(FIRST_ATTEMPT_ROW_Y + index * PENALTY_ATTEMPT_LIST_ROW_GAP);
       const playerName = scene.add
         .text(-PENALTY_ATTEMPT_LIST_WIDTH / 2 + PANEL_HORIZONTAL_PADDING, rowY, truncatePlayerName(attempt.shooterLabel), {
           align: 'left',
@@ -79,7 +83,7 @@ export class PenaltyAttemptListView extends Phaser.GameObjects.Container {
           align: 'right',
           color,
           fontFamily: 'Arial, sans-serif',
-          fontSize: '20px',
+          fontSize: PENALTY_ATTEMPT_LIST_MARKER_FONT_SIZE,
           fontStyle: '700',
           resolution: SHARP_TEXT_RESOLUTION
         })

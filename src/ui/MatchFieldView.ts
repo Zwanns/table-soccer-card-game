@@ -12,6 +12,7 @@ const FIELD_MARKING_ALPHA = 0.42;
 const FIELD_MARKING_WIDTH = 2;
 export const FIELD_GOAL_DEPTH = 42;
 const FIELD_GOAL_HEIGHT = 131;
+export const FIELD_GOAL_AREA_HALF_HEIGHT = 95;
 const FIELD_GOAL_FRAME_WIDTH = 4;
 const FIELD_GOAL_FRAME_ALPHA = 0.55;
 const FIELD_GOAL_NET_WIDTH = 1;
@@ -67,8 +68,8 @@ export class MatchFieldView extends Phaser.GameObjects.Container {
     markings.lineStyle(FIELD_MARKING_WIDTH, FIELD_MARKING_COLOR, FIELD_MARKING_ALPHA);
     markings.strokeRect(pitchLeft, -180, 150, 360);
     markings.strokeRect(pitchRight - 150, -180, 150, 360);
-    markings.strokeRect(pitchLeft, -95, 70, 190);
-    markings.strokeRect(pitchRight - 70, -95, 70, 190);
+    markings.strokeRect(pitchLeft, -FIELD_GOAL_AREA_HALF_HEIGHT, 70, FIELD_GOAL_AREA_HALF_HEIGHT * 2);
+    markings.strokeRect(pitchRight - 70, -FIELD_GOAL_AREA_HALF_HEIGHT, 70, FIELD_GOAL_AREA_HALF_HEIGHT * 2);
     markings.strokeCircle(-450, 0, 4);
     markings.strokeCircle(450, 0, 4);
 

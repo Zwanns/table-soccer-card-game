@@ -4,9 +4,10 @@ import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
-  SCOREBOARD_BORDER_ALPHA,
-  SCOREBOARD_BORDER_COLOR,
-  SCOREBOARD_FONT_FAMILY
+  SCOREBOARD_FONT_FAMILY,
+  MATCH_HEADER_BORDER_ALPHA,
+  MATCH_HEADER_BORDER_COLOR,
+  MATCH_HEADER_BORDER_WIDTH
 } from './scoreboardStyle';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
@@ -14,8 +15,9 @@ export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH;
 export const SCORE_VIEW_HEIGHT = 78;
 export const SCORE_VIEW_BACKGROUND_COLOR = SCOREBOARD_BACKGROUND_COLOR;
 export const SCORE_VIEW_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
-export const SCORE_VIEW_BORDER_COLOR = SCOREBOARD_BORDER_COLOR;
-export const SCORE_VIEW_BORDER_ALPHA = SCOREBOARD_BORDER_ALPHA;
+export const SCORE_VIEW_BORDER_COLOR = MATCH_HEADER_BORDER_COLOR;
+export const SCORE_VIEW_BORDER_ALPHA = MATCH_HEADER_BORDER_ALPHA;
+export const SCORE_VIEW_BORDER_WIDTH = MATCH_HEADER_BORDER_WIDTH;
 export const SCORE_VIEW_FONT_FAMILY = SCOREBOARD_FONT_FAMILY;
 
 export interface ScoreViewOptions {
@@ -43,7 +45,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
     super(scene, px(x), px(y));
 
     const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
-    background.setStrokeStyle(2, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
+    background.setStrokeStyle(SCORE_VIEW_BORDER_WIDTH, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
 
     const playerOneFlag = this.createFlag(scene, -158, playerOneFlagCode);
     const playerTwoFlag = this.createFlag(scene, 158, playerTwoFlagCode);

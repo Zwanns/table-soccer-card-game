@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { TeamAdvantage } from '../game';
+import { MATCH_HEADER_BORDER_ALPHA, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORDER_WIDTH } from './scoreboardStyle';
 
 export const ADVANTAGE_VIEW_WIDTH = 520;
 export const ADVANTAGE_VIEW_HEIGHT = 22;
@@ -18,7 +19,7 @@ export class AdvantageView extends Phaser.GameObjects.Container {
     const playerTwoWidth = ADVANTAGE_TRACK_WIDTH - playerOneWidth;
 
     const background = scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, ADVANTAGE_VIEW_HEIGHT, 0x08120f, 0.88);
-    background.setStrokeStyle(2, 0x436b58, 0.9);
+    background.setStrokeStyle(MATCH_HEADER_BORDER_WIDTH, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORDER_ALPHA);
 
     const track = scene.add.rectangle(0, 0, ADVANTAGE_TRACK_WIDTH, ADVANTAGE_TRACK_HEIGHT, 0x1a3028, 1);
     track.setStrokeStyle(1, 0x86a995, 0.55);
