@@ -421,7 +421,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         },
         {
           label: 'New Match',
-          onClick: () => this.scene.start('TeamSelectScene', this.standalone ? { mode: 'penalty' } : undefined)
+          onClick: () => this.scene.start('TeamSelectScene', { mode: this.standalone ? 'penalty' : 'match' })
         },
         { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
       ],

@@ -42,9 +42,15 @@ describe('Tutorial Match launch and GameScene integration', () => {
 
   it('adds Tutorial Match as a direct GameScene launch without changing Quick Match team selection', () => {
     const menuSource = readSource('src/scenes/MenuScene.ts');
+    const quickMatchRoute = menuSource.slice(
+      menuSource.indexOf("'Quick match'"),
+      menuSource.indexOf('buttonIndex += 1;', menuSource.indexOf("'Quick match'"))
+    );
 
     expect(menuSource).toContain("'Quick match'");
-    expect(menuSource).toContain("() => this.scene.start('TeamSelectScene')");
+    expect(quickMatchRoute).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
+    expect(quickMatchRoute).not.toContain("mode: 'penalty'");
+    expect(quickMatchRoute).not.toContain('TournamentPenaltyScene');
     expect(menuSource).toContain("'Tutorial Match'");
     expect(menuSource).toContain('...TUTORIAL_MATCH_V2_TEAMS');
     expect(menuSource).toContain("matchMode: 'tutorial'");
@@ -60,6 +66,7 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(gameModesSource.indexOf("'Penalty shootout'")).toBeLessThan(
       gameModesSource.indexOf("'Tutorial Match'")
     );
+    expect(gameModesSource).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
     expect(gameModesSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
     expect(gameModesSource).toContain("this.scene.start('GameScene', {");
     expect(gameModesSource).toContain('...TUTORIAL_MATCH_V2_TEAMS');

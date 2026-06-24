@@ -81,7 +81,7 @@ export class ResultScene extends Phaser.Scene {
 
     createResultActionButtons(this, centerX, [
       { label: 'Play Again', onClick: () => this.startReplayMatch() },
-      { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene') },
+      { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) },
       { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
     ]);
   }
@@ -523,7 +523,7 @@ export class ResultScene extends Phaser.Scene {
 
   private startReplayMatch(): void {
     if (this.state === null) {
-      this.scene.start('TeamSelectScene');
+      this.scene.start('TeamSelectScene', { mode: 'match' });
       return;
     }
 

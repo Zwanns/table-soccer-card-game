@@ -131,7 +131,7 @@ describe('result scene score line layout', () => {
     expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
     expect(source).toContain('createResultActionButtons(this, centerX, [');
     expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
-    expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene') }");
+    expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }");
     expect(source).toContain("{ label: 'Menu', onClick: () => this.scene.start('MenuScene') }");
     expect(actionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
     expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_GAP = 24');
@@ -153,6 +153,7 @@ describe('result scene score line layout', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain('private startReplayMatch(): void');
+    expect(source).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
     expect(source).toContain("this.scene.start('GameScene', {");
     expect(source).toContain('player1Name: playerOne.name');
     expect(source).toContain('player2Name: playerTwo.name');

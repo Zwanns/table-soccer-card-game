@@ -260,6 +260,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createAboutViewport');
     expect(menuSceneSource).toContain('createGeometryMask');
     expect(menuSceneSource).toContain("scrollZone.on('wheel'");
+    expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
     expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
     expect(menuSceneSource).not.toContain('createStandalonePenaltyMatchResult');
   });

@@ -32,10 +32,17 @@ describe('quick match team selection AI controls', () => {
 
   it('passes quick match controller types to GameScene on match start', () => {
     const source = readTeamSelectSource();
+    const startMatchBlock = source.slice(source.indexOf('private startMatch(): void'));
 
+    expect(source).toContain("private mode: TeamSelectSceneData['mode'] = 'match'");
+    expect(source).toContain("this.mode = data.mode ?? 'match'");
     expect(source).toContain('player1ControllerType: this.player1ControllerType');
     expect(source).toContain('player2ControllerType: this.player2ControllerType');
-    expect(source).toContain("this.scene.start('GameScene', data)");
+    expect(startMatchBlock).toContain("if (this.mode === 'penalty') {");
+    expect(startMatchBlock).toContain("this.scene.start('GameScene', data)");
+    expect(startMatchBlock.indexOf("this.scene.start('GameScene', data)")).toBeGreaterThan(
+      startMatchBlock.indexOf("if (this.mode === 'penalty') {")
+    );
   });
 
   it('passes standalone penalty controller types to the penalty scene', () => {

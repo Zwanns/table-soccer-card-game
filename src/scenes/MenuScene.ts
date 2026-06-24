@@ -536,7 +536,7 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Quick match',
-        () => this.scene.start('TeamSelectScene'),
+        () => this.scene.start('TeamSelectScene', { mode: 'match' }),
         buttonOptions
       )
     );
