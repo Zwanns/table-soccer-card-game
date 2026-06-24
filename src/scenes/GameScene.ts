@@ -35,6 +35,14 @@ import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
+import {
+  MATCH_ADVANTAGE_CENTER_Y,
+  MATCH_DECK_Y,
+  MATCH_FIELD_CENTER_X,
+  MATCH_FIELD_CENTER_Y,
+  MATCH_FIELD_WIDTH,
+  MATCH_SCOREBOARD_CENTER_Y
+} from '../ui/matchScreenLayout';
 import { SCORE_VIEW_HEIGHT, SCORE_VIEW_WIDTH, ScoreView } from '../ui/ScoreView';
 import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
 import { TUTORIAL_MATCH_V2_SETUP_PRESET } from '../tutorial/tutorialScenario';
@@ -52,16 +60,16 @@ import {
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
 
-const FIELD_WIDTH = 1120;
+const FIELD_WIDTH = MATCH_FIELD_WIDTH;
 const FIELD_LEFT = (SCENE_WIDTH - FIELD_WIDTH) / 2;
 const FIELD_RIGHT = FIELD_LEFT + FIELD_WIDTH;
 const FIELD_TOP = 100;
-const FIELD_CENTER_Y = 400;
-const DECK_Y = 560;
-const SCOREBOARD_CENTER_Y = 42;
+const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
+const DECK_Y = MATCH_DECK_Y;
+const SCOREBOARD_CENTER_Y = MATCH_SCOREBOARD_CENTER_Y;
 const SCOREBOARD_LEFT = SCENE_WIDTH / 2 - SCORE_VIEW_WIDTH / 2;
 const SCOREBOARD_RIGHT = SCENE_WIDTH / 2 + SCORE_VIEW_WIDTH / 2;
-const ADVANTAGE_CENTER_Y = 94;
+const ADVANTAGE_CENTER_Y = MATCH_ADVANTAGE_CENTER_Y;
 const SIDE_ACTION_BUTTON_HORIZONTAL_GAP = 14;
 const LEFT_ACTION_BUTTONS_LEFT = FIELD_LEFT;
 const LEFT_ACTION_BUTTONS_RIGHT = SCOREBOARD_LEFT - SIDE_ACTION_BUTTON_HORIZONTAL_GAP;
@@ -310,7 +318,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
-    const centerX = SCENE_WIDTH / 2;
+    const centerX = MATCH_FIELD_CENTER_X;
     const interactive = options.interactive !== false;
     const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
