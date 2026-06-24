@@ -43,9 +43,9 @@ import { MatchFieldView } from '../ui/MatchFieldView';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import {
+  PENALTY_ATTEMPT_LIST_TOP_Y,
   PENALTY_ATTEMPT_LIST_LEFT_X,
   PENALTY_ATTEMPT_LIST_RIGHT_X,
-  PENALTY_ATTEMPT_LIST_TOP_Y,
   PenaltyAttemptListView
 } from '../ui/PenaltyAttemptListView';
 import {
@@ -61,6 +61,7 @@ import {
   MATCH_SCOREBOARD_CENTER_Y
 } from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
+import { createResultActionButtons } from '../ui/resultActionButtons';
 import { ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage } from './MenuScene';
 import {
   getPenaltyImpactSceneEffect,
@@ -92,17 +93,18 @@ const PENALTY_PHASE_MESSAGE_Y = 662;
 const PENALTY_MARKER_SCORE_GAP = 54;
 const SHOOTOUT_MARKER_Y = PENALTY_STATUS_Y + PENALTY_MARKER_SCORE_GAP;
 const PENALTY_COMPLETE_PANEL_X = SCENE_WIDTH / 2;
-const PENALTY_COMPLETE_PANEL_Y = 442;
+export const PENALTY_COMPLETE_PANEL_TOP_Y = PENALTY_ATTEMPT_LIST_TOP_Y;
 const PENALTY_COMPLETE_PANEL_WIDTH = 900;
-const PENALTY_COMPLETE_PANEL_HEIGHT = 338;
+export const PENALTY_COMPLETE_PANEL_HEIGHT = 500;
+const PENALTY_COMPLETE_PANEL_Y = PENALTY_COMPLETE_PANEL_TOP_Y + PENALTY_COMPLETE_PANEL_HEIGHT / 2;
 const SHOOTOUT_MARKER_COUNT = 5;
 const SHOOTOUT_MARKER_GAP = 36;
 const SHOOTOUT_SEPARATOR_GAP = 34;
 const MATCH_STATS_VIEWPORT = {
   x: -360,
-  y: -132,
+  y: -210,
   width: 720,
-  height: 242
+  height: 420
 } as const;
 
 interface PenaltyAnimationContext {
@@ -205,6 +207,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     if (this.shootoutState.status === 'complete') {
       this.createCompletedShootoutPanel(this.matchResult);
+      this.createCompletedShootoutActions();
     } else {
       this.createPenaltyStatus(this.shootoutState);
     }
@@ -220,17 +223,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
           wordWrap: { width: 860 }
         })
         .setOrigin(0.5);
-    }
-
-    if (this.shootoutState.status === 'complete') {
-      new Button(
-        this,
-        SCENE_WIDTH / 2,
-        660,
-        this.standalone ? 'Menu' : 'Back to tournament',
-        () => this.scene.start(this.getCompletedShootoutReturnScene()),
-        { width: 300 }
-      );
     }
 
     this.schedulePenaltyAiAction();
@@ -253,13 +245,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private createMatchControls(): void {
     createMatchControlButtons({
       scene: this,
+      disabled: this.shootoutState?.status === 'complete',
       onPause: () => this.openPauseModal(),
       onRules: () => this.openRulesModal()
     });
   }
 
   private openPauseModal(): void {
-    if (this.pauseModal !== null || this.rulesModal !== null || this.inputLocked) {
+    if (this.pauseModal !== null || this.rulesModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
       return;
     }
 
@@ -283,7 +276,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private openRulesModal(): void {
-    if (this.rulesModal !== null || this.pauseModal !== null || this.inputLocked) {
+    if (this.rulesModal !== null || this.pauseModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
       return;
     }
 
@@ -367,6 +360,37 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     background.setStrokeStyle(2, 0x5f9572, 0.95);
     panel.add(background);
     this.createMatchStatsPanel(panel, matchResult);
+  }
+
+  private createCompletedShootoutActions(): void {
+    createResultActionButtons(this, SCENE_WIDTH / 2, [
+      {
+        label: this.standalone ? 'Play Again' : 'Continue',
+        onClick: () =>
+          this.standalone
+            ? this.startStandalonePenaltyReplay()
+            : this.scene.start(this.getCompletedShootoutReturnScene())
+      },
+      {
+        label: 'New Match',
+        onClick: () => this.scene.start('TeamSelectScene', this.standalone ? { mode: 'penalty' } : undefined)
+      },
+      { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
+    ]);
+  }
+
+  private startStandalonePenaltyReplay(): void {
+    if (this.matchResult === null) {
+      this.scene.start('TeamSelectScene', { mode: 'penalty' });
+      return;
+    }
+
+    this.scene.start('TournamentPenaltyScene', {
+      standalone: true,
+      matchResult: this.matchResult,
+      homeControllerType: this.homeControllerType,
+      awayControllerType: this.awayControllerType
+    });
   }
 
   private createPenaltyStatus(shootoutState: PenaltyShootoutState): void {

@@ -167,6 +167,7 @@ describe('tournament hub scene integration', () => {
     const fieldSource = readFileSync(join(process.cwd(), 'src', 'ui', 'FieldView.ts'), 'utf8');
     const matchFieldSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchFieldView.ts'), 'utf8');
     const controlsSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchControlButtons.ts'), 'utf8');
+    const resultActionsSource = readFileSync(join(process.cwd(), 'src', 'ui', 'resultActionButtons.ts'), 'utf8');
     const pauseSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchPauseOverlay.ts'), 'utf8');
     const rulesSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchRulesOverlay.ts'), 'utf8');
     const attemptListSource = readFileSync(join(process.cwd(), 'src', 'ui', 'PenaltyAttemptListView.ts'), 'utf8');
@@ -194,6 +195,8 @@ describe('tournament hub scene integration', () => {
     expect(controlsSource).toContain("config.labels?.rules ?? 'Rules'");
     expect(penaltySource).toContain('onPause: () => this.openPauseModal()');
     expect(penaltySource).toContain('onRules: () => this.openRulesModal()');
+    expect(penaltySource).toContain("disabled: this.shootoutState?.status === 'complete'");
+    expect(controlsSource).toContain('disabled: config.disabled');
     expect(penaltySource).not.toContain('createMenuButton');
     expect(penaltySource).not.toContain("new Button(this, 120, 34, 'Menu'");
     expect(penaltySource).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
@@ -203,9 +206,24 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('this.penaltyAiController?.cancelPendingAction()');
     expect(penaltySource).toContain('this.schedulePenaltyAiAction()');
     expect(penaltySource).toContain("this.scene.start('MenuScene')");
-    expect(penaltySource).toMatch(/if \(this\.shootoutState\.status === 'complete'\) \{\s+new Button\(/);
+    expect(penaltySource).toContain('this.createCompletedShootoutActions()');
+    expect(penaltySource).toContain("label: this.standalone ? 'Play Again' : 'Continue'");
+    expect(penaltySource).toContain("label: 'New Match'");
+    expect(penaltySource).toContain("{ label: 'Menu', onClick: () => this.scene.start('MenuScene') }");
+    expect(penaltySource).not.toContain("this.standalone ? 'Menu' : 'Back to tournament'");
+    expect(penaltySource).toContain('export const PENALTY_COMPLETE_PANEL_TOP_Y = PENALTY_ATTEMPT_LIST_TOP_Y');
+    expect(penaltySource).toContain('export const PENALTY_COMPLETE_PANEL_HEIGHT = 500');
+    expect(penaltySource).toContain(
+      'const PENALTY_COMPLETE_PANEL_Y = PENALTY_COMPLETE_PANEL_TOP_Y + PENALTY_COMPLETE_PANEL_HEIGHT / 2'
+    );
+    expect(penaltySource).toContain('height: 420');
+    expect(penaltySource).toContain('createResultActionButtons(this, SCENE_WIDTH / 2, [');
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 62');
     const pauseHandler = penaltySource.slice(penaltySource.indexOf('private openPauseModal()'), penaltySource.indexOf('private closePauseModal()'));
     const rulesHandler = penaltySource.slice(penaltySource.indexOf('private openRulesModal()'), penaltySource.indexOf('private closeRulesModal()'));
+    expect(pauseHandler).toContain("this.shootoutState?.status === 'complete'");
+    expect(rulesHandler).toContain("this.shootoutState?.status === 'complete'");
     expect(pauseHandler).not.toContain('createPenaltyShootoutState');
     expect(pauseHandler).not.toContain('this.render()');
     expect(rulesHandler).not.toContain('createPenaltyShootoutState');

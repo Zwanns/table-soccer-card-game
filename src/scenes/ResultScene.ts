@@ -5,6 +5,7 @@ import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { createResultActionButtons } from '../ui/resultActionButtons';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -28,10 +29,6 @@ import {
 } from '../tournament';
 
 const RESULT_SCOREBOARD_WIDTH = 840;
-const RESULT_ACTION_BUTTON_GAP = 24;
-const RESULT_ACTION_BUTTON_WIDTH = (RESULT_SCOREBOARD_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3;
-const RESULT_ACTION_BUTTON_HEIGHT = 62;
-const RESULT_ACTION_BUTTON_Y = 650;
 const CONTROLLER_BADGE_HEIGHT = 26;
 
 interface ResultSceneData {
@@ -82,18 +79,11 @@ export class ResultScene extends Phaser.Scene {
       return;
     }
 
-    const firstButtonX = centerX - RESULT_SCOREBOARD_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2;
-    const secondButtonX = firstButtonX + RESULT_ACTION_BUTTON_WIDTH + RESULT_ACTION_BUTTON_GAP;
-    const thirdButtonX = secondButtonX + RESULT_ACTION_BUTTON_WIDTH + RESULT_ACTION_BUTTON_GAP;
-    const buttonOptions = {
-      fontSize: '24px',
-      height: RESULT_ACTION_BUTTON_HEIGHT,
-      width: RESULT_ACTION_BUTTON_WIDTH
-    };
-
-    new Button(this, firstButtonX, RESULT_ACTION_BUTTON_Y, 'Play Again', () => this.startReplayMatch(), buttonOptions);
-    new Button(this, secondButtonX, RESULT_ACTION_BUTTON_Y, 'New Match', () => this.scene.start('TeamSelectScene'), buttonOptions);
-    new Button(this, thirdButtonX, RESULT_ACTION_BUTTON_Y, 'Menu', () => this.scene.start('MenuScene'), buttonOptions);
+    createResultActionButtons(this, centerX, [
+      { label: 'Play Again', onClick: () => this.startReplayMatch() },
+      { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene') },
+      { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
+    ]);
   }
 
   private createResultBackground(centerX: number, centerY: number, playerOneGoals: number, playerTwoGoals: number): void {

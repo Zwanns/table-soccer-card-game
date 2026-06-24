@@ -24,6 +24,7 @@ export interface MatchControlButtonsConfig {
   scene: Phaser.Scene;
   onPause: () => void;
   onRules: () => void;
+  disabled?: boolean;
   labels?: {
     pause?: string;
     rules?: string;
@@ -35,6 +36,7 @@ export function createMatchControlButtons(config: MatchControlButtonsConfig): {
   rulesButton: Button;
 } {
   const options = {
+    disabled: config.disabled,
     fontSize: MATCH_CONTROL_BUTTON_FONT_SIZE,
     height: MATCH_CONTROL_BUTTON_HEIGHT,
     width: MATCH_CONTROL_BUTTON_WIDTH

@@ -124,15 +124,24 @@ describe('result scene score line layout', () => {
 
   it('creates three quick-match actions aligned to the scoreboard panel width', () => {
     const source = readResultSceneSource();
+    const actionsSource = normalizeSourceLineEndings(
+      readFileSync(join(process.cwd(), 'src', 'ui', 'resultActionButtons.ts'), 'utf8')
+    );
 
     expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
-    expect(source).toContain('const RESULT_ACTION_BUTTON_GAP = 24');
-    expect(source).toContain('const RESULT_ACTION_BUTTON_WIDTH = (RESULT_SCOREBOARD_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3');
-    expect(source).toContain('const RESULT_ACTION_BUTTON_HEIGHT = 62');
-    expect(source).toContain('const firstButtonX = centerX - RESULT_SCOREBOARD_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2');
-    expect(source).toContain("new Button(this, firstButtonX, RESULT_ACTION_BUTTON_Y, 'Play Again', () => this.startReplayMatch(), buttonOptions)");
-    expect(source).toContain("new Button(this, secondButtonX, RESULT_ACTION_BUTTON_Y, 'New Match', () => this.scene.start('TeamSelectScene'), buttonOptions)");
-    expect(source).toContain("new Button(this, thirdButtonX, RESULT_ACTION_BUTTON_Y, 'Menu', () => this.scene.start('MenuScene'), buttonOptions)");
+    expect(source).toContain('createResultActionButtons(this, centerX, [');
+    expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
+    expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene') }");
+    expect(source).toContain("{ label: 'Menu', onClick: () => this.scene.start('MenuScene') }");
+    expect(actionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_GAP = 24');
+    expect(actionsSource).toContain(
+      'export const RESULT_ACTION_BUTTON_WIDTH = (RESULT_ACTION_PANEL_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3'
+    );
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 62');
+    expect(actionsSource).toContain(
+      'const firstButtonX = centerX - RESULT_ACTION_PANEL_WIDTH / 2 + RESULT_ACTION_BUTTON_WIDTH / 2'
+    );
     expect(source).not.toContain("'Play again', () => this.scene.start('TeamSelectScene')");
     expect(source).toContain("new Button(this, centerX + 150, 650, 'Menu', () => this.scene.start('MenuScene'), { width: 230 })");
   });
