@@ -137,7 +137,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
     expect(selectSource).toContain("kitLayoutVariant: 'teams-preview'");
     expect(selectSource).toContain('playerProfile: previewPlayerProfile');
-    expect(readSource('src/ui/KitCardFaceView.ts')).toContain('fontSize: `${KIT_CARD_LAYOUT.shirtNumberFontSize}px`');
+    expect(readSource('src/ui/KitCardFaceView.ts')).toContain('.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
     expect(selectSource).toContain('faceDown: true');
     expect(selectSource).toContain("faceDownVariant: 'squad-preview'");

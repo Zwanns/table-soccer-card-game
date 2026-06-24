@@ -158,6 +158,7 @@ describe('kit card face rendering contracts', () => {
       rankFontFamily: 'Anton, Arial, sans-serif',
       shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
       shirtNumberFontSize: 16,
+      shirtNumberScaleY: 0.88,
       cardCornerRadius: 8,
       deckCornerRadius: 8
     });
@@ -215,6 +216,7 @@ describe('kit card face rendering contracts', () => {
     expect(Number.isInteger(layout.x)).toBe(true);
     expect(Number.isInteger(layout.y)).toBe(true);
     expect(KIT_CARD_LAYOUT.shirtNumberFontSize).toBe(16);
+    expect(KIT_CARD_LAYOUT.shirtNumberScaleY).toBe(0.88);
     expect(prepareKitCardFace({ rank: '9' })).toEqual({
       rank: '9',
       shirtNumber: undefined,
@@ -267,6 +269,9 @@ describe('kit card face rendering contracts', () => {
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.shirtNumberFontFamily');
     expect(kitFaceSource).toContain('fontSize: `${KIT_CARD_LAYOUT.shirtNumberFontSize}px`');
     expect(kitFaceSource).toContain("fontStyle: '600'");
+    expect(kitFaceSource).toContain('.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
+    expect(kitFaceSource).not.toContain('this.rankText.setScale');
+    expect(kitFaceSource).not.toContain('image.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
     expect(kitFaceSource).not.toContain('strokeThickness');
     expect(kitFaceSource).not.toContain('stroke,');
     expect(deckViewSource).toContain('createRoundedDeckCard');

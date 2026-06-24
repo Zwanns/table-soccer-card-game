@@ -165,7 +165,8 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         fontStyle: '600',
         resolution: SHARP_TEXT_RESOLUTION
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY);
 
     this.add(number);
   }

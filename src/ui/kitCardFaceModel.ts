@@ -20,6 +20,7 @@ export const KIT_CARD_LAYOUT = {
   rankFontFamily: 'Anton, Arial, sans-serif',
   shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
   shirtNumberFontSize: 16,
+  shirtNumberScaleY: 0.88,
   cardCornerRadius: 8,
   deckCornerRadius: 8
 } as const;
