@@ -53,4 +53,33 @@ describe('penalty impact scene effects', () => {
     expect(animationBlock.indexOf('this.showPenaltyImpact(')).toBeLessThan(animationBlock.indexOf("if (outcome === 'post'"));
     expect(animationBlock).toContain('onComplete();');
   });
+
+  it('renders only the temporary attack card while a penalty kick is in flight', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+    const cardColumnBlock = source.slice(
+      source.indexOf('private createPenaltyCardColumn('),
+      source.indexOf('private handlePenaltyAiAction(')
+    );
+    const takeKickBlock = source.slice(
+      source.indexOf('private takeKick()'),
+      source.indexOf('private completeTournamentMatch()')
+    );
+    const animationBlock = source.slice(
+      source.indexOf('private animatePenaltyKick('),
+      source.indexOf('private showPenaltyImpact(')
+    );
+
+    expect(source).toContain('private inFlightPenaltyCard: InFlightPenaltyCard | null = null');
+    expect(cardColumnBlock).toContain('if (this.isPenaltyCardInFlight(shooterSide, index))');
+    expect(cardColumnBlock.indexOf('if (this.isPenaltyCardInFlight(shooterSide, index))')).toBeLessThan(
+      cardColumnBlock.indexOf('const card = this.createAttackCardView(')
+    );
+    expect(takeKickBlock.indexOf('this.render();', takeKickBlock.indexOf('this.inFlightPenaltyCard = {'))).toBeLessThan(
+      takeKickBlock.indexOf('this.animatePenaltyKick(')
+    );
+    expect(takeKickBlock.indexOf('this.inFlightPenaltyCard = null;')).toBeLessThan(
+      takeKickBlock.indexOf('this.shootoutState = nextState;')
+    );
+    expect(animationBlock.match(/card\.destroy\(\)/g)).toHaveLength(2);
+  });
 });

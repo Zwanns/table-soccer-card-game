@@ -115,6 +115,11 @@ interface PenaltyAnimationContext {
   targetPosition: { x: number; y: number };
 }
 
+interface InFlightPenaltyCard {
+  cardIndex: number;
+  shooterSide: PenaltyShootoutState['nextShooter'];
+}
+
 export class TournamentPenaltyScene extends Phaser.Scene {
   private tournamentId: string | null = null;
   private matchResult: TournamentMatchResult | null = null;
@@ -130,6 +135,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   private infoLanguage: AboutLanguage = getPreferredLanguage();
   private homeCoverTextureKey = getFallbackCoverTextureKey();
   private awayCoverTextureKey = getFallbackCoverTextureKey();
+  private inFlightPenaltyCard: InFlightPenaltyCard | null = null;
 
   public constructor() {
     super('TournamentPenaltyScene');
@@ -149,6 +155,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.infoLanguage = getPreferredLanguage();
     this.homeCoverTextureKey = getFallbackCoverTextureKey();
     this.awayCoverTextureKey = getFallbackCoverTextureKey();
+    this.inFlightPenaltyCard = null;
     this.input.enabled = true;
   }
 
@@ -533,6 +540,10 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     const startY = -((cards.length - 1) * PENALTY_ATTACK_CARD_GAP) / 2;
 
     cards.forEach((rank, index) => {
+      if (this.isPenaltyCardInFlight(shooterSide, index)) {
+        return;
+      }
+
       const localY = startY + index * PENALTY_ATTACK_CARD_GAP;
       const isRevealed = shootoutState.nextShooter === shooterSide && shootoutState.revealedAttackerCardIndex === index;
       const card = this.createAttackCardView(x, localY, rank, shooterTeamId, shooterColor, {
@@ -545,6 +556,13 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       card.setRotation(isRevealed ? 0 : PENALTY_ATTACK_CARD_ROTATION);
       field.add(card);
     });
+  }
+
+  private isPenaltyCardInFlight(
+    shooterSide: PenaltyShootoutState['nextShooter'],
+    cardIndex: number
+  ): boolean {
+    return this.inFlightPenaltyCard?.shooterSide === shooterSide && this.inFlightPenaltyCard.cardIndex === cardIndex;
   }
 
   private handlePenaltyAiAction(action: PenaltyAiAction): void {
@@ -639,6 +657,12 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       return;
     }
 
+    this.inFlightPenaltyCard = {
+      cardIndex,
+      shooterSide: previousState.nextShooter
+    };
+    this.render();
+
     this.animatePenaltyKick(
       {
         attackerRank: selectedRank,
@@ -649,6 +673,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
         targetPosition: getPenaltyGoalkeeperWorldPosition(previousState)
       },
       () => {
+        this.inFlightPenaltyCard = null;
         this.shootoutState = nextState;
 
         if (this.shootoutState.status === 'complete') {
