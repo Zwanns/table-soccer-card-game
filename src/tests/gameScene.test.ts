@@ -320,18 +320,21 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a)');
   });
 
-  it('aligns transparent taller Goals panels with the field top', () => {
+  it('aligns Goals panels with the shared penalty side-panel geometry', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
     const statsSource = readSource('src/ui/TeamStatsView.ts');
+    const sidePanelSource = readSource('src/ui/matchSidePanelStyle.ts');
 
-    expect(gameSceneSource).toContain('const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2');
-    expect(gameSceneSource).toContain('new TeamStatsView(this, 120, TEAM_STATS_CENTER_Y');
-    expect(gameSceneSource).toContain('new TeamStatsView(this, 1485, TEAM_STATS_CENTER_Y');
-    expect(statsSource).toContain('export const TEAM_STATS_VIEW_HEIGHT = 288');
+    expect(gameSceneSource).toContain('new TeamStatsView(this, MATCH_SIDE_PANEL_LEFT_X, MATCH_SIDE_PANEL_CENTER_Y');
+    expect(gameSceneSource).toContain('new TeamStatsView(this, MATCH_SIDE_PANEL_RIGHT_X, MATCH_SIDE_PANEL_CENTER_Y');
+    expect(statsSource).toContain('export const TEAM_STATS_VIEW_WIDTH = MATCH_SIDE_PANEL_WIDTH');
+    expect(statsSource).toContain('export const TEAM_STATS_VIEW_HEIGHT = MATCH_SIDE_PANEL_HEIGHT');
     expect(statsSource).toContain('const viewportHeight = height - 56');
-    expect(statsSource).toContain('this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb])');
-    expect(statsSource).not.toContain('scene.add.rectangle(0, 0, width, height');
-    expect(statsSource).not.toContain('0x143f2d');
+    expect(statsSource).toContain('createMatchSidePanelBackground(scene, 0)');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_LEFT_X = MATCH_SIDE_PANEL_CORRIDOR_WIDTH / 2');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_RIGHT_X = MATCH_SCREEN_WIDTH - MATCH_SIDE_PANEL_LEFT_X');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_TOP_Y = MATCH_FIELD_CENTER_Y - MATCH_FIELD_HEIGHT / 2');
+    expect(sidePanelSource).toContain('background.setStrokeStyle(1, MATCH_SIDE_PANEL_BORDER_COLOR, MATCH_SIDE_PANEL_BORDER_ALPHA)');
   });
 
   it('matches the top scoreboard width to the advantage indicator width', () => {

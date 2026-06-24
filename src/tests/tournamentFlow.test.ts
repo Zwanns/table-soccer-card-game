@@ -171,6 +171,7 @@ describe('tournament hub scene integration', () => {
     const pauseSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchPauseOverlay.ts'), 'utf8');
     const rulesSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchRulesOverlay.ts'), 'utf8');
     const attemptListSource = readFileSync(join(process.cwd(), 'src', 'ui', 'PenaltyAttemptListView.ts'), 'utf8');
+    const sidePanelSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchSidePanelStyle.ts'), 'utf8');
     const cardSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
     const cardScaleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchCardScale.ts'), 'utf8');
     const layoutSource = readFileSync(join(process.cwd(), 'src', 'ui', 'matchScreenLayout.ts'), 'utf8');
@@ -283,18 +284,21 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('this.createShootoutMarkers(this.shootoutState)');
     expect(penaltySource).toContain('this.createPenaltyAttemptLists(this.shootoutState)');
     expect(penaltySource).toContain('new PenaltyAttemptListView(');
-    expect(attemptListSource).toContain('const SIDE_CORRIDOR_WIDTH = MATCH_FIELD_CENTER_X - MATCH_FIELD_WIDTH / 2 - FIELD_GOAL_DEPTH');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_LEFT_X = SIDE_CORRIDOR_WIDTH / 2');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_RIGHT_X = MATCH_SCREEN_WIDTH - PENALTY_ATTEMPT_LIST_LEFT_X');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_TOP_Y = MATCH_FIELD_CENTER_Y - MATCH_FIELD_HEIGHT / 2');
+    expect(sidePanelSource).toContain(
+      'export const MATCH_SIDE_PANEL_CORRIDOR_WIDTH = MATCH_FIELD_CENTER_X - MATCH_FIELD_WIDTH / 2 - FIELD_GOAL_DEPTH'
+    );
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_LEFT_X = MATCH_SIDE_PANEL_CORRIDOR_WIDTH / 2');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_RIGHT_X = MATCH_SCREEN_WIDTH - MATCH_SIDE_PANEL_LEFT_X');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_TOP_Y = MATCH_FIELD_CENTER_Y - MATCH_FIELD_HEIGHT / 2');
     expect(matchFieldSource).toContain('export const FIELD_GOAL_AREA_HALF_HEIGHT = 95');
     expect(matchFieldSource).toContain('markings.strokeRect(pitchLeft, -FIELD_GOAL_AREA_HALF_HEIGHT, 70, FIELD_GOAL_AREA_HALF_HEIGHT * 2)');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_BOTTOM_Y = MATCH_FIELD_CENTER_Y - FIELD_GOAL_AREA_HALF_HEIGHT');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_HEIGHT = PENALTY_ATTEMPT_LIST_BOTTOM_Y - PENALTY_ATTEMPT_LIST_TOP_Y');
-    expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_WIDTH = SIDE_CORRIDOR_WIDTH - 8');
-    expect(attemptListSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
-    expect(attemptListSource).toContain('PANEL_BACKGROUND_ALPHA');
-    expect(attemptListSource).toContain('background.setStrokeStyle(1, PANEL_BORDER_COLOR, 0.8)');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_BOTTOM_Y = MATCH_FIELD_CENTER_Y - FIELD_GOAL_AREA_HALF_HEIGHT');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_HEIGHT = MATCH_SIDE_PANEL_BOTTOM_Y - MATCH_SIDE_PANEL_TOP_Y');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_WIDTH = MATCH_SIDE_PANEL_CORRIDOR_WIDTH - 8');
+    expect(sidePanelSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
+    expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_BACKGROUND_ALPHA = 0.82');
+    expect(sidePanelSource).toContain('background.setStrokeStyle(1, MATCH_SIDE_PANEL_BORDER_COLOR, MATCH_SIDE_PANEL_BORDER_ALPHA)');
+    expect(attemptListSource).toContain('createMatchSidePanelBackground(scene, PENALTY_ATTEMPT_LIST_HEIGHT / 2)');
     expect(attemptListSource).not.toContain('background.setStrokeStyle(2, 0xf0c95a');
     expect(attemptListSource).toContain('export const PENALTY_ATTEMPT_LIST_MAX_VISIBLE_ROWS = 6');
     expect(attemptListSource).toContain("attempt.success ? '#71e48b' : '#ff788a'");

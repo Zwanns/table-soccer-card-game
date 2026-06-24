@@ -39,6 +39,11 @@ import { createMatchControlButtons } from '../ui/matchControlButtons';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import {
+  MATCH_SIDE_PANEL_CENTER_Y,
+  MATCH_SIDE_PANEL_LEFT_X,
+  MATCH_SIDE_PANEL_RIGHT_X
+} from '../ui/matchSidePanelStyle';
+import {
   MATCH_ADVANTAGE_CENTER_Y,
   MATCH_DECK_Y,
   MATCH_FIELD_CENTER_X,
@@ -46,7 +51,7 @@ import {
   MATCH_SCOREBOARD_CENTER_Y
 } from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
-import { TEAM_STATS_VIEW_HEIGHT, TeamStatsView } from '../ui/TeamStatsView';
+import { TeamStatsView } from '../ui/TeamStatsView';
 import { TUTORIAL_MATCH_V2_SETUP_PRESET } from '../tutorial/tutorialScenario';
 import { TutorialController } from '../tutorial/TutorialController';
 import { getTutorialText } from '../tutorial/tutorialTexts';
@@ -62,12 +67,10 @@ import {
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
 
-const FIELD_TOP = 100;
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
 const DECK_Y = MATCH_DECK_Y;
 const SCOREBOARD_CENTER_Y = MATCH_SCOREBOARD_CENTER_Y;
 const ADVANTAGE_CENTER_Y = MATCH_ADVANTAGE_CENTER_Y;
-const TEAM_STATS_CENTER_Y = FIELD_TOP + TEAM_STATS_VIEW_HEIGHT / 2;
 const INFO_MODAL = {
   width: 960,
   height: 600
@@ -827,13 +830,13 @@ export class GameScene extends Phaser.Scene {
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
 
     this.dynamicLayer.add(
-      new TeamStatsView(this, 120, TEAM_STATS_CENTER_Y, {
+      new TeamStatsView(this, MATCH_SIDE_PANEL_LEFT_X, MATCH_SIDE_PANEL_CENTER_Y, {
         align: 'left',
         scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
       })
     );
     this.dynamicLayer.add(
-      new TeamStatsView(this, 1485, TEAM_STATS_CENTER_Y, {
+      new TeamStatsView(this, MATCH_SIDE_PANEL_RIGHT_X, MATCH_SIDE_PANEL_CENTER_Y, {
         align: 'right',
         scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
       })

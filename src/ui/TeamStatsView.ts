@@ -1,9 +1,15 @@
 import Phaser from 'phaser';
+import {
+  createMatchSidePanelBackground,
+  MATCH_SIDE_PANEL_HEIGHT,
+  MATCH_SIDE_PANEL_HORIZONTAL_PADDING,
+  MATCH_SIDE_PANEL_WIDTH
+} from './matchSidePanelStyle';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from './touchInput';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
-export const TEAM_STATS_VIEW_WIDTH = 200;
-export const TEAM_STATS_VIEW_HEIGHT = 288;
+export const TEAM_STATS_VIEW_WIDTH = MATCH_SIDE_PANEL_WIDTH;
+export const TEAM_STATS_VIEW_HEIGHT = MATCH_SIDE_PANEL_HEIGHT;
 
 export interface TeamStatsViewOptions {
   align: 'left' | 'right';
@@ -18,11 +24,16 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const height = TEAM_STATS_VIEW_HEIGHT;
     const viewportTop = -height / 2 + 44;
     const viewportHeight = height - 56;
-    const viewportWidth = width - 32;
+    const viewportWidth = width - MATCH_SIDE_PANEL_HORIZONTAL_PADDING * 2;
     const textOriginX = options.align === 'left' ? 0 : 1;
-    const textX = px(options.align === 'left' ? -width / 2 + 16 : width / 2 - 16);
+    const textX = px(
+      options.align === 'left'
+        ? -width / 2 + MATCH_SIDE_PANEL_HORIZONTAL_PADDING
+        : width / 2 - MATCH_SIDE_PANEL_HORIZONTAL_PADDING
+    );
     const textAlign = options.align;
     const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
+    const background = createMatchSidePanelBackground(scene, 0);
 
     const title = scene.add
       .text(textX, px(-height / 2 + 18), 'Goals', {
@@ -50,7 +61,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     scorersContent.add(scorers);
 
     const maskGraphics = scene.make.graphics();
-    const maskLeft = -width / 2 + 16;
+    const maskLeft = -width / 2 + MATCH_SIDE_PANEL_HORIZONTAL_PADDING;
     const maskTop = viewportTop;
     const maskSceneX = px(x);
     const maskSceneY = px(y);
@@ -99,7 +110,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       dragScroll.bindDragTarget(scrollZone);
     }
 
-    this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
+    this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
     scene.add.existing(this);
   }
 }

@@ -19,7 +19,18 @@ describe('TeamStatsView scorer list', () => {
 
     expect(source).toContain('scene.make.graphics()');
     expect(source).toContain('fillRect(maskSceneX + maskLeft, maskSceneY + maskTop, viewportWidth, viewportHeight)');
-    expect(source).not.toContain('this.add([background, title, maskGraphics');
+    expect(source).toContain('this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb])');
+  });
+
+  it('uses the shared match side-panel frame without changing scorer typography', () => {
+    const source = readTeamStatsViewSource();
+
+    expect(source).toContain('createMatchSidePanelBackground');
+    expect(source).toContain('export const TEAM_STATS_VIEW_WIDTH = MATCH_SIDE_PANEL_WIDTH');
+    expect(source).toContain('export const TEAM_STATS_VIEW_HEIGHT = MATCH_SIDE_PANEL_HEIGHT');
+    expect(source).toContain("fontFamily: 'Arial, sans-serif'");
+    expect(source).toContain("fontSize: '18px'");
+    expect(source).toContain("fontSize: '17px'");
   });
 
   it('renders scorer text at snapped coordinates with high-resolution text canvases', () => {
