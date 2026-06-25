@@ -69,8 +69,25 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight * 2);
     expect(mobile.matches.actionHeight).toBeGreaterThanOrEqual(44);
     expect(mobile.matches.actionFontSize).toBe('20px');
-    expect(mobile.matches.simWidth).toBeGreaterThan(desktop.matches.simWidth);
-    expect(mobile.matches.playWidth).toBeGreaterThan(desktop.matches.playWidth);
+    expect(mobile.matches.actionWidth).toBeGreaterThan(desktop.matches.actionWidth);
+    expect(mobile.matches.flagHeight).toBeCloseTo(mobile.matches.actionHeight, -1);
+    expect(mobile.matches.scoreX).toBe(mobile.matches.cardWidth / 2);
+    expect(mobile.matches.scoreFontSize).toBe('36px');
+    expect(mobile.matches.labelFontSize).toBe('22px');
+    expect(mobile.matches.teamFontSize).toBe('28px');
+  });
+
+  it('keeps team blocks symmetric around the centered score and uses equal action buttons', () => {
+    const mobile = createTournamentHubLayout(true);
+    const homeDistance =
+      mobile.matches.scoreX -
+      (mobile.matches.homeTeamX + mobile.matches.controllerOffsetX);
+    const awayDistance = mobile.matches.awayTeamX - mobile.matches.scoreX;
+
+    expect(homeDistance).toBe(awayDistance);
+    expect(mobile.matches.actionWidth).toBe(142);
+    expect(mobile.matches.actionGap).toBe(14);
+    expect(mobile.matches.controllerOffsetX).toBeGreaterThan(mobile.matches.teamCodeOffsetX);
   });
 
   it('scrolls only the mobile match viewport and keeps pagination pages intact', () => {
@@ -95,6 +112,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('onTap: () => this.simulateTournamentMatch(tournament, match)');
     expect(source).toContain('onTap: () => this.startTournamentMatch(tournament, match)');
     expect(source).toContain('this.matchScrollY = 0');
+    expect(source).toContain('layout.matches.actionWidth');
+    expect(source).toContain('layout.matches.actionGap');
+    expect(source).toContain('layout.matches.scoreX');
+    expect(source).toContain('layout.matches.controllerOffsetX');
   });
 
   it('keeps all four tab actions and hides only the mobile game title', () => {

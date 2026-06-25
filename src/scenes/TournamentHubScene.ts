@@ -385,15 +385,23 @@ export class TournamentHubScene extends Phaser.Scene {
       content.add(row);
 
       if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
+        const playX =
+          layout.matches.cardWidth -
+          layout.matches.actionRightMargin -
+          layout.matches.actionWidth / 2;
+        const simX =
+          playX -
+          layout.matches.actionWidth -
+          layout.matches.actionGap;
         const actions = [
           {
-            x: layout.matches.cardWidth - 230,
-            width: layout.matches.simWidth,
+            x: simX,
+            width: layout.matches.actionWidth,
             onTap: () => this.simulateTournamentMatch(tournament, match)
           },
           {
-            x: layout.matches.cardWidth - 78,
-            width: layout.matches.playWidth,
+            x: playX,
+            width: layout.matches.actionWidth,
             onTap: () => this.startTournamentMatch(tournament, match)
           }
         ];
@@ -490,13 +498,13 @@ export class TournamentHubScene extends Phaser.Scene {
       row,
       tournament,
       match.homeTeamId,
-      190,
+      layout.matches.homeTeamX,
       layout.matches.cardHeight / 2,
       layout
     );
     row.add(
       this.add
-        .text(710, layout.matches.cardHeight / 2, formatMatchScore(match), {
+        .text(layout.matches.scoreX, layout.matches.cardHeight / 2, formatMatchScore(match), {
           align: 'center',
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
@@ -509,27 +517,35 @@ export class TournamentHubScene extends Phaser.Scene {
       row,
       tournament,
       match.awayTeamId,
-      820,
+      layout.matches.awayTeamX,
       layout.matches.cardHeight / 2,
       layout
     );
 
     if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
+      const playX =
+        layout.matches.cardWidth -
+        layout.matches.actionRightMargin -
+        layout.matches.actionWidth / 2;
+      const simX =
+        playX -
+        layout.matches.actionWidth -
+        layout.matches.actionGap;
       row.add(
         this.createMobileMatchActionVisual(
-          layout.matches.cardWidth - 230,
+          simX,
           layout.matches.cardHeight / 2,
           'Sim',
-          layout.matches.simWidth,
+          layout.matches.actionWidth,
           layout
         )
       );
       row.add(
         this.createMobileMatchActionVisual(
-          layout.matches.cardWidth - 78,
+          playX,
           layout.matches.cardHeight / 2,
           'Play',
-          layout.matches.playWidth,
+          layout.matches.actionWidth,
           layout
         )
       );
@@ -561,14 +577,14 @@ export class TournamentHubScene extends Phaser.Scene {
     const team = teamId === undefined ? undefined : findTeam(teamId);
 
     if (team !== undefined) {
-      const flag = this.add.image(x, y - 8, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(42, 31);
+      const flag = this.add.image(x, y, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(layout.matches.flagWidth, layout.matches.flagHeight);
       row.add(flag);
     }
 
     row.add(
       this.add
-        .text(x + 36, y - 8, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
+        .text(x + layout.matches.teamCodeOffsetX, y, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
           color: team === undefined ? '#8fb39d' : TEAM_CARD_STYLE.normal.textColor,
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.matches.teamFontSize,
@@ -579,8 +595,8 @@ export class TournamentHubScene extends Phaser.Scene {
     row.add(
       this.add
         .text(
-          x,
-          y + 28,
+          x + layout.matches.controllerOffsetX,
+          y,
           teamId === undefined ? '' : getTournamentTeamControllerType(tournament, teamId),
           {
             color: '#f0c95a',
@@ -589,7 +605,7 @@ export class TournamentHubScene extends Phaser.Scene {
             fontStyle: '700'
           }
         )
-        .setOrigin(0.5)
+        .setOrigin(0, 0.5)
     );
   }
 

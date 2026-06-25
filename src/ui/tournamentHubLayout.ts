@@ -32,8 +32,16 @@ export interface TournamentHubLayout {
     controllerFontSize: string;
     actionFontSize: string;
     actionHeight: number;
-    simWidth: number;
-    playWidth: number;
+    actionWidth: number;
+    actionGap: number;
+    actionRightMargin: number;
+    scoreX: number;
+    homeTeamX: number;
+    awayTeamX: number;
+    teamCodeOffsetX: number;
+    controllerOffsetX: number;
+    flagWidth: number;
+    flagHeight: number;
   };
   footer: {
     y: number;
@@ -77,14 +85,22 @@ export function createTournamentHubLayout(
         cardWidth: 1536,
         cardHeight: 92,
         viewportHeight: 476,
-        teamFontSize: '24px',
-        scoreFontSize: '28px',
-        labelFontSize: '18px',
-        controllerFontSize: '14px',
+        teamFontSize: '28px',
+        scoreFontSize: '36px',
+        labelFontSize: '22px',
+        controllerFontSize: '16px',
         actionFontSize: '20px',
         actionHeight: 52,
-        simWidth: 120,
-        playWidth: 140
+        actionWidth: 142,
+        actionGap: 14,
+        actionRightMargin: 10,
+        scoreX: 768,
+        homeTeamX: 520,
+        awayTeamX: 854,
+        teamCodeOffsetX: 48,
+        controllerOffsetX: 162,
+        flagWidth: 64,
+        flagHeight: 48
       },
       footer: {
         y: 674,
@@ -131,8 +147,16 @@ export function createTournamentHubLayout(
       controllerFontSize: '9px',
       actionFontSize: '14px',
       actionHeight: 30,
-      simWidth: 58,
-      playWidth: 70
+      actionWidth: 70,
+      actionGap: 8,
+      actionRightMargin: 0,
+      scoreX: 306,
+      homeTeamX: 122,
+      awayTeamX: 356,
+      teamCodeOffsetX: 28,
+      controllerOffsetX: 0,
+      flagWidth: 26,
+      flagHeight: 19
     },
     footer: {
       y: 666,
