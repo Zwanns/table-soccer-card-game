@@ -333,9 +333,7 @@ export class GameScene extends Phaser.Scene {
         state.players[0].flagCode,
         state.players[1].flagCode,
         state.players[0].goals,
-        state.players[1].goals,
-        getShotsForPlayer(state.log, state.players[0].id),
-        getShotsForPlayer(state.log, state.players[1].id)
+        state.players[1].goals
       )
     );
     this.dynamicLayer.add(
@@ -968,14 +966,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.pauseModal = createMatchPauseOverlay(this, [
-      { label: 'Continue', onClick: () => this.closePauseModal() },
-      {
-        label: 'Exit to Menu',
-        onClick: () => {
-          this.closePauseModal();
-          this.openExitConfirmModal();
-        }
-      },
       {
         label: 'Results',
         onClick: () => {
@@ -983,14 +973,15 @@ export class GameScene extends Phaser.Scene {
           this.openResult(state);
         }
       },
+      { label: 'Continue', onClick: () => this.closePauseModal() },
       {
-        label: 'About',
+        label: 'Exit to Menu',
         onClick: () => {
           this.closePauseModal();
-          this.openMatchInfoModal('about');
+          this.openExitConfirmModal();
         }
       }
-    ]);
+    ], { state });
   }
 
   private closePauseModal(): void {
@@ -1502,7 +1493,6 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     this.showImpactPulse(target.x, target.y, outcome);
-    this.playGoalkeeperImpactSound(context.positionId, outcome);
 
     if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {
       const activeOnLeft = context.attackerId === state.players[0].id;
@@ -1994,18 +1984,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private playGoalkeeperImpactSound(positionId: FieldPositionId, outcome: AttackAnimationOutcome): void {
-    if (positionId !== 'goalkeeper') {
-      return;
-    }
-
-    if (outcome !== 'goal' && outcome !== 'post' && outcome !== 'save') {
-      return;
-    }
-
-    this.playSceneEffectSound(getGoalkeeperShotSceneEffect(outcome));
-  }
-
   private finishAnimationObject(card: CardView, onComplete: () => void): void {
     card.destroy();
     this.finishAttackAnimationSequence(onComplete);
@@ -2420,10 +2398,6 @@ function getGoalkeeperShotPostForwardDeflection(
     x: target.x + (activeOnLeft ? -190 : 190),
     y: target.y - 64
   };
-}
-
-function getShotsForPlayer(events: readonly GameEvent[], playerId: Player['id']): number {
-  return events.filter((event) => event.type === 'SHOT_ON_GOAL' && event.playerId === playerId).length;
 }
 
 function createAiMatchSeed(

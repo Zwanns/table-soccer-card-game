@@ -38,8 +38,6 @@ export class ScoreView extends Phaser.GameObjects.Container {
     playerTwoFlagCode: string,
     playerOneGoals: number,
     playerTwoGoals: number,
-    playerOneShots: number,
-    playerTwoShots: number,
     options: ScoreViewOptions = {}
   ) {
     super(scene, px(x), px(y));
@@ -47,12 +45,10 @@ export class ScoreView extends Phaser.GameObjects.Container {
     const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
     background.setStrokeStyle(SCORE_VIEW_BORDER_WIDTH, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
 
-    const playerOneFlag = this.createFlag(scene, -158, playerOneFlagCode);
-    const playerTwoFlag = this.createFlag(scene, 158, playerTwoFlagCode);
-    const playerOneLabel = this.createPlayerLabel(scene, -158, 26, getTeamScoreboardCode(playerOneFlagCode));
-    const playerTwoLabel = this.createPlayerLabel(scene, 158, 26, getTeamScoreboardCode(playerTwoFlagCode));
-    const playerOneShotsText = this.createShotsLabel(scene, -226, playerOneShots);
-    const playerTwoShotsText = this.createShotsLabel(scene, 226, playerTwoShots);
+    const playerOneFlag = this.createFlag(scene, -221, playerOneFlagCode);
+    const playerTwoFlag = this.createFlag(scene, 221, playerTwoFlagCode);
+    const playerOneLabel = this.createPlayerLabel(scene, -126, getTeamScoreboardCode(playerOneFlagCode), 'right');
+    const playerTwoLabel = this.createPlayerLabel(scene, 126, getTeamScoreboardCode(playerTwoFlagCode), 'left');
 
     const label = scene.add
       .text(0, -1, `${playerOneGoals}:${playerTwoGoals}`, {
@@ -64,7 +60,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([background, playerOneShotsText, playerOneFlag, playerTwoFlag, playerOneLabel, playerTwoLabel, playerTwoShotsText, label]);
+    this.add([background, playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag]);
 
     if (options.penaltyScore !== undefined) {
       this.add(
@@ -85,50 +81,22 @@ export class ScoreView extends Phaser.GameObjects.Container {
   }
 
   private createFlag(scene: Phaser.Scene, x: number, flagCode: string): Phaser.GameObjects.Image {
-    const flag = scene.add.image(px(x), -9, getFlagAssetKey(flagCode));
+    const flag = scene.add.image(px(x), 0, getFlagAssetKey(flagCode));
     flag.setDisplaySize(58, 40);
     return flag;
   }
 
-  private createPlayerLabel(scene: Phaser.Scene, x: number, y: number, text: string): Phaser.GameObjects.Text {
+  private createPlayerLabel(scene: Phaser.Scene, x: number, text: string, align: 'left' | 'right'): Phaser.GameObjects.Text {
     return scene.add
-      .text(px(x), px(y), text, {
-        align: 'center',
+      .text(px(x), 0, text, {
+        align,
         color: '#d9eadf',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
-        fontSize: '18px',
+        fontSize: '32px',
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION,
-        wordWrap: { width: 130 }
+        wordWrap: { width: 92 }
       })
-      .setOrigin(0.5);
-  }
-
-  private createShotsLabel(scene: Phaser.Scene, x: number, shots: number): Phaser.GameObjects.Container {
-    const container = scene.add.container(px(x), 0);
-    const title = scene.add
-      .text(0, -13, 'Shots:', {
-        align: 'center',
-        color: '#d9eadf',
-        fontFamily: SCORE_VIEW_FONT_FAMILY,
-        fontSize: '17px',
-        fontStyle: '700',
-        resolution: SHARP_TEXT_RESOLUTION
-      })
-      .setOrigin(0.5);
-    const value = scene.add
-      .text(0, 13, String(shots), {
-        align: 'center',
-        color: '#ffffff',
-        fontFamily: SCORE_VIEW_FONT_FAMILY,
-        fontSize: '22px',
-        fontStyle: '700',
-        resolution: SHARP_TEXT_RESOLUTION
-      })
-      .setOrigin(0.5);
-
-    container.add([title, value]);
-
-    return container;
+      .setOrigin(align === 'left' ? 0 : 1, 0.5);
   }
 }

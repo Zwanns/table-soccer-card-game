@@ -201,11 +201,18 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).not.toContain('createMenuButton');
     expect(penaltySource).not.toContain("new Button(this, 120, 34, 'Menu'");
     expect(penaltySource).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
+    expect(penaltySource).toContain("import { PenaltyPauseStatsPanel } from '../ui/PenaltyPauseStatsPanel'");
+    expect(penaltySource).toContain('const statsPanel = new PenaltyPauseStatsPanel(this, SCENE_WIDTH / 2, MATCH_STATS_PANEL_CENTER_Y');
+    expect(penaltySource).toContain('], { statsPanel });');
+    expect(penaltySource).toContain("label: 'Continue'");
     expect(penaltySource).toContain("label: 'Exit to Menu'");
     expect(penaltySource).toContain("label: 'Results'");
     expect(penaltySource).toContain('onClick: () => this.completeShootoutFromPause()');
+    expect(penaltySource).not.toContain("label: 'About'");
     expect(penaltySource).toContain('this.rulesModal = createMatchRulesOverlay({');
     expect(pauseSource).toContain('export function createMatchPauseOverlay');
+    expect(pauseSource).toContain('statsPanel?: Phaser.GameObjects.GameObject');
+    expect(pauseSource).toContain('options.statsPanel ??');
     expect(rulesSource).toContain('export function createMatchRulesOverlay');
     expect(penaltySource).toContain('this.penaltyAiController?.cancelPendingAction()');
     expect(penaltySource).toContain('this.schedulePenaltyAiAction()');
@@ -334,6 +341,30 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).not.toContain('PENALTY_FIELD_WIDTH');
     expect(penaltySource).not.toContain('0x0d6a42');
     expect(penaltySource).not.toContain('createPenaltyGoalFrame');
+  });
+
+  it('uses a shared-layout penalty stats panel in the penalty pause menu', () => {
+    const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
+    const pausePanelSource = readFileSync(join(process.cwd(), 'src', 'ui', 'PenaltyPauseStatsPanel.ts'), 'utf8');
+    const matchPanelSource = readFileSync(join(process.cwd(), 'src', 'ui', 'MatchStatsPanel.ts'), 'utf8');
+
+    expect(penaltySource).toContain('new PenaltyPauseStatsPanel');
+    expect(penaltySource).toContain('matchResult: this.matchResult');
+    expect(penaltySource).toContain('shootoutState: this.shootoutState');
+    expect(pausePanelSource).toContain('MATCH_STATS_PANEL_HEIGHT');
+    expect(pausePanelSource).toContain('MATCH_STATS_PANEL_WIDTH');
+    expect(pausePanelSource).toContain('const width = options.width ?? MATCH_STATS_PANEL_WIDTH');
+    expect(pausePanelSource).toContain('const height = options.height ?? MATCH_STATS_PANEL_HEIGHT');
+    expect(pausePanelSource).toContain('SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA');
+    expect(pausePanelSource).toContain("['Match goals', String(matchResult.homeGoals), String(matchResult.awayGoals)]");
+    expect(pausePanelSource).toContain("['Penalties', String(shootoutState.homeGoals), String(shootoutState.awayGoals)]");
+    expect(pausePanelSource).toContain("['Attempts', String(shootoutState.homeKicks), String(shootoutState.awayKicks)]");
+    expect(pausePanelSource).toContain("'GK saves'");
+    expect(pausePanelSource).toContain('getPenaltyGoalkeeperSaves(shootoutState,');
+    expect(pausePanelSource).toContain('`PEN ${shootoutState.homeGoals}:${shootoutState.awayGoals}`');
+    expect(pausePanelSource).toContain('getTeamScoreboardCode(matchResult.homeTeamId)');
+    expect(pausePanelSource).not.toContain('Goalscorers');
+    expect(matchPanelSource).toContain('export const MATCH_STATS_PANEL_WIDTH = RESULT_ACTION_PANEL_WIDTH');
   });
 
   it('provides a tournament completion scene with champion summary and stats navigation', () => {

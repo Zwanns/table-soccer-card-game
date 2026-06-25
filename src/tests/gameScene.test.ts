@@ -186,7 +186,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
 
-  it('opens a Pause overlay with Continue, Exit to Menu, Results and About actions', () => {
+  it('opens a Pause overlay with Results, Continue and Exit to Menu actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
@@ -198,33 +198,69 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.openExitConfirmModal()');
     expect(source).toContain("label: 'Results'");
     expect(source).toContain('this.openResult(state)');
-    expect(source).toContain("label: 'About'");
-    expect(source).toContain("this.openMatchInfoModal('about')");
+    const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal()'));
+    expect(pauseBlock).not.toContain("label: 'About'");
+    expect(pauseBlock).not.toContain("this.openMatchInfoModal('about')");
+    expect(source).toContain('], { state });');
     expect(source).toContain('private closePauseModal(): void');
     expect(source).toContain('this.pauseModal === null');
     expect(overlaySource).toContain('setDepth(MATCH_OVERLAY_DEPTH)');
     expect(overlaySource).toContain('overlay.setInteractive()');
+    expect(overlaySource).not.toContain(".text(0, titleY, 'Pause'");
+    expect(overlaySource).not.toContain("fontSize: '34px'");
+    expect(overlaySource).toContain('MATCH_STATS_PANEL_CENTER_Y');
+    expect(overlaySource).toContain("import { createResultActionButtons } from './resultActionButtons'");
+    expect(overlaySource).toContain('const buttons = createResultActionButtons(scene, centerX, actions);');
   });
 
-  it('keeps enlarged pause buttons inside a roomier panel', () => {
+  it('uses the result screen button row for Pause actions', () => {
     const source = readSource('src/ui/matchPauseOverlay.ts');
+    const resultActionsSource = readSource('src/ui/resultActionButtons.ts');
 
-    expect(source).toContain('const PAUSE_MODAL_WIDTH = 460');
-    expect(source).toContain('const PAUSE_BUTTON_WIDTH = 300');
-    expect(source).toContain('const PAUSE_BUTTON_HEIGHT = 64');
-    expect(source).toContain("const PAUSE_BUTTON_FONT_SIZE = '26px'");
-    expect(source).toContain('const PAUSE_BUTTON_GAP = 20');
-    expect(source).toContain('184 + actions.length * PAUSE_BUTTON_HEIGHT');
+    expect(source).toContain('createResultActionButtons(scene, centerX, actions)');
+    expect(source).not.toContain('PAUSE_BUTTON_WIDTH');
+    expect(source).not.toContain('PAUSE_BUTTON_HEIGHT');
+    expect(source).not.toContain('PAUSE_BUTTON_GAP');
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
+    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
   });
 
-  it('keeps pause action hit areas tied to the visible Button size', () => {
+  it('shows current match statistics above the pause actions', () => {
+    const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
+    const statsPanelSource = readSource('src/ui/MatchStatsPanel.ts');
+
+    expect(overlaySource).toContain('export interface MatchPauseOverlayOptions');
+    expect(overlaySource).toContain('state?: Readonly<GameState>');
+    expect(overlaySource).toContain('new MatchStatsPanel(scene, centerX, MATCH_STATS_PANEL_CENTER_Y');
+    expect(statsPanelSource).toContain('export class MatchStatsPanel extends Phaser.GameObjects.Container');
+    expect(statsPanelSource).toContain("import { RESULT_ACTION_PANEL_WIDTH } from './resultActionButtons'");
+    expect(statsPanelSource).toContain('export const MATCH_STATS_PANEL_WIDTH = RESULT_ACTION_PANEL_WIDTH');
+    expect(statsPanelSource).toContain('export const MATCH_STATS_PANEL_HEIGHT = 500');
+    expect(statsPanelSource).toContain('export const MATCH_STATS_PANEL_CENTER_Y = 360');
+    expect(statsPanelSource).toContain('const [playerOneStats, playerTwoStats] = getMatchStats(options.state)');
+    expect(statsPanelSource).toContain("['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)]");
+    expect(statsPanelSource).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
+    expect(statsPanelSource).toContain("['GK saves', String(playerOneStats.goalkeeperSaves), String(playerTwoStats.goalkeeperSaves)]");
+    expect(statsPanelSource).toContain('formatGoalScorerLabel(scorer)');
+    expect(statsPanelSource).toContain('getTeamScoreboardCode(options.playerOneFlagCode)');
+    expect(statsPanelSource).toContain('getTeamScoreboardCode(options.playerTwoFlagCode)');
+    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, -168, 92, playerOneScorers, columnWidth))');
+    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, 168, 92, playerTwoScorers, columnWidth))');
+    expect(statsPanelSource).toContain("align: 'center'");
+    expect(statsPanelSource).toContain('.setOrigin(0.5, 0)');
+    expect(statsPanelSource).toContain("return '-'");
+  });
+
+  it('keeps pause action hit areas tied to the shared result Button size', () => {
     const pauseSource = readSource('src/ui/matchPauseOverlay.ts');
+    const actionsSource = readSource('src/ui/resultActionButtons.ts');
     const buttonSource = readSource('src/ui/Button.ts');
 
-    expect(pauseSource).toContain('new Button(scene, 0, firstButtonY + index *');
-    expect(pauseSource).toContain('fontSize: PAUSE_BUTTON_FONT_SIZE');
-    expect(pauseSource).toContain('height: PAUSE_BUTTON_HEIGHT');
-    expect(pauseSource).toContain('width: PAUSE_BUTTON_WIDTH');
+    expect(pauseSource).toContain('createResultActionButtons(scene, centerX, actions)');
+    expect(actionsSource).toContain('fontSize: RESULT_ACTION_BUTTON_FONT_SIZE');
+    expect(actionsSource).toContain('height: RESULT_ACTION_BUTTON_HEIGHT');
+    expect(actionsSource).toContain('width: buttonWidth');
     expect(buttonSource).toContain('const width = options.width ?? 220');
     expect(buttonSource).toContain('const height = options.height ?? 54');
     expect(buttonSource).toContain('const background = scene.add.rectangle(0, 0, width, height');
@@ -343,6 +379,7 @@ describe('GameScene visual layout contracts', () => {
     const advantageSource = readSource('src/ui/AdvantageView.ts');
 
     expect(advantageSource).toContain('export const ADVANTAGE_VIEW_WIDTH = 520');
+    expect(advantageSource).toContain('export const ADVANTAGE_TRACK_WIDTH = ADVANTAGE_VIEW_WIDTH - 12');
     expect(scoreSource).toContain("import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView'");
     expect(scoreSource).toContain("} from './scoreboardStyle'");
     expect(scoreSource).toContain('export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH');
@@ -368,6 +405,24 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).not.toContain('scene.add.rectangle(0, 0, 620, 78');
   });
 
+  it('docks the advantage indicator to the scoreboard with reduced inner side padding', () => {
+    const layoutSource = readSource('src/ui/matchScreenLayout.ts');
+    const scoreSource = readSource('src/ui/ScoreView.ts');
+    const advantageSource = readSource('src/ui/AdvantageView.ts');
+    const scoreboardY = Number(layoutSource.match(/export const MATCH_SCOREBOARD_CENTER_Y = (\d+)/)?.[1]);
+    const advantageY = Number(layoutSource.match(/export const MATCH_ADVANTAGE_CENTER_Y = (\d+)/)?.[1]);
+    const scoreHeight = Number(scoreSource.match(/export const SCORE_VIEW_HEIGHT = (\d+)/)?.[1]);
+    const advantageHeight = Number(advantageSource.match(/export const ADVANTAGE_VIEW_HEIGHT = (\d+)/)?.[1]);
+    const scoreboardBottom = scoreboardY + scoreHeight / 2;
+    const advantageTop = advantageY - advantageHeight / 2;
+
+    expect(scoreboardBottom).toBe(81);
+    expect(advantageTop).toBe(scoreboardBottom);
+    expect(layoutSource).toContain('export const MATCH_ADVANTAGE_CENTER_Y = 92');
+    expect(advantageSource).toContain('export const ADVANTAGE_TRACK_WIDTH = ADVANTAGE_VIEW_WIDTH - 12');
+    expect(advantageSource).not.toContain('export const ADVANTAGE_TRACK_WIDTH = 420');
+  });
+
   it('uses scoreboard codes and the score font for all top scoreboard text', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
 
@@ -376,13 +431,37 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).toContain('getTeamScoreboardCode(playerOneFlagCode)');
     expect(scoreSource).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
     expect(scoreSource).toContain('fontFamily: SCORE_VIEW_FONT_FAMILY');
-    expect(scoreSource.match(/fontFamily: SCORE_VIEW_FONT_FAMILY/g)?.length).toBeGreaterThanOrEqual(5);
-    expect(scoreSource.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(scoreSource.match(/fontFamily: SCORE_VIEW_FONT_FAMILY/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(scoreSource.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(3);
     expect(scoreSource).toContain('super(scene, px(x), px(y))');
     expect(scoreSource).not.toContain('.setScale(');
     expect(scoreSource).not.toContain('fontFamily: \'Arial, sans-serif\'');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, -158, 26, playerOneName)');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, 158, 26, playerTwoName)');
+    expect(scoreSource).not.toContain('createShotsLabel');
+    expect(scoreSource).not.toContain('Shots:');
+  });
+
+  it('keeps top scoreboard flags inset with team codes between flags and score', () => {
+    const scoreSource = readSource('src/ui/ScoreView.ts');
+    const width = 520;
+    const flagWidth = 58;
+    const playerOneFlagX = Number(scoreSource.match(/this\.createFlag\(scene, (-?\d+), playerOneFlagCode\)/)?.[1]);
+    const playerTwoFlagX = Number(scoreSource.match(/this\.createFlag\(scene, (-?\d+), playerTwoFlagCode\)/)?.[1]);
+    const playerOneCodeX = Number(scoreSource.match(/this\.createPlayerLabel\(scene, (-?\d+), getTeamScoreboardCode\(playerOneFlagCode\)/)?.[1]);
+    const playerTwoCodeX = Number(scoreSource.match(/this\.createPlayerLabel\(scene, (-?\d+), getTeamScoreboardCode\(playerTwoFlagCode\)/)?.[1]);
+    const edgeGap = playerOneFlagX - flagWidth / 2 - -width / 2;
+    const codeEstimateWidth = 56;
+    const flagToCodeGap = playerOneCodeX - codeEstimateWidth - (playerOneFlagX + flagWidth / 2);
+
+    expect(playerOneFlagX).toBe(-221);
+    expect(playerTwoFlagX).toBe(221);
+    expect(playerOneFlagX).toBeLessThan(playerOneCodeX);
+    expect(playerOneCodeX).toBeLessThan(0);
+    expect(0).toBeLessThan(playerTwoCodeX);
+    expect(playerTwoCodeX).toBeLessThan(playerTwoFlagX);
+    expect(edgeGap).toBeGreaterThanOrEqual(9);
+    expect(edgeGap).toBeCloseTo(flagToCodeGap, 0);
   });
 
   it('uses a transparent black background without borders for in-game info panels', () => {
@@ -407,7 +486,8 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("onComplete: () => this.finishAttackAnimation(state, context, card, target, outcome, onComplete)");
     expect(source).toContain("if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {");
     expect(source).toContain('this.showImpactPulse(target.x, target.y, outcome);');
-    expect(source).toContain('this.playGoalkeeperImpactSound(context.positionId, outcome);');
+    expect(source).not.toContain('this.playGoalkeeperImpactSound(context.positionId, outcome);');
+    expect(source).not.toContain('private playGoalkeeperImpactSound(');
     expect(source).toContain('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);');
     expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
@@ -769,8 +849,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('x: target.x + (activeOnLeft ? -190 : 190)');
     expect(source).toContain('y: target.y - 64');
     expect(source).toContain('x: deflection.x + (activeOnLeft ? -88 : 88)');
-    expect(source).toContain("if (outcome !== 'goal' && outcome !== 'post' && outcome !== 'save') {");
-    expect(source).toContain('this.playSceneEffectSound(getGoalkeeperShotSceneEffect(outcome));');
+    expect(source).not.toContain("if (outcome !== 'goal' && outcome !== 'post' && outcome !== 'save') {");
+    expect(source).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
+    expect(source).toContain('this.playSceneEffectSound(shotEffect);');
     expect(eventEffectsSource).toContain("flyingMessage: 'Post!'");
     expect(eventEffectsSource).toContain("soundKey: 'sound-goalpost'");
     expect(source).not.toContain('private animateGoalkeeperShotPostReturn(');

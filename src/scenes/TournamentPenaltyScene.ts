@@ -60,6 +60,8 @@ import {
   MATCH_SCOREBOARD_CENTER_X,
   MATCH_SCOREBOARD_CENTER_Y
 } from '../ui/matchScreenLayout';
+import { MATCH_STATS_PANEL_CENTER_Y } from '../ui/MatchStatsPanel';
+import { PenaltyPauseStatsPanel } from '../ui/PenaltyPauseStatsPanel';
 import { ScoreView } from '../ui/ScoreView';
 import { createResultActionButtons } from '../ui/resultActionButtons';
 import { ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage } from './MenuScene';
@@ -266,8 +268,21 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       return;
     }
 
+    if (this.matchResult === null || this.shootoutState === null) {
+      return;
+    }
+
     this.penaltyAiController?.cancelPendingAction();
+    const statsPanel = new PenaltyPauseStatsPanel(this, SCENE_WIDTH / 2, MATCH_STATS_PANEL_CENTER_Y, {
+      matchResult: this.matchResult,
+      shootoutState: this.shootoutState
+    });
+
     this.pauseModal = createMatchPauseOverlay(this, [
+      {
+        label: 'Results',
+        onClick: () => this.completeShootoutFromPause()
+      },
       { label: 'Continue', onClick: () => this.closePauseModal() },
       {
         label: 'Exit to Menu',
@@ -275,12 +290,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
           this.closePauseModal();
           this.scene.start('MenuScene');
         }
-      },
-      {
-        label: 'Results',
-        onClick: () => this.completeShootoutFromPause()
       }
-    ]);
+    ], { statsPanel });
   }
 
   private completeShootoutFromPause(): void {
@@ -374,8 +385,6 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       matchResult.awayTeamId,
       matchResult.homeGoals,
       matchResult.awayGoals,
-      matchResult.teamStats.home.shots,
-      matchResult.teamStats.away.shots,
       {
         penaltyScore: {
           playerOne: shootoutState.homeGoals,
