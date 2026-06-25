@@ -70,12 +70,15 @@ describe('touch drag-scroll helpers', () => {
     const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
     const layoutSource = readSource('src/ui/tournamentSetupLayout.ts');
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const hubLayoutSource = readSource('src/ui/tournamentHubLayout.ts');
 
     expect(layoutSource).toContain("{ x: 130, y: 666, width: 170, height: 54, fontSize: '18px' }");
     expect(layoutSource).toContain("{ x: 1360, y: 666, width: 230, height: 54, fontSize: '18px' }");
     expect(setupSource).toContain('new Button(this, buttonLayout.x, buttonLayout.y');
     expect(setupSource).not.toContain('touchHeight:');
-    expect(hubSource).toContain("new Button(this, 132, 666, 'Menu'");
+    expect(hubLayoutSource).toContain('menuX: 132');
+    expect(hubLayoutSource).toContain('y: 666');
+    expect(hubSource).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Menu'");
     expect(hubSource).not.toContain('touchHeight:');
   });
 });

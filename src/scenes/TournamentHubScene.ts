@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   getTournamentFormat,
   getTournamentGroupStandings,
@@ -20,7 +20,13 @@ import {
   type TournamentTeamStatsRankingKey
 } from '../tournament';
 import { Button } from '../ui/Button';
+import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
+import {
+  createTournamentHubLayout,
+  getTournamentHubMatchMaxScroll,
+  type TournamentHubLayout
+} from '../ui/tournamentHubLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
 
@@ -117,8 +123,10 @@ const STATS_TABLE_COLUMNS = {
 export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
   private matchPage = 0;
+  private matchScrollY = 0;
   private statsRankingScrollY = 0;
   private statsTeamScrollY = 0;
+  private mobileLandscapeLayout = false;
 
   public constructor() {
     super('TournamentHubScene');
@@ -129,6 +137,23 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   public create(): void {
+    this.mobileLandscapeLayout = createTournamentHubLayout().mobileLandscape;
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
+    });
+    this.render();
+  }
+
+  private handleScaleResize(): void {
+    const mobileLandscapeLayout = createTournamentHubLayout().mobileLandscape;
+
+    if (mobileLandscapeLayout === this.mobileLandscapeLayout) {
+      return;
+    }
+
+    this.mobileLandscapeLayout = mobileLandscapeLayout;
+    this.matchScrollY = 0;
     this.render();
   }
 
@@ -136,6 +161,7 @@ export class TournamentHubScene extends Phaser.Scene {
     this.children.removeAll(true);
 
     const tournament = this.getTournament();
+    const layout = createTournamentHubLayout();
 
     createTournamentBackground(this);
 
@@ -144,11 +170,11 @@ export class TournamentHubScene extends Phaser.Scene {
       return;
     }
 
-    this.createHeader(tournament);
-    this.createTabs();
+    this.createHeader(tournament, layout);
+    this.createTabs(layout);
 
     if (this.activeTab === 'matches') {
-      this.createMatchesTab(tournament);
+      this.createMatchesTab(tournament, layout);
     } else if (this.activeTab === 'tables') {
       this.createTablesTab(tournament);
     } else if (this.activeTab === 'bracket') {
@@ -157,9 +183,10 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createStatsTab(tournament);
     }
 
-    new Button(this, 132, 666, 'Menu', () => this.scene.start('MenuScene'), {
-      fontSize: '18px',
-      width: 170
+    new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.scene.start('MenuScene'), {
+      fontSize: layout.footer.fontSize,
+      height: layout.footer.buttonHeight,
+      width: layout.footer.buttonWidth
     });
   }
 
@@ -189,70 +216,97 @@ export class TournamentHubScene extends Phaser.Scene {
     });
   }
 
-  private createHeader(tournament: TournamentState): void {
+  private createHeader(tournament: TournamentState, layout: TournamentHubLayout): void {
     const format = getTournamentFormat(tournament.formatId);
     const completedMatches = tournament.matches.filter((match) => match.status === 'completed').length;
 
+    if (layout.header.showGameTitle) {
+      this.add
+        .text(SCENE_WIDTH / 2, layout.header.gameTitleY, GAME_TITLE, {
+          color: '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.header.gameTitleFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+    }
     this.add
-      .text(SCENE_WIDTH / 2, 30, GAME_TITLE, {
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(SCENE_WIDTH / 2, 68, `${format.name} | ${completedMatches}/${tournament.matches.length} matches`, {
+      .text(
+        SCENE_WIDTH / 2,
+        layout.header.tournamentTitleY,
+        `${format.name} | ${completedMatches}/${tournament.matches.length} matches`,
+        {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: layout.header.tournamentTitleFontSize,
         fontStyle: '700'
-      })
+        }
+      )
       .setOrigin(0.5);
   }
 
-  private createTabs(): void {
+  private createTabs(layout: TournamentHubLayout): void {
     const tabs = Object.keys(TAB_LABELS) as TournamentHubTab[];
-    const tabWidth = 190;
-    const tabGap = 212;
-    const startX = SCENE_WIDTH / 2 - ((tabs.length - 1) * tabGap) / 2;
 
     tabs.forEach((tab, index) => {
       const selected = this.activeTab === tab;
-      const x = startX + index * tabGap;
-      const button = this.add.container(x, 116);
-      const background = this.add.rectangle(0, 0, tabWidth, 46, selected ? 0xf0c95a : 0x143f2c, selected ? 1 : 0.94);
-      background.setStrokeStyle(2, selected ? 0x2d382f : 0x5f9572, 0.95);
+      const x =
+        layout.tabs.startX +
+        layout.tabs.width / 2 +
+        index * (layout.tabs.width + layout.tabs.gap);
+      const button = this.add.container(x, layout.tabs.y);
+      const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
+      const inactiveBackgroundColor = layout.mobileLandscape ? style.backgroundColor : 0x143f2c;
+      const inactiveBackgroundAlpha = layout.mobileLandscape ? style.backgroundAlpha : 0.94;
+      const inactiveBorderColor = layout.mobileLandscape ? style.borderColor : 0x5f9572;
+      const inactiveBorderAlpha = layout.mobileLandscape ? style.borderAlpha : 0.95;
+      const background = this.add.rectangle(
+        0,
+        0,
+        layout.tabs.width,
+        layout.tabs.height,
+        selected ? 0xf0c95a : inactiveBackgroundColor,
+        selected ? 1 : inactiveBackgroundAlpha
+      );
+      background.setStrokeStyle(
+        layout.mobileLandscape ? 2 : style.borderWidth,
+        selected ? 0x2d382f : inactiveBorderColor,
+        selected ? 0.95 : inactiveBorderAlpha
+      );
       const label = this.add
         .text(0, 0, TAB_LABELS[tab], {
           color: selected ? '#1f2a2e' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '20px',
+          fontSize: layout.tabs.fontSize,
           fontStyle: '700'
         })
         .setOrigin(0.5);
 
       button.add([background, label]);
-      button.setSize(tabWidth, 46);
+      button.setSize(layout.tabs.width, layout.tabs.height);
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
-          background.setFillStyle(0x1d5b3f, 0.96);
+          background.setFillStyle(
+            layout.mobileLandscape ? TEAM_CARD_STYLE.hover.backgroundColor : 0x1d5b3f,
+            layout.mobileLandscape ? TEAM_CARD_STYLE.hover.backgroundAlpha : 0.96
+          );
         }
       });
       button.on('pointerout', () => {
         if (!selected) {
-          background.setFillStyle(0x143f2c, 0.94);
+          background.setFillStyle(inactiveBackgroundColor, inactiveBackgroundAlpha);
         }
       });
       button.on('pointerdown', () => {
         this.activeTab = tab;
+        this.matchScrollY = 0;
         this.render();
       });
     });
   }
 
-  private createMatchesTab(tournament: TournamentState): void {
+  private createMatchesTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const maxPage = Math.max(0, Math.ceil(tournament.matches.length / MATCHES_PER_PAGE) - 1);
     this.matchPage = Phaser.Math.Clamp(this.matchPage, 0, maxPage);
     const pageMatches = tournament.matches.slice(
@@ -260,33 +314,306 @@ export class TournamentHubScene extends Phaser.Scene {
       this.matchPage * MATCHES_PER_PAGE + MATCHES_PER_PAGE
     );
 
-    pageMatches.forEach((match, index) => {
-      const column = index % MATCH_GRID.columns;
-      const row = Math.floor(index / MATCH_GRID.columns);
-      const x = MATCH_GRID.x + column * (MATCH_GRID.cardWidth + MATCH_GRID.columnGap);
-      const y = MATCH_GRID.y + row * MATCH_GRID.rowGap;
+    if (layout.mobileLandscape) {
+      this.createMobileMatchesList(tournament, pageMatches, layout);
+    } else {
+      pageMatches.forEach((match, index) => {
+        const column = index % MATCH_GRID.columns;
+        const row = Math.floor(index / MATCH_GRID.columns);
+        const x = MATCH_GRID.x + column * (MATCH_GRID.cardWidth + MATCH_GRID.columnGap);
+        const y = MATCH_GRID.y + row * MATCH_GRID.rowGap;
 
-      this.createMatchRow(tournament, match, x, y);
-    });
+        this.createMatchRow(tournament, match, x, y);
+      });
+    }
 
-    new Button(this, 600, 666, 'Back', () => this.changeMatchPage(-1, maxPage), {
+    new Button(this, layout.footer.backX, layout.footer.y, 'Back', () => this.changeMatchPage(-1, maxPage), {
       disabled: this.matchPage === 0,
-      fontSize: '18px',
-      width: 170
+      fontSize: layout.footer.fontSize,
+      height: layout.footer.buttonHeight,
+      width: layout.footer.buttonWidth
     });
     this.add
-      .text(800, 666, `${this.matchPage + 1} / ${maxPage + 1}`, {
+      .text(layout.footer.pageX, layout.footer.y, `${this.matchPage + 1} / ${maxPage + 1}`, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
+        fontSize: layout.mobileLandscape ? '22px' : '20px',
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, 1000, 666, '→', () => this.changeMatchPage(1, maxPage), {
+    new Button(this, layout.footer.nextX, layout.footer.y, '→', () => this.changeMatchPage(1, maxPage), {
       disabled: this.matchPage === maxPage,
-      fontSize: '18px',
-      width: 170
+      fontSize: layout.footer.fontSize,
+      height: layout.footer.buttonHeight,
+      width: layout.footer.buttonWidth
     });
+  }
+
+  private createMobileMatchesList(
+    tournament: TournamentState,
+    matches: readonly TournamentMatch[],
+    layout: TournamentHubLayout
+  ): void {
+    const viewportHeight = layout.matches.viewportHeight ?? 0;
+    const content = this.add.container(0, layout.matches.y);
+    const actionTargets: Phaser.GameObjects.Zone[] = [];
+    const maxScroll = getTournamentHubMatchMaxScroll(matches.length, layout);
+    let refreshInputs = (): void => {};
+    const setScroll = (value: number): void => {
+      this.matchScrollY = clampScroll(value, maxScroll);
+      content.y = layout.matches.y - this.matchScrollY;
+      refreshInputs();
+    };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: layout.matches.x,
+        y: layout.matches.y,
+        width: layout.matches.cardWidth,
+        height: viewportHeight
+      },
+      maxScroll,
+      getScroll: () => this.matchScrollY,
+      setScroll
+    });
+
+    matches.forEach((match, index) => {
+      const rowY = index * layout.matches.rowGap;
+      const row = this.createMobileMatchRow(tournament, match, layout);
+
+      row.setPosition(layout.matches.x, rowY);
+      content.add(row);
+
+      if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
+        const actions = [
+          {
+            x: layout.matches.cardWidth - 230,
+            width: layout.matches.simWidth,
+            onTap: () => this.simulateTournamentMatch(tournament, match)
+          },
+          {
+            x: layout.matches.cardWidth - 78,
+            width: layout.matches.playWidth,
+            onTap: () => this.startTournamentMatch(tournament, match)
+          }
+        ];
+
+        actions.forEach((action) => {
+          const zone = this.add
+            .zone(
+              layout.matches.x + action.x,
+              rowY + layout.matches.cardHeight / 2,
+              action.width,
+              layout.matches.actionHeight
+            )
+            .setInteractive({ useHandCursor: true });
+
+          zone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+            setScroll(this.matchScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+          });
+          dragScroll.bindScrollableTapTarget(zone, action.onTap);
+          actionTargets.push(zone);
+          content.add(zone);
+        });
+      }
+    });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(layout.matches.x, layout.matches.y, layout.matches.cardWidth, viewportHeight)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(
+        layout.matches.x + layout.matches.cardWidth / 2,
+        layout.matches.y + viewportHeight / 2,
+        layout.matches.cardWidth,
+        viewportHeight
+      )
+      .setInteractive({ useHandCursor: maxScroll > 0 })
+      .setDepth(-10);
+
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.matchScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    dragScroll.bindDragTarget(scrollZone);
+    refreshInputs = () => dragScroll.updateScrollableItemInputs(content, actionTargets);
+    this.matchScrollY = clampScroll(this.matchScrollY, maxScroll);
+    setScroll(this.matchScrollY);
+
+    if (maxScroll > 0) {
+      this.createScrollbar(
+        this.add.container(0, 0),
+        layout.matches.x + layout.matches.cardWidth + 10,
+        layout.matches.y,
+        viewportHeight,
+        maxScroll,
+        () => this.matchScrollY
+      );
+    }
+  }
+
+  private createMobileMatchRow(
+    tournament: TournamentState,
+    match: TournamentMatch,
+    layout: TournamentHubLayout
+  ): Phaser.GameObjects.Container {
+    const row = this.add.container(0, 0);
+    const borderStyle = match.status === 'completed' ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.panel;
+    const background = this.add.rectangle(
+      0,
+      0,
+      layout.matches.cardWidth,
+      layout.matches.cardHeight,
+      TEAM_CARD_STYLE.panel.backgroundColor,
+      TEAM_CARD_STYLE.panel.backgroundAlpha
+    );
+    background.setOrigin(0);
+    background.setStrokeStyle(borderStyle.borderWidth, borderStyle.borderColor, borderStyle.borderAlpha);
+    row.add(background);
+
+    row.add(
+      this.add
+        .text(20, 22, formatMatchLabel(match), {
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.matches.labelFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+
+    this.addMobileMatchTeam(
+      row,
+      tournament,
+      match.homeTeamId,
+      190,
+      layout.matches.cardHeight / 2,
+      layout
+    );
+    row.add(
+      this.add
+        .text(710, layout.matches.cardHeight / 2, formatMatchScore(match), {
+          align: 'center',
+          color: '#ffffff',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.matches.scoreFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0.5)
+    );
+    this.addMobileMatchTeam(
+      row,
+      tournament,
+      match.awayTeamId,
+      820,
+      layout.matches.cardHeight / 2,
+      layout
+    );
+
+    if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
+      row.add(
+        this.createMobileMatchActionVisual(
+          layout.matches.cardWidth - 230,
+          layout.matches.cardHeight / 2,
+          'Sim',
+          layout.matches.simWidth,
+          layout
+        )
+      );
+      row.add(
+        this.createMobileMatchActionVisual(
+          layout.matches.cardWidth - 78,
+          layout.matches.cardHeight / 2,
+          'Play',
+          layout.matches.playWidth,
+          layout
+        )
+      );
+    } else {
+      row.add(
+        this.add
+          .text(layout.matches.cardWidth - 24, layout.matches.cardHeight / 2, formatMatchStatus(match), {
+            align: 'right',
+            color: match.status === 'completed' ? '#f0c95a' : '#8fb39d',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '20px',
+            fontStyle: '700'
+          })
+          .setOrigin(1, 0.5)
+      );
+    }
+
+    return row;
+  }
+
+  private addMobileMatchTeam(
+    row: Phaser.GameObjects.Container,
+    tournament: TournamentState,
+    teamId: TournamentTeamId | undefined,
+    x: number,
+    y: number,
+    layout: TournamentHubLayout
+  ): void {
+    const team = teamId === undefined ? undefined : findTeam(teamId);
+
+    if (team !== undefined) {
+      const flag = this.add.image(x, y - 8, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(42, 31);
+      row.add(flag);
+    }
+
+    row.add(
+      this.add
+        .text(x + 36, y - 8, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
+          color: team === undefined ? '#8fb39d' : TEAM_CARD_STYLE.normal.textColor,
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.matches.teamFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+    row.add(
+      this.add
+        .text(
+          x,
+          y + 28,
+          teamId === undefined ? '' : getTournamentTeamControllerType(tournament, teamId),
+          {
+            color: '#f0c95a',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: layout.matches.controllerFontSize,
+            fontStyle: '700'
+          }
+        )
+        .setOrigin(0.5)
+    );
+  }
+
+  private createMobileMatchActionVisual(
+    x: number,
+    y: number,
+    label: string,
+    width: number,
+    layout: TournamentHubLayout
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    const background = this.add.rectangle(0, 0, width, layout.matches.actionHeight, 0xf0c95a, 1);
+    background.setStrokeStyle(2, 0x2d382f, 0.95);
+    const text = this.add
+      .text(0, 0, label, {
+        color: '#1f2a2e',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: layout.matches.actionFontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+
+    button.add([background, text]);
+    return button;
   }
 
   private createMatchRow(tournament: TournamentState, match: TournamentMatch, x: number, y: number): void {
@@ -1058,6 +1385,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private changeMatchPage(direction: -1 | 1, maxPage: number): void {
     this.matchPage = Phaser.Math.Clamp(this.matchPage + direction, 0, maxPage);
+    this.matchScrollY = 0;
     this.render();
   }
 
