@@ -872,6 +872,10 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('type GoalkeeperShotSceneEffect,');
     expect(source).toContain('type GoalScoredSceneEffect');
     expect(impactBlock).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
+    expect(impactBlock).toContain('const shotEventIndex = getGoalkeeperShotEventIndex(this.requireEngine().getState().log, outcome);');
+    expect(impactBlock).toContain('const shouldStartImpactEffects = claimGoalkeeperShotImpactEvent(');
+    expect(impactBlock).toContain('this.handledGoalkeeperShotEventIndexes,\n      shotEventIndex');
+    expect(impactBlock).toContain('if (shouldStartImpactEffects) {');
     expect(impactBlock).toContain('this.playSceneEffectSound(shotEffect);');
     expect(impactBlock).toContain('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);');
     expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
@@ -903,5 +907,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('duration: fadeDuration,');
     expect(source).toContain('private playSceneEffectSound(effect: GoalkeeperShotSceneEffect | GoalScoredSceneEffect): boolean');
     expect(source).toContain('return playSoundSafe(this, effect.soundKey, { volume: 0.72 });');
+    expect(source).not.toContain('handledGoalScoredEventCursor');
+    expect(source).not.toContain('this.requireEngine().getState().log.length');
   });
 });

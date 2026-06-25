@@ -448,7 +448,10 @@ describe('project scaffold', () => {
     expect(gameSceneSource).toContain('return playSoundSafe(this, effect.soundKey, { volume: 0.72 });');
     expect(audioHelperSource).toContain('): boolean');
     expect(audioHelperSource).toContain('return false;');
-    expect(audioHelperSource).toContain('return true;');
+    expect(audioHelperSource).toContain('const didPlay = scene.sound.play(key, config);');
+    expect(audioHelperSource).toContain('return didPlay;');
+    expect(audioHelperSource).toContain('if (!import.meta.env.DEV)');
+    expect(audioHelperSource).toContain('Sound manager rejected playback');
     expect(gameSceneSource).not.toContain("this.playSound('sound-goal', 0.72)");
   });
 

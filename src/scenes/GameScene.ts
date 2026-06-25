@@ -62,6 +62,8 @@ import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '..
 import { ABOUT_CONTENT, ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage, type InfoModalKind } from './MenuScene';
 import type { TeamSelectionData } from './TeamSelectScene';
 import {
+  claimGoalkeeperShotImpactEvent,
+  getGoalkeeperShotEventIndex,
   getGoalkeeperShotSceneEffect,
   getNextGoalScoredSceneEffect,
   type GoalkeeperShotSceneEffect,
@@ -190,7 +192,7 @@ export class GameScene extends Phaser.Scene {
   private player2CoverTextureKey = getFallbackCoverTextureKey();
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
   private matchMode: MatchMode = 'quick';
-  private handledGoalScoredEventCursor = 0;
+  private handledGoalkeeperShotEventIndexes = new Set<number>();
   private isMatchEffectInProgress = false;
   private isAttackAnimationInProgress = false;
   private isRestoreAnimationInProgress = false;
@@ -218,7 +220,7 @@ export class GameScene extends Phaser.Scene {
     this.player1CoverTextureKey = getFallbackCoverTextureKey();
     this.player2CoverTextureKey = getFallbackCoverTextureKey();
     this.animatedRestoreCount = 0;
-    this.handledGoalScoredEventCursor = 0;
+    this.handledGoalkeeperShotEventIndexes.clear();
     this.isMatchEffectInProgress = false;
     this.isAttackAnimationInProgress = false;
     this.isRestoreAnimationInProgress = false;
@@ -536,11 +538,11 @@ export class GameScene extends Phaser.Scene {
       const goalkeeperRankChange = getLastGoalkeeperRankChangedEvent(state.log);
       const attackDeckEmpty = state.log.slice(-5).some((event) => event.type === 'ATTACK_DECK_EMPTY');
       const missedAttack = state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED');
-      const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalScoredEventCursor);
+      const goalEffect = getNextGoalScoredSceneEffect(state.log, this.handledGoalkeeperShotEventIndexes);
       const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);
 
       if (goalEffect !== null) {
-        this.handledGoalScoredEventCursor = goalEffect.eventIndex + 1;
+        this.handledGoalkeeperShotEventIndexes.add(goalEffect.eventIndex);
         this.render(state, { hiddenRestoredCards, interactive: false });
         this.isMatchEffectInProgress = true;
         this.playSceneEffectSound(goalEffect);
@@ -1760,14 +1762,18 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     const shotEffect = getGoalkeeperShotSceneEffect(outcome);
+    const shotEventIndex = getGoalkeeperShotEventIndex(this.requireEngine().getState().log, outcome);
+    const shouldStartImpactEffects = claimGoalkeeperShotImpactEvent(
+      this.handledGoalkeeperShotEventIndexes,
+      shotEventIndex
+    );
 
-    this.playSceneEffectSound(shotEffect);
-    this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);
-    if (shotEffect.type === 'GOAL_SCORED') {
-      this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;
+    if (shouldStartImpactEffects) {
+      this.playSceneEffectSound(shotEffect);
+      this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);
+      this.showGoalkeeperShotTargetImpact(target, outcome);
+      onEffectStarted?.();
     }
-    this.showGoalkeeperShotTargetImpact(target, outcome);
-    onEffectStarted?.();
 
     if (outcome === 'goal') {
       this.animateGoalkeeperShotGoalDisappear(

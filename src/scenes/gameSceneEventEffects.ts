@@ -15,6 +15,12 @@ export type GoalkeeperShotSceneEffect = {
   soundKey: 'sound-goal' | 'sound-goalpost' | 'sound-goalkeeper-save';
 };
 
+const GOALKEEPER_SHOT_EVENT_TYPES = {
+  goal: 'GOAL_SCORED',
+  post: 'GOALPOST_HIT',
+  save: 'GOALKEEPER_SAVE'
+} as const;
+
 export function getGoalkeeperShotSceneEffect(
   outcome: 'goal' | 'post' | 'save'
 ): GoalkeeperShotSceneEffect {
@@ -43,16 +49,45 @@ export function getGoalkeeperShotSceneEffect(
   }
 }
 
+export function getGoalkeeperShotEventIndex(
+  events: readonly GameEvent[],
+  outcome: 'goal' | 'post' | 'save'
+): number | null {
+  const eventType = GOALKEEPER_SHOT_EVENT_TYPES[outcome];
+
+  for (let eventIndex = events.length - 1; eventIndex >= 0; eventIndex -= 1) {
+    if (events[eventIndex]?.type === eventType) {
+      return eventIndex;
+    }
+  }
+
+  return null;
+}
+
+export function claimGoalkeeperShotImpactEvent(
+  handledEventIndexes: Set<number>,
+  eventIndex: number | null
+): boolean {
+  if (eventIndex === null) {
+    return true;
+  }
+
+  if (handledEventIndexes.has(eventIndex)) {
+    return false;
+  }
+
+  handledEventIndexes.add(eventIndex);
+  return true;
+}
+
 export function getNextGoalScoredSceneEffect(
   events: readonly GameEvent[],
-  handledEventCursor: number
+  handledEventIndexes: ReadonlySet<number>
 ): GoalScoredSceneEffect | null {
-  const startIndex = Math.max(0, handledEventCursor);
-
-  for (let eventIndex = startIndex; eventIndex < events.length; eventIndex += 1) {
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex += 1) {
     const event = events[eventIndex];
 
-    if (event?.type === 'GOAL_SCORED') {
+    if (event?.type === 'GOAL_SCORED' && !handledEventIndexes.has(eventIndex)) {
       return {
         type: 'GOAL_SCORED',
         eventIndex,

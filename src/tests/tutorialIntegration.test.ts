@@ -132,7 +132,9 @@ describe('Tutorial Match launch and GameScene integration', () => {
 
     expect(impactBlock).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
     expect(impactBlock).toContain('this.playSceneEffectSound(shotEffect);');
-    expect(impactBlock).toContain('this.handledGoalScoredEventCursor = this.requireEngine().getState().log.length;');
+    expect(impactBlock).toContain('const shotEventIndex = getGoalkeeperShotEventIndex(this.requireEngine().getState().log, outcome);');
+    expect(impactBlock).toContain('claimGoalkeeperShotImpactEvent(');
+    expect(impactBlock).toContain('this.handledGoalkeeperShotEventIndexes');
     expect(gameSource).not.toContain("this.matchMode === 'tutorial' ? 'sound-goal'");
     expect(gameSource).not.toContain("playSound('sound-goal'");
   });
