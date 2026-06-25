@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
@@ -45,6 +45,11 @@ const GROUP_GAP_X = 14;
 const GROUP_GAP_Y = 16;
 const GROUPS_START_X = 54;
 const GROUPS_START_Y = 166;
+const TEAM_TOOLTIP_DEPTH = 1000;
+const TEAM_OPTION_FLAG_X = -TEAM_BUTTON_WIDTH / 2 + 33;
+const TEAM_OPTION_CODE_X = 24;
+const SLOT_FLAG_X = 32;
+const SLOT_CODE_X = 94;
 const FORMAT_IDS: readonly TournamentFormatId[] = ['cup-m', 'cup-l', 'cup-xl'];
 const FORMAT_LABELS: Record<TournamentFormatId, string> = {
   'cup-m': 'Cup M',
@@ -59,6 +64,7 @@ export class TournamentSetupScene extends Phaser.Scene {
   private seed = 'tournament-setup';
   private randomActionIndex = 0;
   private message: Phaser.GameObjects.Text | null = null;
+  private teamTooltip: Phaser.GameObjects.Container | null = null;
 
   public constructor() {
     super('TournamentSetupScene');
@@ -222,25 +228,31 @@ export class TournamentSetupScene extends Phaser.Scene {
     background.setOrigin(0);
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
     background.setInteractive({ useHandCursor: true });
+    if (team !== undefined) {
+      background.on('pointerover', (pointer: Phaser.Input.Pointer) => this.showTeamTooltip(team.name, pointer.x, pointer.y));
+      background.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveTeamTooltip(pointer.x, pointer.y));
+      background.on('pointerout', () => this.hideTeamTooltip());
+    }
     background.on('pointerdown', () => {
       this.activeSlotIndex = slotIndex;
       this.render();
     });
 
+    const label = team === undefined ? 'Empty' : getTeamScoreboardCode(team.flagCode);
     const name = this.add
-      .text(team === undefined ? 12 : 42, SLOT_HEIGHT / 2, team?.name ?? 'Empty', {
+      .text(team === undefined ? 12 : SLOT_CODE_X, SLOT_HEIGHT / 2, label, {
         color: style.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontSize: team === undefined ? '14px' : '18px',
         fontStyle: '700',
-        wordWrap: { width: team === undefined ? 170 : 86 }
+        wordWrap: { width: team === undefined ? 170 : 72 }
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(team === undefined ? 0 : 0.5, 0.5);
 
     slot.add([background, name]);
 
     if (team !== undefined) {
-      const flag = this.add.image(24, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
+      const flag = this.add.image(SLOT_FLAG_X, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(24, 18);
       const aiCheckbox = this.createAiCheckbox(154, SLOT_HEIGHT / 2, slotIndex);
       const remove = this.add
@@ -417,20 +429,19 @@ export class TournamentSetupScene extends Phaser.Scene {
       style.backgroundAlpha
     );
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
-    // Position flag and name to avoid overlap; center vertically
-    const flag = this.add.image(-TEAM_BUTTON_WIDTH / 2 + 18, 0, getFlagAssetKey(team.flagCode));
+    const flag = this.add.image(TEAM_OPTION_FLAG_X, 0, getFlagAssetKey(team.flagCode));
     flag.setDisplaySize(30, 22);
-    // Remove ordinal rank numbers from the tournament setup team list
+    const teamCode = getTeamScoreboardCode(team.flagCode);
     const name = this.add
-      .text(-TEAM_BUTTON_WIDTH / 2 + 48, 0, team.name, {
-        align: 'left',
+      .text(TEAM_OPTION_CODE_X, 0, teamCode, {
+        align: 'center',
         color: style.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '22px',
         fontStyle: '700',
-        wordWrap: { width: TEAM_BUTTON_WIDTH - 64 }
+        wordWrap: { width: 72 }
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5);
 
     option.add([background, flag, name]);
     option.setSize(TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
@@ -441,13 +452,55 @@ export class TournamentSetupScene extends Phaser.Scene {
         name.setColor(TEAM_CARD_STYLE.hover.textColor);
       }
     });
+    option.on('pointerover', (pointer: Phaser.Input.Pointer) => this.showTeamTooltip(team.name, pointer.x, pointer.y));
+    option.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveTeamTooltip(pointer.x, pointer.y));
     option.on('pointerout', () => {
       if (!isSelected) {
         this.applyTeamCardStyle(background, TEAM_CARD_STYLE.normal);
         name.setColor(TEAM_CARD_STYLE.normal.textColor);
       }
+      this.hideTeamTooltip();
     });
     return option;
+  }
+
+  private showTeamTooltip(text: string, pointerX: number, pointerY: number): void {
+    this.hideTeamTooltip();
+
+    const label = this.add
+      .text(0, 0, text, {
+        color: '#f7f0c6',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: '700',
+        padding: { x: 10, y: 6 }
+      })
+      .setOrigin(0);
+    const bounds = label.getBounds();
+    const background = this.add.rectangle(0, 0, bounds.width + 2, bounds.height + 2, 0x10291f, 0.96);
+    background.setOrigin(0);
+    background.setStrokeStyle(1, 0xf0c95a, 0.9);
+
+    this.teamTooltip = this.add.container(0, 0, [background, label]).setDepth(TEAM_TOOLTIP_DEPTH);
+    this.moveTeamTooltip(pointerX, pointerY);
+  }
+
+  private moveTeamTooltip(pointerX: number, pointerY: number): void {
+    if (this.teamTooltip === null) {
+      return;
+    }
+
+    const tooltipWidth = this.teamTooltip.getBounds().width;
+    const tooltipHeight = this.teamTooltip.getBounds().height;
+    const x = Phaser.Math.Clamp(pointerX + 14, 8, SCENE_WIDTH - tooltipWidth - 8);
+    const y = Phaser.Math.Clamp(pointerY + 16, 8, SCENE_HEIGHT - tooltipHeight - 8);
+
+    this.teamTooltip.setPosition(x, y);
+  }
+
+  private hideTeamTooltip(): void {
+    this.teamTooltip?.destroy();
+    this.teamTooltip = null;
   }
 
   private applyTeamCardStyle(

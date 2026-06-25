@@ -94,6 +94,25 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain('shuffleTournamentSetupGroups(this.draft');
     expect(setupSource).toContain('createTournamentFromSetupDraft(this.draft');
   });
+
+  it('renders tournament team cards with shared 3-letter codes, padded flags and full-name tooltips', () => {
+    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+
+    expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
+    expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
+    expect(setupSource).toContain('const TEAM_OPTION_FLAG_X = -TEAM_BUTTON_WIDTH / 2 + 33');
+    expect(setupSource).toContain('const SLOT_FLAG_X = 32');
+    expect(setupSource).toContain('const TEAM_OPTION_CODE_X = 24');
+    expect(setupSource).toContain('const SLOT_CODE_X = 94');
+    expect(setupSource).toContain(".text(TEAM_OPTION_CODE_X, 0, teamCode");
+    expect(setupSource).toContain(".setOrigin(0.5)");
+    expect(setupSource).toContain("fontSize: '22px'");
+    expect(setupSource).toContain("fontSize: team === undefined ? '14px' : '18px'");
+    expect(setupSource).toContain('showTeamTooltip(team.name');
+    expect(setupSource).toContain('moveTeamTooltip(pointer.x, pointer.y)');
+    expect(setupSource).toContain('hideTeamTooltip()');
+    expect(setupSource).toContain('setDepth(TEAM_TOOLTIP_DEPTH)');
+  });
 });
 
 describe('tournament setup draft helpers', () => {

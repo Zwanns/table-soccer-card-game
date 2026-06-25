@@ -129,6 +129,6 @@ describe('penalty impact scene effects', () => {
     expect(defeatBlock.indexOf('this.tweens.add({')).toBeLessThan(
       defeatBlock.indexOf('goalkeeperCard.destroy()')
     );
-    expect(defeatBlock).toContain('goalkeeperCard.destroy();\n        onComplete();');
+    expect(defeatBlock.replace(/\r\n/g, '\n')).toContain('goalkeeperCard.destroy();\n        onComplete();');
   });
 });
