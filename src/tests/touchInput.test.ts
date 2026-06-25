@@ -68,10 +68,12 @@ describe('touch drag-scroll helpers', () => {
 
   it('keeps tournament bottom buttons on the shared exact Button hit area', () => {
     const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
+    const layoutSource = readSource('src/ui/tournamentSetupLayout.ts');
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
 
-    expect(setupSource).toContain("new Button(this, 130, 666, 'Menu'");
-    expect(setupSource).toContain("new Button(this, 1360, 666, 'Start tournament'");
+    expect(layoutSource).toContain("{ x: 130, y: 666, width: 170, height: 54, fontSize: '18px' }");
+    expect(layoutSource).toContain("{ x: 1360, y: 666, width: 230, height: 54, fontSize: '18px' }");
+    expect(setupSource).toContain('new Button(this, buttonLayout.x, buttonLayout.y');
     expect(setupSource).not.toContain('touchHeight:');
     expect(hubSource).toContain("new Button(this, 132, 666, 'Menu'");
     expect(hubSource).not.toContain('touchHeight:');

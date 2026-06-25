@@ -4,6 +4,11 @@ import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTe
 import { Button } from '../ui/Button';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
+import {
+  createTournamentSetupLayout,
+  getTournamentSetupGroupMaxScroll,
+  type TournamentSetupLayout
+} from '../ui/tournamentSetupLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   changeTournamentSetupFormat,
@@ -27,30 +32,7 @@ import {
   type TournamentTeamId
 } from '../tournament';
 
-const TEAM_GRID_COLUMNS = 3;
-const TEAM_BUTTON_WIDTH = 154;
-const TEAM_BUTTON_HEIGHT = 42;
-const TEAM_GRID_GAP_X = 12;
-const TEAM_GRID_GAP_Y = 8;
-const TEAM_GRID_START_X = 1076;
-const TEAM_GRID_VIEWPORT_TOP = 164;
-const TEAM_GRID_VIEWPORT_HEIGHT = 464;
-const TEAM_GRID_VIEWPORT_PADDING = 8;
-const SLOT_WIDTH = 200;
-const SLOT_HEIGHT = 38;
-const GROUP_PANEL_WIDTH = 220;
-const GROUP_PANEL_HEIGHT = 196;
-const GROUP_GAP_X = 14;
-const GROUP_GAP_Y = 16;
-const GROUPS_START_X = 54;
-const GROUPS_START_Y = 166;
 const TEAM_TOOLTIP_DEPTH = 1000;
-const TEAM_OPTION_FLAG_X = -TEAM_BUTTON_WIDTH / 2 + 33;
-const TEAM_OPTION_CODE_X = 24;
-const SLOT_FLAG_X = 32;
-const SLOT_CODE_X = 94;
-const SLOT_AI_BUTTON_WIDTH = 44;
-const SLOT_AI_BUTTON_X = SLOT_WIDTH - SLOT_AI_BUTTON_WIDTH / 2;
 const SLOT_AI_BUTTON_FONT_SIZE = '16px';
 const SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xf0c95a;
 const SLOT_AI_BUTTON_ACTIVE_BORDER_COLOR = 0xf7e08a;
@@ -68,11 +50,13 @@ const FORMAT_LABELS: Record<TournamentFormatId, string> = {
 export class TournamentSetupScene extends Phaser.Scene {
   private draft: TournamentSetupDraft = createTournamentSetupDraft('cup-m');
   private activeSlotIndex = 0;
+  private groupScrollY = 0;
   private teamGridScrollY = 0;
   private seed = 'tournament-setup';
   private randomActionIndex = 0;
   private message: Phaser.GameObjects.Text | null = null;
   private teamTooltip: Phaser.GameObjects.Container | null = null;
+  private mobileLandscapeLayout = false;
 
   public constructor() {
     super('TournamentSetupScene');
@@ -81,8 +65,27 @@ export class TournamentSetupScene extends Phaser.Scene {
   public create(): void {
     this.draft = createTournamentSetupDraft('cup-m');
     this.activeSlotIndex = 0;
+    this.groupScrollY = 0;
     this.teamGridScrollY = 0;
     this.seed = `tournament-${Date.now().toString(36)}`;
+    this.mobileLandscapeLayout = createTournamentSetupLayout().mobileLandscape;
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
+    });
+    this.render();
+  }
+
+  private handleScaleResize(): void {
+    const mobileLandscapeLayout = createTournamentSetupLayout().mobileLandscape;
+
+    if (mobileLandscapeLayout === this.mobileLandscapeLayout) {
+      return;
+    }
+
+    this.mobileLandscapeLayout = mobileLandscapeLayout;
+    this.groupScrollY = 0;
+    this.teamGridScrollY = 0;
     this.render();
   }
 
@@ -93,53 +96,61 @@ export class TournamentSetupScene extends Phaser.Scene {
     const centerX = SCENE_WIDTH / 2;
     const selectedCount = getSelectedTournamentTeamIds(this.draft).length;
     const totalCount = this.draft.slots.length;
+    const layout = createTournamentSetupLayout();
 
     createTournamentBackground(this);
     this.add
-      .text(centerX, 30, GAME_TITLE, {
+      .text(centerX, layout.title.y, GAME_TITLE, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: layout.title.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
     this.add
-      .text(centerX, 68, 'Tournament', {
+      .text(centerX, layout.subtitle.y, 'Tournament', {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: layout.subtitle.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    this.createFormatButtons();
-    this.createSummary(selectedCount, totalCount);
-    this.createGroupSlots();
-    this.createTeamGrid();
-    this.createBottomButtons();
+    this.createFormatButtons(layout);
+    this.createSummary(selectedCount, totalCount, layout);
+    this.createGroupSlots(layout);
+    this.createTeamGrid(layout);
+    this.createBottomButtons(layout);
   }
 
-  private createFormatButtons(): void {
+  private createFormatButtons(layout: TournamentSetupLayout): void {
     FORMAT_IDS.forEach((formatId, index) => {
       const selected = this.draft.formatId === formatId;
       const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
-      const x = SCENE_WIDTH / 2 - 250 + index * 250;
-      const button = this.add.container(x, 112);
-      const background = this.add.rectangle(0, 0, 210, 48, style.backgroundColor, style.backgroundAlpha);
+      const x = layout.format.startX + index * layout.format.gapX;
+      const button = this.add.container(x, layout.format.y);
+      const background = this.add.rectangle(
+        0,
+        0,
+        layout.format.width,
+        layout.format.height,
+        style.backgroundColor,
+        style.backgroundAlpha
+      );
       background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
       const label = this.add
         .text(0, 0, FORMAT_LABELS[formatId], {
           align: 'center',
           color: style.textColor,
           fontFamily: 'Arial, sans-serif',
-          fontSize: '20px',
+          fontSize: layout.format.fontSize,
           fontStyle: '700'
         })
         .setOrigin(0.5);
       const format = getTournamentFormat(formatId);
       // Do not show team count in the format button (removed per UI request)
       button.add([background, label]);
-      button.setSize(210, 48);
+      button.setSize(layout.format.width, layout.format.height);
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
@@ -157,48 +168,183 @@ export class TournamentSetupScene extends Phaser.Scene {
     });
   }
 
-  private createSummary(selectedCount: number, totalCount: number): void {
+  private createSummary(selectedCount: number, totalCount: number, layout: TournamentSetupLayout): void {
     const matchesCount = getTournamentMatchCount(this.draft.formatId);
 
     this.add
-      .text(352, 124, `Participants ${selectedCount}/${totalCount}`, {
+      .text(layout.summary.participantsX, layout.summary.y, `Participants ${selectedCount}/${totalCount}`, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
+        fontSize: layout.summary.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
     this.add
-      .text(1244, 124, `${matchesCount} matches`, {
+      .text(layout.summary.matchesX, layout.summary.y, `${matchesCount} matches`, {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
+        fontSize: layout.summary.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
   }
 
-  private createGroupSlots(): void {
+  private createGroupSlots(layout: TournamentSetupLayout): void {
+    if (layout.mobileLandscape) {
+      this.createMobileGroupSlots(layout);
+      return;
+    }
+
     const format = getTournamentFormat(this.draft.formatId);
-    const columns = format.groupCount <= 4 ? format.groupCount : 4;
+    const columns = layout.groups.columns ?? (format.groupCount <= 4 ? format.groupCount : 4);
 
     for (let groupIndex = 0; groupIndex < format.groupCount; groupIndex += 1) {
       const column = groupIndex % columns;
       const row = Math.floor(groupIndex / columns);
-      const x = GROUPS_START_X + column * (GROUP_PANEL_WIDTH + GROUP_GAP_X);
-      const y = GROUPS_START_Y + row * (GROUP_PANEL_HEIGHT + GROUP_GAP_Y);
+      const x = layout.groups.startX + column * (layout.groups.panelWidth + layout.groups.gapX);
+      const y = layout.groups.startY + row * (layout.groups.panelHeight + layout.groups.gapY);
 
-      this.createGroupPanel(x, y, format.groupIds[groupIndex], groupIndex);
+      this.createGroupPanel(x, y, format.groupIds[groupIndex], groupIndex, layout, true);
     }
   }
 
-  private createGroupPanel(x: number, y: number, groupId: string, groupIndex: number): void {
+  private createMobileGroupSlots(layout: TournamentSetupLayout): void {
+    const format = getTournamentFormat(this.draft.formatId);
+    const columns = layout.groups.columns ?? 2;
+    const viewportWidth = layout.groups.viewportWidth ?? 0;
+    const viewportHeight = layout.groups.viewportHeight ?? 0;
+    const rowCount = Math.ceil(format.groupCount / columns);
+    const contentHeight = rowCount * layout.groups.panelHeight + Math.max(0, rowCount - 1) * layout.groups.gapY;
+    const maxScroll = getTournamentSetupGroupMaxScroll(format.groupCount, layout);
+    const content = this.add.container(0, layout.groups.startY);
+    const tapTargets: Phaser.GameObjects.Zone[] = [];
+    let refreshInputs = (): void => {};
+    const setScroll = (value: number): void => {
+      this.groupScrollY = clampScroll(value, maxScroll);
+      content.y = layout.groups.startY - this.groupScrollY;
+      refreshInputs();
+    };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: layout.groups.startX,
+        y: layout.groups.startY,
+        width: viewportWidth,
+        height: viewportHeight
+      },
+      maxScroll,
+      getScroll: () => this.groupScrollY,
+      setScroll
+    });
+
+    for (let groupIndex = 0; groupIndex < format.groupCount; groupIndex += 1) {
+      const column = groupIndex % columns;
+      const row = Math.floor(groupIndex / columns);
+      const x = layout.groups.startX + column * (layout.groups.panelWidth + layout.groups.gapX);
+      const y = row * (layout.groups.panelHeight + layout.groups.gapY);
+      const panel = this.createGroupPanel(x, y, format.groupIds[groupIndex], groupIndex, layout, false);
+
+      content.add(panel);
+
+      for (let slotOffset = 0; slotOffset < 4; slotOffset += 1) {
+        const slotIndex = groupIndex * 4 + slotOffset;
+        const slotY = y + layout.groups.slotStartY + slotOffset * layout.groups.slotStepY;
+        const hasTeam = this.draft.slots[slotIndex] !== null;
+        const selectionWidth =
+          layout.groups.slotWidth - (hasTeam ? layout.groups.slotAiButtonWidth : 0);
+        const selectionZone = this.add
+          .zone(
+            x + layout.groups.slotX + selectionWidth / 2,
+            slotY + layout.groups.slotHeight / 2,
+            selectionWidth,
+            layout.groups.slotHeight
+          )
+          .setInteractive({ useHandCursor: true });
+
+        selectionZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+          setScroll(this.groupScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+        });
+        dragScroll.bindScrollableTapTarget(selectionZone, () => {
+          this.activeSlotIndex = slotIndex;
+          this.render();
+        });
+        tapTargets.push(selectionZone);
+        content.add(selectionZone);
+
+        if (hasTeam) {
+          const aiZone = this.add
+            .zone(
+              x + layout.groups.slotX + layout.groups.slotWidth - layout.groups.slotAiButtonWidth / 2,
+              slotY + layout.groups.slotHeight / 2,
+              layout.groups.slotAiButtonWidth,
+              layout.groups.slotHeight
+            )
+            .setInteractive({ useHandCursor: true });
+
+          aiZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+            setScroll(this.groupScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+          });
+          dragScroll.bindScrollableTapTarget(aiZone, () => this.toggleTeamControllerType(slotIndex));
+          tapTargets.push(aiZone);
+          content.add(aiZone);
+        }
+      }
+    }
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(layout.groups.startX, layout.groups.startY, viewportWidth, viewportHeight)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(
+        layout.groups.startX + viewportWidth / 2,
+        layout.groups.startY + viewportHeight / 2,
+        viewportWidth,
+        viewportHeight
+      )
+      .setInteractive({ useHandCursor: maxScroll > 0 })
+      .setDepth(-10);
+
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.groupScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    dragScroll.bindDragTarget(scrollZone);
+    refreshInputs = () => dragScroll.updateScrollableItemInputs(content, tapTargets);
+    this.groupScrollY = clampScroll(this.groupScrollY, maxScroll);
+    setScroll(this.groupScrollY);
+
+    if (maxScroll > 0) {
+      this.createScrollIndicator(
+        layout.groups.startX + viewportWidth + 8,
+        layout.groups.startY,
+        viewportHeight,
+        contentHeight,
+        maxScroll,
+        () => this.groupScrollY,
+        content,
+        refreshInputs
+      );
+    }
+  }
+
+  private createGroupPanel(
+    x: number,
+    y: number,
+    groupId: string,
+    groupIndex: number,
+    layout: TournamentSetupLayout,
+    interactive: boolean
+  ): Phaser.GameObjects.Container {
     const panel = this.add.container(x, y);
     const background = this.add.rectangle(
       0,
       0,
-      GROUP_PANEL_WIDTH,
-      GROUP_PANEL_HEIGHT,
+      layout.groups.panelWidth,
+      layout.groups.panelHeight,
       TEAM_CARD_STYLE.panel.backgroundColor,
       TEAM_CARD_STYLE.panel.backgroundAlpha
     );
@@ -209,10 +355,10 @@ export class TournamentSetupScene extends Phaser.Scene {
       TEAM_CARD_STYLE.panel.borderAlpha
     );
     const title = this.add
-      .text(14, 16, `Group ${groupId}`, {
+      .text(layout.groups.titleX, layout.groups.titleY, `Group ${groupId}`, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
+        fontSize: layout.groups.titleFontSize,
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
@@ -222,51 +368,84 @@ export class TournamentSetupScene extends Phaser.Scene {
     for (let slotOffset = 0; slotOffset < 4; slotOffset += 1) {
       const slotIndex = groupIndex * 4 + slotOffset;
 
-      panel.add(this.createSlot(10, 44 + slotOffset * 36, slotIndex));
+      panel.add(
+        this.createSlot(
+          layout.groups.slotX,
+          layout.groups.slotStartY + slotOffset * layout.groups.slotStepY,
+          slotIndex,
+          layout,
+          interactive
+        )
+      );
     }
+
+    return panel;
   }
 
-  private createSlot(x: number, y: number, slotIndex: number): Phaser.GameObjects.Container {
+  private createSlot(
+    x: number,
+    y: number,
+    slotIndex: number,
+    layout: TournamentSetupLayout,
+    interactive: boolean
+  ): Phaser.GameObjects.Container {
     const teamId = this.draft.slots[slotIndex];
     const team = teamId === null ? undefined : findTeam(teamId);
     const selected = this.activeSlotIndex === slotIndex;
     const style = selected ? TEAM_CARD_STYLE.selected : team === undefined ? TEAM_CARD_STYLE.muted : TEAM_CARD_STYLE.normal;
     const slot = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, style.backgroundColor, style.backgroundAlpha);
+    const background = this.add.rectangle(
+      0,
+      0,
+      layout.groups.slotWidth,
+      layout.groups.slotHeight,
+      style.backgroundColor,
+      style.backgroundAlpha
+    );
     background.setOrigin(0);
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
-    background.setInteractive({ useHandCursor: true });
-    if (team !== undefined) {
+    if (interactive) {
+      background.setInteractive({ useHandCursor: true });
+    }
+    if (team !== undefined && interactive) {
       background.on('pointerover', (pointer: Phaser.Input.Pointer) => this.showTeamTooltip(team.name, pointer.x, pointer.y));
       background.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveTeamTooltip(pointer.x, pointer.y));
       background.on('pointerout', () => this.hideTeamTooltip());
     }
-    background.on('pointerdown', () => {
-      this.activeSlotIndex = slotIndex;
-      this.render();
-    });
+    if (interactive) {
+      background.on('pointerdown', () => {
+        this.activeSlotIndex = slotIndex;
+        this.render();
+      });
+    }
 
     const label = team === undefined ? 'Empty' : getTeamScoreboardCode(team.flagCode);
     const name = this.add
-      .text(team === undefined ? 12 : SLOT_CODE_X, SLOT_HEIGHT / 2, label, {
+      .text(team === undefined ? 12 : layout.groups.slotCodeX, layout.groups.slotHeight / 2, label, {
         color: style.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: team === undefined ? '14px' : '18px',
+        fontSize: team === undefined ? layout.groups.emptyFontSize : layout.groups.slotFontSize,
         fontStyle: '700',
-        wordWrap: { width: team === undefined ? 170 : 72 }
+        wordWrap: { width: team === undefined ? layout.groups.slotWidth - 24 : 96 }
       })
       .setOrigin(team === undefined ? 0 : 0.5, 0.5);
 
     slot.add([background, name]);
 
     if (team !== undefined) {
-      const flag = this.add.image(SLOT_FLAG_X, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(24, 18);
-      const aiButton = this.createAiButton(SLOT_AI_BUTTON_X, SLOT_HEIGHT / 2, slotIndex);
+      const flag = this.add.image(layout.groups.slotFlagX, layout.groups.slotHeight / 2, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(layout.mobileLandscape ? 34 : 24, layout.mobileLandscape ? 26 : 18);
+      const aiButton = this.createAiButton(
+        layout.groups.slotWidth - layout.groups.slotAiButtonWidth / 2,
+        layout.groups.slotHeight / 2,
+        slotIndex,
+        layout,
+        interactive
+      );
       slot.add([flag, aiButton]);
     }
 
-    slot.setSize(SLOT_WIDTH, SLOT_HEIGHT);
+    slot.setSize(layout.groups.slotWidth, layout.groups.slotHeight);
 
     return slot;
   }
@@ -274,15 +453,17 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createAiButton(
     x: number,
     y: number,
-    slotIndex: number
+    slotIndex: number,
+    layout: TournamentSetupLayout,
+    interactive: boolean
   ): Phaser.GameObjects.Container {
     const isAi = this.draft.controllerTypes[slotIndex] === 'AI';
     const button = this.add.container(x, y);
     const background = this.add.rectangle(
       0,
       0,
-      SLOT_AI_BUTTON_WIDTH,
-      SLOT_HEIGHT,
+      layout.groups.slotAiButtonWidth,
+      layout.groups.slotHeight,
       isAi ? SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR : SLOT_AI_BUTTON_OFF_BACKGROUND_COLOR,
       isAi ? 1 : 0.82
     );
@@ -300,42 +481,55 @@ export class TournamentSetupScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const hitArea = this.add.rectangle(0, 0, SLOT_AI_BUTTON_WIDTH, SLOT_HEIGHT, 0x000000, 0.01);
+    const hitArea = this.add.rectangle(
+      0,
+      0,
+      layout.groups.slotAiButtonWidth,
+      layout.groups.slotHeight,
+      0x000000,
+      0.01
+    );
 
-    hitArea.setInteractive({ useHandCursor: true });
-    hitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.toggleTeamControllerType(slotIndex);
-    });
+    if (interactive) {
+      hitArea.setInteractive({ useHandCursor: true });
+      hitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        this.toggleTeamControllerType(slotIndex);
+      });
+    }
     button.add([background, label, hitArea]);
 
     return button;
   }
 
-  private createTeamGrid(): void {
-    const content = this.add.container(0, TEAM_GRID_VIEWPORT_TOP);
-    const viewportLeft = TEAM_GRID_START_X - TEAM_BUTTON_WIDTH / 2 - TEAM_GRID_VIEWPORT_PADDING;
+  private createTeamGrid(layout: TournamentSetupLayout): void {
+    const teamLayout = layout.teams;
+    const content = this.add.container(0, teamLayout.viewportTop);
+    const viewportLeft = teamLayout.startX - teamLayout.buttonWidth / 2 - teamLayout.viewportPadding;
     const viewportWidth =
-      TEAM_GRID_COLUMNS * TEAM_BUTTON_WIDTH + (TEAM_GRID_COLUMNS - 1) * TEAM_GRID_GAP_X + TEAM_GRID_VIEWPORT_PADDING * 2;
-    const rowHeight = TEAM_BUTTON_HEIGHT + TEAM_GRID_GAP_Y;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / TEAM_GRID_COLUMNS);
-    const contentHeight = rowCount * rowHeight - TEAM_GRID_GAP_Y;
-    const maxScroll = Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT);
+      teamLayout.columns * teamLayout.buttonWidth +
+      (teamLayout.columns - 1) * teamLayout.gapX +
+      teamLayout.viewportPadding * 2;
+    const rowHeight = teamLayout.buttonHeight + teamLayout.gapY;
+    const rowCount = Math.ceil(NATIONAL_TEAMS.length / teamLayout.columns);
+    const contentHeight = rowCount * rowHeight - teamLayout.gapY;
+    const maxScroll = Math.max(0, contentHeight - teamLayout.viewportHeight);
     const teamOptions: Phaser.GameObjects.Container[] = [];
     let refreshItemInputs = (): void => {};
     const setScroll = (value: number): void => {
       this.teamGridScrollY = clampScroll(value, maxScroll);
-      content.y = TEAM_GRID_VIEWPORT_TOP - this.teamGridScrollY;
+      content.y = teamLayout.viewportTop - this.teamGridScrollY;
       refreshItemInputs();
     };
 
     NATIONAL_TEAMS.forEach((team, index) => {
-      const column = index % TEAM_GRID_COLUMNS;
-      const row = Math.floor(index / TEAM_GRID_COLUMNS);
+      const column = index % teamLayout.columns;
+      const row = Math.floor(index / teamLayout.columns);
       const option = this.createTeamOption(
-        TEAM_GRID_START_X + column * (TEAM_BUTTON_WIDTH + TEAM_GRID_GAP_X),
-        TEAM_BUTTON_HEIGHT / 2 + row * rowHeight,
-        team
+        teamLayout.startX + column * (teamLayout.buttonWidth + teamLayout.gapX),
+        teamLayout.buttonHeight / 2 + row * rowHeight,
+        team,
+        layout
       );
 
       option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
@@ -348,7 +542,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
-      .fillRect(viewportLeft, TEAM_GRID_VIEWPORT_TOP, viewportWidth, TEAM_GRID_VIEWPORT_HEIGHT)
+      .fillRect(viewportLeft, teamLayout.viewportTop, viewportWidth, teamLayout.viewportHeight)
       .createGeometryMask();
     maskGraphics.setVisible(false);
     content.setMask(mask);
@@ -356,9 +550,9 @@ export class TournamentSetupScene extends Phaser.Scene {
     const scrollZone = this.add
       .zone(
         viewportLeft + viewportWidth / 2,
-        TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2,
+        teamLayout.viewportTop + teamLayout.viewportHeight / 2,
         viewportWidth,
-        TEAM_GRID_VIEWPORT_HEIGHT
+        teamLayout.viewportHeight
       )
       .setInteractive({ useHandCursor: maxScroll > 0 })
       .setDepth(-10);
@@ -366,9 +560,9 @@ export class TournamentSetupScene extends Phaser.Scene {
       scene: this,
       viewport: {
         x: viewportLeft,
-        y: TEAM_GRID_VIEWPORT_TOP,
+        y: teamLayout.viewportTop,
         width: viewportWidth,
-        height: TEAM_GRID_VIEWPORT_HEIGHT
+        height: teamLayout.viewportHeight
       },
       maxScroll,
       getScroll: () => this.teamGridScrollY,
@@ -382,8 +576,12 @@ export class TournamentSetupScene extends Phaser.Scene {
       const team = NATIONAL_TEAMS[index];
       const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode);
 
-      if (team !== undefined && !isSelected) {
-        dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team.flagCode));
+      if (team !== undefined) {
+        dragScroll.bindScrollableTapTarget(option, () => {
+          if (!isSelected) {
+            this.selectTeam(team.flagCode);
+          }
+        });
       }
     });
     scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
@@ -392,27 +590,26 @@ export class TournamentSetupScene extends Phaser.Scene {
     dragScroll.bindDragTarget(scrollZone);
 
     if (maxScroll > 0) {
-      const trackX = viewportLeft + viewportWidth + 12;
-      const track = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + TEAM_GRID_VIEWPORT_HEIGHT / 2, 4, TEAM_GRID_VIEWPORT_HEIGHT, 0x5f9572, 0.28);
-      const thumbHeight = Math.max(28, (TEAM_GRID_VIEWPORT_HEIGHT / contentHeight) * TEAM_GRID_VIEWPORT_HEIGHT);
-      const thumb = this.add.rectangle(trackX, TEAM_GRID_VIEWPORT_TOP + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
-      const updateThumb = (): void => {
-        thumb.y =
-          TEAM_GRID_VIEWPORT_TOP +
-          thumbHeight / 2 +
-          (this.teamGridScrollY / maxScroll) * (TEAM_GRID_VIEWPORT_HEIGHT - thumbHeight);
-        refreshItemInputs();
-      };
-
-      updateThumb();
-      this.events.on(Phaser.Scenes.Events.UPDATE, updateThumb);
-      content.once(Phaser.GameObjects.Events.DESTROY, () => {
-        this.events.off(Phaser.Scenes.Events.UPDATE, updateThumb);
-      });
+      this.createScrollIndicator(
+        viewportLeft + viewportWidth + 12,
+        teamLayout.viewportTop,
+        teamLayout.viewportHeight,
+        contentHeight,
+        maxScroll,
+        () => this.teamGridScrollY,
+        content,
+        refreshItemInputs
+      );
     }
   }
 
-  private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
+  private createTeamOption(
+    x: number,
+    y: number,
+    team: NationalTeam,
+    layout: TournamentSetupLayout
+  ): Phaser.GameObjects.Container {
+    const teamLayout = layout.teams;
     const selectedSlotIndex = this.draft.slots.findIndex((teamId) => teamId === team.flagCode);
     const isSelected = selectedSlotIndex !== -1;
     const style = isSelected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
@@ -420,28 +617,28 @@ export class TournamentSetupScene extends Phaser.Scene {
     const background = this.add.rectangle(
       0,
       0,
-      TEAM_BUTTON_WIDTH,
-      TEAM_BUTTON_HEIGHT,
+      teamLayout.buttonWidth,
+      teamLayout.buttonHeight,
       style.backgroundColor,
       style.backgroundAlpha
     );
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
-    const flag = this.add.image(TEAM_OPTION_FLAG_X, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(30, 22);
+    const flag = this.add.image(teamLayout.flagX, 0, getFlagAssetKey(team.flagCode));
+    flag.setDisplaySize(teamLayout.flagWidth, teamLayout.flagHeight);
     const teamCode = getTeamScoreboardCode(team.flagCode);
     const name = this.add
-      .text(TEAM_OPTION_CODE_X, 0, teamCode, {
+      .text(teamLayout.codeX, 0, teamCode, {
         align: 'center',
         color: style.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+        fontSize: teamLayout.codeFontSize,
         fontStyle: '700',
         wordWrap: { width: 72 }
       })
       .setOrigin(0.5);
 
     option.add([background, flag, name]);
-    option.setSize(TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
+    option.setSize(teamLayout.buttonWidth, teamLayout.buttonHeight);
     option.setAlpha(isSelected ? 0.48 : 1);
     option.setInteractive({ useHandCursor: !isSelected });
     option.on('pointerover', () => {
@@ -450,8 +647,10 @@ export class TournamentSetupScene extends Phaser.Scene {
         name.setColor(TEAM_CARD_STYLE.hover.textColor);
       }
     });
-    option.on('pointerover', (pointer: Phaser.Input.Pointer) => this.showTeamTooltip(team.name, pointer.x, pointer.y));
-    option.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveTeamTooltip(pointer.x, pointer.y));
+    if (!layout.mobileLandscape) {
+      option.on('pointerover', (pointer: Phaser.Input.Pointer) => this.showTeamTooltip(team.name, pointer.x, pointer.y));
+      option.on('pointermove', (pointer: Phaser.Input.Pointer) => this.moveTeamTooltip(pointer.x, pointer.y));
+    }
     option.on('pointerout', () => {
       if (!isSelected) {
         this.applyTeamCardStyle(background, TEAM_CARD_STYLE.normal);
@@ -460,6 +659,31 @@ export class TournamentSetupScene extends Phaser.Scene {
       this.hideTeamTooltip();
     });
     return option;
+  }
+
+  private createScrollIndicator(
+    x: number,
+    top: number,
+    viewportHeight: number,
+    contentHeight: number,
+    maxScroll: number,
+    getScroll: () => number,
+    content: Phaser.GameObjects.Container,
+    refreshInputs: () => void
+  ): void {
+    this.add.rectangle(x, top + viewportHeight / 2, 4, viewportHeight, 0x5f9572, 0.28);
+    const thumbHeight = Math.max(28, (viewportHeight / contentHeight) * viewportHeight);
+    const thumb = this.add.rectangle(x, top + thumbHeight / 2, 6, thumbHeight, 0xf0c95a, 0.88);
+    const updateThumb = (): void => {
+      thumb.y = top + thumbHeight / 2 + (getScroll() / maxScroll) * (viewportHeight - thumbHeight);
+      refreshInputs();
+    };
+
+    updateThumb();
+    this.events.on(Phaser.Scenes.Events.UPDATE, updateThumb);
+    content.once(Phaser.GameObjects.Events.DESTROY, () => {
+      this.events.off(Phaser.Scenes.Events.UPDATE, updateThumb);
+    });
   }
 
   private showTeamTooltip(text: string, pointerX: number, pointerY: number): void {
@@ -509,40 +733,37 @@ export class TournamentSetupScene extends Phaser.Scene {
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
   }
 
-  private createBottomButtons(): void {
+  private createBottomButtons(layout: TournamentSetupLayout): void {
     const complete = isTournamentSetupComplete(this.draft);
+    const definitions = [
+      { label: 'Menu', onClick: () => this.scene.start('MenuScene'), disabled: false },
+      { label: 'Clear', onClick: () => this.clear(), disabled: false },
+      { label: 'Fill randomly', onClick: () => this.fillRandom(), disabled: false },
+      { label: 'Fill empty slots', onClick: () => this.fillEmpty(), disabled: false },
+      { label: 'Shuffle groups', onClick: () => this.shuffleGroups(), disabled: !complete },
+      { label: 'Start tournament', onClick: () => this.startTournament(), disabled: !complete }
+    ] as const;
 
-    new Button(this, 130, 666, 'Menu', () => this.scene.start('MenuScene'), {
-      fontSize: '18px',
-      width: 170
-    });
-    new Button(this, 342, 666, 'Clear', () => this.clear(), {
-      fontSize: '18px',
-      width: 170
-    });
-    new Button(this, 574, 666, 'Fill randomly', () => this.fillRandom(), {
-      fontSize: '17px',
-      width: 220
-    });
-    new Button(this, 832, 666, 'Fill empty slots', () => this.fillEmpty(), {
-      fontSize: '17px',
-      width: 220
-    });
-    new Button(this, 1090, 666, 'Shuffle groups', () => this.shuffleGroups(), {
-      disabled: !complete,
-      fontSize: '17px',
-      width: 230
-    });
-    new Button(this, 1360, 666, 'Start tournament', () => this.startTournament(), {
-      disabled: !complete,
-      fontSize: '18px',
-      width: 230
+    definitions.forEach((definition, index) => {
+      const buttonLayout = layout.bottomButtons[index];
+
+      if (buttonLayout === undefined) {
+        return;
+      }
+
+      new Button(this, buttonLayout.x, buttonLayout.y, definition.label, definition.onClick, {
+        disabled: definition.disabled,
+        fontSize: buttonLayout.fontSize,
+        width: buttonLayout.width,
+        height: buttonLayout.height
+      });
     });
   }
 
   private changeFormat(formatId: TournamentFormatId): void {
     this.draft = changeTournamentSetupFormat(this.draft, formatId);
     this.activeSlotIndex = Math.min(this.activeSlotIndex, this.draft.slots.length - 1);
+    this.groupScrollY = 0;
     this.teamGridScrollY = 0;
     this.render();
   }
@@ -608,8 +829,9 @@ export class TournamentSetupScene extends Phaser.Scene {
 
   private showMessage(text: string, color: string): void {
     this.message?.destroy();
+    const layout = createTournamentSetupLayout();
     this.message = this.add
-      .text(SCENE_WIDTH / 2, 620, text, {
+      .text(SCENE_WIDTH / 2, layout.messageY, text, {
         align: 'center',
         color,
         fontFamily: 'Arial, sans-serif',

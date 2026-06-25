@@ -16,6 +16,10 @@ import {
   toggleTournamentSetupTeamControllerType
 } from '../scenes/tournamentSetupDraft';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import {
+  createTournamentSetupLayout,
+  getTournamentSetupGroupMaxScroll
+} from '../ui/tournamentSetupLayout';
 
 describe('tournament setup scene integration', () => {
   it('registers the tournament setup scene', () => {
@@ -33,21 +37,23 @@ describe('tournament setup scene integration', () => {
 
   it('renders a full-height AI toggle button without a delete control in group slots', () => {
     const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const layoutSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentSetupLayout.ts'), 'utf8');
     const aiButtonBlock = setupSource.slice(
       setupSource.indexOf('private createAiButton'),
       setupSource.indexOf('private createTeamGrid')
     );
 
     expect(setupSource).toContain('createAiButton');
-    expect(setupSource).toContain('const SLOT_AI_BUTTON_WIDTH = 44');
-    expect(setupSource).toContain('const SLOT_AI_BUTTON_X = SLOT_WIDTH - SLOT_AI_BUTTON_WIDTH / 2');
+    expect(layoutSource).toContain('slotAiButtonWidth: 44');
+    expect(layoutSource).toContain('slotAiButtonWidth: 64');
     expect(setupSource).toContain("const SLOT_AI_BUTTON_FONT_SIZE = '16px'");
     expect(setupSource).toContain('const SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xf0c95a');
     expect(setupSource).toContain('const SLOT_AI_BUTTON_ACTIVE_TEXT_COLOR = \'#10291f\'');
     expect(setupSource).toContain('const SLOT_AI_BUTTON_OFF_BACKGROUND_COLOR = TEAM_CARD_STYLE.normal.backgroundColor');
     expect(setupSource).toContain('const SLOT_AI_BUTTON_OFF_BORDER_COLOR = 0x9f8952');
     expect(setupSource).toContain("const SLOT_AI_BUTTON_OFF_TEXT_COLOR = '#b9ad7a'");
-    expect(setupSource).toContain('SLOT_AI_BUTTON_WIDTH, SLOT_HEIGHT');
+    expect(setupSource).toContain('layout.groups.slotAiButtonWidth');
+    expect(setupSource).toContain('layout.groups.slotHeight');
     expect(setupSource).toContain("text(0, 0, 'AI'");
     expect(setupSource).toContain('fontSize: SLOT_AI_BUTTON_FONT_SIZE');
     expect(setupSource).toContain('this.toggleTeamControllerType(slotIndex)');
@@ -57,15 +63,16 @@ describe('tournament setup scene integration', () => {
     expect(aiButtonBlock).not.toContain("'#9fb9a9'");
     expect(setupSource).not.toContain('createAiCheckbox');
     expect(setupSource).not.toContain('this.removeTeam(slotIndex)');
-    expect(setupSource).not.toContain("text(188, SLOT_HEIGHT / 2, 'x'");
+    expect(setupSource).not.toContain("text(188");
   });
 
   it('resets setup draft on each fresh scene create and uses a 3-column scrollable team list', () => {
     const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const desktopLayout = createTournamentSetupLayout(false);
 
     expect(setupSource).toContain("this.draft = createTournamentSetupDraft('cup-m')");
-    expect(setupSource).toContain('const TEAM_GRID_COLUMNS = 3');
-    expect(setupSource).toContain('TEAM_GRID_VIEWPORT_HEIGHT');
+    expect(desktopLayout.teams.columns).toBe(3);
+    expect(desktopLayout.teams.viewportHeight).toBe(464);
     expect(setupSource).toContain("scrollZone.on('wheel'");
     expect(setupSource).toContain("option.on('wheel'");
     expect(setupSource).not.toContain('TEAMS_PER_PAGE');
@@ -115,28 +122,86 @@ describe('tournament setup scene integration', () => {
 
   it('renders tournament team cards with shared 3-letter codes, padded flags and full-name tooltips', () => {
     const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const desktopLayout = createTournamentSetupLayout(false);
 
     expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
-    expect(setupSource).toContain('const TEAM_OPTION_FLAG_X = -TEAM_BUTTON_WIDTH / 2 + 33');
-    expect(setupSource).toContain('const SLOT_FLAG_X = 32');
-    expect(setupSource).toContain('const TEAM_OPTION_CODE_X = 24');
-    expect(setupSource).toContain('const SLOT_CODE_X = 94');
-    expect(setupSource).toContain(".text(TEAM_OPTION_CODE_X, 0, teamCode");
+    expect(desktopLayout.teams.flagX).toBe(-44);
+    expect(desktopLayout.groups.slotFlagX).toBe(32);
+    expect(desktopLayout.teams.codeX).toBe(24);
+    expect(desktopLayout.groups.slotCodeX).toBe(94);
+    expect(setupSource).toContain('.text(teamLayout.codeX, 0, teamCode');
     expect(setupSource).toContain(".setOrigin(0.5)");
-    expect(setupSource).toContain("fontSize: '22px'");
-    expect(setupSource).toContain("fontSize: team === undefined ? '14px' : '18px'");
+    expect(desktopLayout.teams.codeFontSize).toBe('22px');
+    expect(desktopLayout.groups.emptyFontSize).toBe('14px');
+    expect(desktopLayout.groups.slotFontSize).toBe('18px');
+    expect(setupSource).toContain('fontSize: teamLayout.codeFontSize');
+    expect(setupSource).toContain('fontSize: team === undefined ? layout.groups.emptyFontSize : layout.groups.slotFontSize');
     expect(setupSource).toContain('showTeamTooltip(team.name');
     expect(setupSource).toContain('moveTeamTooltip(pointer.x, pointer.y)');
     expect(setupSource).toContain('hideTeamTooltip()');
     expect(setupSource).toContain('setDepth(TEAM_TOOLTIP_DEPTH)');
   });
 
+  it('uses a two-column masked group viewport only in mobile landscape', () => {
+    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(setupSource).toContain("import {\n  createTournamentSetupLayout,");
+    expect(setupSource).toContain('if (layout.mobileLandscape) {');
+    expect(setupSource).toContain('this.createMobileGroupSlots(layout)');
+    expect(setupSource).toContain('private createMobileGroupSlots(');
+    expect(setupSource).toContain('content.setMask(mask)');
+    expect(setupSource).toContain('dragScroll.bindScrollableTapTarget(selectionZone');
+    expect(setupSource).toContain('dragScroll.bindScrollableTapTarget(aiZone');
+    expect(setupSource).toContain('dragScroll.bindDragTarget(scrollZone)');
+    expect(desktopLayout.groups.viewportHeight).toBeNull();
+    expect(mobileLayout.groups.columns).toBe(2);
+    expect(mobileLayout.groups.viewportHeight).toBe(350);
+    expect(mobileLayout.groups.panelHeight).toBe(330);
+    expect(mobileLayout.groups.slotHeight).toBeGreaterThan(desktopLayout.groups.slotHeight);
+    expect(getTournamentSetupGroupMaxScroll(2, mobileLayout)).toBe(0);
+    expect(getTournamentSetupGroupMaxScroll(4, mobileLayout)).toBeGreaterThan(0);
+    expect(getTournamentSetupGroupMaxScroll(8, mobileLayout)).toBeGreaterThan(
+      getTournamentSetupGroupMaxScroll(4, mobileLayout)
+    );
+  });
+
+  it('keeps exact desktop geometry and uses compact mobile teams and two action rows', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(desktopLayout.groups).toMatchObject({
+      startX: 54,
+      startY: 166,
+      panelWidth: 220,
+      panelHeight: 196,
+      gapX: 14,
+      gapY: 16,
+      slotWidth: 200,
+      slotHeight: 38
+    });
+    expect(desktopLayout.bottomButtons.map(({ x, y }) => ({ x, y }))).toEqual([
+      { x: 130, y: 666 },
+      { x: 342, y: 666 },
+      { x: 574, y: 666 },
+      { x: 832, y: 666 },
+      { x: 1090, y: 666 },
+      { x: 1360, y: 666 }
+    ]);
+    expect(mobileLayout.teams.columns).toBe(2);
+    expect(mobileLayout.teams.buttonHeight).toBeGreaterThan(desktopLayout.teams.buttonHeight);
+    expect(new Set(mobileLayout.bottomButtons.map((button) => button.y))).toEqual(new Set([548, 624]));
+    expect(mobileLayout.bottomButtons.every((button) => button.height >= 56)).toBe(true);
+  });
+
   it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
     const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
 
     expect(setupSource).toContain('const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode)');
-    expect(setupSource).toContain('if (team !== undefined && !isSelected)');
+    expect(setupSource).toContain('if (team !== undefined) {');
+    expect(setupSource).toContain('if (!isSelected) {\n            this.selectTeam(team.flagCode);');
     expect(setupSource).toContain('option.setAlpha(isSelected ? 0.48 : 1)');
     expect(setupSource).toContain('option.setInteractive({ useHandCursor: !isSelected })');
     expect(setupSource).not.toContain('this.activeSlotIndex = Math.min(this.activeSlotIndex + 1, this.draft.slots.length - 1)');
