@@ -14,7 +14,6 @@ import {
   fillTournamentSetupRandom,
   getSelectedTournamentTeamIds,
   isTournamentSetupComplete,
-  removeTournamentSetupTeam,
   selectTournamentSetupTeam,
   shuffleTournamentSetupGroups,
   toggleTournamentSetupTeamControllerType,
@@ -50,6 +49,15 @@ const TEAM_OPTION_FLAG_X = -TEAM_BUTTON_WIDTH / 2 + 33;
 const TEAM_OPTION_CODE_X = 24;
 const SLOT_FLAG_X = 32;
 const SLOT_CODE_X = 94;
+const SLOT_AI_BUTTON_WIDTH = 44;
+const SLOT_AI_BUTTON_X = SLOT_WIDTH - SLOT_AI_BUTTON_WIDTH / 2;
+const SLOT_AI_BUTTON_FONT_SIZE = '16px';
+const SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xf0c95a;
+const SLOT_AI_BUTTON_ACTIVE_BORDER_COLOR = 0xf7e08a;
+const SLOT_AI_BUTTON_ACTIVE_TEXT_COLOR = '#10291f';
+const SLOT_AI_BUTTON_OFF_BACKGROUND_COLOR = TEAM_CARD_STYLE.normal.backgroundColor;
+const SLOT_AI_BUTTON_OFF_BORDER_COLOR = 0x9f8952;
+const SLOT_AI_BUTTON_OFF_TEXT_COLOR = '#b9ad7a';
 const FORMAT_IDS: readonly TournamentFormatId[] = ['cup-m', 'cup-l', 'cup-xl'];
 const FORMAT_LABELS: Record<TournamentFormatId, string> = {
   'cup-m': 'Cup M',
@@ -254,23 +262,8 @@ export class TournamentSetupScene extends Phaser.Scene {
     if (team !== undefined) {
       const flag = this.add.image(SLOT_FLAG_X, SLOT_HEIGHT / 2, getFlagAssetKey(team.flagCode));
       flag.setDisplaySize(24, 18);
-      const aiCheckbox = this.createAiCheckbox(154, SLOT_HEIGHT / 2, slotIndex);
-      const remove = this.add
-        .text(188, SLOT_HEIGHT / 2, 'x', {
-          align: 'center',
-          color: '#f0c95a',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
-          fontStyle: '700'
-        })
-        .setOrigin(0.5);
-      const removeHitArea = this.add.rectangle(188, SLOT_HEIGHT / 2, 22, 26, 0x000000, 0.01);
-      removeHitArea.setInteractive({ useHandCursor: true });
-      removeHitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-        event.stopPropagation();
-        this.removeTeam(slotIndex);
-      });
-      slot.add([flag, aiCheckbox, remove, removeHitArea]);
+      const aiButton = this.createAiButton(SLOT_AI_BUTTON_X, SLOT_HEIGHT / 2, slotIndex);
+      slot.add([flag, aiButton]);
     }
 
     slot.setSize(SLOT_WIDTH, SLOT_HEIGHT);
@@ -278,42 +271,45 @@ export class TournamentSetupScene extends Phaser.Scene {
     return slot;
   }
 
-  private createAiCheckbox(
+  private createAiButton(
     x: number,
     y: number,
     slotIndex: number
   ): Phaser.GameObjects.Container {
     const isAi = this.draft.controllerTypes[slotIndex] === 'AI';
-    const checkbox = this.add.container(x, y);
-    const box = this.add.rectangle(-12, 0, 12, 12, isAi ? 0xf0c95a : 0x0b2118, 1);
-    box.setStrokeStyle(2, 0xf0c95a, 0.95);
-    const mark = this.add
-      .text(-12, 0, isAi ? '✓' : '', {
+    const button = this.add.container(x, y);
+    const background = this.add.rectangle(
+      0,
+      0,
+      SLOT_AI_BUTTON_WIDTH,
+      SLOT_HEIGHT,
+      isAi ? SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR : SLOT_AI_BUTTON_OFF_BACKGROUND_COLOR,
+      isAi ? 1 : 0.82
+    );
+    background.setStrokeStyle(
+      2,
+      isAi ? SLOT_AI_BUTTON_ACTIVE_BORDER_COLOR : SLOT_AI_BUTTON_OFF_BORDER_COLOR,
+      isAi ? 0.95 : 0.72
+    );
+    const label = this.add
+      .text(0, 0, 'AI', {
         align: 'center',
-        color: '#1f2a2e',
+        color: isAi ? SLOT_AI_BUTTON_ACTIVE_TEXT_COLOR : SLOT_AI_BUTTON_OFF_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '11px',
+        fontSize: SLOT_AI_BUTTON_FONT_SIZE,
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const label = this.add
-      .text(-1, 0, 'AI', {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
-    const hitArea = this.add.rectangle(0, 0, 42, 24, 0x000000, 0.01);
+    const hitArea = this.add.rectangle(0, 0, SLOT_AI_BUTTON_WIDTH, SLOT_HEIGHT, 0x000000, 0.01);
 
     hitArea.setInteractive({ useHandCursor: true });
     hitArea.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       this.toggleTeamControllerType(slotIndex);
     });
-    checkbox.add([box, mark, label, hitArea]);
+    button.add([background, label, hitArea]);
 
-    return checkbox;
+    return button;
   }
 
   private createTeamGrid(): void {
@@ -384,8 +380,9 @@ export class TournamentSetupScene extends Phaser.Scene {
     setScroll(this.teamGridScrollY);
     teamOptions.forEach((option, index) => {
       const team = NATIONAL_TEAMS[index];
+      const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode);
 
-      if (team !== undefined) {
+      if (team !== undefined && !isSelected) {
         dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team.flagCode));
       }
     });
@@ -445,7 +442,8 @@ export class TournamentSetupScene extends Phaser.Scene {
 
     option.add([background, flag, name]);
     option.setSize(TEAM_BUTTON_WIDTH, TEAM_BUTTON_HEIGHT);
-    option.setInteractive({ useHandCursor: true });
+    option.setAlpha(isSelected ? 0.48 : 1);
+    option.setInteractive({ useHandCursor: !isSelected });
     option.on('pointerover', () => {
       if (!isSelected) {
         this.applyTeamCardStyle(background, TEAM_CARD_STYLE.hover);
@@ -552,17 +550,10 @@ export class TournamentSetupScene extends Phaser.Scene {
   private selectTeam(teamId: TournamentTeamId): void {
     try {
       this.draft = selectTournamentSetupTeam(this.draft, this.activeSlotIndex, teamId);
-      this.activeSlotIndex = Math.min(this.activeSlotIndex + 1, this.draft.slots.length - 1);
       this.render();
     } catch (error) {
       this.showMessage(error instanceof Error ? error.message : 'Could not select team.', '#f7a6a6');
     }
-  }
-
-  private removeTeam(slotIndex: number): void {
-    this.draft = removeTournamentSetupTeam(this.draft, slotIndex);
-    this.activeSlotIndex = slotIndex;
-    this.render();
   }
 
   private toggleTeamControllerType(slotIndex: number): void {

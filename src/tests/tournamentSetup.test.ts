@@ -11,7 +11,6 @@ import {
   getSelectedTournamentTeamIds,
   getTournamentSetupSlotCount,
   isTournamentSetupComplete,
-  removeTournamentSetupTeam,
   selectTournamentSetupTeam,
   shuffleTournamentSetupGroups,
   toggleTournamentSetupTeamControllerType
@@ -32,14 +31,33 @@ describe('tournament setup scene integration', () => {
     expect(menuSource).toContain("this.scene.start('TournamentSetupScene')");
   });
 
-  it('renders compact AI checkbox controls without sharing the remove hit area', () => {
+  it('renders a full-height AI toggle button without a delete control in group slots', () => {
     const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const aiButtonBlock = setupSource.slice(
+      setupSource.indexOf('private createAiButton'),
+      setupSource.indexOf('private createTeamGrid')
+    );
 
-    expect(setupSource).toContain('createAiCheckbox');
-    expect(setupSource).toContain("text(-1, 0, 'AI'");
+    expect(setupSource).toContain('createAiButton');
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_WIDTH = 44');
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_X = SLOT_WIDTH - SLOT_AI_BUTTON_WIDTH / 2');
+    expect(setupSource).toContain("const SLOT_AI_BUTTON_FONT_SIZE = '16px'");
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_ACTIVE_BACKGROUND_COLOR = 0xf0c95a');
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_ACTIVE_TEXT_COLOR = \'#10291f\'');
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_OFF_BACKGROUND_COLOR = TEAM_CARD_STYLE.normal.backgroundColor');
+    expect(setupSource).toContain('const SLOT_AI_BUTTON_OFF_BORDER_COLOR = 0x9f8952');
+    expect(setupSource).toContain("const SLOT_AI_BUTTON_OFF_TEXT_COLOR = '#b9ad7a'");
+    expect(setupSource).toContain('SLOT_AI_BUTTON_WIDTH, SLOT_HEIGHT');
+    expect(setupSource).toContain("text(0, 0, 'AI'");
+    expect(setupSource).toContain('fontSize: SLOT_AI_BUTTON_FONT_SIZE');
     expect(setupSource).toContain('this.toggleTeamControllerType(slotIndex)');
     expect(setupSource).toContain('event.stopPropagation()');
-    expect(setupSource).toContain('this.removeTeam(slotIndex)');
+    expect(aiButtonBlock).not.toContain('0x0b2118');
+    expect(aiButtonBlock).not.toContain('0x5f9572');
+    expect(aiButtonBlock).not.toContain("'#9fb9a9'");
+    expect(setupSource).not.toContain('createAiCheckbox');
+    expect(setupSource).not.toContain('this.removeTeam(slotIndex)');
+    expect(setupSource).not.toContain("text(188, SLOT_HEIGHT / 2, 'x'");
   });
 
   it('resets setup draft on each fresh scene create and uses a 3-column scrollable team list', () => {
@@ -113,6 +131,16 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain('hideTeamTooltip()');
     expect(setupSource).toContain('setDepth(TEAM_TOOLTIP_DEPTH)');
   });
+
+  it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
+    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+
+    expect(setupSource).toContain('const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode)');
+    expect(setupSource).toContain('if (team !== undefined && !isSelected)');
+    expect(setupSource).toContain('option.setAlpha(isSelected ? 0.48 : 1)');
+    expect(setupSource).toContain('option.setInteractive({ useHandCursor: !isSelected })');
+    expect(setupSource).not.toContain('this.activeSlotIndex = Math.min(this.activeSlotIndex + 1, this.draft.slots.length - 1)');
+  });
 });
 
 describe('tournament setup draft helpers', () => {
@@ -122,7 +150,7 @@ describe('tournament setup draft helpers', () => {
     expect(getTournamentSetupSlotCount('cup-xl')).toBe(32);
   });
 
-  it('selects, replaces and removes teams manually', () => {
+  it('selects and replaces teams manually while making the old team available again', () => {
     let draft = createTournamentSetupDraft('cup-m');
 
     draft = selectTournamentSetupTeam(draft, 0, 'pl');
@@ -131,19 +159,19 @@ describe('tournament setup draft helpers', () => {
 
     expect(draft.slots.slice(0, 2)).toEqual(['ua', 'fr']);
 
-    draft = removeTournamentSetupTeam(draft, 0);
+    draft = selectTournamentSetupTeam(draft, 1, 'pl');
 
-    expect(draft.slots.slice(0, 2)).toEqual([null, 'fr']);
+    expect(draft.slots.slice(0, 2)).toEqual(['ua', 'pl']);
   });
 
-  it('keeps new tournament teams HUMAN by default', () => {
+  it('keeps new tournament teams AI by default', () => {
     let draft = createTournamentSetupDraft('cup-m');
 
-    expect(draft.controllerTypes.every((controllerType) => controllerType === 'HUMAN')).toBe(true);
+    expect(draft.controllerTypes.every((controllerType) => controllerType === 'AI')).toBe(true);
 
     draft = selectTournamentSetupTeam(draft, 0, 'pl');
 
-    expect(draft.controllerTypes[0]).toBe('HUMAN');
+    expect(draft.controllerTypes[0]).toBe('AI');
   });
 
   it('toggles controller type only for the selected slot', () => {
@@ -152,23 +180,18 @@ describe('tournament setup draft helpers', () => {
     draft = selectTournamentSetupTeam(draft, 1, 'ua');
     draft = toggleTournamentSetupTeamControllerType(draft, 1);
 
-    expect(draft.controllerTypes[0]).toBe('HUMAN');
-    expect(draft.controllerTypes[1]).toBe('AI');
+    expect(draft.controllerTypes[0]).toBe('AI');
+    expect(draft.controllerTypes[1]).toBe('HUMAN');
   });
 
-  it('removes AI state with the removed team and adds a replacement as HUMAN', () => {
+  it('resets a replaced occupied slot to the AI default', () => {
     let draft = createTournamentSetupDraft('cup-m');
     draft = selectTournamentSetupTeam(draft, 0, 'pl');
     draft = toggleTournamentSetupTeamControllerType(draft, 0);
-    draft = removeTournamentSetupTeam(draft, 0);
-
-    expect(draft.slots[0]).toBeNull();
-    expect(draft.controllerTypes[0]).toBe('HUMAN');
-
     draft = selectTournamentSetupTeam(draft, 0, 'ua');
 
     expect(draft.slots[0]).toBe('ua');
-    expect(draft.controllerTypes[0]).toBe('HUMAN');
+    expect(draft.controllerTypes[0]).toBe('AI');
   });
 
   it('does not allow selecting one team twice', () => {
@@ -185,6 +208,7 @@ describe('tournament setup draft helpers', () => {
     expect(NATIONAL_TEAMS).toHaveLength(65);
     expect(NATIONAL_TEAMS.some((team) => team.flagCode === 'nir')).toBe(true);
     expect(isTournamentSetupComplete(draft)).toBe(true);
+    expect(draft.controllerTypes.every((controllerType) => controllerType === 'AI')).toBe(true);
   });
 
   it('fills only empty slots and preserves manual teams', () => {
@@ -196,11 +220,11 @@ describe('tournament setup draft helpers', () => {
 
     expect(draft.slots[0]).toBe('pl');
     expect(draft.slots[3]).toBe('ua');
-    expect(draft.controllerTypes[0]).toBe('HUMAN');
-    expect(draft.controllerTypes[3]).toBe('AI');
+    expect(draft.controllerTypes[0]).toBe('AI');
+    expect(draft.controllerTypes[3]).toBe('HUMAN');
     expect(new Set(draft.slots).size).toBe(8);
     expect(isTournamentSetupComplete(draft)).toBe(true);
-    expect(draft.controllerTypes.every((controllerType, index) => draft.slots[index] !== null || controllerType === 'HUMAN')).toBe(true);
+    expect(draft.controllerTypes.every((controllerType, index) => draft.slots[index] !== null || controllerType === 'AI')).toBe(true);
   });
 
   it('clears selected teams', () => {
@@ -209,17 +233,17 @@ describe('tournament setup draft helpers', () => {
 
     expect(getSelectedTournamentTeamIds(clearedDraft)).toEqual([]);
     expect(clearedDraft.slots.every((teamId) => teamId === null)).toBe(true);
-    expect(clearedDraft.controllerTypes.every((controllerType) => controllerType === 'HUMAN')).toBe(true);
+    expect(clearedDraft.controllerTypes.every((controllerType) => controllerType === 'AI')).toBe(true);
   });
 
   it('shuffles complete groups without changing participants', () => {
     let filledDraft = fillTournamentSetupRandom(createTournamentSetupDraft('cup-m'), 'setup-shuffle');
     filledDraft = toggleTournamentSetupTeamControllerType(filledDraft, 2);
-    const aiTeamId = filledDraft.slots[2];
+    const humanTeamId = filledDraft.slots[2];
     const shuffledDraft = shuffleTournamentSetupGroups(filledDraft, 'setup-shuffle-groups');
 
     expect([...shuffledDraft.slots].sort()).toEqual([...filledDraft.slots].sort());
-    expect(shuffledDraft.controllerTypes[shuffledDraft.slots.indexOf(aiTeamId)]).toBe('AI');
+    expect(shuffledDraft.controllerTypes[shuffledDraft.slots.indexOf(humanTeamId)]).toBe('HUMAN');
   });
 
   it('preserves selected teams when changing to a larger format', () => {
@@ -231,7 +255,7 @@ describe('tournament setup draft helpers', () => {
 
     expect(draft.slots).toHaveLength(16);
     expect(draft.slots.slice(0, 2)).toEqual(['pl', 'ua']);
-    expect(draft.controllerTypes.slice(0, 3)).toEqual(['HUMAN', 'AI', 'HUMAN']);
+    expect(draft.controllerTypes.slice(0, 3)).toEqual(['AI', 'HUMAN', 'AI']);
   });
 
   it('does not create a tournament until all slots are filled', () => {
@@ -249,11 +273,11 @@ describe('tournament setup draft helpers', () => {
     expect(tournament.teamIds).toEqual(draft.slots);
     expect(tournament.participants[0]).toEqual({
       flagCode: draft.slots[0],
-      controllerType: 'HUMAN'
+      controllerType: 'AI'
     });
     expect(tournament.participants[1]).toEqual({
       flagCode: draft.slots[1],
-      controllerType: 'AI'
+      controllerType: 'HUMAN'
     });
     expect(tournament.matches).toHaveLength(15);
   });

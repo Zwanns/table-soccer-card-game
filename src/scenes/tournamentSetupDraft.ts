@@ -40,7 +40,7 @@ export function changeTournamentSetupFormat(
     slots: [...selectedEntries.map((entry) => entry.teamId), ...Array.from<TournamentSetupSlot>({ length: missingCount }).fill(null)],
     controllerTypes: [
       ...selectedEntries.map((entry) => entry.controllerType),
-      ...Array.from<PlayerControllerType>({ length: missingCount }).fill('HUMAN')
+      ...Array.from<PlayerControllerType>({ length: missingCount }).fill('AI')
     ]
   };
 }
@@ -59,17 +59,7 @@ export function selectTournamentSetupTeam(
   return {
     ...draft,
     slots: draft.slots.map((slotTeamId, index) => (index === slotIndex ? teamId : slotTeamId)),
-    controllerTypes: draft.controllerTypes.map((controllerType, index) => (index === slotIndex ? 'HUMAN' : controllerType))
-  };
-}
-
-export function removeTournamentSetupTeam(draft: TournamentSetupDraft, slotIndex: number): TournamentSetupDraft {
-  assertSlotIndex(draft, slotIndex);
-
-  return {
-    ...draft,
-    slots: draft.slots.map((slotTeamId, index) => (index === slotIndex ? null : slotTeamId)),
-    controllerTypes: draft.controllerTypes.map((controllerType, index) => (index === slotIndex ? 'HUMAN' : controllerType))
+    controllerTypes: draft.controllerTypes.map((controllerType, index) => (index === slotIndex ? 'AI' : controllerType))
   };
 }
 
@@ -95,7 +85,7 @@ export function fillEmptyTournamentSetupSlots(draft: TournamentSetupDraft, seed:
   return {
     ...draft,
     slots: filledSlots,
-    controllerTypes: filledSlots.map((teamId, index) => (draft.slots[index] === null || teamId === undefined ? 'HUMAN' : draft.controllerTypes[index] ?? 'HUMAN'))
+    controllerTypes: filledSlots.map((teamId, index) => (draft.slots[index] === null || teamId === undefined ? 'AI' : draft.controllerTypes[index] ?? 'AI'))
   };
 }
 
@@ -150,7 +140,7 @@ export function createTournamentFromSetupDraft(draft: TournamentSetupDraft, seed
     teamIds,
     participants: teamIds.map((flagCode, index) => ({
       flagCode,
-      controllerType: draft.controllerTypes[index] ?? 'HUMAN'
+      controllerType: draft.controllerTypes[index] ?? 'AI'
     })),
     seed
   });
@@ -169,7 +159,7 @@ function createEmptySlots(formatId: TournamentFormatId): TournamentSetupSlot[] {
 }
 
 function createDefaultControllerTypes(formatId: TournamentFormatId): PlayerControllerType[] {
-  return Array.from<PlayerControllerType>({ length: getTournamentFormat(formatId).teamCount }).fill('HUMAN');
+  return Array.from<PlayerControllerType>({ length: getTournamentFormat(formatId).teamCount }).fill('AI');
 }
 
 function getSelectedTournamentSetupEntries(
@@ -181,7 +171,7 @@ function getSelectedTournamentSetupEntries(
       : [
           {
             teamId,
-            controllerType: draft.controllerTypes[index] ?? 'HUMAN'
+            controllerType: draft.controllerTypes[index] ?? 'AI'
           }
         ]
   );
@@ -191,12 +181,12 @@ function shuffleTournamentSetupEntries(draft: TournamentSetupDraft, seed: string
   const completeSlots = draft.slots.filter((teamId): teamId is TournamentTeamId => teamId !== null);
   const shuffledSlots = shuffleTournamentTeams(completeSlots, seed);
   const controllerTypeByTeamId = new Map(
-    draft.slots.map((teamId, index) => [teamId, draft.controllerTypes[index] ?? 'HUMAN'])
+    draft.slots.map((teamId, index) => [teamId, draft.controllerTypes[index] ?? 'AI'])
   );
 
   return {
     slots: shuffledSlots,
-    controllerTypes: shuffledSlots.map((teamId) => controllerTypeByTeamId.get(teamId) ?? 'HUMAN')
+    controllerTypes: shuffledSlots.map((teamId) => controllerTypeByTeamId.get(teamId) ?? 'AI')
   };
 }
 
