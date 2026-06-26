@@ -216,7 +216,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('MENU_LAYOUT.mobileWideButtonWidthRatio');
     expect(menuSceneSource).toContain('MENU_LAYOUT.mobileWideButtonMaxWidth');
     expect(menuSceneSource).toContain('Math.max(this.logoImage.displayWidth, fallbackButtonWidth)');
-    expect(menuSceneSource.match(/const buttonWidth = this\.getMenuButtonWidth\(\);/g)?.length).toBe(2);
+    expect(menuSceneSource.match(/const buttonWidth = this\.getMenuButtonWidth\(\);/g)?.length).toBe(3);
     expect(menuSceneSource.match(/buttonOptions/g)?.length).toBeGreaterThanOrEqual(8);
     expect(menuSceneSource).toContain('height: MENU_LAYOUT.buttonHeight');
     expect(menuSceneSource).toContain('fontSize: MENU_LAYOUT.buttonFontSize');
@@ -229,7 +229,7 @@ describe('project scaffold', () => {
     const menuSceneSource = normalizeSourceLineEndings(readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8'));
 
     expect(menuSceneSource).toContain('Game modes');
-    expect(menuSceneSource).toContain('Tournaments');
+    expect(menuSceneSource).toContain('Tournament');
     expect(menuSceneSource).toContain('Quick match');
     expect(menuSceneSource).toContain('Penalty shootout');
     expect(menuSceneSource).toContain('Teams');
@@ -263,6 +263,42 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
     expect(menuSceneSource).toContain("this.scene.start('TeamSelectScene', { mode: 'penalty' })");
     expect(menuSceneSource).not.toContain('createStandalonePenaltyMatchResult');
+  });
+
+  it('nests tournament actions under a stable Game modes tournament submenu', () => {
+    const menuSceneSource = normalizeSourceLineEndings(readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8'));
+    const gameModesBlock = menuSceneSource.slice(
+      menuSceneSource.indexOf('private createGameModeButtons'),
+      menuSceneSource.indexOf('private createTournamentButtons')
+    );
+    const tournamentBlock = menuSceneSource.slice(
+      menuSceneSource.indexOf('private createTournamentButtons'),
+      menuSceneSource.indexOf('private getMenuButtonWidth')
+    );
+
+    expect(menuSceneSource).toContain("type MenuView = 'main' | 'modes' | 'tournament'");
+    expect(menuSceneSource).toContain("if (this.currentView === 'tournament')");
+    expect(menuSceneSource).toContain('private openTournamentMenu(): void');
+    expect(gameModesBlock).toContain("'Quick match'");
+    expect(gameModesBlock).toContain("'Tournament'");
+    expect(gameModesBlock).toContain('() => this.openTournamentMenu()');
+    expect(gameModesBlock).toContain("'Penalty shootout'");
+    expect(gameModesBlock).toContain("'Tutorial Match'");
+    expect(gameModesBlock).toContain("'Delete save'");
+    expect(gameModesBlock).toContain("{ ...buttonOptions, disabled: !hasActiveTournamentSave(), fontSize: '22px' }");
+    expect(gameModesBlock).toContain("'Back'");
+    expect(gameModesBlock).not.toContain("'New tournament'");
+    expect(gameModesBlock).not.toContain("'Continue tournament'");
+    expect(gameModesBlock).not.toContain("'Tournaments'");
+    expect(tournamentBlock).toContain("'New tournament'");
+    expect(tournamentBlock).toContain('() => this.startNewTournamentSetup()');
+    expect(tournamentBlock).toContain("'Continue tournament'");
+    expect(tournamentBlock).toContain('() => this.continueTournament()');
+    expect(tournamentBlock).toContain('{ ...buttonOptions, disabled: !hasTournamentSave }');
+    expect(tournamentBlock).toContain("'Back'");
+    expect(tournamentBlock).toContain('() => this.openGameModes()');
+    expect(tournamentBlock).not.toContain("'Delete save'");
+    expect(menuSceneSource).toContain("if (tournament === null) {\n      this.openTournamentMenu();");
   });
 
   it('separates localized about text from the rules modal', () => {

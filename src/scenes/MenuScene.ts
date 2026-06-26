@@ -59,7 +59,7 @@ const INFO_BACK_BUTTON = {
 } as const;
 
 type MenuAnimatedObject = Phaser.GameObjects.Container | Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-type MenuView = 'main' | 'modes';
+type MenuView = 'main' | 'modes' | 'tournament';
 export type AboutLanguage = GameLanguage;
 export type InfoModalKind = 'about' | 'rules';
 
@@ -475,6 +475,11 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
+    if (this.currentView === 'tournament') {
+      this.createTournamentButtons();
+      return;
+    }
+
     this.createMainButtons();
   }
 
@@ -515,7 +520,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createGameModeButtons(): void {
-    const hasTournamentSave = hasActiveTournamentSave();
     const buttonWidth = this.getMenuButtonWidth();
     const buttonOptions = this.getMenuButtonOptions(buttonWidth);
     const title = this.add
@@ -542,27 +546,13 @@ export class MenuScene extends Phaser.Scene {
     );
     buttonIndex += 1;
 
-    if (hasTournamentSave) {
-      buttons.push(
-        new Button(
-          this,
-          MENU_LAYOUT.centerX,
-          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-          'Continue tournament',
-          () => this.continueTournament(),
-          buttonOptions
-        )
-      );
-      buttonIndex += 1;
-    }
-
     buttons.push(
       new Button(
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        hasTournamentSave ? 'New tournament' : 'Tournaments',
-        () => this.startNewTournamentSetup(),
+        'Tournament',
+        () => this.openTournamentMenu(),
         buttonOptions
       )
     );
@@ -596,19 +586,17 @@ export class MenuScene extends Phaser.Scene {
     );
     buttonIndex += 1;
 
-    if (hasTournamentSave) {
-      buttons.push(
-        new Button(
-          this,
-          MENU_LAYOUT.centerX,
-          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-          'Delete save',
-          () => this.deleteTournamentSave(),
-          { ...buttonOptions, fontSize: '22px' }
-        )
-      );
-      buttonIndex += 1;
-    }
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Delete save',
+        () => this.deleteTournamentSave(),
+        { ...buttonOptions, disabled: !hasActiveTournamentSave(), fontSize: '22px' }
+      )
+    );
+    buttonIndex += 1;
 
     buttons.push(
       new Button(
@@ -617,6 +605,60 @@ export class MenuScene extends Phaser.Scene {
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
+        buttonOptions
+      )
+    );
+
+    this.introTargets.push(...buttons);
+  }
+
+  private createTournamentButtons(): void {
+    const hasTournamentSave = hasActiveTournamentSave();
+    const buttonWidth = this.getMenuButtonWidth();
+    const buttonOptions = this.getMenuButtonOptions(buttonWidth);
+    const title = this.add
+      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Tournament', {
+        align: 'center',
+        color: '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '24px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+    const buttons: MenuAnimatedObject[] = [title];
+    let buttonIndex = 0;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'New tournament',
+        () => this.startNewTournamentSetup(),
+        buttonOptions
+      )
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Continue tournament',
+        () => this.continueTournament(),
+        { ...buttonOptions, disabled: !hasTournamentSave }
+      )
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Back',
+        () => this.openGameModes(),
         buttonOptions
       )
     );
@@ -663,7 +705,7 @@ export class MenuScene extends Phaser.Scene {
     const tournament = loadActiveTournament();
 
     if (tournament === null) {
-      this.openGameModes();
+      this.openTournamentMenu();
       return;
     }
 
@@ -692,8 +734,16 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private openGameModes(): void {
+    this.renderMenuView('modes');
+  }
+
+  private openTournamentMenu(): void {
+    this.renderMenuView('tournament');
+  }
+
+  private renderMenuView(view: MenuView): void {
     this.cleanupLogoBlink();
-    this.currentView = 'modes';
+    this.currentView = view;
     this.children.removeAll(true);
     this.introTargets = [];
     this.createBackground();
