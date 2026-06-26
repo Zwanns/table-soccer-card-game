@@ -21,23 +21,26 @@ import {
   getTournamentSetupGroupMaxScroll
 } from '../ui/tournamentSetupLayout';
 
+const readSourceFile = (...pathSegments: string[]) =>
+  readFileSync(join(process.cwd(), ...pathSegments), 'utf8').replace(/\r\n/g, '\n');
+
 describe('tournament setup scene integration', () => {
   it('registers the tournament setup scene', () => {
-    const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
+    const mainSource = readSourceFile('src', 'main.ts');
 
     expect(mainSource).toContain('TournamentSetupScene');
   });
 
   it('adds a main menu tournament button', () => {
-    const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
+    const menuSource = readSourceFile('src', 'scenes', 'MenuScene.ts');
 
     expect(menuSource).toContain('Tournament');
     expect(menuSource).toContain("this.scene.start('TournamentSetupScene')");
   });
 
   it('renders a full-height AI toggle button without a delete control in group slots', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
-    const layoutSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentSetupLayout.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const layoutSource = readSourceFile('src', 'ui', 'tournamentSetupLayout.ts');
     const aiButtonBlock = setupSource.slice(
       setupSource.indexOf('private createAiButton'),
       setupSource.indexOf('private createTeamGrid')
@@ -67,7 +70,7 @@ describe('tournament setup scene integration', () => {
   });
 
   it('resets setup draft on each fresh scene create and uses a 3-column scrollable team list', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
 
     expect(setupSource).toContain("this.draft = createTournamentSetupDraft('cup-m')");
@@ -81,9 +84,9 @@ describe('tournament setup scene integration', () => {
   });
 
   it('uses the shared tournament background without changing the main menu background', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
-    const menuSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'MenuScene.ts'), 'utf8');
-    const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentBackground.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const menuSource = readSourceFile('src', 'scenes', 'MenuScene.ts');
+    const backgroundSource = readSourceFile('src', 'ui', 'tournamentBackground.ts');
 
     expect(setupSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
     expect(setupSource).toContain('createTournamentBackground(this)');
@@ -96,8 +99,8 @@ describe('tournament setup scene integration', () => {
   });
 
   it('shares the Teams card palette across tournament setup cards without changing setup actions', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
-    const teamsSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadSelectScene.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const teamsSource = readSourceFile('src', 'scenes', 'SquadSelectScene.ts');
 
     expect(teamsSource).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
     expect(setupSource).toContain(
@@ -121,7 +124,7 @@ describe('tournament setup scene integration', () => {
   });
 
   it('renders tournament team cards with shared 3-letter codes, padded flags and full-name tooltips', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
 
     expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
@@ -144,7 +147,7 @@ describe('tournament setup scene integration', () => {
   });
 
   it('uses a two-column masked group viewport only in mobile landscape', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
     const mobileLayout = createTournamentSetupLayout(true);
 
@@ -197,7 +200,7 @@ describe('tournament setup scene integration', () => {
   });
 
   it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
-    const setupSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentSetupScene.ts'), 'utf8');
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
 
     expect(setupSource).toContain('const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode)');
     expect(setupSource).toContain('if (team !== undefined) {');
