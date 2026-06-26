@@ -161,12 +161,12 @@ export function createTournamentHubLayout(
       tournamentTitleFontSize: '24px'
     },
     tabs: {
-      startX: 800 - (3 * 212) / 2 - 95,
+      startX: 128,
       y: 116,
-      width: 190,
-      height: 46,
-      gap: 22,
-      fontSize: '20px'
+      width: 336,
+      height: 54,
+      gap: 0,
+      fontSize: '22px'
     },
     matches: {
       x: 128,

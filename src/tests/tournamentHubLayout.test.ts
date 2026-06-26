@@ -23,12 +23,12 @@ describe('Tournament Hub responsive layout', () => {
       tournamentTitleFontSize: '24px'
     });
     expect(layout.tabs).toEqual({
-      startX: 387,
+      startX: 128,
       y: 116,
-      width: 190,
-      height: 46,
-      gap: 22,
-      fontSize: '20px'
+      width: 336,
+      height: 54,
+      gap: 0,
+      fontSize: '22px'
     });
     expect(layout.matches).toMatchObject({
       x: 128,
@@ -58,6 +58,16 @@ describe('Tournament Hub responsive layout', () => {
       pageX: 800,
       nextX: 1000
     });
+  });
+
+  it('uses a contiguous desktop tab bar stretched across the main content width', () => {
+    const layout = createTournamentHubLayout(false);
+
+    expect(layout.tabs.startX).toBe(layout.matches.x);
+    expect(layout.tabs.gap).toBe(0);
+    expect(layout.tabs.width * 4).toBe(layout.matches.cardWidth);
+    expect(layout.tabs.height).toBeGreaterThan(46);
+    expect(layout.tabs.fontSize).toBe('22px');
   });
 
   it('uses a compact title and contiguous full-width tab bar in mobile landscape', () => {
