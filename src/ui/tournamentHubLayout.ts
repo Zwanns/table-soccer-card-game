@@ -55,11 +55,24 @@ export interface TournamentHubLayout {
     rowGap: number;
     cardWidth: number;
     cardHeight: number;
+    cardPadding: number;
     viewportHeight: number | null;
     titleFontSize: string;
     headerFontSize: string;
     teamFontSize: string;
     valueFontSize: string;
+    teamHeaderX: number;
+    flagX: number;
+    teamCodeX: number;
+    playedX: number;
+    winsX: number;
+    drawsX: number;
+    lossesX: number;
+    goalsForX: number;
+    goalsAgainstX: number;
+    pointsX: number;
+    formX: number;
+    formIndicatorGap: number;
     flagWidth: number;
     flagHeight: number;
     cornerRadius: number;
@@ -159,11 +172,24 @@ export function createTournamentHubLayout(
         rowGap: 24,
         cardWidth: 756,
         cardHeight: 430,
+        cardPadding: 18,
         viewportHeight: 470,
         titleFontSize: '24px',
         headerFontSize: '16px',
         teamFontSize: '18px',
         valueFontSize: '17px',
+        teamHeaderX: 18,
+        flagX: 35,
+        teamCodeX: 64,
+        playedX: 252,
+        winsX: 302,
+        drawsX: 352,
+        lossesX: 402,
+        goalsForX: 462,
+        goalsAgainstX: 522,
+        pointsX: 590,
+        formX: 642,
+        formIndicatorGap: 23,
         flagWidth: 36,
         flagHeight: 27,
         cornerRadius: 8,
@@ -260,11 +286,24 @@ export function createTournamentHubLayout(
       rowGap: 24,
       cardWidth: 660,
       cardHeight: 430,
+      cardPadding: 18,
       viewportHeight: 470,
       titleFontSize: '24px',
       headerFontSize: '16px',
       teamFontSize: '18px',
       valueFontSize: '17px',
+      teamHeaderX: 18,
+      flagX: 35,
+      teamCodeX: 64,
+      playedX: 218,
+      winsX: 264,
+      drawsX: 310,
+      lossesX: 356,
+      goalsForX: 410,
+      goalsAgainstX: 464,
+      pointsX: 526,
+      formX: 593,
+      formIndicatorGap: 20,
       flagWidth: 36,
       flagHeight: 27,
       cornerRadius: 8,

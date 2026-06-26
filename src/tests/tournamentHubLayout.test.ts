@@ -19,6 +19,14 @@ function getGroupStageViewportWidth(layout: ReturnType<typeof createTournamentHu
   return layout.groupStage.cardWidth * layout.groupStage.columns + layout.groupStage.columnGap * (layout.groupStage.columns - 1);
 }
 
+function getGroupStageFormRight(layout: ReturnType<typeof createTournamentHubLayout>, formCount = 3): number {
+  return (
+    layout.groupStage.formX +
+    Math.max(0, formCount - 1) * layout.groupStage.formIndicatorGap +
+    layout.groupStage.formIndicatorRadius
+  );
+}
+
 describe('Tournament Hub responsive layout', () => {
   it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
@@ -58,6 +66,7 @@ describe('Tournament Hub responsive layout', () => {
       columns: 2,
       cardWidth: 660,
       cardHeight: 430,
+      cardPadding: 18,
       viewportHeight: 470,
       cornerRadius: 8,
       formIndicatorRadius: 9
@@ -217,6 +226,9 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.groupStage.columns).toBe(2);
     expect(mobile.groupStage.cardWidth).toBe(756);
     expect(mobile.groupStage.cardHeight).toBe(430);
+    expect(mobile.groupStage.playedX).toBe(252);
+    expect(mobile.groupStage.formX).toBe(642);
+    expect(mobile.groupStage.formIndicatorGap).toBe(23);
     expect(mobile.groupStage.viewportHeight).toBe(470);
     expect(mobile.groupStage.cornerRadius).toBe(8);
     expect(mobile.groupStage.formIndicatorRadius).toBe(9);
@@ -225,6 +237,26 @@ describe('Tournament Hub responsive layout', () => {
     expect(getTournamentHubGroupStageMaxScroll(8, mobile)).toBeGreaterThan(
       getTournamentHubGroupStageMaxScroll(4, mobile)
     );
+  });
+
+  it('keeps compact desktop group-card columns inside the card without changing mobile offsets', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(desktop.groupStage.cardWidth).toBe(660);
+    expect(desktop.groupStage.playedX).toBeLessThan(mobile.groupStage.playedX);
+    expect(desktop.groupStage.playedX).toBe(218);
+    expect(desktop.groupStage.formX).toBe(593);
+    expect(desktop.groupStage.formIndicatorGap).toBe(20);
+    expect(getGroupStageFormRight(desktop)).toBeLessThanOrEqual(
+      desktop.groupStage.cardWidth - desktop.groupStage.cardPadding
+    );
+    expect(getGroupStageFormRight(mobile)).toBeLessThanOrEqual(
+      mobile.groupStage.cardWidth - mobile.groupStage.cardPadding
+    );
+    expect(mobile.groupStage.playedX).toBe(252);
+    expect(mobile.groupStage.formX).toBe(642);
+    expect(mobile.groupStage.formIndicatorGap).toBe(23);
   });
 
   it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
@@ -289,6 +321,9 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("'GF', 'Goals for'");
     expect(source).toContain("'GA', 'Goals against'");
     expect(source).toContain("'Pts', 'Points'");
+    expect(source).toContain('groupLayout.playedX');
+    expect(source).toContain('groupLayout.formX');
+    expect(source).toContain('layout.groupStage.formIndicatorGap');
     expect(source).toContain('this.addMobileGroupFormIndicators(');
     expect(source).toContain('getTeamGroupForm(tournament, group, teamId)');
     expect(source).toContain('0x71e48b');

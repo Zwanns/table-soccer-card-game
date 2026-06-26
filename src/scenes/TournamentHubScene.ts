@@ -871,14 +871,14 @@ export class TournamentHubScene extends Phaser.Scene {
       const team = findTeam(standing.teamId);
 
       if (team !== undefined) {
-        const flag = this.add.image(35, rowY, getFlagAssetKey(team.flagCode));
+        const flag = this.add.image(groupLayout.flagX, rowY, getFlagAssetKey(team.flagCode));
         flag.setDisplaySize(groupLayout.flagWidth, groupLayout.flagHeight);
         panel.add(flag);
       }
 
       panel.add(
         this.add
-          .text(64, rowY, team === undefined ? standing.teamId : getTeamScoreboardCode(team.flagCode), {
+          .text(groupLayout.teamCodeX, rowY, team === undefined ? standing.teamId : getTeamScoreboardCode(team.flagCode), {
             color: '#ffffff',
             fontFamily: 'Arial, sans-serif',
             fontSize: groupLayout.teamFontSize,
@@ -886,14 +886,14 @@ export class TournamentHubScene extends Phaser.Scene {
           })
           .setOrigin(0, 0.5)
       );
-      panel.add(this.createMobileGroupTableValue(252, rowY, standing.played, layout));
-      panel.add(this.createMobileGroupTableValue(302, rowY, standing.wins, layout));
-      panel.add(this.createMobileGroupTableValue(352, rowY, standing.draws, layout));
-      panel.add(this.createMobileGroupTableValue(402, rowY, standing.losses, layout));
-      panel.add(this.createMobileGroupTableValue(462, rowY, standing.goalsFor, layout));
-      panel.add(this.createMobileGroupTableValue(522, rowY, standing.goalsAgainst, layout));
-      panel.add(this.createMobileGroupTableValue(590, rowY, standing.points, layout));
-      this.addMobileGroupFormIndicators(panel, tournament, group, standing.teamId, 642, rowY, layout);
+      panel.add(this.createMobileGroupTableValue(groupLayout.playedX, rowY, standing.played, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.winsX, rowY, standing.wins, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.drawsX, rowY, standing.draws, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.lossesX, rowY, standing.losses, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.goalsForX, rowY, standing.goalsFor, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.goalsAgainstX, rowY, standing.goalsAgainst, layout));
+      panel.add(this.createMobileGroupTableValue(groupLayout.pointsX, rowY, standing.points, layout));
+      this.addMobileGroupFormIndicators(panel, tournament, group, standing.teamId, groupLayout.formX, rowY, layout);
     });
 
     return panel;
@@ -907,7 +907,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(
       this.add
-        .text(18, 72, 'Team', {
+        .text(groupLayout.teamHeaderX, 72, 'Team', {
           color: '#9fc5ad',
           fontFamily: 'Arial, sans-serif',
           fontSize: groupLayout.headerFontSize,
@@ -917,13 +917,13 @@ export class TournamentHubScene extends Phaser.Scene {
     );
 
     const headers: Array<[number, string, string]> = [
-      [252, 'P', 'Played'],
-      [302, 'W', 'Wins'],
-      [352, 'D', 'Draws'],
-      [402, 'L', 'Losses'],
-      [462, 'GF', 'Goals for'],
-      [522, 'GA', 'Goals against'],
-      [590, 'Pts', 'Points']
+      [groupLayout.playedX, 'P', 'Played'],
+      [groupLayout.winsX, 'W', 'Wins'],
+      [groupLayout.drawsX, 'D', 'Draws'],
+      [groupLayout.lossesX, 'L', 'Losses'],
+      [groupLayout.goalsForX, 'GF', 'Goals for'],
+      [groupLayout.goalsAgainstX, 'GA', 'Goals against'],
+      [groupLayout.pointsX, 'Pts', 'Points']
     ];
 
     headers.forEach(([x, label, tooltip]) => {
@@ -970,7 +970,7 @@ export class TournamentHubScene extends Phaser.Scene {
   ): void {
     const form = getTeamGroupForm(tournament, group, teamId);
     const radius = layout.groupStage.formIndicatorRadius;
-    const gap = 23;
+    const gap = layout.groupStage.formIndicatorGap;
 
     form.forEach((entry, index) => {
       const indicator = this.add.circle(x + index * gap, y, radius, entry.color, 0.95);
