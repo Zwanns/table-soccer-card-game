@@ -27,6 +27,16 @@ function getGroupStageFormRight(layout: ReturnType<typeof createTournamentHubLay
   );
 }
 
+function getStatsRankingContentHeight(layout: ReturnType<typeof createTournamentHubLayout>, cardCount = 5): number {
+  const columnCount = Math.floor(
+    (layout.stats.rankingWidth + layout.stats.rankingColumnGap) /
+      (layout.stats.rankingCardWidth + layout.stats.rankingColumnGap)
+  );
+  const rowCount = Math.ceil(cardCount / columnCount);
+
+  return (rowCount - 1) * layout.stats.rankingRowGap + 28 + layout.stats.rankingCardHeight;
+}
+
 describe('Tournament Hub responsive layout', () => {
   it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
@@ -310,7 +320,17 @@ describe('Tournament Hub responsive layout', () => {
       expect(layout.stats.tableValueFontSize).toBe(layout.groupStage.valueFontSize);
       expect(layout.stats.rankingCardWidth).toBeGreaterThan(196);
       expect(layout.stats.rankingCardHeight).toBeGreaterThan(72);
+      expect(layout.stats.rankingRowGap).toBeLessThanOrEqual(156);
       expect(layout.stats.rankingValueFontSize).toBe(layout.groupStage.valueFontSize);
+    });
+  });
+
+  it('fits the enlarged Stats individual cards vertically without requiring a scrollbar', () => {
+    [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
+      expect(layout.stats.rankingCardWidth).toBe(300);
+      expect(layout.stats.rankingCardHeight).toBe(102);
+      expect(layout.stats.rankingRowGap).toBe(156);
+      expect(getStatsRankingContentHeight(layout)).toBeLessThanOrEqual(462);
     });
   });
 

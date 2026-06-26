@@ -285,7 +285,7 @@ export function createTournamentHubLayout(
         rankingValueFontSize: '17px',
         rankingFlagWidth: 28,
         rankingFlagHeight: 21,
-        rankingRowGap: 168,
+        rankingRowGap: 156,
         rankingColumnGap: 32
       },
       footer: {
@@ -438,7 +438,7 @@ export function createTournamentHubLayout(
       rankingValueFontSize: '17px',
       rankingFlagWidth: 28,
       rankingFlagHeight: 21,
-      rankingRowGap: 168,
+      rankingRowGap: 156,
       rankingColumnGap: 32
     },
     footer: {
