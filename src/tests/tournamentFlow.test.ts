@@ -483,7 +483,8 @@ describe('tournament match result normalization', () => {
     expect(hubSource).toContain("final: 'Final'");
     expect(hubSource).toContain('addBracketTeamRow');
     expect(hubSource).toContain('getFlagAssetKey(team.flagCode)');
-    expect(hubSource).toContain('BRACKET_CENTER_Y');
+    expect(hubSource).toContain('layout.playoff');
+    expect(hubSource).toContain('bindTwoAxisPlayoffScroll');
     expect(hubSource).toContain('getBracketColumnGap');
     expect(hubSource).toContain('getBracketRoundCenters');
     expect(hubSource).toContain('drawBracketConnectors');

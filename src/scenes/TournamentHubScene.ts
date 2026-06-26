@@ -88,12 +88,6 @@ const MATCH_CARD_HOME_TEAM_X = 122;
 const MATCH_CARD_HOME_TEAM_WIDTH = 136;
 const MATCH_CARD_AWAY_TEAM_X = 356;
 const MATCH_CARD_AWAY_TEAM_WIDTH = 132;
-const BRACKET_CARD_HEIGHT = 58;
-const BRACKET_CENTER_Y = 395;
-const BRACKET_MAX_ROW_GAP = 106;
-const BRACKET_TOP = 185;
-const BRACKET_BOTTOM = 610;
-const BRACKET_MAX_COLUMN_GAP = 180;
 const GROUP_TABLE_COLUMNS = {
   played: 164,
   points: 202,
@@ -131,6 +125,8 @@ export class TournamentHubScene extends Phaser.Scene {
   private matchPage = 0;
   private matchScrollY = 0;
   private groupStageScrollY = 0;
+  private playoffScrollX = 0;
+  private playoffScrollY = 0;
   private statsRankingScrollY = 0;
   private statsTeamScrollY = 0;
   private mobileLandscapeLayout = false;
@@ -162,6 +158,8 @@ export class TournamentHubScene extends Phaser.Scene {
     this.mobileLandscapeLayout = mobileLandscapeLayout;
     this.matchScrollY = 0;
     this.groupStageScrollY = 0;
+    this.playoffScrollX = 0;
+    this.playoffScrollY = 0;
     this.render();
   }
 
@@ -265,26 +263,18 @@ export class TournamentHubScene extends Phaser.Scene {
         index * (layout.tabs.width + layout.tabs.gap);
       const button = this.add.container(x, layout.tabs.y);
       const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
-      const inactiveBackgroundColor = layout.mobileLandscape ? style.backgroundColor : 0x143f2c;
-      const inactiveBackgroundAlpha = layout.mobileLandscape ? style.backgroundAlpha : 0.94;
-      const inactiveBorderColor = layout.mobileLandscape ? style.borderColor : 0x5f9572;
-      const inactiveBorderAlpha = layout.mobileLandscape ? style.borderAlpha : 0.95;
       const background = this.add.rectangle(
         0,
         0,
         layout.tabs.width,
         layout.tabs.height,
-        selected ? 0xf0c95a : inactiveBackgroundColor,
-        selected ? 1 : inactiveBackgroundAlpha
+        style.backgroundColor,
+        style.backgroundAlpha
       );
-      background.setStrokeStyle(
-        layout.mobileLandscape ? 2 : style.borderWidth,
-        selected ? 0x2d382f : inactiveBorderColor,
-        selected ? 0.95 : inactiveBorderAlpha
-      );
+      background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
       const label = this.add
         .text(0, 0, TAB_LABELS[tab], {
-          color: selected ? '#1f2a2e' : '#ffffff',
+          color: style.textColor,
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.tabs.fontSize,
           fontStyle: '700'
@@ -296,21 +286,32 @@ export class TournamentHubScene extends Phaser.Scene {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerover', () => {
         if (!selected) {
-          background.setFillStyle(
-            layout.mobileLandscape ? TEAM_CARD_STYLE.hover.backgroundColor : 0x1d5b3f,
-            layout.mobileLandscape ? TEAM_CARD_STYLE.hover.backgroundAlpha : 0.96
+          background.setFillStyle(TEAM_CARD_STYLE.hover.backgroundColor, TEAM_CARD_STYLE.hover.backgroundAlpha);
+          background.setStrokeStyle(
+            TEAM_CARD_STYLE.hover.borderWidth,
+            TEAM_CARD_STYLE.hover.borderColor,
+            TEAM_CARD_STYLE.hover.borderAlpha
           );
+          label.setColor(TEAM_CARD_STYLE.hover.textColor);
         }
       });
       button.on('pointerout', () => {
         if (!selected) {
-          background.setFillStyle(inactiveBackgroundColor, inactiveBackgroundAlpha);
+          background.setFillStyle(TEAM_CARD_STYLE.normal.backgroundColor, TEAM_CARD_STYLE.normal.backgroundAlpha);
+          background.setStrokeStyle(
+            TEAM_CARD_STYLE.normal.borderWidth,
+            TEAM_CARD_STYLE.normal.borderColor,
+            TEAM_CARD_STYLE.normal.borderAlpha
+          );
+          label.setColor(TEAM_CARD_STYLE.normal.textColor);
         }
       });
       button.on('pointerdown', () => {
         this.activeTab = tab;
         this.matchScrollY = 0;
         this.groupStageScrollY = 0;
+        this.playoffScrollX = 0;
+        this.playoffScrollY = 0;
         this.render();
       });
     });
@@ -849,7 +850,7 @@ export class TournamentHubScene extends Phaser.Scene {
     background
       .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
       .fillRoundedRect(0, 0, groupLayout.cardWidth, groupLayout.cardHeight, groupLayout.cornerRadius)
-      .lineStyle(2, 0x5f9572, 0.92)
+      .lineStyle(TEAM_CARD_STYLE.panel.borderWidth, TEAM_CARD_STYLE.panel.borderColor, TEAM_CARD_STYLE.panel.borderAlpha)
       .strokeRoundedRect(0, 0, groupLayout.cardWidth, groupLayout.cardHeight, groupLayout.cornerRadius);
     panel.add(background);
     panel.add(
@@ -923,7 +924,8 @@ export class TournamentHubScene extends Phaser.Scene {
       [groupLayout.lossesX, 'L', 'Losses'],
       [groupLayout.goalsForX, 'GF', 'Goals for'],
       [groupLayout.goalsAgainstX, 'GA', 'Goals against'],
-      [groupLayout.pointsX, 'Pts', 'Points']
+      [groupLayout.pointsX, 'Pts', 'Points'],
+      [groupLayout.formX + groupLayout.formIndicatorGap, 'Form', 'Recent form']
     ];
 
     headers.forEach(([x, label, tooltip]) => {
@@ -1098,9 +1100,13 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number, width: number): void {
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, STATS_TABLE_HEIGHT, 0x0b2118, 0.86);
-    background.setOrigin(0);
-    background.setStrokeStyle(2, 0x5f9572, 0.92);
+    const background = this.add.graphics();
+
+    background
+      .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
+      .fillRoundedRect(0, 0, width, STATS_TABLE_HEIGHT, 8)
+      .lineStyle(TEAM_CARD_STYLE.panel.borderWidth, TEAM_CARD_STYLE.panel.borderColor, TEAM_CARD_STYLE.panel.borderAlpha)
+      .strokeRoundedRect(0, 0, width, STATS_TABLE_HEIGHT, 8);
 
     panel.add(background);
     this.createStatsTableHeader(panel, 24);
@@ -1361,9 +1367,13 @@ export class TournamentHubScene extends Phaser.Scene {
     );
 
     const panel = this.add.container(0, STATS_RANKING_CARD_Y);
-    const background = this.add.rectangle(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 0x0b2118, 0.86);
-    background.setOrigin(0);
-    background.setStrokeStyle(2, 0x5f9572, 0.92);
+    const background = this.add.graphics();
+
+    background
+      .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
+      .fillRoundedRect(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 8)
+      .lineStyle(TEAM_CARD_STYLE.panel.borderWidth, TEAM_CARD_STYLE.panel.borderColor, TEAM_CARD_STYLE.panel.borderAlpha)
+      .strokeRoundedRect(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 8);
 
     panel.add(background);
 
@@ -1436,30 +1446,124 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createBracketTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const format = getTournamentFormat(tournament.formatId);
-    const cardWidth = getBracketCardWidth(tournament.formatId);
+    const playoffLayout = layout.playoff;
+    const cardWidth = playoffLayout.cardWidth;
     const rounds = format.knockoutRounds.map((round) => ({
       stage: round.stage,
       matches: tournament.matches.filter((match) => match.stage === round.stage)
     }));
-    const columnGap = getBracketColumnGap(rounds.length, cardWidth, layout.playoff.width);
+    const columnGap = getBracketColumnGap(rounds.length, cardWidth, playoffLayout.width, playoffLayout.maxColumnGap);
     const totalWidth = rounds.length * cardWidth + Math.max(0, rounds.length - 1) * columnGap;
-    const startX = layout.playoff.x + (layout.playoff.width - totalWidth) / 2;
-    const roundCenters = getBracketRoundCenters(rounds[0]?.matches.length ?? 0, rounds.length);
+    const startX = Math.max(0, (playoffLayout.width - totalWidth) / 2);
+    const roundCenters = getBracketRoundCenters(
+      rounds[0]?.matches.length ?? 0,
+      rounds.length,
+      playoffLayout.cardHeight,
+      playoffLayout.rowGap
+    );
+    const contentHeight = getBracketContentHeight(roundCenters, playoffLayout.cardHeight);
+    const contentWidth = Math.max(playoffLayout.width, totalWidth);
+    const maxScrollX = Math.max(0, contentWidth - playoffLayout.width);
+    const maxScrollY = Math.max(0, contentHeight - playoffLayout.viewportHeight);
+    const content = this.add.container(playoffLayout.x, playoffLayout.y);
     const connectorGraphics = this.add.graphics();
 
-    connectorGraphics.lineStyle(2, 0x5f9572, 0.72);
+    connectorGraphics.lineStyle(3, TEAM_CARD_STYLE.panel.borderColor, 0.72);
     this.drawBracketConnectors(connectorGraphics, startX, columnGap, cardWidth, roundCenters);
+    content.add(connectorGraphics);
 
     rounds.forEach((round, roundIndex) => {
       const x = startX + roundIndex * (cardWidth + columnGap);
       const centers = roundCenters[roundIndex] ?? [];
-      const labelY = Math.min(...centers) - BRACKET_CARD_HEIGHT / 2 - 28;
+      const labelY = Math.min(...centers) - playoffLayout.cardHeight / 2 - 24;
 
-      this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY);
+      content.add(this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY, layout));
       round.matches.forEach((match, index) => {
-        this.createBracketMatch(match, x, centers[index] - BRACKET_CARD_HEIGHT / 2, cardWidth);
+        content.add(this.createBracketMatch(match, x, centers[index] - playoffLayout.cardHeight / 2, layout));
       });
     });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(playoffLayout.x, playoffLayout.y, playoffLayout.width, playoffLayout.viewportHeight)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const setScroll = (x: number, y: number): void => {
+      this.playoffScrollX = clampScroll(x, maxScrollX);
+      this.playoffScrollY = clampScroll(y, maxScrollY);
+      content.x = playoffLayout.x - this.playoffScrollX;
+      content.y = playoffLayout.y - this.playoffScrollY;
+    };
+    const scrollZone = this.add
+      .zone(
+        playoffLayout.x + playoffLayout.width / 2,
+        playoffLayout.y + playoffLayout.viewportHeight / 2,
+        playoffLayout.width,
+        playoffLayout.viewportHeight
+      )
+      .setInteractive({ useHandCursor: maxScrollX > 0 || maxScrollY > 0 })
+      .setDepth(-10);
+
+    this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY);
+    this.playoffScrollX = clampScroll(this.playoffScrollX, maxScrollX);
+    this.playoffScrollY = clampScroll(this.playoffScrollY, maxScrollY);
+    setScroll(this.playoffScrollX, this.playoffScrollY);
+
+    if (maxScrollY > 0) {
+      this.createScrollbar(
+        this.add.container(0, 0),
+        playoffLayout.x + playoffLayout.width + 10,
+        playoffLayout.y,
+        playoffLayout.viewportHeight,
+        maxScrollY,
+        () => this.playoffScrollY
+      );
+    }
+  }
+
+  private bindTwoAxisPlayoffScroll(
+    target: Phaser.GameObjects.Zone,
+    setScroll: (x: number, y: number) => void,
+    maxScrollX: number,
+    maxScrollY: number
+  ): void {
+    let activePointerId: number | null = null;
+    let startX = 0;
+    let startY = 0;
+    let startScrollX = 0;
+    let startScrollY = 0;
+
+    target.on('wheel', (_pointer: Phaser.Input.Pointer, deltaX: number, deltaY: number) => {
+      setScroll(
+        this.playoffScrollX + deltaX * TOUCH_SCROLL_WHEEL_FACTOR,
+        this.playoffScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR
+      );
+    });
+    target.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      activePointerId = pointer.id;
+      startX = pointer.worldX;
+      startY = pointer.worldY;
+      startScrollX = this.playoffScrollX;
+      startScrollY = this.playoffScrollY;
+    });
+    target.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (activePointerId !== pointer.id || (maxScrollX <= 0 && maxScrollY <= 0)) {
+        return;
+      }
+
+      setScroll(startScrollX - (pointer.worldX - startX), startScrollY - (pointer.worldY - startY));
+    });
+    const finish = (pointer: Phaser.Input.Pointer): void => {
+      if (activePointerId === pointer.id) {
+        activePointerId = null;
+      }
+    };
+
+    target.on('pointerup', finish);
+    target.on('pointerupoutside', finish);
   }
 
   private drawBracketConnectors(
@@ -1492,26 +1596,43 @@ export class TournamentHubScene extends Phaser.Scene {
     }
   }
 
-  private createBracketColumnLabel(text: string, x: number, y: number): void {
-    this.add
+  private createBracketColumnLabel(
+    text: string,
+    x: number,
+    y: number,
+    layout: TournamentHubLayout
+  ): Phaser.GameObjects.Text {
+    return this.add
       .text(x, y, text, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: layout.playoff.titleFontSize,
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
   }
 
-  private createBracketMatch(match: TournamentMatch, x: number, y: number, width: number): void {
+  private createBracketMatch(match: TournamentMatch, x: number, y: number, layout: TournamentHubLayout): Phaser.GameObjects.Container {
+    const width = layout.playoff.cardWidth;
+    const height = layout.playoff.cardHeight;
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, BRACKET_CARD_HEIGHT, 0x0b2118, 0.86);
-    background.setOrigin(0);
-    background.setStrokeStyle(2, match.status === 'locked' ? 0x3f6b50 : 0x5f9572, 0.92);
+    const background = this.add.graphics();
+
+    background
+      .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
+      .fillRoundedRect(0, 0, width, height, layout.playoff.cardRadius)
+      .lineStyle(
+        TEAM_CARD_STYLE.panel.borderWidth,
+        match.status === 'locked' ? TEAM_CARD_STYLE.muted.borderColor : TEAM_CARD_STYLE.panel.borderColor,
+        match.status === 'locked' ? TEAM_CARD_STYLE.muted.borderAlpha : TEAM_CARD_STYLE.panel.borderAlpha
+      )
+      .strokeRoundedRect(0, 0, width, height, layout.playoff.cardRadius);
 
     panel.add(background);
-    this.addBracketTeamRow(panel, match.homeTeamId, getMatchTeamScore(match, 'home'), 14, 21, match.status === 'locked', width);
-    this.addBracketTeamRow(panel, match.awayTeamId, getMatchTeamScore(match, 'away'), 14, 39, match.status === 'locked', width);
+    this.addBracketTeamRow(panel, match.homeTeamId, getMatchTeamScore(match, 'home'), 18, height * 0.36, match.status === 'locked', layout);
+    this.addBracketTeamRow(panel, match.awayTeamId, getMatchTeamScore(match, 'away'), 18, height * 0.68, match.status === 'locked', layout);
+
+    return panel;
   }
 
   private addBracketTeamRow(
@@ -1521,14 +1642,14 @@ export class TournamentHubScene extends Phaser.Scene {
     x: number,
     y: number,
     muted: boolean,
-    width: number
+    layout: TournamentHubLayout
   ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
-    const scoreX = width - 42;
+    const scoreX = layout.playoff.cardWidth - 42;
 
     if (team !== undefined) {
       const flag = this.add.image(x + 10, y, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(20, 14);
+      flag.setDisplaySize(layout.playoff.flagWidth, layout.playoff.flagHeight);
       panel.add(flag);
     }
 
@@ -1537,9 +1658,9 @@ export class TournamentHubScene extends Phaser.Scene {
         .text(x + 26, y, getTeamName(teamId), {
           color: muted ? '#8fb39d' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
+          fontSize: layout.playoff.teamFontSize,
           fontStyle: '700',
-          wordWrap: { width: scoreX - x - 40 }
+          wordWrap: { width: scoreX - x - 52 }
         })
         .setOrigin(0, 0.5)
     );
@@ -1549,7 +1670,7 @@ export class TournamentHubScene extends Phaser.Scene {
           align: 'right',
           color: muted ? '#8fb39d' : '#f0c95a',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
+          fontSize: layout.playoff.scoreFontSize,
           fontStyle: '700'
         })
         .setOrigin(1, 0.5)
@@ -1803,26 +1924,42 @@ function getGroupTableHeaderTooltip(column: keyof typeof GROUP_TABLE_COLUMNS): s
   return tooltips[column];
 }
 
-function getBracketCardWidth(formatId: TournamentState['formatId']): number {
-  return formatId === 'cup-xl' ? 200 : 210;
-}
-
-function getBracketColumnGap(columnCount: number, cardWidth: number, availableWidth: number): number {
+function getBracketColumnGap(
+  columnCount: number,
+  cardWidth: number,
+  availableWidth: number,
+  maxColumnGap: number
+): number {
   if (columnCount <= 1) {
     return 0;
   }
 
   const usableGapWidth = availableWidth - columnCount * cardWidth;
 
-  return Math.max(0, Math.min(BRACKET_MAX_COLUMN_GAP, usableGapWidth / (columnCount - 1)));
+  return Math.max(0, Math.min(maxColumnGap, usableGapWidth / (columnCount - 1)));
 }
 
-function getBracketRoundCenters(firstRoundMatchCount: number, roundCount: number): number[][] {
+function getBracketContentHeight(roundCenters: readonly (readonly number[])[], cardHeight: number): number {
+  const centers = roundCenters.flat();
+
+  if (centers.length === 0) {
+    return cardHeight;
+  }
+
+  return Math.max(...centers) + cardHeight / 2 + 12;
+}
+
+function getBracketRoundCenters(
+  firstRoundMatchCount: number,
+  roundCount: number,
+  cardHeight: number,
+  rowGap: number
+): number[][] {
   if (firstRoundMatchCount <= 0 || roundCount <= 0) {
     return [];
   }
 
-  const firstRoundCenters = getFirstRoundCenters(firstRoundMatchCount);
+  const firstRoundCenters = getFirstRoundCenters(firstRoundMatchCount, cardHeight, rowGap);
   const rounds: number[][] = [firstRoundCenters];
 
   for (let roundIndex = 1; roundIndex < roundCount; roundIndex += 1) {
@@ -1844,14 +1981,8 @@ function getBracketRoundCenters(firstRoundMatchCount: number, roundCount: number
   return rounds;
 }
 
-function getFirstRoundCenters(matchCount: number): number[] {
-  if (matchCount === 1) {
-    return [BRACKET_CENTER_Y];
-  }
-
-  const availableGap = (BRACKET_BOTTOM - BRACKET_TOP) / Math.max(1, matchCount - 1);
-  const rowGap = Math.min(BRACKET_MAX_ROW_GAP, availableGap);
-  const firstY = BRACKET_CENTER_Y - ((matchCount - 1) * rowGap) / 2;
+function getFirstRoundCenters(matchCount: number, cardHeight: number, rowGap: number): number[] {
+  const firstY = cardHeight / 2 + 44;
 
   return Array.from({ length: matchCount }, (_value, index) => firstY + index * rowGap);
 }

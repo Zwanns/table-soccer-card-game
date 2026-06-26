@@ -80,8 +80,20 @@ export interface TournamentHubLayout {
   };
   playoff: {
     x: number;
+    y: number;
     width: number;
     right: number;
+    viewportHeight: number;
+    cardWidth: number;
+    cardHeight: number;
+    cardRadius: number;
+    rowGap: number;
+    maxColumnGap: number;
+    titleFontSize: string;
+    teamFontSize: string;
+    scoreFontSize: string;
+    flagWidth: number;
+    flagHeight: number;
   };
   stats: {
     x: number;
@@ -197,8 +209,20 @@ export function createTournamentHubLayout(
       },
       playoff: {
         x: contentLeft,
+        y: 126,
         width: contentWidth,
-        right: contentRight
+        right: contentRight,
+        viewportHeight: 500,
+        cardWidth: 400,
+        cardHeight: 92,
+        cardRadius: 8,
+        rowGap: 116,
+        maxColumnGap: 220,
+        titleFontSize: '24px',
+        teamFontSize: '20px',
+        scoreFontSize: '20px',
+        flagWidth: 32,
+        flagHeight: 24
       },
       stats: {
         x: contentLeft,
@@ -311,8 +335,20 @@ export function createTournamentHubLayout(
     },
     playoff: {
       x: contentLeft,
+      y: 166,
       width: contentWidth,
-      right: contentRight
+      right: contentRight,
+      viewportHeight: 462,
+      cardWidth: 360,
+      cardHeight: 86,
+      cardRadius: 8,
+      rowGap: 104,
+      maxColumnGap: 190,
+      titleFontSize: '22px',
+      teamFontSize: '17px',
+      scoreFontSize: '18px',
+      flagWidth: 28,
+      flagHeight: 21
     },
     stats: {
       x: contentLeft,

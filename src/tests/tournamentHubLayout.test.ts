@@ -71,6 +71,16 @@ describe('Tournament Hub responsive layout', () => {
       cornerRadius: 8,
       formIndicatorRadius: 9
     });
+    expect(layout.playoff).toMatchObject({
+      x: 128,
+      y: 166,
+      width: 1344,
+      right: 1472,
+      viewportHeight: 462,
+      cardWidth: 360,
+      cardHeight: 86,
+      cardRadius: 8
+    });
     expect(layout.footer).toMatchObject({
       left: 128,
       y: 666,
@@ -206,6 +216,8 @@ describe('Tournament Hub responsive layout', () => {
       expect(layout.playoff.x).toBe(layout.contentLeft);
       expect(layout.playoff.width).toBe(layout.contentWidth);
       expect(layout.playoff.right).toBe(layout.contentRight);
+      expect(layout.playoff.cardWidth).toBeGreaterThan(210);
+      expect(layout.playoff.cardHeight).toBeGreaterThan(58);
       expect(layout.stats.x).toBe(layout.contentLeft);
       expect(layout.stats.width).toBe(layout.contentWidth);
       expect(layout.stats.right).toBe(layout.contentRight);
@@ -259,6 +271,20 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.groupStage.formIndicatorGap).toBe(23);
   });
 
+  it('keeps Playoff large, masked and scroll-ready within the shared content contract', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(desktop.playoff.width).toBe(desktop.contentWidth);
+    expect(mobile.playoff.width).toBe(mobile.contentWidth);
+    expect(desktop.playoff.cardWidth).toBe(360);
+    expect(desktop.playoff.cardHeight).toBe(86);
+    expect(mobile.playoff.cardWidth).toBe(400);
+    expect(mobile.playoff.cardHeight).toBe(92);
+    expect(desktop.playoff.viewportHeight).toBe(desktop.matches.viewportHeight);
+    expect(mobile.playoff.viewportHeight).toBe(mobile.matches.viewportHeight);
+  });
+
   it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
@@ -295,7 +321,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('layout.matches.cardRadius');
     expect(source).toContain('borderRadius: layout.footer.buttonRadius');
     expect(source).toContain('statsLayout.rankingWidth');
-    expect(source).toContain('layout.playoff.width');
+    expect(source).toContain('playoffLayout.width');
     expect(source).toContain("const isAi = teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI'");
     expect(source).toContain('this.addMobileAiBadge(row, teamCodeX, flagBottomY, layout)');
     expect(source).toContain('fillRoundedRect(');
@@ -321,9 +347,11 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("'GF', 'Goals for'");
     expect(source).toContain("'GA', 'Goals against'");
     expect(source).toContain("'Pts', 'Points'");
+    expect(source).toContain("'Form', 'Recent form'");
     expect(source).toContain('groupLayout.playedX');
     expect(source).toContain('groupLayout.formX');
     expect(source).toContain('layout.groupStage.formIndicatorGap');
+    expect(source).toContain('TEAM_CARD_STYLE.panel.borderColor');
     expect(source).toContain('this.addMobileGroupFormIndicators(');
     expect(source).toContain('getTeamGroupForm(tournament, group, teamId)');
     expect(source).toContain('0x71e48b');
@@ -331,6 +359,22 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('0xff788a');
     expect(source).toContain('this.showStatsTooltip(indicator, entry.tooltip)');
     expect(source).toContain('`vs ${opponent === undefined ? opponentId : opponent.name}\\n${goalsFor}:${goalsAgainst}`');
+  });
+
+  it('wires Tournament Hub tabs, Playoff and Stats to the shared tournament panel style', () => {
+    const source = readSource('src/scenes/TournamentHubScene.ts');
+
+    expect(source).toContain('selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal');
+    expect(source).toContain('TEAM_CARD_STYLE.hover.backgroundColor');
+    expect(source).toContain('statsLayout.rankingWidth');
+    expect(source).toContain('this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY)');
+    expect(source).toContain('maxScrollX');
+    expect(source).toContain('maxScrollY');
+    expect(source).toContain('content.setMask(mask)');
+    expect(source).toContain('layout.playoff.cardWidth');
+    expect(source).toContain('layout.playoff.cardHeight');
+    expect(source).toContain('fillRoundedRect(0, 0, width, STATS_TABLE_HEIGHT, 8)');
+    expect(source).toContain('fillRoundedRect(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 8)');
   });
 
   it('keeps all four tab actions and hides only the mobile game title', () => {
