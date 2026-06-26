@@ -196,6 +196,7 @@ export class TournamentHubScene extends Phaser.Scene {
     }
 
     new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.scene.start('MenuScene'), {
+      borderRadius: layout.footer.buttonRadius,
       fontSize: layout.footer.fontSize,
       height: layout.footer.buttonHeight,
       width: layout.footer.buttonWidth
@@ -341,6 +342,7 @@ export class TournamentHubScene extends Phaser.Scene {
     }
 
     new Button(this, layout.footer.backX, layout.footer.y, 'Back', () => this.changeMatchPage(-1, maxPage), {
+      borderRadius: layout.footer.buttonRadius,
       disabled: this.matchPage === 0,
       fontSize: layout.footer.fontSize,
       height: layout.footer.buttonHeight,
@@ -355,6 +357,7 @@ export class TournamentHubScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     new Button(this, layout.footer.nextX, layout.footer.y, '→', () => this.changeMatchPage(1, maxPage), {
+      borderRadius: layout.footer.buttonRadius,
       disabled: this.matchPage === maxPage,
       fontSize: layout.footer.fontSize,
       height: layout.footer.buttonHeight,
@@ -484,16 +487,11 @@ export class TournamentHubScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const row = this.add.container(0, 0);
     const borderStyle = match.status === 'completed' ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.panel;
-    const background = this.add.rectangle(
-      0,
-      0,
-      layout.matches.cardWidth,
-      layout.matches.cardHeight,
-      TEAM_CARD_STYLE.panel.backgroundColor,
-      TEAM_CARD_STYLE.panel.backgroundAlpha
-    );
-    background.setOrigin(0);
-    background.setStrokeStyle(borderStyle.borderWidth, borderStyle.borderColor, borderStyle.borderAlpha);
+    const background = this.add.graphics();
+    background.fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha);
+    background.fillRoundedRect(0, 0, layout.matches.cardWidth, layout.matches.cardHeight, layout.matches.cardRadius);
+    background.lineStyle(borderStyle.borderWidth, borderStyle.borderColor, borderStyle.borderAlpha);
+    background.strokeRoundedRect(0, 0, layout.matches.cardWidth, layout.matches.cardHeight, layout.matches.cardRadius);
     row.add(background);
 
     row.add(

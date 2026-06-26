@@ -38,7 +38,8 @@ describe('Tournament Hub responsive layout', () => {
       rowGap: 82,
       cardWidth: 1344,
       cardHeight: 72,
-      viewportHeight: 450
+      cardRadius: 8,
+      viewportHeight: 462
     });
     expect(layout.groupStage).toMatchObject({
       x: 32,
@@ -52,7 +53,10 @@ describe('Tournament Hub responsive layout', () => {
     });
     expect(layout.footer).toMatchObject({
       y: 666,
-      buttonWidth: 170,
+      buttonWidth: 210,
+      buttonHeight: 60,
+      buttonRadius: 8,
+      fontSize: '20px',
       menuX: 132,
       backX: 600,
       pageX: 800,
@@ -89,6 +93,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.matches.columns).toBe(1);
     expect(mobile.matches.cardWidth).toBe(1536);
     expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight);
+    expect(mobile.matches.cardRadius).toBe(8);
     expect(mobile.matches.actionHeight).toBe(mobile.matches.cardHeight);
     expect(mobile.matches.actionFontSize).toBe('24px');
     expect(mobile.matches.actionWidth).toBeGreaterThan(desktop.matches.actionWidth);
@@ -129,11 +134,26 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.matches.columns).toBe(1);
     expect(desktop.matches.cardWidth).toBeLessThan(mobile.matches.cardWidth);
     expect(desktop.matches.cardHeight).toBeGreaterThan(38);
+    expect(desktop.matches.cardRadius).toBe(8);
     expect(desktop.matches.actionHeight).toBe(desktop.matches.cardHeight);
     expect(desktop.matches.actionWidth).toBeGreaterThan(70);
     expect(desktop.matches.actionGap).toBe(0);
     expect(desktop.matches.flagWidth).toBeGreaterThan(26);
     expect(desktop.matches.teamFontSize).toBe('20px');
+  });
+
+  it('uses larger rounded footer buttons close to the match viewport on desktop and mobile', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(desktop.footer.buttonWidth).toBeGreaterThan(170);
+    expect(desktop.footer.buttonHeight).toBeGreaterThan(54);
+    expect(desktop.footer.buttonRadius).toBe(8);
+    expect(desktop.footer.y - desktop.footer.buttonHeight / 2 - (desktop.matches.y + desktop.matches.viewportHeight!)).toBeLessThanOrEqual(8);
+    expect(mobile.footer.buttonWidth).toBeGreaterThan(260);
+    expect(mobile.footer.buttonHeight).toBeGreaterThan(54);
+    expect(mobile.footer.buttonRadius).toBe(8);
+    expect(mobile.footer.y - mobile.footer.buttonHeight / 2 - (mobile.matches.y + mobile.matches.viewportHeight!)).toBeLessThanOrEqual(10);
   });
 
   it('uses two large group cards per row in mobile landscape and scrolls extra group rows', () => {
@@ -184,6 +204,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('layout.matches.actionWidth');
     expect(source).toContain('layout.matches.actionGap');
     expect(source).toContain('layout.matches.scoreX');
+    expect(source).toContain('layout.matches.cardRadius');
+    expect(source).toContain('borderRadius: layout.footer.buttonRadius');
     expect(source).toContain("const isAi = teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI'");
     expect(source).toContain('this.addMobileAiBadge(row, teamCodeX, flagBottomY, layout)');
     expect(source).toContain('fillRoundedRect(');

@@ -25,6 +25,7 @@ export interface TournamentHubLayout {
     rowGap: number;
     cardWidth: number;
     cardHeight: number;
+    cardRadius: number;
     viewportHeight: number | null;
     teamFontSize: string;
     scoreFontSize: string;
@@ -65,6 +66,7 @@ export interface TournamentHubLayout {
     y: number;
     buttonWidth: number;
     buttonHeight: number;
+    buttonRadius: number;
     fontSize: string;
     menuX: number;
     backX: number;
@@ -102,7 +104,8 @@ export function createTournamentHubLayout(
         rowGap: 104,
         cardWidth: 1536,
         cardHeight: 92,
-        viewportHeight: 476,
+        cardRadius: 8,
+        viewportHeight: 500,
         teamFontSize: '28px',
         scoreFontSize: '36px',
         labelFontSize: '24px',
@@ -139,10 +142,11 @@ export function createTournamentHubLayout(
         formIndicatorRadius: 9
       },
       footer: {
-        y: 674,
-        buttonWidth: 260,
-        buttonHeight: 54,
-        fontSize: '19px',
+        y: 668,
+        buttonWidth: 300,
+        buttonHeight: 64,
+        buttonRadius: 8,
+        fontSize: '21px',
         menuX: 170,
         backX: 500,
         pageX: 800,
@@ -176,7 +180,8 @@ export function createTournamentHubLayout(
       rowGap: 82,
       cardWidth: 1344,
       cardHeight: 72,
-      viewportHeight: 450,
+      cardRadius: 8,
+      viewportHeight: 462,
       teamFontSize: '20px',
       scoreFontSize: '28px',
       labelFontSize: '18px',
@@ -214,9 +219,10 @@ export function createTournamentHubLayout(
     },
     footer: {
       y: 666,
-      buttonWidth: 170,
-      buttonHeight: 54,
-      fontSize: '18px',
+      buttonWidth: 210,
+      buttonHeight: 60,
+      buttonRadius: 8,
+      fontSize: '20px',
       menuX: 132,
       backX: 600,
       pageX: 800,
