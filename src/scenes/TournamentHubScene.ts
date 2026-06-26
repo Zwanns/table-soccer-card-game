@@ -63,6 +63,10 @@ const STAGE_LABELS: Record<TournamentStage, string> = {
   complete: 'Complete'
 };
 
+const MOBILE_MATCH_AI_BADGE_WIDTH = 34;
+const MOBILE_MATCH_AI_BADGE_HEIGHT = 16;
+const MOBILE_MATCH_AI_BADGE_RADIUS = 4;
+const MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10;
 const MATCHES_PER_PAGE = 20;
 const MATCH_GRID = {
   x: 128,
@@ -575,7 +579,9 @@ export class TournamentHubScene extends Phaser.Scene {
     layout: TournamentHubLayout
   ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
+    const isAi = teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI';
     const teamCodeX = x + layout.matches.teamCodeOffsetX;
+    const teamCodeY = isAi ? y + MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y : y;
     const flagBottomY = y + layout.matches.flagHeight / 2;
 
     if (team !== undefined) {
@@ -586,7 +592,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     row.add(
       this.add
-        .text(teamCodeX, y, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
+        .text(teamCodeX, teamCodeY, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
           color: team === undefined ? '#8fb39d' : TEAM_CARD_STYLE.normal.textColor,
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.matches.teamFontSize,
@@ -595,18 +601,40 @@ export class TournamentHubScene extends Phaser.Scene {
         .setOrigin(0, 0.5)
     );
 
-    if (teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI') {
-      row.add(
-        this.add
-          .text(teamCodeX, flagBottomY, 'AI', {
-            color: '#f0c95a',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: layout.matches.controllerFontSize,
-            fontStyle: '700'
-          })
-          .setOrigin(0, 1)
-      );
+    if (isAi) {
+      this.addMobileAiBadge(row, teamCodeX, flagBottomY, layout);
     }
+  }
+
+  private addMobileAiBadge(
+    row: Phaser.GameObjects.Container,
+    x: number,
+    bottomY: number,
+    layout: TournamentHubLayout
+  ): void {
+    const y = bottomY - MOBILE_MATCH_AI_BADGE_HEIGHT;
+    const badge = this.add.graphics();
+
+    badge
+      .fillStyle(0xf0c95a, 1)
+      .fillRoundedRect(
+        x,
+        y,
+        MOBILE_MATCH_AI_BADGE_WIDTH,
+        MOBILE_MATCH_AI_BADGE_HEIGHT,
+        MOBILE_MATCH_AI_BADGE_RADIUS
+      );
+    row.add(badge);
+    row.add(
+      this.add
+        .text(x + MOBILE_MATCH_AI_BADGE_WIDTH / 2, y + MOBILE_MATCH_AI_BADGE_HEIGHT / 2, 'AI', {
+          color: '#1f2a2e',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.matches.controllerFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0.5)
+    );
   }
 
   private createMobileMatchActionVisual(

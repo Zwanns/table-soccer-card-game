@@ -58,6 +58,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(layout.tabs.gap).toBe(0);
     expect(layout.tabs.height).toBeGreaterThan(createTournamentHubLayout(false).tabs.height);
     expect(layout.tabs.width * 4).toBe(1536);
+    expect(layout.tabs.fontSize).toBe(layout.matches.actionFontSize);
   });
 
   it('uses one full-width tall match card column with touch-sized actions', () => {
@@ -68,11 +69,11 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.matches.cardWidth).toBe(1536);
     expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight * 2);
     expect(mobile.matches.actionHeight).toBe(mobile.matches.cardHeight);
-    expect(mobile.matches.actionFontSize).toBe('20px');
+    expect(mobile.matches.actionFontSize).toBe('24px');
     expect(mobile.matches.actionWidth).toBeGreaterThan(desktop.matches.actionWidth);
     expect(mobile.matches.scoreX).toBe(mobile.matches.cardWidth / 2);
     expect(mobile.matches.scoreFontSize).toBe('36px');
-    expect(mobile.matches.labelFontSize).toBe('24px');
+    expect(mobile.matches.labelFontSize).toBe(mobile.matches.actionFontSize);
     expect(mobile.matches.teamFontSize).toBe('28px');
   });
 
@@ -115,8 +116,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('layout.matches.actionWidth');
     expect(source).toContain('layout.matches.actionGap');
     expect(source).toContain('layout.matches.scoreX');
-    expect(source).toContain("getTournamentTeamControllerType(tournament, teamId) === 'AI'");
-    expect(source).toContain(".text(teamCodeX, flagBottomY, 'AI'");
+    expect(source).toContain("const isAi = teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI'");
+    expect(source).toContain('this.addMobileAiBadge(row, teamCodeX, flagBottomY, layout)');
+    expect(source).toContain('fillRoundedRect(');
+    expect(source).toContain('.fillStyle(0xf0c95a, 1)');
+    expect(source).toContain("color: '#1f2a2e'");
+    expect(source).toContain('MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10');
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
   });
 

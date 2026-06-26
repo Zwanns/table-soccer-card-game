@@ -74,7 +74,7 @@ export function createTournamentHubLayout(
         width: 384,
         height: 58,
         gap: 0,
-        fontSize: '22px'
+        fontSize: '24px'
       },
       matches: {
         x: 32,
@@ -88,8 +88,8 @@ export function createTournamentHubLayout(
         teamFontSize: '28px',
         scoreFontSize: '36px',
         labelFontSize: '24px',
-        controllerFontSize: '16px',
-        actionFontSize: '20px',
+        controllerFontSize: '12px',
+        actionFontSize: '24px',
         actionHeight: 92,
         actionWidth: 142,
         actionGap: 0,
