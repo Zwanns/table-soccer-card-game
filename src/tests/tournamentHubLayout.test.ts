@@ -12,7 +12,7 @@ function readSource(path: string): string {
 }
 
 describe('Tournament Hub responsive layout', () => {
-  it('preserves the desktop header, tabs, match grid and footer geometry', () => {
+  it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
 
     expect(layout.header).toEqual({
@@ -33,20 +33,22 @@ describe('Tournament Hub responsive layout', () => {
     expect(layout.matches).toMatchObject({
       x: 128,
       y: 168,
-      columns: 2,
-      columnGap: 40,
-      rowGap: 45,
-      cardWidth: 652,
-      cardHeight: 38,
-      viewportHeight: null
+      columns: 1,
+      columnGap: 0,
+      rowGap: 82,
+      cardWidth: 1344,
+      cardHeight: 72,
+      viewportHeight: 450
     });
     expect(layout.groupStage).toMatchObject({
-      x: 74,
-      y: 168,
-      columns: 4,
-      cardWidth: 340,
-      cardHeight: 190,
-      viewportHeight: null
+      x: 32,
+      y: 166,
+      columns: 2,
+      cardWidth: 756,
+      cardHeight: 430,
+      viewportHeight: 470,
+      cornerRadius: 8,
+      formIndicatorRadius: 9
     });
     expect(layout.footer).toMatchObject({
       y: 666,
@@ -76,7 +78,7 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(mobile.matches.columns).toBe(1);
     expect(mobile.matches.cardWidth).toBe(1536);
-    expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight * 2);
+    expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight);
     expect(mobile.matches.actionHeight).toBe(mobile.matches.cardHeight);
     expect(mobile.matches.actionFontSize).toBe('24px');
     expect(mobile.matches.actionWidth).toBeGreaterThan(desktop.matches.actionWidth);
@@ -106,16 +108,30 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(getTournamentHubMatchMaxScroll(4, mobile)).toBe(0);
     expect(getTournamentHubMatchMaxScroll(20, mobile)).toBeGreaterThan(0);
-    expect(getTournamentHubMatchMaxScroll(20, desktop)).toBe(0);
+    expect(getTournamentHubMatchMaxScroll(4, desktop)).toBe(0);
+    expect(getTournamentHubMatchMaxScroll(20, desktop)).toBeGreaterThan(0);
   });
 
-  it('uses two large group cards per row in mobile landscape and scrolls extra group rows', () => {
+  it('uses desktop match cards that stay smaller than mobile but no longer use dense rows', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
 
+    expect(desktop.matches.columns).toBe(1);
+    expect(desktop.matches.cardWidth).toBeLessThan(mobile.matches.cardWidth);
+    expect(desktop.matches.cardHeight).toBeGreaterThan(38);
+    expect(desktop.matches.actionHeight).toBe(desktop.matches.cardHeight);
+    expect(desktop.matches.actionWidth).toBeGreaterThan(70);
+    expect(desktop.matches.actionGap).toBe(0);
+    expect(desktop.matches.flagWidth).toBeGreaterThan(26);
+    expect(desktop.matches.teamFontSize).toBe('20px');
+  });
+
+  it('uses two large group cards per row in mobile landscape and scrolls extra group rows', () => {
+    const mobile = createTournamentHubLayout(true);
+
     expect(mobile.groupStage.columns).toBe(2);
-    expect(mobile.groupStage.cardWidth).toBeGreaterThan(desktop.groupStage.cardWidth * 2);
-    expect(mobile.groupStage.cardHeight).toBeGreaterThan(desktop.groupStage.cardHeight * 2);
+    expect(mobile.groupStage.cardWidth).toBe(756);
+    expect(mobile.groupStage.cardHeight).toBe(430);
     expect(mobile.groupStage.viewportHeight).toBe(470);
     expect(mobile.groupStage.cornerRadius).toBe(8);
     expect(mobile.groupStage.formIndicatorRadius).toBe(9);
@@ -124,15 +140,30 @@ describe('Tournament Hub responsive layout', () => {
     expect(getTournamentHubGroupStageMaxScroll(8, mobile)).toBeGreaterThan(
       getTournamentHubGroupStageMaxScroll(4, mobile)
     );
-    expect(getTournamentHubGroupStageMaxScroll(8, desktop)).toBe(0);
   });
 
-  it('wires mobile match scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
+  it('uses the same expanded group-card model on desktop without changing mobile geometry', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(desktop.groupStage.columns).toBe(2);
+    expect(desktop.groupStage.cardWidth).toBe(mobile.groupStage.cardWidth);
+    expect(desktop.groupStage.cardHeight).toBe(mobile.groupStage.cardHeight);
+    expect(desktop.groupStage.titleFontSize).toBe(mobile.groupStage.titleFontSize);
+    expect(desktop.groupStage.formIndicatorRadius).toBe(mobile.groupStage.formIndicatorRadius);
+    expect(getTournamentHubGroupStageMaxScroll(2, desktop)).toBe(0);
+    expect(getTournamentHubGroupStageMaxScroll(4, desktop)).toBeGreaterThan(0);
+    expect(getTournamentHubGroupStageMaxScroll(8, desktop)).toBeGreaterThan(
+      getTournamentHubGroupStageMaxScroll(4, desktop)
+    );
+  });
+
+  it('wires match-card scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
     expect(source).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
     expect(source).toContain('const layout = createTournamentHubLayout()');
-    expect(source).toContain('if (layout.mobileLandscape) {');
+    expect(source).toContain('if (layout.matches.viewportHeight !== null) {');
     expect(source).toContain('this.createMobileMatchesList(tournament, pageMatches, layout)');
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
@@ -152,9 +183,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
   });
 
-  it('wires mobile group-stage cards with expanded standings, form indicators and score tooltips', () => {
+  it('wires group-stage cards with expanded standings, form indicators and score tooltips', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
+    expect(source).toContain('if (layout.groupStage.viewportHeight !== null) {');
     expect(source).toContain('this.createMobileGroupStage(tournament, layout)');
     expect(source).toContain('getTournamentHubGroupStageMaxScroll(tournament.groups.length, layout)');
     expect(source).toContain('content.setMask(mask)');

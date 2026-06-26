@@ -327,7 +327,7 @@ export class TournamentHubScene extends Phaser.Scene {
       this.matchPage * MATCHES_PER_PAGE + MATCHES_PER_PAGE
     );
 
-    if (layout.mobileLandscape) {
+    if (layout.matches.viewportHeight !== null) {
       this.createMobileMatchesList(tournament, pageMatches, layout);
     } else {
       pageMatches.forEach((match, index) => {
@@ -751,7 +751,7 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private createTablesTab(tournament: TournamentState, layout: TournamentHubLayout): void {
-    if (layout.mobileLandscape) {
+    if (layout.groupStage.viewportHeight !== null) {
       this.createMobileGroupStage(tournament, layout);
       return;
     }
