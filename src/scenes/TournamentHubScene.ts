@@ -93,7 +93,6 @@ const BRACKET_CENTER_Y = 395;
 const BRACKET_MAX_ROW_GAP = 106;
 const BRACKET_TOP = 185;
 const BRACKET_BOTTOM = 610;
-const BRACKET_SIDE_MARGIN = 84;
 const BRACKET_MAX_COLUMN_GAP = 180;
 const GROUP_TABLE_COLUMNS = {
   played: 164,
@@ -101,12 +100,10 @@ const GROUP_TABLE_COLUMNS = {
   goalDifference: 240,
   goals: 286
 } as const;
-const STATS_TABLE_WIDTH = 780;
 const STATS_TABLE_HEIGHT = 462;
 const STATS_TABLE_ROW_GAP = 30;
 const STATS_TABLE_VIEWPORT_Y = 46;
 const STATS_TABLE_VIEWPORT_HEIGHT = 400;
-const STATS_RANKING_X = 906;
 const STATS_RANKING_WIDTH = 196;
 const STATS_RANKING_CARD_HEIGHT = 72;
 const STATS_RANKING_VIEWPORT_HEIGHT = 462;
@@ -114,7 +111,6 @@ const STATS_RANKING_COLUMN_GAP = 32;
 const STATS_RANKING_ROW_GAP = 136;
 const STATS_RANKING_CARD_Y = 28;
 const STATS_RANKING_MAX_COLUMNS = 3;
-const STATS_RANKING_RIGHT_MARGIN = 30;
 const STATS_TOOLTIP_DEPTH = 10000;
 const STATS_TOOLTIP_PADDING_X = 12;
 const STATS_TOOLTIP_PADDING_Y = 8;
@@ -190,9 +186,9 @@ export class TournamentHubScene extends Phaser.Scene {
     } else if (this.activeTab === 'tables') {
       this.createTablesTab(tournament, layout);
     } else if (this.activeTab === 'bracket') {
-      this.createBracketTab(tournament);
+      this.createBracketTab(tournament, layout);
     } else {
-      this.createStatsTab(tournament);
+      this.createStatsTab(tournament, layout);
     }
 
     new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.scene.start('MenuScene'), {
@@ -1082,11 +1078,12 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private createStatsTab(tournament: TournamentState): void {
+  private createStatsTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const stats = getTournamentTeamStats(tournament);
     const playerStats = getTournamentPlayerStats(tournament);
+    const statsLayout = layout.stats;
 
-    this.createTeamStatsTable(stats.slice(0, 12), 74, 166);
+    this.createTeamStatsTable(stats.slice(0, 12), statsLayout.tableX, statsLayout.y, statsLayout.tableWidth);
 
     const rankingCards: StatsRankingCardDefinition[] = [
       { title: 'Goals', entries: createTeamRankingEntries(stats, 'goalsFor') },
@@ -1096,12 +1093,12 @@ export class TournamentHubScene extends Phaser.Scene {
       { title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
     ];
 
-    this.createStatsRankingList(rankingCards, STATS_RANKING_X, 166);
+    this.createStatsRankingList(rankingCards, statsLayout.rankingX, statsLayout.y, statsLayout.rankingWidth);
   }
 
-  private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number): void {
+  private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number, width: number): void {
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, STATS_TABLE_WIDTH, STATS_TABLE_HEIGHT, 0x0b2118, 0.86);
+    const background = this.add.rectangle(0, 0, width, STATS_TABLE_HEIGHT, 0x0b2118, 0.86);
     background.setOrigin(0);
     background.setStrokeStyle(2, 0x5f9572, 0.92);
 
@@ -1145,7 +1142,7 @@ export class TournamentHubScene extends Phaser.Scene {
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
-      .fillRect(x, y + STATS_TABLE_VIEWPORT_Y, STATS_TABLE_WIDTH, STATS_TABLE_VIEWPORT_HEIGHT)
+      .fillRect(x, y + STATS_TABLE_VIEWPORT_Y, width, STATS_TABLE_VIEWPORT_HEIGHT)
       .createGeometryMask();
     maskGraphics.setVisible(false);
     rows.setMask(mask);
@@ -1155,9 +1152,9 @@ export class TournamentHubScene extends Phaser.Scene {
     const maxScroll = Math.max(0, contentHeight - STATS_TABLE_VIEWPORT_HEIGHT);
     const scrollZone = this.add
       .zone(
-        STATS_TABLE_WIDTH / 2,
+        width / 2,
         STATS_TABLE_VIEWPORT_Y + STATS_TABLE_VIEWPORT_HEIGHT / 2,
-        STATS_TABLE_WIDTH,
+        width,
         STATS_TABLE_VIEWPORT_HEIGHT
       )
       .setInteractive();
@@ -1173,7 +1170,7 @@ export class TournamentHubScene extends Phaser.Scene {
       viewport: {
         x,
         y: y + STATS_TABLE_VIEWPORT_Y,
-        width: STATS_TABLE_WIDTH,
+        width,
         height: STATS_TABLE_VIEWPORT_HEIGHT
       },
       maxScroll,
@@ -1188,7 +1185,7 @@ export class TournamentHubScene extends Phaser.Scene {
     dragScroll.bindDragTarget(scrollZone);
 
     if (maxScroll > 0) {
-      this.createScrollbar(panel, STATS_TABLE_WIDTH + 12, STATS_TABLE_VIEWPORT_Y, STATS_TABLE_VIEWPORT_HEIGHT, maxScroll, () =>
+      this.createScrollbar(panel, width + 12, STATS_TABLE_VIEWPORT_Y, STATS_TABLE_VIEWPORT_HEIGHT, maxScroll, () =>
         this.statsTeamScrollY
       );
     }
@@ -1273,10 +1270,10 @@ export class TournamentHubScene extends Phaser.Scene {
   private createStatsRankingList(
     rankingCards: readonly StatsRankingCardDefinition[],
     x: number,
-    y: number
+    y: number,
+    availableWidth: number
   ): void {
     const content = this.add.container(x, y);
-    const availableWidth = SCENE_WIDTH - x - STATS_RANKING_RIGHT_MARGIN;
     const columnCount = Phaser.Math.Clamp(
       Math.floor((availableWidth + STATS_RANKING_COLUMN_GAP) / (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP)),
       1,
@@ -1437,16 +1434,16 @@ export class TournamentHubScene extends Phaser.Scene {
     container.add([track, thumb]);
   }
 
-  private createBracketTab(tournament: TournamentState): void {
+  private createBracketTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const format = getTournamentFormat(tournament.formatId);
     const cardWidth = getBracketCardWidth(tournament.formatId);
     const rounds = format.knockoutRounds.map((round) => ({
       stage: round.stage,
       matches: tournament.matches.filter((match) => match.stage === round.stage)
     }));
-    const columnGap = getBracketColumnGap(rounds.length, cardWidth);
+    const columnGap = getBracketColumnGap(rounds.length, cardWidth, layout.playoff.width);
     const totalWidth = rounds.length * cardWidth + Math.max(0, rounds.length - 1) * columnGap;
-    const startX = (SCENE_WIDTH - totalWidth) / 2;
+    const startX = layout.playoff.x + (layout.playoff.width - totalWidth) / 2;
     const roundCenters = getBracketRoundCenters(rounds[0]?.matches.length ?? 0, rounds.length);
     const connectorGraphics = this.add.graphics();
 
@@ -1810,14 +1807,14 @@ function getBracketCardWidth(formatId: TournamentState['formatId']): number {
   return formatId === 'cup-xl' ? 200 : 210;
 }
 
-function getBracketColumnGap(columnCount: number, cardWidth: number): number {
+function getBracketColumnGap(columnCount: number, cardWidth: number, availableWidth: number): number {
   if (columnCount <= 1) {
     return 0;
   }
 
-  const usableGapWidth = SCENE_WIDTH - BRACKET_SIDE_MARGIN * 2 - columnCount * cardWidth;
+  const usableGapWidth = availableWidth - columnCount * cardWidth;
 
-  return Math.min(BRACKET_MAX_COLUMN_GAP, usableGapWidth / (columnCount - 1));
+  return Math.max(0, Math.min(BRACKET_MAX_COLUMN_GAP, usableGapWidth / (columnCount - 1)));
 }
 
 function getBracketRoundCenters(firstRoundMatchCount: number, roundCount: number): number[][] {

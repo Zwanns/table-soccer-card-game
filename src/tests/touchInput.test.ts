@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { createTournamentHubLayout } from '../ui/tournamentHubLayout';
 import { DRAG_SCROLL_THRESHOLD_PX, clampScroll, isDragScrollGesture } from '../ui/touchInput';
 
 function readSource(path: string): string {
@@ -70,14 +71,15 @@ describe('touch drag-scroll helpers', () => {
     const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
     const layoutSource = readSource('src/ui/tournamentSetupLayout.ts');
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
-    const hubLayoutSource = readSource('src/ui/tournamentHubLayout.ts');
+    const hubLayout = createTournamentHubLayout(false);
 
     expect(layoutSource).toContain("{ x: 130, y: 666, width: 170, height: 54, fontSize: '18px' }");
     expect(layoutSource).toContain("{ x: 1360, y: 666, width: 230, height: 54, fontSize: '18px' }");
     expect(setupSource).toContain('new Button(this, buttonLayout.x, buttonLayout.y');
     expect(setupSource).not.toContain('touchHeight:');
-    expect(hubLayoutSource).toContain('menuX: 132');
-    expect(hubLayoutSource).toContain('y: 666');
+    expect(hubLayout.footer.menuX - hubLayout.footer.buttonWidth / 2).toBe(hubLayout.contentLeft);
+    expect(hubLayout.footer.nextX + hubLayout.footer.buttonWidth / 2).toBe(hubLayout.contentRight);
+    expect(hubLayout.footer.y).toBe(666);
     expect(hubSource).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Menu'");
     expect(hubSource).not.toContain('touchHeight:');
   });

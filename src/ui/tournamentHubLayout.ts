@@ -2,6 +2,9 @@ import { isMobileLandscapeLayout } from './mobileLayout';
 
 export interface TournamentHubLayout {
   mobileLandscape: boolean;
+  contentLeft: number;
+  contentWidth: number;
+  contentRight: number;
   header: {
     showGameTitle: boolean;
     gameTitleY: number;
@@ -62,8 +65,25 @@ export interface TournamentHubLayout {
     cornerRadius: number;
     formIndicatorRadius: number;
   };
-  footer: {
+  playoff: {
+    x: number;
+    width: number;
+    right: number;
+  };
+  stats: {
+    x: number;
     y: number;
+    width: number;
+    right: number;
+    tableX: number;
+    tableWidth: number;
+    rankingX: number;
+    rankingWidth: number;
+  };
+  footer: {
+    left: number;
+    y: number;
+    right: number;
     buttonWidth: number;
     buttonHeight: number;
     buttonRadius: number;
@@ -79,8 +99,16 @@ export function createTournamentHubLayout(
   mobileLandscape = isMobileLandscapeLayout()
 ): TournamentHubLayout {
   if (mobileLandscape) {
+    const contentLeft = 32;
+    const contentWidth = 1536;
+    const contentRight = contentLeft + contentWidth;
+    const footerButtonWidth = 300;
+
     return {
       mobileLandscape: true,
+      contentLeft,
+      contentWidth,
+      contentRight,
       header: {
         showGameTitle: false,
         gameTitleY: 30,
@@ -89,20 +117,20 @@ export function createTournamentHubLayout(
         tournamentTitleFontSize: '26px'
       },
       tabs: {
-        startX: 32,
+        startX: contentLeft,
         y: 86,
-        width: 384,
+        width: contentWidth / 4,
         height: 58,
         gap: 0,
         fontSize: '24px'
       },
       matches: {
-        x: 32,
+        x: contentLeft,
         y: 126,
         columns: 1,
         columnGap: 0,
         rowGap: 104,
-        cardWidth: 1536,
+        cardWidth: contentWidth,
         cardHeight: 92,
         cardRadius: 8,
         viewportHeight: 500,
@@ -124,7 +152,7 @@ export function createTournamentHubLayout(
         flagHeight: 48
       },
       groupStage: {
-        x: 32,
+        x: contentLeft,
         y: 166,
         columns: 2,
         columnGap: 24,
@@ -141,22 +169,47 @@ export function createTournamentHubLayout(
         cornerRadius: 8,
         formIndicatorRadius: 9
       },
+      playoff: {
+        x: contentLeft,
+        width: contentWidth,
+        right: contentRight
+      },
+      stats: {
+        x: contentLeft,
+        y: 166,
+        width: contentWidth,
+        right: contentRight,
+        tableX: contentLeft,
+        tableWidth: 780,
+        rankingX: contentLeft + 812,
+        rankingWidth: contentWidth - 812
+      },
       footer: {
+        left: contentLeft,
         y: 668,
-        buttonWidth: 300,
+        right: contentRight,
+        buttonWidth: footerButtonWidth,
         buttonHeight: 64,
         buttonRadius: 8,
         fontSize: '21px',
-        menuX: 170,
+        menuX: contentLeft + footerButtonWidth / 2,
         backX: 500,
         pageX: 800,
-        nextX: 1100
+        nextX: contentRight - footerButtonWidth / 2
       }
     };
   }
 
+  const contentLeft = 128;
+  const contentWidth = 1344;
+  const contentRight = contentLeft + contentWidth;
+  const footerButtonWidth = 210;
+
   return {
     mobileLandscape: false,
+    contentLeft,
+    contentWidth,
+    contentRight,
     header: {
       showGameTitle: true,
       gameTitleY: 30,
@@ -165,20 +218,20 @@ export function createTournamentHubLayout(
       tournamentTitleFontSize: '24px'
     },
     tabs: {
-      startX: 128,
+      startX: contentLeft,
       y: 116,
-      width: 336,
+      width: contentWidth / 4,
       height: 54,
       gap: 0,
       fontSize: '22px'
     },
     matches: {
-      x: 128,
+      x: contentLeft,
       y: 168,
       columns: 1,
       columnGap: 0,
       rowGap: 82,
-      cardWidth: 1344,
+      cardWidth: contentWidth,
       cardHeight: 72,
       cardRadius: 8,
       viewportHeight: 462,
@@ -200,12 +253,12 @@ export function createTournamentHubLayout(
       flagHeight: 36
     },
     groupStage: {
-      x: 32,
+      x: contentLeft,
       y: 166,
       columns: 2,
       columnGap: 24,
       rowGap: 24,
-      cardWidth: 756,
+      cardWidth: 660,
       cardHeight: 430,
       viewportHeight: 470,
       titleFontSize: '24px',
@@ -217,16 +270,33 @@ export function createTournamentHubLayout(
       cornerRadius: 8,
       formIndicatorRadius: 9
     },
+    playoff: {
+      x: contentLeft,
+      width: contentWidth,
+      right: contentRight
+    },
+    stats: {
+      x: contentLeft,
+      y: 166,
+      width: contentWidth,
+      right: contentRight,
+      tableX: contentLeft,
+      tableWidth: 780,
+      rankingX: contentLeft + 812,
+      rankingWidth: contentWidth - 812
+    },
     footer: {
+      left: contentLeft,
       y: 666,
-      buttonWidth: 210,
+      right: contentRight,
+      buttonWidth: footerButtonWidth,
       buttonHeight: 60,
       buttonRadius: 8,
       fontSize: '20px',
-      menuX: 132,
+      menuX: contentLeft + footerButtonWidth / 2,
       backX: 600,
       pageX: 800,
-      nextX: 1000
+      nextX: contentRight - footerButtonWidth / 2
     }
   };
 }

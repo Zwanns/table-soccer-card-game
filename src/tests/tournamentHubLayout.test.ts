@@ -11,10 +11,21 @@ function readSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
+function getTabBarWidth(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  return layout.tabs.width * 4 + layout.tabs.gap * 3;
+}
+
+function getGroupStageViewportWidth(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  return layout.groupStage.cardWidth * layout.groupStage.columns + layout.groupStage.columnGap * (layout.groupStage.columns - 1);
+}
+
 describe('Tournament Hub responsive layout', () => {
   it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
 
+    expect(layout.contentLeft).toBe(128);
+    expect(layout.contentWidth).toBe(1344);
+    expect(layout.contentRight).toBe(1472);
     expect(layout.header).toEqual({
       showGameTitle: true,
       gameTitleY: 30,
@@ -42,34 +53,39 @@ describe('Tournament Hub responsive layout', () => {
       viewportHeight: 462
     });
     expect(layout.groupStage).toMatchObject({
-      x: 32,
+      x: 128,
       y: 166,
       columns: 2,
-      cardWidth: 756,
+      cardWidth: 660,
       cardHeight: 430,
       viewportHeight: 470,
       cornerRadius: 8,
       formIndicatorRadius: 9
     });
     expect(layout.footer).toMatchObject({
+      left: 128,
       y: 666,
+      right: 1472,
       buttonWidth: 210,
       buttonHeight: 60,
       buttonRadius: 8,
       fontSize: '20px',
-      menuX: 132,
+      menuX: 233,
       backX: 600,
       pageX: 800,
-      nextX: 1000
+      nextX: 1367
     });
   });
 
   it('uses a contiguous desktop tab bar stretched across the main content width', () => {
     const layout = createTournamentHubLayout(false);
 
-    expect(layout.tabs.startX).toBe(layout.matches.x);
+    expect(layout.tabs.startX).toBe(layout.contentLeft);
     expect(layout.tabs.gap).toBe(0);
-    expect(layout.tabs.width * 4).toBe(layout.matches.cardWidth);
+    expect(getTabBarWidth(layout)).toBe(layout.contentWidth);
+    expect(layout.tabs.startX + getTabBarWidth(layout)).toBe(layout.contentRight);
+    expect(layout.matches.x).toBe(layout.contentLeft);
+    expect(layout.matches.cardWidth).toBe(layout.contentWidth);
     expect(layout.tabs.height).toBeGreaterThan(46);
     expect(layout.tabs.fontSize).toBe('22px');
   });
@@ -79,10 +95,14 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(layout.header.showGameTitle).toBe(false);
     expect(layout.header.tournamentTitleY).toBe(28);
-    expect(layout.tabs.startX).toBe(32);
+    expect(layout.contentLeft).toBe(32);
+    expect(layout.contentWidth).toBe(1536);
+    expect(layout.contentRight).toBe(1568);
+    expect(layout.tabs.startX).toBe(layout.contentLeft);
     expect(layout.tabs.gap).toBe(0);
     expect(layout.tabs.height).toBeGreaterThan(createTournamentHubLayout(false).tabs.height);
-    expect(layout.tabs.width * 4).toBe(1536);
+    expect(getTabBarWidth(layout)).toBe(layout.contentWidth);
+    expect(layout.tabs.startX + getTabBarWidth(layout)).toBe(layout.contentRight);
     expect(layout.tabs.fontSize).toBe(layout.matches.actionFontSize);
   });
 
@@ -156,6 +176,41 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.footer.y - mobile.footer.buttonHeight / 2 - (mobile.matches.y + mobile.matches.viewportHeight!)).toBeLessThanOrEqual(10);
   });
 
+  it('keeps every Tournament Hub content area inside the tab-bar width contract', () => {
+    [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
+      const tabBarLeft = layout.tabs.startX;
+      const tabBarRight = layout.tabs.startX + getTabBarWidth(layout);
+      const matchRight = layout.matches.x + layout.matches.cardWidth;
+      const groupRight = layout.groupStage.x + getGroupStageViewportWidth(layout);
+      const footerLeft = layout.footer.menuX - layout.footer.buttonWidth / 2;
+      const footerRight = layout.footer.nextX + layout.footer.buttonWidth / 2;
+      const statsTableRight = layout.stats.tableX + layout.stats.tableWidth;
+      const statsRankingRight = layout.stats.rankingX + layout.stats.rankingWidth;
+
+      expect(tabBarLeft).toBe(layout.contentLeft);
+      expect(getTabBarWidth(layout)).toBe(layout.contentWidth);
+      expect(tabBarRight).toBe(layout.contentRight);
+      expect(layout.matches.x).toBeGreaterThanOrEqual(layout.contentLeft);
+      expect(matchRight).toBeLessThanOrEqual(layout.contentRight);
+      expect(layout.groupStage.x).toBeGreaterThanOrEqual(layout.contentLeft);
+      expect(groupRight).toBeLessThanOrEqual(layout.contentRight);
+      expect(layout.playoff.x).toBe(layout.contentLeft);
+      expect(layout.playoff.width).toBe(layout.contentWidth);
+      expect(layout.playoff.right).toBe(layout.contentRight);
+      expect(layout.stats.x).toBe(layout.contentLeft);
+      expect(layout.stats.width).toBe(layout.contentWidth);
+      expect(layout.stats.right).toBe(layout.contentRight);
+      expect(layout.stats.tableX).toBeGreaterThanOrEqual(layout.contentLeft);
+      expect(statsTableRight).toBeLessThanOrEqual(layout.contentRight);
+      expect(layout.stats.rankingX).toBeGreaterThanOrEqual(layout.contentLeft);
+      expect(statsRankingRight).toBeLessThanOrEqual(layout.contentRight);
+      expect(layout.footer.left).toBe(layout.contentLeft);
+      expect(layout.footer.right).toBe(layout.contentRight);
+      expect(footerLeft).toBe(layout.contentLeft);
+      expect(footerRight).toBe(layout.contentRight);
+    });
+  });
+
   it('uses two large group cards per row in mobile landscape and scrolls extra group rows', () => {
     const mobile = createTournamentHubLayout(true);
 
@@ -172,15 +227,16 @@ describe('Tournament Hub responsive layout', () => {
     );
   });
 
-  it('uses the same expanded group-card model on desktop without changing mobile geometry', () => {
+  it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
 
     expect(desktop.groupStage.columns).toBe(2);
-    expect(desktop.groupStage.cardWidth).toBe(mobile.groupStage.cardWidth);
     expect(desktop.groupStage.cardHeight).toBe(mobile.groupStage.cardHeight);
     expect(desktop.groupStage.titleFontSize).toBe(mobile.groupStage.titleFontSize);
     expect(desktop.groupStage.formIndicatorRadius).toBe(mobile.groupStage.formIndicatorRadius);
+    expect(getGroupStageViewportWidth(desktop)).toBe(desktop.contentWidth);
+    expect(getGroupStageViewportWidth(mobile)).toBe(mobile.contentWidth);
     expect(getTournamentHubGroupStageMaxScroll(2, desktop)).toBe(0);
     expect(getTournamentHubGroupStageMaxScroll(4, desktop)).toBeGreaterThan(0);
     expect(getTournamentHubGroupStageMaxScroll(8, desktop)).toBeGreaterThan(
@@ -206,6 +262,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('layout.matches.scoreX');
     expect(source).toContain('layout.matches.cardRadius');
     expect(source).toContain('borderRadius: layout.footer.buttonRadius');
+    expect(source).toContain('statsLayout.rankingWidth');
+    expect(source).toContain('layout.playoff.width');
     expect(source).toContain("const isAi = teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI'");
     expect(source).toContain('this.addMobileAiBadge(row, teamCodeX, flagBottomY, layout)');
     expect(source).toContain('fillRoundedRect(');
