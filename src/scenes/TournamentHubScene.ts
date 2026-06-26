@@ -94,15 +94,10 @@ const GROUP_TABLE_COLUMNS = {
   goalDifference: 240,
   goals: 286
 } as const;
-const STATS_TABLE_HEIGHT = 462;
 const STATS_TABLE_ROW_GAP = 30;
 const STATS_TABLE_VIEWPORT_Y = 46;
 const STATS_TABLE_VIEWPORT_HEIGHT = 400;
-const STATS_RANKING_WIDTH = 196;
-const STATS_RANKING_CARD_HEIGHT = 72;
 const STATS_RANKING_VIEWPORT_HEIGHT = 462;
-const STATS_RANKING_COLUMN_GAP = 32;
-const STATS_RANKING_ROW_GAP = 136;
 const STATS_RANKING_CARD_Y = 28;
 const STATS_RANKING_MAX_COLUMNS = 3;
 const STATS_TOOLTIP_DEPTH = 10000;
@@ -1085,7 +1080,7 @@ export class TournamentHubScene extends Phaser.Scene {
     const playerStats = getTournamentPlayerStats(tournament);
     const statsLayout = layout.stats;
 
-    this.createTeamStatsTable(stats.slice(0, 12), statsLayout.tableX, statsLayout.y, statsLayout.tableWidth);
+    this.createTeamStatsTable(stats.slice(0, 12), layout);
 
     const rankingCards: StatsRankingCardDefinition[] = [
       { title: 'Goals', entries: createTeamRankingEntries(stats, 'goalsFor') },
@@ -1095,21 +1090,25 @@ export class TournamentHubScene extends Phaser.Scene {
       { title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
     ];
 
-    this.createStatsRankingList(rankingCards, statsLayout.rankingX, statsLayout.y, statsLayout.rankingWidth);
+    this.createStatsRankingList(rankingCards, layout);
   }
 
-  private createTeamStatsTable(stats: readonly TournamentTeamStats[], x: number, y: number, width: number): void {
+  private createTeamStatsTable(stats: readonly TournamentTeamStats[], layout: TournamentHubLayout): void {
+    const statsLayout = layout.stats;
+    const x = statsLayout.tableX;
+    const y = statsLayout.y;
+    const width = statsLayout.tableWidth;
     const panel = this.add.container(x, y);
     const background = this.add.graphics();
 
     background
       .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
-      .fillRoundedRect(0, 0, width, STATS_TABLE_HEIGHT, 8)
+      .fillRoundedRect(0, 0, width, statsLayout.tableHeight, 8)
       .lineStyle(TEAM_CARD_STYLE.panel.borderWidth, TEAM_CARD_STYLE.panel.borderColor, TEAM_CARD_STYLE.panel.borderAlpha)
-      .strokeRoundedRect(0, 0, width, STATS_TABLE_HEIGHT, 8);
+      .strokeRoundedRect(0, 0, width, statsLayout.tableHeight, 8);
 
     panel.add(background);
-    this.createStatsTableHeader(panel, 24);
+    this.createStatsTableHeader(panel, 24, layout);
 
     const rows = this.add.container(0, STATS_TABLE_VIEWPORT_Y);
 
@@ -1118,31 +1117,31 @@ export class TournamentHubScene extends Phaser.Scene {
       const team = findTeam(teamStats.teamId);
 
       if (team !== undefined) {
-        const flag = this.add.image(28, rowY, getFlagAssetKey(team.flagCode));
+        const flag = this.add.image(statsLayout.tableFlagX, rowY, getFlagAssetKey(team.flagCode));
         flag.setDisplaySize(24, 18);
         rows.add(flag);
       }
 
       rows.add(
         this.add
-          .text(48, rowY, team?.name ?? teamStats.teamId, {
+          .text(statsLayout.tableTeamCodeX, rowY, team === undefined ? teamStats.teamId : getTeamScoreboardCode(team.flagCode), {
             color: '#ffffff',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '14px',
+            fontSize: statsLayout.tableTeamFontSize,
             fontStyle: '700',
-            wordWrap: { width: 198 }
+            wordWrap: { width: 116 }
           })
           .setOrigin(0, 0.5)
       );
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.played, rowY, teamStats.played));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.wins, rowY, teamStats.wins));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.draws, rowY, teamStats.draws));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.losses, rowY, teamStats.losses));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalsFor, rowY, teamStats.goalsFor));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalsAgainst, rowY, teamStats.goalsAgainst));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalDifference, rowY, teamStats.goalDifference));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.shots, rowY, teamStats.shots));
-      rows.add(this.createStatsTableValue(STATS_TABLE_COLUMNS.goalkeeperSaves, rowY, teamStats.goalkeeperSaves));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.played, rowY, teamStats.played, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.wins, rowY, teamStats.wins, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.draws, rowY, teamStats.draws, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.losses, rowY, teamStats.losses, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalsFor, rowY, teamStats.goalsFor, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalsAgainst, rowY, teamStats.goalsAgainst, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalDifference, rowY, teamStats.goalDifference, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.shots, rowY, teamStats.shots, statsLayout.tableValueFontSize));
+      rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalkeeperSaves, rowY, teamStats.goalkeeperSaves, statsLayout.tableValueFontSize));
     });
 
     const maskGraphics = this.make.graphics();
@@ -1197,13 +1196,15 @@ export class TournamentHubScene extends Phaser.Scene {
     }
   }
 
-  private createStatsTableHeader(panel: Phaser.GameObjects.Container, y: number): void {
+  private createStatsTableHeader(panel: Phaser.GameObjects.Container, y: number, layout: TournamentHubLayout): void {
+    const statsLayout = layout.stats;
+
     panel.add(
       this.add
-        .text(16, y, 'Team', {
+        .text(statsLayout.tableTeamHeaderX, y, 'Team', {
           color: '#9fc5ad',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
+          fontSize: statsLayout.tableHeaderFontSize,
           fontStyle: '700'
         })
         .setOrigin(0, 0.5)
@@ -1223,11 +1224,11 @@ export class TournamentHubScene extends Phaser.Scene {
 
     headers.forEach(([column, label]) => {
       const header = this.add
-        .text(STATS_TABLE_COLUMNS[column], y, label, {
+        .text(statsLayout.tableColumns[column], y, label, {
           align: 'center',
           color: '#9fc5ad',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '13px',
+          fontSize: statsLayout.tableHeaderFontSize,
           fontStyle: '700'
         })
         .setOrigin(0.5);
@@ -1275,29 +1276,32 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createStatsRankingList(
     rankingCards: readonly StatsRankingCardDefinition[],
-    x: number,
-    y: number,
-    availableWidth: number
+    layout: TournamentHubLayout
   ): void {
+    const statsLayout = layout.stats;
+    const x = statsLayout.rankingX;
+    const y = statsLayout.y;
+    const availableWidth = statsLayout.rankingWidth;
     const content = this.add.container(x, y);
     const columnCount = Phaser.Math.Clamp(
-      Math.floor((availableWidth + STATS_RANKING_COLUMN_GAP) / (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP)),
+      Math.floor((availableWidth + statsLayout.rankingColumnGap) / (statsLayout.rankingCardWidth + statsLayout.rankingColumnGap)),
       1,
       STATS_RANKING_MAX_COLUMNS
     );
     const rowCount = Math.ceil(rankingCards.length / columnCount);
     const contentHeight =
-      rowCount * STATS_RANKING_ROW_GAP - (STATS_RANKING_ROW_GAP - STATS_RANKING_CARD_Y - STATS_RANKING_CARD_HEIGHT);
+      rowCount * statsLayout.rankingRowGap -
+      (statsLayout.rankingRowGap - STATS_RANKING_CARD_Y - statsLayout.rankingCardHeight);
     const contentWidth =
-      STATS_RANKING_WIDTH * columnCount + STATS_RANKING_COLUMN_GAP * Math.max(0, columnCount - 1);
+      statsLayout.rankingCardWidth * columnCount + statsLayout.rankingColumnGap * Math.max(0, columnCount - 1);
     const maxScroll = Math.max(0, contentHeight - STATS_RANKING_VIEWPORT_HEIGHT);
 
     rankingCards.forEach((ranking, index) => {
       const column = index % columnCount;
       const row = Math.floor(index / columnCount);
-      const cardX = column * (STATS_RANKING_WIDTH + STATS_RANKING_COLUMN_GAP);
-      const cardY = row * STATS_RANKING_ROW_GAP;
-      content.add(this.createStatsRankingCard(ranking.title, ranking.entries, cardX, cardY));
+      const cardX = column * (statsLayout.rankingCardWidth + statsLayout.rankingColumnGap);
+      const cardY = row * statsLayout.rankingRowGap;
+      content.add(this.createStatsRankingCard(ranking.title, ranking.entries, cardX, cardY, layout));
     });
 
     const maskGraphics = this.make.graphics();
@@ -1352,15 +1356,17 @@ export class TournamentHubScene extends Phaser.Scene {
     title: string,
     entries: readonly StatsRankingEntry[],
     x: number,
-    y: number
+    y: number,
+    layout: TournamentHubLayout
   ): Phaser.GameObjects.Container {
+    const statsLayout = layout.stats;
     const container = this.add.container(x, y);
     container.add(
       this.add
         .text(0, 0, title, {
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+          fontSize: statsLayout.rankingTitleFontSize,
           fontStyle: '700'
         })
         .setOrigin(0, 0)
@@ -1371,19 +1377,19 @@ export class TournamentHubScene extends Phaser.Scene {
 
     background
       .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
-      .fillRoundedRect(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 8)
+      .fillRoundedRect(0, 0, statsLayout.rankingCardWidth, statsLayout.rankingCardHeight, 8)
       .lineStyle(TEAM_CARD_STYLE.panel.borderWidth, TEAM_CARD_STYLE.panel.borderColor, TEAM_CARD_STYLE.panel.borderAlpha)
-      .strokeRoundedRect(0, 0, STATS_RANKING_WIDTH, STATS_RANKING_CARD_HEIGHT, 8);
+      .strokeRoundedRect(0, 0, statsLayout.rankingCardWidth, statsLayout.rankingCardHeight, 8);
 
     panel.add(background);
 
     entries.slice(0, 3).forEach((entry, index) => {
       const team = findTeam(entry.teamId);
-      const rowY = 16 + index * 20;
+      const rowY = 22 + index * 25;
 
       if (team !== undefined) {
-        const flag = this.add.image(28, rowY, getFlagAssetKey(team.flagCode));
-        flag.setDisplaySize(22, 16);
+        const flag = this.add.image(30, rowY, getFlagAssetKey(team.flagCode));
+        flag.setDisplaySize(statsLayout.rankingFlagWidth, statsLayout.rankingFlagHeight);
         panel.add(flag);
       }
 
@@ -1392,13 +1398,13 @@ export class TournamentHubScene extends Phaser.Scene {
           .text(46, rowY, `${index + 1}. ${entry.label}`, {
             color: '#ffffff',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '13px',
+            fontSize: statsLayout.rankingEntryFontSize,
             fontStyle: '700',
-            wordWrap: { width: 102 }
+            wordWrap: { width: statsLayout.rankingCardWidth - 110 }
           })
           .setOrigin(0, 0.5)
       );
-      panel.add(this.createStatsTableValue(STATS_RANKING_WIDTH - 10, rowY, entry.value));
+      panel.add(this.createStatsTableValue(statsLayout.rankingCardWidth - 14, rowY, entry.value, statsLayout.rankingValueFontSize));
     });
 
     container.add(panel);

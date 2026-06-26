@@ -102,8 +102,35 @@ export interface TournamentHubLayout {
     right: number;
     tableX: number;
     tableWidth: number;
+    tableHeight: number;
+    tableHeaderFontSize: string;
+    tableTeamFontSize: string;
+    tableValueFontSize: string;
+    tableTeamHeaderX: number;
+    tableFlagX: number;
+    tableTeamCodeX: number;
+    tableColumns: {
+      played: number;
+      wins: number;
+      draws: number;
+      losses: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      goalDifference: number;
+      shots: number;
+      goalkeeperSaves: number;
+    };
     rankingX: number;
     rankingWidth: number;
+    rankingCardWidth: number;
+    rankingCardHeight: number;
+    rankingTitleFontSize: string;
+    rankingEntryFontSize: string;
+    rankingValueFontSize: string;
+    rankingFlagWidth: number;
+    rankingFlagHeight: number;
+    rankingRowGap: number;
+    rankingColumnGap: number;
   };
   footer: {
     left: number;
@@ -230,9 +257,36 @@ export function createTournamentHubLayout(
         width: contentWidth,
         right: contentRight,
         tableX: contentLeft,
-        tableWidth: 780,
-        rankingX: contentLeft + 812,
-        rankingWidth: contentWidth - 812
+        tableWidth: 620,
+        tableHeight: 462,
+        tableHeaderFontSize: '16px',
+        tableTeamFontSize: '18px',
+        tableValueFontSize: '17px',
+        tableTeamHeaderX: 16,
+        tableFlagX: 28,
+        tableTeamCodeX: 54,
+        tableColumns: {
+          played: 202,
+          wins: 248,
+          draws: 294,
+          losses: 340,
+          goalsFor: 388,
+          goalsAgainst: 436,
+          goalDifference: 488,
+          shots: 540,
+          goalkeeperSaves: 588
+        },
+        rankingX: contentLeft + 652,
+        rankingWidth: contentWidth - 652,
+        rankingCardWidth: 300,
+        rankingCardHeight: 102,
+        rankingTitleFontSize: '22px',
+        rankingEntryFontSize: '16px',
+        rankingValueFontSize: '17px',
+        rankingFlagWidth: 28,
+        rankingFlagHeight: 21,
+        rankingRowGap: 168,
+        rankingColumnGap: 32
       },
       footer: {
         left: contentLeft,
@@ -356,9 +410,36 @@ export function createTournamentHubLayout(
       width: contentWidth,
       right: contentRight,
       tableX: contentLeft,
-      tableWidth: 780,
-      rankingX: contentLeft + 812,
-      rankingWidth: contentWidth - 812
+      tableWidth: 620,
+      tableHeight: 462,
+      tableHeaderFontSize: '16px',
+      tableTeamFontSize: '18px',
+      tableValueFontSize: '17px',
+      tableTeamHeaderX: 16,
+      tableFlagX: 28,
+      tableTeamCodeX: 54,
+      tableColumns: {
+        played: 202,
+        wins: 248,
+        draws: 294,
+        losses: 340,
+        goalsFor: 388,
+        goalsAgainst: 436,
+        goalDifference: 488,
+        shots: 540,
+        goalkeeperSaves: 588
+      },
+      rankingX: contentLeft + 652,
+      rankingWidth: contentWidth - 652,
+      rankingCardWidth: 300,
+      rankingCardHeight: 102,
+      rankingTitleFontSize: '22px',
+      rankingEntryFontSize: '16px',
+      rankingValueFontSize: '17px',
+      rankingFlagWidth: 28,
+      rankingFlagHeight: 21,
+      rankingRowGap: 168,
+      rankingColumnGap: 32
     },
     footer: {
       left: contentLeft,
