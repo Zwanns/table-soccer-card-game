@@ -16,6 +16,13 @@ describe('touch drag-scroll helpers', () => {
     expect(isDragScrollGesture(-DRAG_SCROLL_THRESHOLD_PX - 1)).toBe(true);
   });
 
+  it('requires scrollable taps to start inside the current bound target', () => {
+    const touchInputSource = readSource('src/ui/touchInput.ts');
+
+    expect(touchInputSource).toContain('const startedInsideThisArea = activePointerId === pointer.id');
+    expect(touchInputSource).toContain('const shouldTap = startedInsideThisArea && canTap(pointer)');
+  });
+
   it('clamps scroll values to the available min and max', () => {
     expect(clampScroll(-20, 120)).toBe(0);
     expect(clampScroll(64, 120)).toBe(64);

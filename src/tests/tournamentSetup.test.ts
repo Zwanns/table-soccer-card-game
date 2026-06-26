@@ -348,5 +348,25 @@ describe('tournament setup draft helpers', () => {
       controllerType: 'HUMAN'
     });
     expect(tournament.matches).toHaveLength(15);
+    expect(tournament.matches.filter((match) => match.status === 'completed')).toHaveLength(0);
+    expect(tournament.matches[0]?.status).not.toBe('completed');
+    expect(tournament.matches.every((match) => match.result === undefined)).toBe(true);
+  });
+
+  it('starts a new tournament by opening the hub without simulating or playing a match', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const startTournamentSource = setupSource.slice(
+      setupSource.indexOf('private startTournament()'),
+      setupSource.indexOf('private showMessage(')
+    );
+
+    expect(startTournamentSource).toContain('createTournamentFromSetupDraft(this.draft');
+    expect(startTournamentSource).toContain("this.registry.set('currentTournament', tournament)");
+    expect(startTournamentSource).toContain('saveTournament(tournament)');
+    expect(startTournamentSource).toContain("this.scene.start('TournamentHubScene')");
+    expect(startTournamentSource).not.toContain('simulateTournamentMatch');
+    expect(startTournamentSource).not.toContain('startTournamentMatch');
+    expect(startTournamentSource).not.toContain("this.scene.start('ResultScene'");
+    expect(startTournamentSource).not.toContain("this.scene.start('GameScene'");
   });
 });

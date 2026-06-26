@@ -397,6 +397,10 @@ describe('Tournament Hub responsive layout', () => {
   it('wires match-card scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
+    expect(source).toContain('const HUB_INPUT_GUARD_MS = 220');
+    expect(source).toContain('this.guardedInputAvailableAt = this.time.now + HUB_INPUT_GUARD_MS');
+    expect(source).toContain('private runGuardedInputAction(action: () => void): void');
+    expect(source).toContain('private canRunGuardedInputAction(): boolean');
     expect(source).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
     expect(source).toContain('const layout = createTournamentHubLayout()');
     expect(source).toContain('if (layout.matches.viewportHeight !== null) {');
@@ -404,8 +408,9 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
     expect(source).toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
-    expect(source).toContain('onTap: () => this.simulateTournamentMatch(tournament, match)');
-    expect(source).toContain('onTap: () => this.startTournamentMatch(tournament, match)');
+    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.simulateTournamentMatch(tournament, match))');
+    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.startTournamentMatch(tournament, match))');
+    expect(source).toContain('if (!this.canRunGuardedInputAction()) {\n      return;\n    }\n\n    if (match.homeTeamId === undefined');
     expect(source).toContain('this.matchScrollY = 0');
     expect(source).toContain('layout.matches.actionWidth');
     expect(source).toContain('layout.matches.actionGap');
@@ -487,6 +492,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("bracket: 'Playoff'");
     expect(source).toContain("stats: 'Stats'");
     expect(source).toContain('if (layout.header.showGameTitle)');
+    expect(source).toContain('this.runGuardedInputAction(() => {\n          this.activeTab = tab');
     expect(source).toContain('this.activeTab = tab');
   });
 });

@@ -95,7 +95,8 @@ export function createDragScrollArea(options: DragScrollAreaOptions): {
     target.on('pointerdown', begin);
     target.on('pointermove', move);
     target.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      const shouldTap = canTap(pointer);
+      const startedInsideThisArea = activePointerId === pointer.id;
+      const shouldTap = startedInsideThisArea && canTap(pointer);
       const wasDragging = finish(pointer);
 
       if (shouldTap && !wasDragging) {

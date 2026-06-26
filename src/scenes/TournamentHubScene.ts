@@ -73,6 +73,7 @@ const MOBILE_MATCH_AI_BADGE_WIDTH = 34;
 const MOBILE_MATCH_AI_BADGE_HEIGHT = 16;
 const MOBILE_MATCH_AI_BADGE_RADIUS = 4;
 const MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10;
+const HUB_INPUT_GUARD_MS = 220;
 const MATCHES_PER_PAGE = 20;
 const MATCH_GRID = {
   x: 128,
@@ -125,6 +126,7 @@ export class TournamentHubScene extends Phaser.Scene {
   private statsRankingScrollY = 0;
   private statsTeamScrollY = 0;
   private mobileLandscapeLayout = false;
+  private guardedInputAvailableAt = 0;
 
   public constructor() {
     super('TournamentHubScene');
@@ -136,6 +138,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
   public create(): void {
     this.mobileLandscapeLayout = createTournamentHubLayout().mobileLandscape;
+    this.guardedInputAvailableAt = this.time.now + HUB_INPUT_GUARD_MS;
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleScaleResize, this);
@@ -184,7 +187,7 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createStatsTab(tournament, layout);
     }
 
-    new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.scene.start('MenuScene'), {
+    new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
       borderRadius: layout.footer.buttonRadius,
       fontSize: layout.footer.fontSize,
       height: layout.footer.buttonHeight,
@@ -210,10 +213,10 @@ export class TournamentHubScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    new Button(this, SCENE_WIDTH / 2, 430, 'Create tournament', () => this.scene.start('TournamentSetupScene'), {
+    new Button(this, SCENE_WIDTH / 2, 430, 'Create tournament', () => this.runGuardedInputAction(() => this.scene.start('TournamentSetupScene')), {
       width: 260
     });
-    new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.scene.start('MenuScene'), {
+    new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
       width: 260
     });
   }
@@ -302,12 +305,14 @@ export class TournamentHubScene extends Phaser.Scene {
         }
       });
       button.on('pointerdown', () => {
-        this.activeTab = tab;
-        this.matchScrollY = 0;
-        this.groupStageScrollY = 0;
-        this.playoffScrollX = 0;
-        this.playoffScrollY = 0;
-        this.render();
+        this.runGuardedInputAction(() => {
+          this.activeTab = tab;
+          this.matchScrollY = 0;
+          this.groupStageScrollY = 0;
+          this.playoffScrollX = 0;
+          this.playoffScrollY = 0;
+          this.render();
+        });
       });
     });
   }
@@ -333,7 +338,7 @@ export class TournamentHubScene extends Phaser.Scene {
       });
     }
 
-    new Button(this, layout.footer.backX, layout.footer.y, 'Back', () => this.changeMatchPage(-1, maxPage), {
+    new Button(this, layout.footer.backX, layout.footer.y, 'Back', () => this.runGuardedInputAction(() => this.changeMatchPage(-1, maxPage)), {
       borderRadius: layout.footer.buttonRadius,
       disabled: this.matchPage === 0,
       fontSize: layout.footer.fontSize,
@@ -348,7 +353,7 @@ export class TournamentHubScene extends Phaser.Scene {
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    new Button(this, layout.footer.nextX, layout.footer.y, '→', () => this.changeMatchPage(1, maxPage), {
+    new Button(this, layout.footer.nextX, layout.footer.y, '→', () => this.runGuardedInputAction(() => this.changeMatchPage(1, maxPage)), {
       borderRadius: layout.footer.buttonRadius,
       disabled: this.matchPage === maxPage,
       fontSize: layout.footer.fontSize,
@@ -405,12 +410,12 @@ export class TournamentHubScene extends Phaser.Scene {
           {
             x: simX,
             width: layout.matches.actionWidth,
-            onTap: () => this.simulateTournamentMatch(tournament, match)
+            onTap: () => this.runGuardedInputAction(() => this.simulateTournamentMatch(tournament, match))
           },
           {
             x: playX,
             width: layout.matches.actionWidth,
-            onTap: () => this.startTournamentMatch(tournament, match)
+            onTap: () => this.runGuardedInputAction(() => this.startTournamentMatch(tournament, match))
           }
         ];
 
@@ -1890,6 +1895,10 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private startTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
+    if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
     if (match.homeTeamId === undefined || match.awayTeamId === undefined) {
       return;
     }
@@ -1917,6 +1926,10 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private simulateTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
+    if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
     if (match.homeTeamId === undefined || match.awayTeamId === undefined) {
       return;
     }
@@ -1953,6 +1966,18 @@ export class TournamentHubScene extends Phaser.Scene {
     const value = this.registry.get('currentTournament') as TournamentState | undefined;
 
     return value ?? null;
+  }
+
+  private runGuardedInputAction(action: () => void): void {
+    if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
+    action();
+  }
+
+  private canRunGuardedInputAction(): boolean {
+    return this.time.now >= this.guardedInputAvailableAt;
   }
 }
 
