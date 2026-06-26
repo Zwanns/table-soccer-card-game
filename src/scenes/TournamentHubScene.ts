@@ -485,7 +485,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     row.add(
       this.add
-        .text(20, 22, formatMatchLabel(match), {
+        .text(20, layout.matches.cardHeight / 2, formatMatchLabel(match), {
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.matches.labelFontSize,
@@ -556,7 +556,7 @@ export class TournamentHubScene extends Phaser.Scene {
             align: 'right',
             color: match.status === 'completed' ? '#f0c95a' : '#8fb39d',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '20px',
+            fontSize: layout.matches.labelFontSize,
             fontStyle: '700'
           })
           .setOrigin(1, 0.5)
@@ -575,6 +575,8 @@ export class TournamentHubScene extends Phaser.Scene {
     layout: TournamentHubLayout
   ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
+    const teamCodeX = x + layout.matches.teamCodeOffsetX;
+    const flagBottomY = y + layout.matches.flagHeight / 2;
 
     if (team !== undefined) {
       const flag = this.add.image(x, y, getFlagAssetKey(team.flagCode));
@@ -584,7 +586,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     row.add(
       this.add
-        .text(x + layout.matches.teamCodeOffsetX, y, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
+        .text(teamCodeX, y, team === undefined ? 'TBD' : getTeamScoreboardCode(team.flagCode), {
           color: team === undefined ? '#8fb39d' : TEAM_CARD_STYLE.normal.textColor,
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.matches.teamFontSize,
@@ -592,21 +594,19 @@ export class TournamentHubScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5)
     );
-    row.add(
-      this.add
-        .text(
-          x + layout.matches.controllerOffsetX,
-          y,
-          teamId === undefined ? '' : getTournamentTeamControllerType(tournament, teamId),
-          {
+
+    if (teamId !== undefined && getTournamentTeamControllerType(tournament, teamId) === 'AI') {
+      row.add(
+        this.add
+          .text(teamCodeX, flagBottomY, 'AI', {
             color: '#f0c95a',
             fontFamily: 'Arial, sans-serif',
             fontSize: layout.matches.controllerFontSize,
             fontStyle: '700'
-          }
-        )
-        .setOrigin(0, 0.5)
-    );
+          })
+          .setOrigin(0, 1)
+      );
+    }
   }
 
   private createMobileMatchActionVisual(

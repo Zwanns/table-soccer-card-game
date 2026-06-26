@@ -38,8 +38,8 @@ export interface TournamentHubLayout {
     scoreX: number;
     homeTeamX: number;
     awayTeamX: number;
+    teamBlockWidth: number;
     teamCodeOffsetX: number;
-    controllerOffsetX: number;
     flagWidth: number;
     flagHeight: number;
   };
@@ -87,18 +87,18 @@ export function createTournamentHubLayout(
         viewportHeight: 476,
         teamFontSize: '28px',
         scoreFontSize: '36px',
-        labelFontSize: '22px',
+        labelFontSize: '24px',
         controllerFontSize: '16px',
         actionFontSize: '20px',
-        actionHeight: 52,
+        actionHeight: 92,
         actionWidth: 142,
-        actionGap: 14,
-        actionRightMargin: 10,
+        actionGap: 0,
+        actionRightMargin: 0,
         scoreX: 768,
-        homeTeamX: 520,
-        awayTeamX: 854,
+        homeTeamX: 608,
+        awayTeamX: 856,
+        teamBlockWidth: 136,
         teamCodeOffsetX: 48,
-        controllerOffsetX: 162,
         flagWidth: 64,
         flagHeight: 48
       },
@@ -153,8 +153,8 @@ export function createTournamentHubLayout(
       scoreX: 306,
       homeTeamX: 122,
       awayTeamX: 356,
+      teamBlockWidth: 0,
       teamCodeOffsetX: 28,
-      controllerOffsetX: 0,
       flagWidth: 26,
       flagHeight: 19
     },
