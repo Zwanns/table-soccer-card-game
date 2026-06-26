@@ -43,6 +43,24 @@ export interface TournamentHubLayout {
     flagWidth: number;
     flagHeight: number;
   };
+  groupStage: {
+    x: number;
+    y: number;
+    columns: number;
+    columnGap: number;
+    rowGap: number;
+    cardWidth: number;
+    cardHeight: number;
+    viewportHeight: number | null;
+    titleFontSize: string;
+    headerFontSize: string;
+    teamFontSize: string;
+    valueFontSize: string;
+    flagWidth: number;
+    flagHeight: number;
+    cornerRadius: number;
+    formIndicatorRadius: number;
+  };
   footer: {
     y: number;
     buttonWidth: number;
@@ -102,6 +120,24 @@ export function createTournamentHubLayout(
         flagWidth: 64,
         flagHeight: 48
       },
+      groupStage: {
+        x: 32,
+        y: 166,
+        columns: 2,
+        columnGap: 24,
+        rowGap: 24,
+        cardWidth: 756,
+        cardHeight: 430,
+        viewportHeight: 470,
+        titleFontSize: '24px',
+        headerFontSize: '16px',
+        teamFontSize: '18px',
+        valueFontSize: '17px',
+        flagWidth: 36,
+        flagHeight: 27,
+        cornerRadius: 8,
+        formIndicatorRadius: 9
+      },
       footer: {
         y: 674,
         buttonWidth: 260,
@@ -158,6 +194,24 @@ export function createTournamentHubLayout(
       flagWidth: 26,
       flagHeight: 19
     },
+    groupStage: {
+      x: 74,
+      y: 168,
+      columns: 4,
+      columnGap: 28,
+      rowGap: 28,
+      cardWidth: 340,
+      cardHeight: 190,
+      viewportHeight: null,
+      titleFontSize: '18px',
+      headerFontSize: '13px',
+      teamFontSize: '14px',
+      valueFontSize: '14px',
+      flagWidth: 24,
+      flagHeight: 18,
+      cornerRadius: 0,
+      formIndicatorRadius: 0
+    },
     footer: {
       y: 666,
       buttonWidth: 170,
@@ -185,6 +239,24 @@ export function getTournamentHubMatchMaxScroll(
   const contentHeight =
     layout.matches.cardHeight +
     Math.max(0, rowCount - 1) * layout.matches.rowGap;
+
+  return Math.max(0, contentHeight - viewportHeight);
+}
+
+export function getTournamentHubGroupStageMaxScroll(
+  groupCount: number,
+  layout: TournamentHubLayout
+): number {
+  const viewportHeight = layout.groupStage.viewportHeight;
+
+  if (viewportHeight === null || groupCount <= 0) {
+    return 0;
+  }
+
+  const rowCount = Math.ceil(groupCount / layout.groupStage.columns);
+  const contentHeight =
+    rowCount * layout.groupStage.cardHeight +
+    Math.max(0, rowCount - 1) * layout.groupStage.rowGap;
 
   return Math.max(0, contentHeight - viewportHeight);
 }

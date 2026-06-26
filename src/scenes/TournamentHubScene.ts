@@ -24,6 +24,7 @@ import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
 import {
   createTournamentHubLayout,
+  getTournamentHubGroupStageMaxScroll,
   getTournamentHubMatchMaxScroll,
   type TournamentHubLayout
 } from '../ui/tournamentHubLayout';
@@ -45,6 +46,11 @@ type StatsRankingEntry = {
 type StatsRankingCardDefinition = {
   title: string;
   entries: StatsRankingEntry[];
+};
+
+type GroupFormEntry = {
+  color: number;
+  tooltip: string;
 };
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
@@ -128,6 +134,7 @@ export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
   private matchPage = 0;
   private matchScrollY = 0;
+  private groupStageScrollY = 0;
   private statsRankingScrollY = 0;
   private statsTeamScrollY = 0;
   private mobileLandscapeLayout = false;
@@ -158,6 +165,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     this.mobileLandscapeLayout = mobileLandscapeLayout;
     this.matchScrollY = 0;
+    this.groupStageScrollY = 0;
     this.render();
   }
 
@@ -180,7 +188,7 @@ export class TournamentHubScene extends Phaser.Scene {
     if (this.activeTab === 'matches') {
       this.createMatchesTab(tournament, layout);
     } else if (this.activeTab === 'tables') {
-      this.createTablesTab(tournament);
+      this.createTablesTab(tournament, layout);
     } else if (this.activeTab === 'bracket') {
       this.createBracketTab(tournament);
     } else {
@@ -305,6 +313,7 @@ export class TournamentHubScene extends Phaser.Scene {
       button.on('pointerdown', () => {
         this.activeTab = tab;
         this.matchScrollY = 0;
+        this.groupStageScrollY = 0;
         this.render();
       });
     });
@@ -741,7 +750,12 @@ export class TournamentHubScene extends Phaser.Scene {
     }
   }
 
-  private createTablesTab(tournament: TournamentState): void {
+  private createTablesTab(tournament: TournamentState, layout: TournamentHubLayout): void {
+    if (layout.mobileLandscape) {
+      this.createMobileGroupStage(tournament, layout);
+      return;
+    }
+
     const columns = tournament.groups.length <= 4 ? tournament.groups.length : 4;
 
     tournament.groups.forEach((group, index) => {
@@ -751,6 +765,228 @@ export class TournamentHubScene extends Phaser.Scene {
       const y = 168 + row * 218;
 
       this.createGroupTable(tournament, group, x, y);
+    });
+  }
+
+  private createMobileGroupStage(tournament: TournamentState, layout: TournamentHubLayout): void {
+    const groupLayout = layout.groupStage;
+    const viewportHeight = groupLayout.viewportHeight ?? 0;
+    const content = this.add.container(groupLayout.x, groupLayout.y);
+    const maxScroll = getTournamentHubGroupStageMaxScroll(tournament.groups.length, layout);
+    const setScroll = (value: number): void => {
+      this.groupStageScrollY = clampScroll(value, maxScroll);
+      content.y = groupLayout.y - this.groupStageScrollY;
+    };
+    const dragScroll = createDragScrollArea({
+      scene: this,
+      viewport: {
+        x: groupLayout.x,
+        y: groupLayout.y,
+        width: groupLayout.cardWidth * groupLayout.columns + groupLayout.columnGap,
+        height: viewportHeight
+      },
+      maxScroll,
+      getScroll: () => this.groupStageScrollY,
+      setScroll
+    });
+
+    tournament.groups.forEach((group, index) => {
+      const column = index % groupLayout.columns;
+      const row = Math.floor(index / groupLayout.columns);
+      const x = column * (groupLayout.cardWidth + groupLayout.columnGap);
+      const y = row * (groupLayout.cardHeight + groupLayout.rowGap);
+
+      content.add(this.createMobileGroupTable(tournament, group, x, y, layout));
+    });
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(
+        groupLayout.x,
+        groupLayout.y,
+        groupLayout.cardWidth * groupLayout.columns + groupLayout.columnGap,
+        viewportHeight
+      )
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const scrollZone = this.add
+      .zone(
+        groupLayout.x + (groupLayout.cardWidth * groupLayout.columns + groupLayout.columnGap) / 2,
+        groupLayout.y + viewportHeight / 2,
+        groupLayout.cardWidth * groupLayout.columns + groupLayout.columnGap,
+        viewportHeight
+      )
+      .setInteractive({ useHandCursor: maxScroll > 0 })
+      .setDepth(-10);
+
+    scrollZone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
+      setScroll(this.groupStageScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    dragScroll.bindDragTarget(scrollZone);
+    this.groupStageScrollY = clampScroll(this.groupStageScrollY, maxScroll);
+    setScroll(this.groupStageScrollY);
+
+    if (maxScroll > 0) {
+      this.createScrollbar(
+        this.add.container(0, 0),
+        groupLayout.x + groupLayout.cardWidth * groupLayout.columns + groupLayout.columnGap + 10,
+        groupLayout.y,
+        viewportHeight,
+        maxScroll,
+        () => this.groupStageScrollY
+      );
+    }
+  }
+
+  private createMobileGroupTable(
+    tournament: TournamentState,
+    group: TournamentGroup,
+    x: number,
+    y: number,
+    layout: TournamentHubLayout
+  ): Phaser.GameObjects.Container {
+    const groupLayout = layout.groupStage;
+    const panel = this.add.container(x, y);
+    const background = this.add.graphics();
+
+    background
+      .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
+      .fillRoundedRect(0, 0, groupLayout.cardWidth, groupLayout.cardHeight, groupLayout.cornerRadius)
+      .lineStyle(2, 0x5f9572, 0.92)
+      .strokeRoundedRect(0, 0, groupLayout.cardWidth, groupLayout.cardHeight, groupLayout.cornerRadius);
+    panel.add(background);
+    panel.add(
+      this.add
+        .text(18, 28, `Group ${group.id}`, {
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: groupLayout.titleFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+    this.createMobileGroupTableHeader(panel, layout);
+
+    const standings = getTournamentGroupStandings(group, tournament.matches, tournament.drawOrder);
+
+    standings.forEach((standing, index) => {
+      const rowY = 118 + index * 72;
+      const team = findTeam(standing.teamId);
+
+      if (team !== undefined) {
+        const flag = this.add.image(35, rowY, getFlagAssetKey(team.flagCode));
+        flag.setDisplaySize(groupLayout.flagWidth, groupLayout.flagHeight);
+        panel.add(flag);
+      }
+
+      panel.add(
+        this.add
+          .text(64, rowY, team === undefined ? standing.teamId : getTeamScoreboardCode(team.flagCode), {
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: groupLayout.teamFontSize,
+            fontStyle: '700'
+          })
+          .setOrigin(0, 0.5)
+      );
+      panel.add(this.createMobileGroupTableValue(252, rowY, standing.played, layout));
+      panel.add(this.createMobileGroupTableValue(302, rowY, standing.wins, layout));
+      panel.add(this.createMobileGroupTableValue(352, rowY, standing.draws, layout));
+      panel.add(this.createMobileGroupTableValue(402, rowY, standing.losses, layout));
+      panel.add(this.createMobileGroupTableValue(462, rowY, standing.goalsFor, layout));
+      panel.add(this.createMobileGroupTableValue(522, rowY, standing.goalsAgainst, layout));
+      panel.add(this.createMobileGroupTableValue(590, rowY, standing.points, layout));
+      this.addMobileGroupFormIndicators(panel, tournament, group, standing.teamId, 642, rowY, layout);
+    });
+
+    return panel;
+  }
+
+  private createMobileGroupTableHeader(
+    panel: Phaser.GameObjects.Container,
+    layout: TournamentHubLayout
+  ): void {
+    const groupLayout = layout.groupStage;
+
+    panel.add(
+      this.add
+        .text(18, 72, 'Team', {
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: groupLayout.headerFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0, 0.5)
+    );
+
+    const headers: Array<[number, string, string]> = [
+      [252, 'P', 'Played'],
+      [302, 'W', 'Wins'],
+      [352, 'D', 'Draws'],
+      [402, 'L', 'Losses'],
+      [462, 'GF', 'Goals for'],
+      [522, 'GA', 'Goals against'],
+      [590, 'Pts', 'Points']
+    ];
+
+    headers.forEach(([x, label, tooltip]) => {
+      const header = this.add
+        .text(x, 72, label, {
+          align: 'center',
+          color: '#9fc5ad',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: groupLayout.headerFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(0.5);
+
+      this.addStatsHeaderTooltip(header, tooltip);
+      panel.add(header);
+    });
+  }
+
+  private createMobileGroupTableValue(
+    x: number,
+    y: number,
+    value: number | string,
+    layout: TournamentHubLayout
+  ): Phaser.GameObjects.Text {
+    return this.add
+      .text(x, y, String(value), {
+        align: 'center',
+        color: '#f0c95a',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: layout.groupStage.valueFontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+  }
+
+  private addMobileGroupFormIndicators(
+    panel: Phaser.GameObjects.Container,
+    tournament: TournamentState,
+    group: TournamentGroup,
+    teamId: TournamentTeamId,
+    x: number,
+    y: number,
+    layout: TournamentHubLayout
+  ): void {
+    const form = getTeamGroupForm(tournament, group, teamId);
+    const radius = layout.groupStage.formIndicatorRadius;
+    const gap = 23;
+
+    form.forEach((entry, index) => {
+      const indicator = this.add.circle(x + index * gap, y, radius, entry.color, 0.95);
+
+      indicator.setStrokeStyle(2, 0x10291f, 0.8);
+      indicator.setInteractive({ useHandCursor: true });
+      indicator.on('pointerover', () => this.showStatsTooltip(indicator, entry.tooltip));
+      indicator.on('pointerout', () => this.hideStatsTooltip());
+      indicator.on('pointerdown', () => this.showStatsTooltip(indicator, entry.tooltip));
+      panel.add(indicator);
     });
   }
 
@@ -1006,10 +1242,10 @@ export class TournamentHubScene extends Phaser.Scene {
     header.on('pointerout', () => this.hideStatsTooltip());
   }
 
-  private showStatsTooltip(header: Phaser.GameObjects.Text, text: string): void {
+  private showStatsTooltip(target: Phaser.GameObjects.Components.GetBounds, text: string): void {
     this.hideStatsTooltip();
 
-    const bounds = header.getBounds();
+    const bounds = target.getBounds();
     const label = this.add
       .text(STATS_TOOLTIP_PADDING_X, STATS_TOOLTIP_PADDING_Y, text, {
         color: '#1f2a2e',
@@ -1486,6 +1722,41 @@ function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): strin
   const penaltyGoals = team === 'home' ? match.result.penaltyShootout.homeGoals : match.result.penaltyShootout.awayGoals;
 
   return `${mainGoals} (${penaltyGoals})`;
+}
+
+function getTeamGroupForm(
+  tournament: TournamentState,
+  group: TournamentGroup,
+  teamId: TournamentTeamId
+): GroupFormEntry[] {
+  return tournament.matches
+    .filter(
+      (match) =>
+        match.groupId === group.id &&
+        match.result !== undefined &&
+        (match.result.homeTeamId === teamId || match.result.awayTeamId === teamId)
+    )
+    .sort((first, second) => first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex)
+    .map((match) => {
+      const result = match.result;
+
+      if (result === undefined) {
+        return null;
+      }
+
+      const isHome = result.homeTeamId === teamId;
+      const goalsFor = isHome ? result.homeGoals : result.awayGoals;
+      const goalsAgainst = isHome ? result.awayGoals : result.homeGoals;
+      const opponentId = isHome ? result.awayTeamId : result.homeTeamId;
+      const opponent = findTeam(opponentId);
+      const color = goalsFor > goalsAgainst ? 0x71e48b : goalsFor === goalsAgainst ? 0x9fc5ad : 0xff788a;
+
+      return {
+        color,
+        tooltip: `vs ${opponent === undefined ? opponentId : opponent.name}\n${goalsFor}:${goalsAgainst}`
+      };
+    })
+    .filter((entry): entry is GroupFormEntry => entry !== null);
 }
 
 function createTeamRankingEntries(

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   createTournamentHubLayout,
+  getTournamentHubGroupStageMaxScroll,
   getTournamentHubMatchMaxScroll
 } from '../ui/tournamentHubLayout';
 
@@ -37,6 +38,14 @@ describe('Tournament Hub responsive layout', () => {
       rowGap: 45,
       cardWidth: 652,
       cardHeight: 38,
+      viewportHeight: null
+    });
+    expect(layout.groupStage).toMatchObject({
+      x: 74,
+      y: 168,
+      columns: 4,
+      cardWidth: 340,
+      cardHeight: 190,
       viewportHeight: null
     });
     expect(layout.footer).toMatchObject({
@@ -100,6 +109,24 @@ describe('Tournament Hub responsive layout', () => {
     expect(getTournamentHubMatchMaxScroll(20, desktop)).toBe(0);
   });
 
+  it('uses two large group cards per row in mobile landscape and scrolls extra group rows', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(mobile.groupStage.columns).toBe(2);
+    expect(mobile.groupStage.cardWidth).toBeGreaterThan(desktop.groupStage.cardWidth * 2);
+    expect(mobile.groupStage.cardHeight).toBeGreaterThan(desktop.groupStage.cardHeight * 2);
+    expect(mobile.groupStage.viewportHeight).toBe(470);
+    expect(mobile.groupStage.cornerRadius).toBe(8);
+    expect(mobile.groupStage.formIndicatorRadius).toBe(9);
+    expect(getTournamentHubGroupStageMaxScroll(2, mobile)).toBe(0);
+    expect(getTournamentHubGroupStageMaxScroll(4, mobile)).toBeGreaterThan(0);
+    expect(getTournamentHubGroupStageMaxScroll(8, mobile)).toBeGreaterThan(
+      getTournamentHubGroupStageMaxScroll(4, mobile)
+    );
+    expect(getTournamentHubGroupStageMaxScroll(8, desktop)).toBe(0);
+  });
+
   it('wires mobile match scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
@@ -123,6 +150,30 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("color: '#1f2a2e'");
     expect(source).toContain('MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10');
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
+  });
+
+  it('wires mobile group-stage cards with expanded standings, form indicators and score tooltips', () => {
+    const source = readSource('src/scenes/TournamentHubScene.ts');
+
+    expect(source).toContain('this.createMobileGroupStage(tournament, layout)');
+    expect(source).toContain('getTournamentHubGroupStageMaxScroll(tournament.groups.length, layout)');
+    expect(source).toContain('content.setMask(mask)');
+    expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
+    expect(source).toContain('this.createMobileGroupTable(tournament, group, x, y, layout)');
+    expect(source).toContain("'P', 'Played'");
+    expect(source).toContain("'W', 'Wins'");
+    expect(source).toContain("'D', 'Draws'");
+    expect(source).toContain("'L', 'Losses'");
+    expect(source).toContain("'GF', 'Goals for'");
+    expect(source).toContain("'GA', 'Goals against'");
+    expect(source).toContain("'Pts', 'Points'");
+    expect(source).toContain('this.addMobileGroupFormIndicators(');
+    expect(source).toContain('getTeamGroupForm(tournament, group, teamId)');
+    expect(source).toContain('0x71e48b');
+    expect(source).toContain('0x9fc5ad');
+    expect(source).toContain('0xff788a');
+    expect(source).toContain('this.showStatsTooltip(indicator, entry.tooltip)');
+    expect(source).toContain('`vs ${opponent === undefined ? opponentId : opponent.name}\\n${goalsFor}:${goalsAgainst}`');
   });
 
   it('keeps all four tab actions and hides only the mobile game title', () => {
