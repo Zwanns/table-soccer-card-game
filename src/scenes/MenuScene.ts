@@ -591,18 +591,6 @@ export class MenuScene extends Phaser.Scene {
         this,
         MENU_LAYOUT.centerX,
         MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Delete save',
-        () => this.deleteTournamentSave(),
-        { ...buttonOptions, disabled: !hasActiveTournamentSave(), fontSize: '22px' }
-      )
-    );
-    buttonIndex += 1;
-
-    buttons.push(
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Back',
         () => this.scene.start('MenuScene'),
         buttonOptions
@@ -648,6 +636,18 @@ export class MenuScene extends Phaser.Scene {
         'Continue tournament',
         () => this.continueTournament(),
         { ...buttonOptions, disabled: !hasTournamentSave }
+      )
+    );
+    buttonIndex += 1;
+
+    buttons.push(
+      new Button(
+        this,
+        MENU_LAYOUT.centerX,
+        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        'Delete save',
+        () => this.deleteTournamentSave(),
+        { ...buttonOptions, disabled: !hasTournamentSave, fontSize: '22px' }
       )
     );
     buttonIndex += 1;
@@ -730,7 +730,7 @@ export class MenuScene extends Phaser.Scene {
 
     deleteStoredTournament();
     this.registry.remove('currentTournament');
-    this.openGameModes();
+    this.openTournamentMenu();
   }
 
   private openGameModes(): void {

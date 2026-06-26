@@ -284,21 +284,30 @@ describe('project scaffold', () => {
     expect(gameModesBlock).toContain('() => this.openTournamentMenu()');
     expect(gameModesBlock).toContain("'Penalty shootout'");
     expect(gameModesBlock).toContain("'Tutorial Match'");
-    expect(gameModesBlock).toContain("'Delete save'");
-    expect(gameModesBlock).toContain("{ ...buttonOptions, disabled: !hasActiveTournamentSave(), fontSize: '22px' }");
     expect(gameModesBlock).toContain("'Back'");
+    expect(gameModesBlock).not.toContain("'Delete save'");
     expect(gameModesBlock).not.toContain("'New tournament'");
     expect(gameModesBlock).not.toContain("'Continue tournament'");
     expect(gameModesBlock).not.toContain("'Tournaments'");
+    expect(gameModesBlock.indexOf("'Quick match'")).toBeLessThan(gameModesBlock.indexOf("'Tournament'"));
+    expect(gameModesBlock.indexOf("'Tournament'")).toBeLessThan(gameModesBlock.indexOf("'Penalty shootout'"));
+    expect(gameModesBlock.indexOf("'Penalty shootout'")).toBeLessThan(gameModesBlock.indexOf("'Tutorial Match'"));
+    expect(gameModesBlock.indexOf("'Tutorial Match'")).toBeLessThan(gameModesBlock.indexOf("'Back'"));
     expect(tournamentBlock).toContain("'New tournament'");
     expect(tournamentBlock).toContain('() => this.startNewTournamentSetup()');
     expect(tournamentBlock).toContain("'Continue tournament'");
     expect(tournamentBlock).toContain('() => this.continueTournament()');
     expect(tournamentBlock).toContain('{ ...buttonOptions, disabled: !hasTournamentSave }');
+    expect(tournamentBlock).toContain("'Delete save'");
+    expect(tournamentBlock).toContain('() => this.deleteTournamentSave()');
+    expect(tournamentBlock).toContain("{ ...buttonOptions, disabled: !hasTournamentSave, fontSize: '22px' }");
     expect(tournamentBlock).toContain("'Back'");
     expect(tournamentBlock).toContain('() => this.openGameModes()');
-    expect(tournamentBlock).not.toContain("'Delete save'");
+    expect(tournamentBlock.indexOf("'New tournament'")).toBeLessThan(tournamentBlock.indexOf("'Continue tournament'"));
+    expect(tournamentBlock.indexOf("'Continue tournament'")).toBeLessThan(tournamentBlock.indexOf("'Delete save'"));
+    expect(tournamentBlock.indexOf("'Delete save'")).toBeLessThan(tournamentBlock.indexOf("'Back'"));
     expect(menuSceneSource).toContain("if (tournament === null) {\n      this.openTournamentMenu();");
+    expect(menuSceneSource).toContain("deleteStoredTournament();\n    this.registry.remove('currentTournament');\n    this.openTournamentMenu();");
   });
 
   it('separates localized about text from the rules modal', () => {
