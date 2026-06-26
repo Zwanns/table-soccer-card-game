@@ -863,7 +863,7 @@ export class TournamentHubScene extends Phaser.Scene {
     const standings = getTournamentGroupStandings(group, tournament.matches, tournament.drawOrder);
 
     standings.forEach((standing, index) => {
-      const rowY = 118 + index * 72;
+      const rowY = groupLayout.rowStartY + index * groupLayout.rowHeight;
       const team = findTeam(standing.teamId);
 
       if (team !== undefined) {
@@ -903,7 +903,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(
       this.add
-        .text(groupLayout.teamHeaderX, 72, 'Team', {
+        .text(groupLayout.teamHeaderX, groupLayout.headerY, 'Team', {
           color: '#9fc5ad',
           fontFamily: 'Arial, sans-serif',
           fontSize: groupLayout.headerFontSize,
@@ -925,7 +925,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     headers.forEach(([x, label, tooltip]) => {
       const header = this.add
-        .text(x, 72, label, {
+        .text(x, groupLayout.headerY, label, {
           align: 'center',
           color: '#9fc5ad',
           fontFamily: 'Arial, sans-serif',
@@ -1453,6 +1453,12 @@ export class TournamentHubScene extends Phaser.Scene {
   private createBracketTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const format = getTournamentFormat(tournament.formatId);
     const playoffLayout = layout.playoff;
+
+    if (format.id === 'cup-xl') {
+      this.createCupXlBracketTab(tournament, layout);
+      return;
+    }
+
     const cardWidth = playoffLayout.cardWidth;
     const rounds = format.knockoutRounds.map((round) => ({
       stage: round.stage,
@@ -1460,7 +1466,7 @@ export class TournamentHubScene extends Phaser.Scene {
     }));
     const columnGap = getBracketColumnGap(rounds.length, cardWidth, playoffLayout.width, playoffLayout.maxColumnGap);
     const totalWidth = rounds.length * cardWidth + Math.max(0, rounds.length - 1) * columnGap;
-    const startX = Math.max(0, (playoffLayout.width - totalWidth) / 2);
+    const startX = 0;
     const roundCenters = getBracketRoundCenters(
       rounds[0]?.matches.length ?? 0,
       rounds.length,
@@ -1515,6 +1521,124 @@ export class TournamentHubScene extends Phaser.Scene {
 
     this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY);
     this.playoffScrollX = clampScroll(this.playoffScrollX, maxScrollX);
+    this.playoffScrollY = clampScroll(this.playoffScrollY, maxScrollY);
+    setScroll(this.playoffScrollX, this.playoffScrollY);
+
+    if (maxScrollY > 0) {
+      this.createScrollbar(
+        this.add.container(0, 0),
+        playoffLayout.x + playoffLayout.width + 10,
+        playoffLayout.y,
+        playoffLayout.viewportHeight,
+        maxScrollY,
+        () => this.playoffScrollY
+      );
+    }
+  }
+
+  private createCupXlBracketTab(tournament: TournamentState, layout: TournamentHubLayout): void {
+    const playoffLayout = layout.playoff;
+    const cardWidth = playoffLayout.cardWidth;
+    const columnGap = playoffLayout.maxColumnGap;
+    const centerGap = Math.max(96, columnGap);
+    const roundOf16Matches = tournament.matches
+      .filter((match) => match.stage === 'round-of-16')
+      .sort(compareBracketMatches);
+    const quarterFinalMatches = tournament.matches
+      .filter((match) => match.stage === 'quarter-final')
+      .sort(compareBracketMatches);
+    const semiFinalMatches = tournament.matches
+      .filter((match) => match.stage === 'semi-final')
+      .sort(compareBracketMatches);
+    const finalMatch = tournament.matches.find((match) => match.stage === 'final');
+    const branchCenters = getBracketRoundCenters(4, 3, playoffLayout.cardHeight, playoffLayout.rowGap);
+    const finalCenterY = branchCenters[2]?.[0] ?? playoffLayout.cardHeight / 2 + 44;
+    const contentHeight = getBracketContentHeight(branchCenters, playoffLayout.cardHeight);
+    const leftColumnXs = [
+      0,
+      cardWidth + columnGap,
+      (cardWidth + columnGap) * 2
+    ];
+    const finalX = leftColumnXs[2] + cardWidth + centerGap;
+    const rightSemiFinalX = finalX + cardWidth + centerGap;
+    const rightColumnXs = [
+      rightSemiFinalX + (cardWidth + columnGap) * 2,
+      rightSemiFinalX + cardWidth + columnGap,
+      rightSemiFinalX
+    ];
+    const contentWidth = rightColumnXs[0] + cardWidth;
+    const maxScrollX = Math.max(0, contentWidth - playoffLayout.width);
+    const maxScrollY = Math.max(0, contentHeight - playoffLayout.viewportHeight);
+    const content = this.add.container(playoffLayout.x, playoffLayout.y);
+    const connectorGraphics = this.add.graphics();
+
+    connectorGraphics.lineStyle(3, TEAM_CARD_STYLE.panel.borderColor, 0.72);
+    this.drawBracketConnectors(connectorGraphics, leftColumnXs[0], columnGap, cardWidth, branchCenters);
+    this.drawMirroredBracketConnectors(connectorGraphics, rightColumnXs, cardWidth, branchCenters);
+    connectorGraphics.lineBetween(leftColumnXs[2] + cardWidth, finalCenterY, finalX, finalCenterY);
+    connectorGraphics.lineBetween(finalX + cardWidth, finalCenterY, rightSemiFinalX, finalCenterY);
+    content.add(connectorGraphics);
+
+    const leftRounds = [
+      { stage: 'round-of-16' as const, matches: roundOf16Matches.slice(0, 4), x: leftColumnXs[0] },
+      { stage: 'quarter-final' as const, matches: quarterFinalMatches.slice(0, 2), x: leftColumnXs[1] },
+      { stage: 'semi-final' as const, matches: semiFinalMatches.slice(0, 1), x: leftColumnXs[2] }
+    ];
+    const rightRounds = [
+      { stage: 'round-of-16' as const, matches: roundOf16Matches.slice(4, 8), x: rightColumnXs[0] },
+      { stage: 'quarter-final' as const, matches: quarterFinalMatches.slice(2, 4), x: rightColumnXs[1] },
+      { stage: 'semi-final' as const, matches: semiFinalMatches.slice(1, 2), x: rightColumnXs[2] }
+    ];
+    const labelY = (branchCenters[0]?.[0] ?? 0) - playoffLayout.cardHeight / 2 - 24;
+
+    [...leftRounds, ...rightRounds].forEach((round, roundIndex) => {
+      const centers = branchCenters[roundIndex % 3] ?? [];
+
+      content.add(this.createBracketColumnLabel(STAGE_LABELS[round.stage], round.x, labelY, layout));
+      round.matches.forEach((match, index) => {
+        const center = centers[index];
+
+        if (center !== undefined) {
+          content.add(this.createBracketMatch(match, round.x, center - playoffLayout.cardHeight / 2, layout));
+        }
+      });
+    });
+
+    if (finalMatch !== undefined) {
+      content.add(this.createBracketColumnLabel(STAGE_LABELS.final, finalX, labelY, layout));
+      content.add(this.createBracketMatch(finalMatch, finalX, finalCenterY - playoffLayout.cardHeight / 2, layout));
+    }
+
+    const maskGraphics = this.make.graphics();
+    const mask = maskGraphics
+      .fillStyle(0xffffff)
+      .fillRect(playoffLayout.x, playoffLayout.y, playoffLayout.width, playoffLayout.viewportHeight)
+      .createGeometryMask();
+    maskGraphics.setVisible(false);
+    content.setMask(mask);
+
+    const setScroll = (x: number, y: number): void => {
+      this.playoffScrollX = clampScroll(x, maxScrollX);
+      this.playoffScrollY = clampScroll(y, maxScrollY);
+      content.x = playoffLayout.x - this.playoffScrollX;
+      content.y = playoffLayout.y - this.playoffScrollY;
+    };
+    const scrollZone = this.add
+      .zone(
+        playoffLayout.x + playoffLayout.width / 2,
+        playoffLayout.y + playoffLayout.viewportHeight / 2,
+        playoffLayout.width,
+        playoffLayout.viewportHeight
+      )
+      .setInteractive({ useHandCursor: maxScrollX > 0 || maxScrollY > 0 })
+      .setDepth(-10);
+
+    this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY);
+    if (this.playoffScrollX === 0 && maxScrollX > 0) {
+      this.playoffScrollX = clampScroll(finalX + cardWidth / 2 - playoffLayout.width / 2, maxScrollX);
+    } else {
+      this.playoffScrollX = clampScroll(this.playoffScrollX, maxScrollX);
+    }
     this.playoffScrollY = clampScroll(this.playoffScrollY, maxScrollY);
     setScroll(this.playoffScrollX, this.playoffScrollY);
 
@@ -1618,6 +1742,40 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0, 0.5);
   }
 
+  private drawMirroredBracketConnectors(
+    graphics: Phaser.GameObjects.Graphics,
+    roundXs: readonly number[],
+    cardWidth: number,
+    roundCenters: readonly (readonly number[])[]
+  ): void {
+    for (let roundIndex = 1; roundIndex < roundCenters.length; roundIndex += 1) {
+      const previousCenters = roundCenters[roundIndex - 1] ?? [];
+      const centers = roundCenters[roundIndex] ?? [];
+      const previousX = roundXs[roundIndex - 1];
+      const currentX = (roundXs[roundIndex] ?? 0) + cardWidth;
+
+      if (previousX === undefined) {
+        continue;
+      }
+
+      const jointX = currentX + (previousX - currentX) / 2;
+
+      centers.forEach((centerY, index) => {
+        const firstY = previousCenters[index * 2];
+        const secondY = previousCenters[index * 2 + 1];
+
+        if (firstY === undefined || secondY === undefined) {
+          return;
+        }
+
+        graphics.lineBetween(previousX, firstY, jointX, firstY);
+        graphics.lineBetween(previousX, secondY, jointX, secondY);
+        graphics.lineBetween(jointX, firstY, jointX, secondY);
+        graphics.lineBetween(jointX, centerY, currentX, centerY);
+      });
+    }
+  }
+
   private createBracketMatch(match: TournamentMatch, x: number, y: number, layout: TournamentHubLayout): Phaser.GameObjects.Container {
     const width = layout.playoff.cardWidth;
     const height = layout.playoff.cardHeight;
@@ -1661,7 +1819,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(
       this.add
-        .text(x + 26, y, getTeamName(teamId), {
+        .text(x + 26, y, getBracketTeamLabel(teamId), {
           color: muted ? '#8fb39d' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.playoff.teamFontSize,
@@ -1826,8 +1984,18 @@ function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
   return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
 }
 
-function getTeamName(teamId: TournamentTeamId | undefined): string {
-  return teamId === undefined ? 'TBD' : findTeam(teamId)?.name ?? teamId;
+function getBracketTeamLabel(teamId: TournamentTeamId | undefined): string {
+  const team = teamId === undefined ? undefined : findTeam(teamId);
+
+  if (teamId === undefined) {
+    return 'TBD';
+  }
+
+  return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
+}
+
+function compareBracketMatches(first: TournamentMatch, second: TournamentMatch): number {
+  return first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex || first.id.localeCompare(second.id);
 }
 
 function getMatchTeamScore(match: TournamentMatch, team: 'home' | 'away'): string {
