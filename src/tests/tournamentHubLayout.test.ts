@@ -98,7 +98,7 @@ describe('Tournament Hub responsive layout', () => {
       width: 1344,
       right: 1472,
       viewportHeight: 462,
-      cardWidth: 300,
+      cardWidth: 200,
       cardHeight: 86,
       cardRadius: 8
     });
@@ -248,7 +248,7 @@ describe('Tournament Hub responsive layout', () => {
       expect(layout.playoff.x).toBe(layout.contentLeft);
       expect(layout.playoff.width).toBe(layout.contentWidth);
       expect(layout.playoff.right).toBe(layout.contentRight);
-      expect(layout.playoff.cardWidth).toBeGreaterThan(210);
+      expect(layout.playoff.cardWidth).toBeGreaterThanOrEqual(200);
       expect(layout.playoff.cardHeight).toBeGreaterThan(58);
       expect(layout.stats.x).toBe(layout.contentLeft);
       expect(layout.stats.width).toBe(layout.contentWidth);
@@ -340,16 +340,16 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(desktop.playoff.width).toBe(desktop.contentWidth);
     expect(mobile.playoff.width).toBe(mobile.contentWidth);
-    expect(desktop.playoff.cardWidth).toBe(300);
+    expect(desktop.playoff.cardWidth).toBe(200);
     expect(desktop.playoff.cardHeight).toBe(86);
-    expect(mobile.playoff.cardWidth).toBe(320);
+    expect(mobile.playoff.cardWidth).toBe(214);
     expect(mobile.playoff.cardHeight).toBe(92);
-    expect(desktop.playoff.cardWidth).toBeLessThan(360);
-    expect(mobile.playoff.cardWidth).toBeLessThan(400);
+    expect(desktop.playoff.cardWidth).toBeLessThanOrEqual(300 * 2 / 3);
+    expect(mobile.playoff.cardWidth).toBeLessThanOrEqual(Math.ceil(320 * 2 / 3));
     expect(desktop.playoff.maxColumnGap).toBe(128);
     expect(mobile.playoff.maxColumnGap).toBe(150);
-    expect(desktop.playoff.width - cupLDesktopBracketWidth).toBeGreaterThanOrEqual(180);
-    expect(mobile.playoff.width - cupLMobileBracketWidth).toBeGreaterThanOrEqual(270);
+    expect(desktop.playoff.width - cupLDesktopBracketWidth).toBeGreaterThanOrEqual(480);
+    expect(mobile.playoff.width - cupLMobileBracketWidth).toBeGreaterThanOrEqual(590);
     expect(desktop.playoff.viewportHeight).toBe(462);
     expect(mobile.playoff.viewportHeight).toBe(500);
     expect(desktop.playoff.viewportHeight).toBeLessThan(desktop.matches.viewportHeight!);
@@ -543,11 +543,26 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('layout.playoff.cardWidth');
     expect(source).toContain('layout.playoff.cardHeight');
+    expect(source).toContain('TEAM_CARD_STYLE.panel.backgroundColor');
+    expect(source).toContain('TEAM_CARD_STYLE.panel.borderColor');
+    expect(source).toContain('PLAYOFF_CONNECTOR_NEUTRAL_ALPHA');
+    expect(source).toContain('PLAYOFF_WINNER_CONNECTOR_COLOR');
+    expect(source).toContain('PLAYOFF_WINNER_CONNECTOR_ALPHA');
     expect(source).toContain("if (format.id === 'cup-xl')");
     expect(source).toContain('private createCupXlBracketTab');
-    expect(source).toContain('this.drawMirroredBracketConnectors');
+    expect(source).toContain('this.drawBracketConnectors(connectorGraphics, startX, columnGap, cardWidth, roundCenters, rounds)');
+    expect(source).toContain('this.drawMirroredBracketConnectors(connectorGraphics, rightColumnXs, cardWidth, branchCenters, rightRounds)');
+    expect(source).toContain('this.drawCupXlFinalConnectors(');
+    expect(source).toContain('graphics.lineStyle(4, PLAYOFF_WINNER_CONNECTOR_COLOR, PLAYOFF_WINNER_CONNECTOR_ALPHA)');
+    expect(source).toContain('if (!hasCompletedWinner(sourceMatch))');
+    expect(source).toContain('if (!isWinnerSeededIntoMatch(sourceMatch, targetMatch))');
+    expect(source).toContain("sourceMatch?.status !== 'completed'");
+    expect(source).toContain('targetMatch.homeTeamId === winnerTeamId || targetMatch.awayTeamId === winnerTeamId');
     expect(source).toContain('const startX = 0');
     expect(source).toContain('getBracketTeamLabel(teamId)');
+    expect(source).toContain('const flagX = x + 12');
+    expect(source).toContain('const teamLabelX = x + layout.playoff.flagWidth + 26');
+    expect(source).toContain('const scoreX = layout.playoff.cardWidth - 24');
     expect(source).toContain('fillRoundedRect(0, 0, width, statsLayout.tableHeight, 8)');
     expect(source).toContain('fillRoundedRect(0, 0, statsLayout.rankingCardWidth, statsLayout.rankingCardHeight, 8)');
     expect(source).toContain('getTeamScoreboardCode(team.flagCode)');
