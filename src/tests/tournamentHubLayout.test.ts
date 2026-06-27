@@ -157,8 +157,8 @@ describe('Tournament Hub responsive layout', () => {
       cardRadius: 8
     });
     expect(layout.stats).toMatchObject({
-      tableWidth: 620,
-      rankingCardWidth: 300,
+      tableWidth: 660,
+      rankingCardWidth: 660,
       rankingCardHeight: 102,
       rankingEntryFontSize: '16px',
       rankingValueFontSize: '17px'
@@ -513,22 +513,21 @@ describe('Tournament Hub responsive layout', () => {
     [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
       const statsRight = layout.stats.rankingX + layout.stats.rankingWidth;
       const tableRight = layout.stats.tableX + layout.stats.tableWidth;
-      const cardRowWidth = layout.stats.rankingCardWidth * 2 + layout.stats.rankingColumnGap;
       const oneColumnRanking = layout.stats.rankingCardWidth > (layout.stats.rankingWidth - layout.stats.rankingColumnGap) / 2;
 
       expect(layout.stats.tableWidth).toBeLessThan(780);
       expect(tableRight).toBeLessThan(layout.stats.rankingX);
       expect(statsRight).toBe(layout.contentRight);
+      expect(layout.stats.tableWidth / layout.contentWidth).toBeGreaterThan(0.48);
+      expect(layout.stats.tableWidth / layout.contentWidth).toBeLessThan(0.52);
+      expect(oneColumnRanking).toBe(true);
+      expect(layout.stats.rankingCardWidth).toBe(layout.stats.rankingWidth);
       if (layout.mobileLandscape) {
-        expect(layout.stats.tableWidth / layout.contentWidth).toBeGreaterThan(0.48);
-        expect(layout.stats.tableWidth / layout.contentWidth).toBeLessThan(0.52);
-        expect(oneColumnRanking).toBe(true);
         expect(layout.stats.tableHeaderFontSize).toBe('19px');
         expect(layout.stats.tableTeamFontSize).toBe('21px');
         expect(layout.stats.tableValueFontSize).toBe('20px');
         expect(layout.stats.rankingValueFontSize).toBe('21px');
       } else {
-        expect(cardRowWidth).toBeLessThanOrEqual(layout.stats.rankingWidth);
         expect(layout.stats.tableHeaderFontSize).toBe('16px');
         expect(layout.stats.tableTeamFontSize).toBe('18px');
         expect(layout.stats.tableValueFontSize).toBe('17px');
@@ -544,12 +543,13 @@ describe('Tournament Hub responsive layout', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
 
-    expect(desktop.stats.rankingCardWidth).toBe(300);
+    expect(desktop.stats.rankingCardWidth).toBe(desktop.stats.rankingWidth);
     expect(desktop.stats.rankingCardHeight).toBe(102);
     expect(desktop.stats.rankingEntryRowGap).toBe(25);
     expect(desktop.stats.rankingRowGap).toBe(156);
-    expect(getStatsRankingColumnCount(desktop)).toBe(2);
+    expect(getStatsRankingColumnCount(desktop)).toBe(1);
     expect(getStatsRankingContentHeight(desktop, 3)).toBeLessThanOrEqual(462);
+    expect(getStatsRankingMaxScroll(desktop, 3)).toBe(0);
     const mobileRowYs = getStatsRankingRowYs(mobile);
 
     expect(mobile.stats.rankingCardWidth).toBe(mobile.stats.rankingWidth);
@@ -567,6 +567,21 @@ describe('Tournament Hub responsive layout', () => {
       mobile.stats.rankingCardHeight - mobile.stats.rankingFlagHeight / 2
     );
     expect(mobileRowYs[0]! + mobile.stats.rankingEntryRowGap / 2).toBeLessThan(mobile.stats.rankingCardHeight);
+  });
+
+  it('keeps the Stats layout contract format-independent for Cup M, Cup L and Cup XL', () => {
+    const formatIds: TournamentFormatId[] = ['cup-m', 'cup-l', 'cup-xl'];
+
+    formatIds.forEach((formatId) => {
+      [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
+        expect(formatId).toMatch(/^cup-/);
+        expect(getStatsRankingColumnCount(layout)).toBe(1);
+        expect(getStatsRankingMaxScroll(layout, 3)).toBe(0);
+        expect(layout.stats.tableWidth / layout.contentWidth).toBeGreaterThan(0.48);
+        expect(layout.stats.tableWidth / layout.contentWidth).toBeLessThan(0.52);
+        expect(layout.stats.rankingCardWidth).toBe(layout.stats.rankingWidth);
+      });
+    });
   });
 
   it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
