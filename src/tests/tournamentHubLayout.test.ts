@@ -31,7 +31,7 @@ function getGroupStageFormIndicatorAirGap(layout: ReturnType<typeof createTourna
   return layout.groupStage.formIndicatorGap - layout.groupStage.formIndicatorRadius * 2;
 }
 
-function getStatsRankingContentHeight(layout: ReturnType<typeof createTournamentHubLayout>, cardCount = 5): number {
+function getStatsRankingContentHeight(layout: ReturnType<typeof createTournamentHubLayout>, cardCount = 3): number {
   const columnCount = Math.floor(
     (layout.stats.rankingWidth + layout.stats.rankingColumnGap) /
       (layout.stats.rankingCardWidth + layout.stats.rankingColumnGap)
@@ -395,7 +395,7 @@ describe('Tournament Hub responsive layout', () => {
       expect(layout.stats.rankingCardWidth).toBe(300);
       expect(layout.stats.rankingCardHeight).toBe(102);
       expect(layout.stats.rankingRowGap).toBe(156);
-      expect(getStatsRankingContentHeight(layout)).toBeLessThanOrEqual(462);
+      expect(getStatsRankingContentHeight(layout, 3)).toBeLessThanOrEqual(462);
     });
   });
 
@@ -537,6 +537,29 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal');
     expect(source).toContain('TEAM_CARD_STYLE.hover.backgroundColor');
     expect(source).toContain('statsLayout.rankingWidth');
+    expect(source).toContain('const sortedStats = sortTeamStatsForStatsTab(stats, this.statsSort)');
+    expect(source).toContain('this.createTeamStatsTable(sortedStats.slice(0, 12), layout)');
+    expect(source).toContain("{ title: 'Top scorers', entries: createPlayerRankingEntries(playerStats, 'goals') }");
+    expect(source).toContain("{ title: 'Top assists', entries: createPlayerRankingEntries(playerStats, 'assists') }");
+    expect(source).toContain("{ title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }");
+    expect(source).not.toContain("{ title: 'Goals'");
+    expect(source).not.toContain("{ title: 'Shots'");
+    expect(source).toContain('this.addStatsRowSeparator(rows, rowY + STATS_TABLE_ROW_GAP / 2, width)');
+    expect(source).toContain('this.addStatsRankingRowSeparator(panel, rowY + 12.5, statsLayout.rankingCardWidth)');
+    expect(source).toContain('if (index < stats.length - 1)');
+    expect(source).toContain('if (index < visibleEntries.length - 1)');
+    expect(source).toContain('lineBetween(18, y, width - 18, y)');
+    expect(source).toContain('lineBetween(14, y, width - 14, y)');
+    expect(source).toContain('private addSortableStatsHeader(');
+    expect(source).toContain("header.on('pointerdown', () => this.changeStatsSort(column))");
+    expect(source).toContain("this.statsSort?.column === column && this.statsSort.direction === 'desc' ? 'asc' : 'desc'");
+    expect(source).toContain("column === 'team' ? 'asc' : 'desc'");
+    expect(source).toContain('const sortedStats = [...stats]');
+    expect(source).toContain('return sortedStats.sort((first, second) => {');
+    expect(source).toContain("if (sort.column === 'team')");
+    expect(source).toContain('const numericDifference = firstValue - secondValue');
+    expect(source).toContain('directionMultiplier * numericDifference');
+    expect(source).toContain('const entryTextX = flagX + statsLayout.rankingFlagWidth + 18');
     expect(source).toContain('this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY)');
     expect(source).toContain('maxScrollX');
     expect(source).toContain('maxScrollY');

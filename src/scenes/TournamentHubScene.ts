@@ -16,8 +16,7 @@ import {
   type TournamentTeamId,
   type TournamentPlayerStats,
   type TournamentPlayerStatsRankingKey,
-  type TournamentTeamStats,
-  type TournamentTeamStatsRankingKey
+  type TournamentTeamStats
 } from '../tournament';
 import { Button } from '../ui/Button';
 import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
@@ -129,6 +128,14 @@ const STATS_TABLE_COLUMNS = {
   goalkeeperSaves: 656
 } as const;
 
+type StatsSortColumn = 'team' | keyof typeof STATS_TABLE_COLUMNS;
+type StatsSortDirection = 'asc' | 'desc';
+
+type StatsSortState = {
+  column: StatsSortColumn;
+  direction: StatsSortDirection;
+};
+
 export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
   private matchScrollY = 0;
@@ -137,6 +144,7 @@ export class TournamentHubScene extends Phaser.Scene {
   private playoffScrollY = 0;
   private statsRankingScrollY = 0;
   private statsTeamScrollY = 0;
+  private statsSort: StatsSortState | null = null;
   private mobileLandscapeLayout = false;
   private guardedInputAvailableAt = 0;
 
@@ -1103,13 +1111,11 @@ export class TournamentHubScene extends Phaser.Scene {
   private createStatsTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const stats = getTournamentTeamStats(tournament);
     const playerStats = getTournamentPlayerStats(tournament);
-    const statsLayout = layout.stats;
+    const sortedStats = sortTeamStatsForStatsTab(stats, this.statsSort);
 
-    this.createTeamStatsTable(stats.slice(0, 12), layout);
+    this.createTeamStatsTable(sortedStats.slice(0, 12), layout);
 
     const rankingCards: StatsRankingCardDefinition[] = [
-      { title: 'Goals', entries: createTeamRankingEntries(stats, 'goalsFor') },
-      { title: 'Shots', entries: createTeamRankingEntries(stats, 'shots') },
       { title: 'Top scorers', entries: createPlayerRankingEntries(playerStats, 'goals') },
       { title: 'Top assists', entries: createPlayerRankingEntries(playerStats, 'assists') },
       { title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }
@@ -1167,6 +1173,10 @@ export class TournamentHubScene extends Phaser.Scene {
       rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalDifference, rowY, teamStats.goalDifference, statsLayout.tableValueFontSize));
       rows.add(this.createStatsTableValue(statsLayout.tableColumns.shots, rowY, teamStats.shots, statsLayout.tableValueFontSize));
       rows.add(this.createStatsTableValue(statsLayout.tableColumns.goalkeeperSaves, rowY, teamStats.goalkeeperSaves, statsLayout.tableValueFontSize));
+
+      if (index < stats.length - 1) {
+        this.addStatsRowSeparator(rows, rowY + STATS_TABLE_ROW_GAP / 2, width);
+      }
     });
 
     const maskGraphics = this.make.graphics();
@@ -1221,19 +1231,32 @@ export class TournamentHubScene extends Phaser.Scene {
     }
   }
 
+  private addStatsRowSeparator(
+    container: Phaser.GameObjects.Container,
+    y: number,
+    width: number
+  ): void {
+    const separator = this.add.graphics();
+
+    separator
+      .lineStyle(1, GROUP_ROW_SEPARATOR_COLOR, 0.24)
+      .lineBetween(18, y, width - 18, y);
+    container.add(separator);
+  }
+
   private createStatsTableHeader(panel: Phaser.GameObjects.Container, y: number, layout: TournamentHubLayout): void {
     const statsLayout = layout.stats;
 
-    panel.add(
-      this.add
-        .text(statsLayout.tableTeamHeaderX, y, 'Team', {
-          color: '#9fc5ad',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: statsLayout.tableHeaderFontSize,
-          fontStyle: '700'
-        })
-        .setOrigin(0, 0.5)
-    );
+    const teamHeader = this.add
+      .text(statsLayout.tableTeamHeaderX, y, 'Team', {
+        color: '#9fc5ad',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: statsLayout.tableHeaderFontSize,
+        fontStyle: '700'
+      })
+      .setOrigin(0, 0.5);
+
+    this.addSortableStatsHeader(panel, teamHeader, 'team', 'Team', statsLayout.tableTeamHeaderX + 44, y);
 
     const headers: Array<[keyof typeof STATS_TABLE_COLUMNS, string]> = [
       ['played', 'P'],
@@ -1258,9 +1281,48 @@ export class TournamentHubScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
 
-      this.addStatsHeaderTooltip(header, getStatsTableHeaderTooltip(column));
-      panel.add(header);
+      this.addSortableStatsHeader(panel, header, column, getStatsTableHeaderTooltip(column), statsLayout.tableColumns[column] + 15, y);
     });
+  }
+
+  private addSortableStatsHeader(
+    panel: Phaser.GameObjects.Container,
+    header: Phaser.GameObjects.Text,
+    column: StatsSortColumn,
+    tooltipText: string,
+    indicatorX: number,
+    y: number
+  ): void {
+    this.addStatsHeaderTooltip(header, tooltipText);
+    header.on('pointerdown', () => this.changeStatsSort(column));
+    panel.add(header);
+
+    if (this.statsSort?.column !== column) {
+      return;
+    }
+
+    panel.add(
+      this.add
+        .text(indicatorX, y, this.statsSort.direction === 'asc' ? '^' : 'v', {
+          color: '#f0c95a',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '11px',
+          fontStyle: '700'
+        })
+        .setOrigin(0.5)
+    );
+  }
+
+  private changeStatsSort(column: StatsSortColumn): void {
+    const nextDirection: StatsSortDirection =
+      this.statsSort?.column === column && this.statsSort.direction === 'desc' ? 'asc' : 'desc';
+
+    this.statsSort = {
+      column,
+      direction: this.statsSort?.column === column ? nextDirection : column === 'team' ? 'asc' : 'desc'
+    };
+    this.statsTeamScrollY = 0;
+    this.render();
   }
 
   private addStatsHeaderTooltip(header: Phaser.GameObjects.Text, tooltipText: string): void {
@@ -1408,32 +1470,53 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(background);
 
-    entries.slice(0, 3).forEach((entry, index) => {
+    const visibleEntries = entries.slice(0, 3);
+
+    visibleEntries.forEach((entry, index) => {
       const team = findTeam(entry.teamId);
       const rowY = 22 + index * 25;
+      const flagX = 30;
+      const entryTextX = flagX + statsLayout.rankingFlagWidth + 18;
 
       if (team !== undefined) {
-        const flag = this.add.image(30, rowY, getFlagAssetKey(team.flagCode));
+        const flag = this.add.image(flagX, rowY, getFlagAssetKey(team.flagCode));
         flag.setDisplaySize(statsLayout.rankingFlagWidth, statsLayout.rankingFlagHeight);
         panel.add(flag);
       }
 
       panel.add(
         this.add
-          .text(46, rowY, `${index + 1}. ${entry.label}`, {
+          .text(entryTextX, rowY, `${index + 1}. ${entry.label}`, {
             color: '#ffffff',
             fontFamily: 'Arial, sans-serif',
             fontSize: statsLayout.rankingEntryFontSize,
             fontStyle: '700',
-            wordWrap: { width: statsLayout.rankingCardWidth - 110 }
+            wordWrap: { width: statsLayout.rankingCardWidth - entryTextX - 62 }
           })
           .setOrigin(0, 0.5)
       );
       panel.add(this.createStatsTableValue(statsLayout.rankingCardWidth - 14, rowY, entry.value, statsLayout.rankingValueFontSize));
+
+      if (index < visibleEntries.length - 1) {
+        this.addStatsRankingRowSeparator(panel, rowY + 12.5, statsLayout.rankingCardWidth);
+      }
     });
 
     container.add(panel);
     return container;
+  }
+
+  private addStatsRankingRowSeparator(
+    container: Phaser.GameObjects.Container,
+    y: number,
+    width: number
+  ): void {
+    const separator = this.add.graphics();
+
+    separator
+      .lineStyle(1, GROUP_ROW_SEPARATOR_COLOR, 0.24)
+      .lineBetween(14, y, width - 14, y);
+    container.add(separator);
   }
 
   private createStatsTableValue(
@@ -2255,17 +2338,6 @@ function getTeamGroupForm(
     .filter((entry): entry is GroupFormEntry => entry !== null);
 }
 
-function createTeamRankingEntries(
-  stats: readonly TournamentTeamStats[],
-  key: TournamentTeamStatsRankingKey
-): StatsRankingEntry[] {
-  return getTournamentTeamStatsRanking(stats, key, 3).map((teamStats) => ({
-    teamId: teamStats.teamId,
-    label: findTeam(teamStats.teamId)?.name ?? teamStats.teamId,
-    value: teamStats[key]
-  }));
-}
-
 function createPlayerRankingEntries(
   stats: readonly TournamentPlayerStats[],
   key: TournamentPlayerStatsRankingKey
@@ -2275,6 +2347,41 @@ function createPlayerRankingEntries(
     label: `${playerStats.playerName} #${playerStats.shirtNumber}`,
     value: playerStats[key]
   }));
+}
+
+function sortTeamStatsForStatsTab(
+  stats: readonly TournamentTeamStats[],
+  sort: StatsSortState | null
+): TournamentTeamStats[] {
+  const sortedStats = [...stats];
+
+  if (sort === null) {
+    return sortedStats;
+  }
+
+  const directionMultiplier = sort.direction === 'asc' ? 1 : -1;
+
+  return sortedStats.sort((first, second) => {
+    if (sort.column === 'team') {
+      return directionMultiplier * getStatsTeamCode(first.teamId).localeCompare(getStatsTeamCode(second.teamId));
+    }
+
+    const firstValue = first[sort.column];
+    const secondValue = second[sort.column];
+    const numericDifference = firstValue - secondValue;
+
+    if (numericDifference !== 0) {
+      return directionMultiplier * numericDifference;
+    }
+
+    return getStatsTeamCode(first.teamId).localeCompare(getStatsTeamCode(second.teamId));
+  });
+}
+
+function getStatsTeamCode(teamId: TournamentTeamId): string {
+  const team = findTeam(teamId);
+
+  return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
 }
 
 function getStatsTableHeaderTooltip(column: keyof typeof STATS_TABLE_COLUMNS): string {
