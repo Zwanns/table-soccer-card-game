@@ -88,14 +88,14 @@ export class ResultScene extends Phaser.Scene {
       createResultActionButtons(this, centerX, [
         { label: 'Continue', onClick: () => this.returnToTournament() },
         { label: 'Play Again', onClick: () => this.startReplayMatch() }
-      ]);
+      ], { attachedToPanel: true });
       return;
     }
 
     createResultActionButtons(this, centerX, [
       { label: 'Play Again', onClick: () => this.startReplayMatch() },
       { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }
-    ]);
+    ], { attachedToPanel: true });
   }
 
   private createVersionLabel(): void {

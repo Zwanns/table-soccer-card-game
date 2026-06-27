@@ -106,9 +106,10 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
     expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = 500');
     expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = 360');
-    expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Continue', onClick: () => this.returnToTournament() },\n        { label: 'Play Again', onClick: () => this.startReplayMatch() }\n      ])");
+    expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Continue', onClick: () => this.returnToTournament() },\n        { label: 'Play Again', onClick: () => this.startReplayMatch() }\n      ], { attachedToPanel: true })");
     expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
     expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }");
+    expect(source.match(/attachedToPanel: true/g)).toHaveLength(2);
     expect(source).not.toContain("'Back to tournament'");
     expect(source).not.toContain("'Menu'");
     expect(source).not.toContain('MenuScene');
@@ -121,7 +122,26 @@ describe('result scene mobile statistics card', () => {
     expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_Y = 644');
     expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_RADIUS = 8');
     expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
-    expect(actionsSource).toContain('borderRadius: RESULT_ACTION_BUTTON_RADIUS');
+    expect(actionsSource).toContain('borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true)');
+  });
+
+  it('uses flat top corners and only rounded outer bottom corners for attached result buttons', () => {
+    const actionsSource = readSource('src/ui/resultActionButtons.ts');
+    const buttonSource = readSource('src/ui/Button.ts');
+
+    expect(actionsSource).toContain('attachedToPanel?: boolean');
+    expect(actionsSource).toContain('function getResultActionButtonRadius(index: number, actionCount: number, attachedToPanel: boolean): number | ButtonCornerRadius');
+    expect(actionsSource).toContain('if (!attachedToPanel) {\n    return RESULT_ACTION_BUTTON_RADIUS;\n  }');
+    expect(actionsSource).toContain('const isFirst = index === 0');
+    expect(actionsSource).toContain('const isLast = index === actionCount - 1');
+    expect(actionsSource).toContain('topLeft: 0');
+    expect(actionsSource).toContain('topRight: 0');
+    expect(actionsSource).toContain('bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(actionsSource).toContain('bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(buttonSource).toContain('export interface ButtonCornerRadius');
+    expect(buttonSource).toContain('borderRadius?: number | ButtonCornerRadius');
+    expect(buttonSource).toContain('fillButtonRoundedRect');
+    expect(buttonSource).toContain('strokeButtonRoundedRect');
   });
 
   it('shows the central game version in the bottom-right corner', () => {

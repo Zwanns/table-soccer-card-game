@@ -1,7 +1,14 @@
 import Phaser from 'phaser';
 
+export interface ButtonCornerRadius {
+  topLeft: number;
+  topRight: number;
+  bottomRight: number;
+  bottomLeft: number;
+}
+
 export interface ButtonOptions {
-  borderRadius?: number;
+  borderRadius?: number | ButtonCornerRadius;
   disabled?: boolean;
   fontSize?: string;
   height?: number;
@@ -20,15 +27,15 @@ export class Button extends Phaser.GameObjects.Container {
     const hoverColor = disabled ? 0x6d746f : 0xffd978;
     const borderColor = disabled ? 0x3c4540 : 0x2d382f;
     const background = scene.add.rectangle(0, 0, width, height, baseColor, disabled ? 0.78 : 1);
-    const roundedBackground = borderRadius > 0 ? scene.add.graphics() : null;
+    const roundedBackground = hasRoundedCorner(borderRadius) ? scene.add.graphics() : null;
     const drawBackground = (color: number): void => {
       if (roundedBackground !== null) {
         background.setVisible(false);
         roundedBackground.clear();
         roundedBackground.fillStyle(color, disabled ? 0.78 : 1);
-        roundedBackground.fillRoundedRect(-width / 2, -height / 2, width, height, borderRadius);
+        fillButtonRoundedRect(roundedBackground, -width / 2, -height / 2, width, height, borderRadius);
         roundedBackground.lineStyle(2, borderColor);
-        roundedBackground.strokeRoundedRect(-width / 2, -height / 2, width, height, borderRadius);
+        strokeButtonRoundedRect(roundedBackground, -width / 2, -height / 2, width, height, borderRadius);
         return;
       }
 
@@ -59,4 +66,91 @@ export class Button extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
   }
+}
+
+function hasRoundedCorner(radius: number | ButtonCornerRadius): boolean {
+  if (typeof radius === 'number') {
+    return radius > 0;
+  }
+
+  return radius.topLeft > 0 || radius.topRight > 0 || radius.bottomRight > 0 || radius.bottomLeft > 0;
+}
+
+function fillButtonRoundedRect(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number | ButtonCornerRadius
+): void {
+  if (typeof radius === 'number') {
+    graphics.fillRoundedRect(x, y, width, height, radius);
+    return;
+  }
+
+  drawButtonRoundedRectPath(graphics, x, y, width, height, radius);
+  graphics.fillPath();
+}
+
+function strokeButtonRoundedRect(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number | ButtonCornerRadius
+): void {
+  if (typeof radius === 'number') {
+    graphics.strokeRoundedRect(x, y, width, height, radius);
+    return;
+  }
+
+  drawButtonRoundedRectPath(graphics, x, y, width, height, radius);
+  graphics.strokePath();
+}
+
+function drawButtonRoundedRectPath(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: ButtonCornerRadius
+): void {
+  const maxRadius = Math.min(width, height) / 2;
+  const topLeft = Math.min(radius.topLeft, maxRadius);
+  const topRight = Math.min(radius.topRight, maxRadius);
+  const bottomRight = Math.min(radius.bottomRight, maxRadius);
+  const bottomLeft = Math.min(radius.bottomLeft, maxRadius);
+  const right = x + width;
+  const bottom = y + height;
+
+  graphics.beginPath();
+  graphics.moveTo(x + topLeft, y);
+  graphics.lineTo(right - topRight, y);
+
+  if (topRight > 0) {
+    graphics.arc(right - topRight, y + topRight, topRight, -Math.PI / 2, 0, false);
+  }
+
+  graphics.lineTo(right, bottom - bottomRight);
+
+  if (bottomRight > 0) {
+    graphics.arc(right - bottomRight, bottom - bottomRight, bottomRight, 0, Math.PI / 2, false);
+  }
+
+  graphics.lineTo(x + bottomLeft, bottom);
+
+  if (bottomLeft > 0) {
+    graphics.arc(x + bottomLeft, bottom - bottomLeft, bottomLeft, Math.PI / 2, Math.PI, false);
+  }
+
+  graphics.lineTo(x, y + topLeft);
+
+  if (topLeft > 0) {
+    graphics.arc(x + topLeft, y + topLeft, topLeft, Math.PI, Math.PI * 1.5, false);
+  }
+
+  graphics.closePath();
 }

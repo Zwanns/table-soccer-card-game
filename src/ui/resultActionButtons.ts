@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Button } from './Button';
+import { Button, type ButtonCornerRadius } from './Button';
 
 export const RESULT_ACTION_PANEL_WIDTH = 840;
 export const RESULT_ACTION_BUTTON_GAP = 0;
@@ -15,6 +15,7 @@ export interface ResultActionButtonConfig {
 }
 
 export interface ResultActionButtonsOptions {
+  attachedToPanel?: boolean;
   totalWidth?: number;
 }
 
@@ -27,12 +28,6 @@ export function createResultActionButtons(
   const totalWidth = options.totalWidth ?? RESULT_ACTION_PANEL_WIDTH;
   const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length;
   const firstButtonX = centerX - totalWidth / 2 + buttonWidth / 2;
-  const buttonOptions = {
-    borderRadius: RESULT_ACTION_BUTTON_RADIUS,
-    fontSize: RESULT_ACTION_BUTTON_FONT_SIZE,
-    height: RESULT_ACTION_BUTTON_HEIGHT,
-    width: buttonWidth
-  } as const;
 
   return actions.map((action, index) =>
     new Button(
@@ -41,7 +36,28 @@ export function createResultActionButtons(
       RESULT_ACTION_BUTTON_Y,
       action.label,
       action.onClick,
-      buttonOptions
+      {
+        borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true),
+        fontSize: RESULT_ACTION_BUTTON_FONT_SIZE,
+        height: RESULT_ACTION_BUTTON_HEIGHT,
+        width: buttonWidth
+      }
     )
   );
+}
+
+function getResultActionButtonRadius(index: number, actionCount: number, attachedToPanel: boolean): number | ButtonCornerRadius {
+  if (!attachedToPanel) {
+    return RESULT_ACTION_BUTTON_RADIUS;
+  }
+
+  const isFirst = index === 0;
+  const isLast = index === actionCount - 1;
+
+  return {
+    topLeft: 0,
+    topRight: 0,
+    bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0,
+    bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0
+  };
 }
