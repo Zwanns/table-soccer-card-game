@@ -286,7 +286,7 @@ export function createTournamentHubLayout(
         rankingX: contentLeft + 792,
         rankingWidth: contentWidth - 792,
         rankingCardWidth: contentWidth - 792,
-        rankingCardHeight: 128,
+        rankingCardHeight: 120,
         rankingTitleFontSize: '26px',
         rankingEntryFontSize: '20px',
         rankingValueFontSize: '21px',

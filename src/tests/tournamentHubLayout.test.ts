@@ -41,6 +41,32 @@ function getStatsRankingContentHeight(layout: ReturnType<typeof createTournament
   return (rowCount - 1) * layout.stats.rankingRowGap + 28 + layout.stats.rankingCardHeight;
 }
 
+function getStatsRankingColumnCount(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  return Math.max(
+    1,
+    Math.min(
+      3,
+      Math.floor(
+        (layout.stats.rankingWidth + layout.stats.rankingColumnGap) /
+          (layout.stats.rankingCardWidth + layout.stats.rankingColumnGap)
+      )
+    )
+  );
+}
+
+function getStatsRankingMaxScroll(layout: ReturnType<typeof createTournamentHubLayout>, cardCount = 3): number {
+  return Math.max(0, getStatsRankingContentHeight(layout, cardCount) - 462);
+}
+
+function getStatsRankingRowYs(layout: ReturnType<typeof createTournamentHubLayout>, rowCount = 3): number[] {
+  return Array.from(
+    { length: rowCount },
+    (_value, index) =>
+      layout.stats.rankingCardHeight / 2 +
+      (index - (rowCount - 1) / 2) * layout.stats.rankingEntryRowGap
+  );
+}
+
 describe('Tournament Hub responsive layout', () => {
   it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
@@ -409,14 +435,25 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.stats.rankingCardHeight).toBe(102);
     expect(desktop.stats.rankingEntryRowGap).toBe(25);
     expect(desktop.stats.rankingRowGap).toBe(156);
+    expect(getStatsRankingColumnCount(desktop)).toBe(2);
     expect(getStatsRankingContentHeight(desktop, 3)).toBeLessThanOrEqual(462);
+    const mobileRowYs = getStatsRankingRowYs(mobile);
+
     expect(mobile.stats.rankingCardWidth).toBe(mobile.stats.rankingWidth);
-    expect(mobile.stats.rankingCardHeight).toBe(128);
+    expect(getStatsRankingColumnCount(mobile)).toBe(1);
+    expect(mobile.stats.rankingCardHeight).toBe(120);
     expect(mobile.stats.rankingTitleFontSize).toBe('26px');
     expect(mobile.stats.rankingEntryFontSize).toBe('20px');
     expect(mobile.stats.rankingValueFontSize).toBe('21px');
     expect(mobile.stats.rankingEntryRowGap).toBe(32);
-    expect(getStatsRankingContentHeight(mobile, 3)).toBeLessThanOrEqual(480);
+    expect(getStatsRankingContentHeight(mobile, 3)).toBeLessThanOrEqual(462);
+    expect(getStatsRankingMaxScroll(mobile, 3)).toBe(0);
+    expect(mobileRowYs).toEqual([28, 60, 92]);
+    expect(mobileRowYs[0]).toBeGreaterThan(mobile.stats.rankingFlagHeight / 2);
+    expect(mobileRowYs[2]).toBeLessThan(
+      mobile.stats.rankingCardHeight - mobile.stats.rankingFlagHeight / 2
+    );
+    expect(mobileRowYs[0]! + mobile.stats.rankingEntryRowGap / 2).toBeLessThan(mobile.stats.rankingCardHeight);
   });
 
   it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
@@ -581,7 +618,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("if (sort.column === 'team')");
     expect(source).toContain('const numericDifference = firstValue - secondValue');
     expect(source).toContain('directionMultiplier * numericDifference');
-    expect(source).toContain('const rowY = 22 + index * statsLayout.rankingEntryRowGap');
+    expect(source).toContain('statsLayout.rankingCardHeight / 2 +');
+    expect(source).toContain('(index - (visibleEntries.length - 1) / 2) * statsLayout.rankingEntryRowGap');
     expect(source).toContain('const entryTextX = flagX + statsLayout.rankingFlagWidth + 18');
     expect(source).toContain('this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY)');
     expect(source).toContain('maxScrollX');

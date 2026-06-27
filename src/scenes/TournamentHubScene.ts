@@ -1475,7 +1475,9 @@ export class TournamentHubScene extends Phaser.Scene {
 
     visibleEntries.forEach((entry, index) => {
       const team = findTeam(entry.teamId);
-      const rowY = 22 + index * statsLayout.rankingEntryRowGap;
+      const rowY =
+        statsLayout.rankingCardHeight / 2 +
+        (index - (visibleEntries.length - 1) / 2) * statsLayout.rankingEntryRowGap;
       const flagX = 30;
       const entryTextX = flagX + statsLayout.rankingFlagWidth + 18;
 
