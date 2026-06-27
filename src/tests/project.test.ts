@@ -468,7 +468,8 @@ describe('project scaffold', () => {
 
     expect(resultSceneSource).toContain('createGeometryMask');
     expect(resultSceneSource).toContain("scrollZone.on('wheel'");
-    expect(resultSceneSource).toContain('timelineContent.setMask');
+    expect(resultSceneSource).toContain('content.setMask(mask)');
+    expect(resultSceneSource).toContain('private addStatsScrollContent');
   });
 
   it('starts goalkeeper outcome sounds at attack-card impact time', () => {

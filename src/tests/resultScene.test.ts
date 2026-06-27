@@ -6,11 +6,15 @@ function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');
 }
 
-function readResultSceneSource(): string {
-  return normalizeSourceLineEndings(readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8'));
+function readSource(path: string): string {
+  return normalizeSourceLineEndings(readFileSync(join(process.cwd(), path), 'utf8'));
 }
 
-describe('result scene score line layout', () => {
+function readResultSceneSource(): string {
+  return readSource('src/scenes/ResultScene.ts');
+}
+
+describe('result scene mobile statistics card', () => {
   it('uses post-match background images based on the result winner', () => {
     const source = readResultSceneSource();
 
@@ -23,137 +27,124 @@ describe('result scene score line layout', () => {
     expect(source).toContain('background.setFlipX(true)');
   });
 
-  it('keeps both team codes the same distance from the centered score inside the statistics panel', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain('const teamNameInnerGap = 112');
-    expect(source).toContain('const playerOneNameX = px(-teamNameInnerGap)');
-    expect(source).toContain('const playerTwoNameX = px(teamNameInnerGap)');
-    expect(source).toContain('getTeamScoreboardCode(playerOneFlagCode)');
-    expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
-    expect(source).toContain("align: 'left'");
-    expect(source).toContain('.setOrigin(1, 0.5)');
-    expect(source).toContain('.setOrigin(0, 0.5)');
-  });
-
-  it('places final-score flags next to the rendered team codes', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain('const flagGap = 14');
-    expect(source).toContain('const badgeFlagGap = 10');
-    expect(source).toContain('const flagWidth = 76');
-    expect(source).toContain('const flagHeight = 50');
-    expect(source).toContain("fontSize: '54px'");
-    expect(source).toContain("fontSize: '38px'");
-    expect(source).toContain('const playerOneBadge = this.createControllerBadge(');
-    expect(source).toContain('const playerTwoBadge = this.createControllerBadge(');
-    expect(source).toContain('const playerOneFlagX = px(playerOneText.x - playerOneText.width - flagGap - flagWidth / 2)');
-    expect(source).toContain('const playerTwoFlagX = px(playerTwoText.x + playerTwoText.width + flagGap + flagWidth / 2)');
-    expect(source).toContain('playerOneBadge.setPosition(px(playerOneFlag.x - flagWidth / 2 - badgeFlagGap - playerOneBadge.width / 2), 0)');
-    expect(source).toContain('playerTwoBadge.setPosition(px(playerTwoFlag.x + flagWidth / 2 + badgeFlagGap + playerTwoBadge.width / 2), 0)');
-  });
-
-  it('renders the final score inside the raised result statistics panel', () => {
-    const source = readResultSceneSource();
-
-    expect(source).not.toContain('this.createScoreLine(\n      centerX,\n      92,');
-    expect(source).toContain('this.createMatchStatsPanel(centerX, 360, this.state, this.getPostMatchPenaltyAttempts())');
-    expect(source).toContain('const height = 500');
-    expect(source).toContain('const finalScore = this.createScoreLine(');
-    expect(source).toContain('panel.add([background, finalScore, title])');
-    expect(source).toContain('const viewportHeight = 156');
-  });
-
-  it('uses the shared scoreboard style for the final statistics card', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain("} from '../ui/scoreboardStyle'");
-    expect(source).toContain('this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
-    expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)');
-    expect(source).toContain('fontFamily: SCOREBOARD_FONT_FAMILY');
-    expect(source).toContain("color: '#ffffff'");
-    expect(source).not.toContain('const background = this.add.rectangle(0, 0, width, height, 0x0b2118, 0.88)');
-    expect(source).not.toContain('this.add.rectangle(0, 0, width, height, 0x000000, 0.76)');
-    expect(source).not.toContain('background.setStrokeStyle(2, 0x5f9572, 0.95)');
-    expect(source).not.toContain("fontFamily: 'Arial, sans-serif',\n        fontSize: '22px'");
-    expect(source).not.toContain("color: '#a9c7b3'");
-  });
-
-  it('uses shared team abbreviations on the result scoreboard instead of full team names', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
-    expect(source).toContain('getTeamScoreboardCode(playerOneFlagCode)');
-    expect(source).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
-    expect(source).not.toContain('playerOne?.name ??');
-    expect(source).not.toContain('playerTwo?.name ??');
-  });
-
-  it('does not render duplicate team-code labels inside the stats rows', () => {
-    const source = readResultSceneSource();
-
-    expect(source).not.toContain('const playerOneHeader =');
-    expect(source).not.toContain('const playerTwoHeader =');
-    expect(source).not.toContain('private createTeamName');
-    expect(source).not.toContain('getTeamScoreboardCode(playerOne.flagCode)');
-    expect(source).not.toContain('getTeamScoreboardCode(playerTwo.flagCode)');
-  });
-
-  it('keeps stats labels and gives the goal scorers list more vertical space', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain("['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)]");
-    expect(source).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
-    expect(source).toContain("['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]");
-    expect(source).toContain('const statsStartY = -56');
-    expect(source).toContain('const statsRowGap = 34');
-    expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
-    expect(source).toContain("panel.add(this.createStatsLabel(54, 'Goalscorers'))");
-    expect(source).toContain('const viewportTop = 92');
-    expect(source).toContain('const viewportHeight = 156');
-    expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');
-  });
-
   it('renders result text with snapped coordinates and high-resolution text canvases', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain("import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering'");
-    expect(source.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(7);
+    expect(source.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(9);
     expect(source).not.toContain('.setScale(');
   });
 
-  it('creates three quick-match actions aligned to the scoreboard panel width', () => {
+  it('uses the tournament mobile match-card team pattern for result teams', () => {
     const source = readResultSceneSource();
-    const actionsSource = normalizeSourceLineEndings(
-      readFileSync(join(process.cwd(), 'src', 'ui', 'resultActionButtons.ts'), 'utf8')
-    );
 
-    expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
-    expect(source).toContain('createResultActionButtons(this, centerX, [');
-    expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
-    expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }");
-    expect(source).toContain("{ label: 'Menu', onClick: () => this.scene.start('MenuScene') }");
-    expect(actionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
-    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_GAP = 24');
-    expect(actionsSource).toContain(
-      'export const RESULT_ACTION_BUTTON_WIDTH = (RESULT_ACTION_PANEL_WIDTH - RESULT_ACTION_BUTTON_GAP * 2) / 3'
-    );
-    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
-    expect(actionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
-    expect(actionsSource).toContain('const totalWidth = options.totalWidth ?? RESULT_ACTION_PANEL_WIDTH');
-    expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * 2) / 3');
-    expect(actionsSource).toContain(
-      'const firstButtonX = centerX - totalWidth / 2 + buttonWidth / 2'
-    );
-    expect(source).not.toContain("'Play again', () => this.scene.start('TeamSelectScene')");
-    expect(source).toContain("new Button(this, centerX + 150, 650, 'Menu', () => this.scene.start('MenuScene'), { width: 230 })");
+    expect(source).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
+    expect(source).toContain('const RESULT_TEAM_CODE_FONT_SIZE = \'34px\'');
+    expect(source).toContain('const RESULT_TEAM_FLAG_WIDTH = 64');
+    expect(source).toContain('const RESULT_TEAM_FLAG_HEIGHT = 48');
+    expect(source).toContain('const RESULT_TEAM_CODE_OFFSET_X = 48');
+    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_WIDTH = 34');
+    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_HEIGHT = 16');
+    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_RADIUS = 4');
+    expect(source).toContain('const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10');
+    expect(source).toContain('private createResultTeamCodeBlock');
+    expect(source).toContain('const isAi = controllerType === \'AI\'');
+    expect(source).toContain('const teamCodeY = isAi ? RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y : 0');
+    expect(source).toContain('getTeamScoreboardCode(flagCode)');
+    expect(source).toContain('getFlagAssetKey(flagCode)');
+    expect(source).toContain('this.addResultAiBadge(block, teamCodeX, flagBottomY)');
+    expect(source).toContain(".fillStyle(0xf0c95a, 1)");
+    expect(source).toContain("color: '#1f2a2e'");
+    expect(source).not.toContain('private createControllerBadge');
+    expect(source).not.toContain("const label = controllerType === 'AI' ? 'AI' : 'P'");
   });
 
-  it('replays the same teams and controller types with a fresh GameScene', () => {
+  it('keeps the match score font unchanged while result-card text follows tournament typography', () => {
     const source = readResultSceneSource();
 
+    expect(source).toContain('const RESULT_STATS_FONT_FAMILY = \'Arial, sans-serif\'');
+    expect(source).toContain('fontFamily: SCOREBOARD_FONT_FAMILY');
+    expect(source).toContain("fontSize: '54px'");
+    expect(source).toContain('fontFamily: RESULT_STATS_FONT_FAMILY');
+    expect(source).toContain('fontSize: RESULT_TEAM_CODE_FONT_SIZE');
+    expect(source).toContain("fontSize: '24px'");
+    expect(source).toContain("fontSize: '20px'");
+    expect(source).toContain("fontSize: '17px'");
+  });
+
+  it('reduces the gap under the Match statistics heading before the stats rows', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain(".text(0, px(-height / 2 + 112), 'Match statistics'");
+    expect(source).toContain('const viewportTop = -104');
+    expect(source).toContain('const statsStartY = 18');
+    expect(source).toContain('const statsRowGap = 32');
+    expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
+  });
+
+  it('puts all statistics and scorer content inside one touch-scrollable card content area', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('private addStatsScrollContent');
+    expect(source).toContain('const content = this.add.container(0, viewportTop)');
+    expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue))');
+    expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers'))");
+    expect(source).toContain('content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth))');
+    expect(source).toContain('content.setMask(mask)');
+    expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');
+    expect(source).toContain('createDragScrollArea({');
+    expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
+    expect(source).toContain('TOUCH_SCROLL_WHEEL_FACTOR');
+    expect(source).not.toContain('private addScorerTimeline');
+    expect(source).not.toContain('const timelineContent = this.add.container(0, viewportTop)');
+  });
+
+  it('uses the updated bottom result button set and keeps it attached to the card width', () => {
+    const source = readResultSceneSource();
+    const actionsSource = readSource('src/ui/resultActionButtons.ts');
+
+    expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
+    expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = 500');
+    expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = 360');
+    expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Continue', onClick: () => this.returnToTournament() },\n        { label: 'Play Again', onClick: () => this.startReplayMatch() }\n      ])");
+    expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
+    expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }");
+    expect(source).not.toContain("'Back to tournament'");
+    expect(source).not.toContain("'Menu'");
+    expect(source).not.toContain('MenuScene');
+
+    expect(actionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_GAP = 0');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_WIDTH = RESULT_ACTION_PANEL_WIDTH / 2');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
+    expect(actionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '24px'");
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_Y = 644');
+    expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_RADIUS = 8');
+    expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
+    expect(actionsSource).toContain('borderRadius: RESULT_ACTION_BUTTON_RADIUS');
+  });
+
+  it('shows the central game version in the bottom-right corner', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain("import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
+    expect(source).toContain('private createVersionLabel(): void');
+    expect(source).toContain('this.createVersionLabel()');
+    expect(source).toContain('SCENE_WIDTH - RESULT_VERSION_MARGIN');
+    expect(source).toContain('SCENE_HEIGHT - RESULT_VERSION_MARGIN');
+    expect(source).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
+    expect(source).toContain('.setOrigin(1, 1)');
+  });
+
+  it('preserves tournament continuation and replay behavior without changing match logic', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('private returnToTournament(): void');
+    expect(source).toContain('createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId)');
+    expect(source).toContain('this.startPenaltyShootout(tournament, result)');
+    expect(source).toContain('submitTournamentMatchResultObject(tournament, result)');
+    expect(source).toContain('saveTournament(updatedTournament)');
     expect(source).toContain('private startReplayMatch(): void');
-    expect(source).toContain("this.scene.start('TeamSelectScene', { mode: 'match' })");
     expect(source).toContain("this.scene.start('GameScene', {");
     expect(source).toContain('player1Name: playerOne.name');
     expect(source).toContain('player2Name: playerTwo.name');
@@ -164,34 +155,7 @@ describe('result scene score line layout', () => {
     expect(source).toContain('launchContext: this.launchContext');
   });
 
-  it('shows controller type badges next to both result scoreboard team codes', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain('private createControllerBadge');
-    expect(source).toContain("const label = controllerType === 'AI' ? 'AI' : 'P'");
-    expect(source).toContain('const width = controllerType === \'AI\' ? 40 : 32');
-    expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)');
-    expect(source).toContain('scoreLine.add([playerOneBadge, playerOneFlag, playerOneText, score, playerTwoText, playerTwoFlag, playerTwoBadge])');
-    expect(source).toContain("state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN'");
-    expect(source).toContain("state.matchSetups[playerTwo.id]?.controllerType ?? 'HUMAN'");
-  });
-
-  it('left-aligns final match goal scorers inside both scorer columns', () => {
-    const source = readResultSceneSource();
-
-    expect(source).toContain('const scorerColumnWidth = 280');
-    expect(source).toContain('const playerOneScorerX = viewportLeft');
-    expect(source).toContain('const playerTwoScorerX = panelWidth / 2 - 56 - scorerColumnWidth');
-    expect(source).toContain("align: 'left'");
-    expect(source).toContain('.setOrigin(0, 0.5)');
-    expect(source).toContain('this.createScorersList(playerOneScorerX, y, row.playerOneText, scorerColumnWidth)');
-    expect(source).toContain('this.createScorersList(playerTwoScorerX, y, row.playerTwoText, scorerColumnWidth)');
-    expect(source).not.toContain("this.createScorersList(285, y, row.playerTwoText, 'right')");
-    expect(source).not.toContain("align: side");
-    expect(source).not.toContain("setOrigin(side === 'left' ? 0 : 1, 0.5)");
-  });
-
-  it('keeps post-match penalty attempts in a separate block below goalscorers', () => {
+  it('keeps post-match penalty attempts in the unified scroll content below goalscorers', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain('private getPostMatchPenaltyAttempts(): PenaltyAttemptSummary[]');

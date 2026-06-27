@@ -223,7 +223,8 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('PAUSE_BUTTON_GAP');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
-    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
+    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '24px'");
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_RADIUS = 8');
   });
 
   it('shows current match statistics above the pause actions', () => {

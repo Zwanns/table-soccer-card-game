@@ -55,7 +55,7 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).toContain("mode: 'tournament'");
     expect(hubSource).toContain('tournamentMatchId');
     expect(gameSource).toContain('launchContext');
-    expect(resultSource).toContain('Back to tournament');
+    expect(resultSource).toContain("{ label: 'Continue', onClick: () => this.returnToTournament() }");
     expect(resultSource).toContain('submitTournamentMatchResultObject');
     expect(resultSource).toContain("this.scene.start('TournamentCompleteScene')");
   });
@@ -118,7 +118,7 @@ describe('tournament hub scene integration', () => {
     const penaltySource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentPenaltyScene.ts'), 'utf8');
 
     expect(resultSource).toContain("this.scene.start('TournamentPenaltyScene'");
-    expect(resultSource).toContain('Penalty shootout');
+    expect(resultSource).toContain("{ label: 'Continue', onClick: () => this.returnToTournament() }");
     expect(resultSource).toContain('needsPenaltyShootout');
     expect(penaltySource).toContain('createPenaltyShootoutState');
     expect(penaltySource).toContain('submitTournamentMatchResultObject');
@@ -231,9 +231,10 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('{ totalWidth: PENALTY_COMPLETE_PANEL_WIDTH }');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
-    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '26px'");
+    expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '24px'");
+    expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_RADIUS = 8');
     expect(resultActionsSource).toContain('const totalWidth = options.totalWidth ?? RESULT_ACTION_PANEL_WIDTH');
-    expect(resultActionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * 2) / 3');
+    expect(resultActionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
     const completedStatsHandler = penaltySource.slice(
       penaltySource.indexOf('private createMatchStatsPanel('),
       penaltySource.indexOf('private createStatsLabel(')
