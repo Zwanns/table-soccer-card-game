@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { getTournamentMatchCount, type TournamentFormatId } from '../tournament';
 import {
   createTournamentHubLayout,
+  getTournamentHubCupXlPlayoffGeometry,
   getTournamentHubGroupStageMaxScroll,
   getTournamentHubMatchMaxScroll
 } from '../ui/tournamentHubLayout';
@@ -21,6 +23,12 @@ function getGroupStageViewportWidth(layout: ReturnType<typeof createTournamentHu
 
 function getGroupStageRowStep(layout: ReturnType<typeof createTournamentHubLayout>): number {
   return layout.groupStage.cardHeight + layout.groupStage.rowGap;
+}
+
+function getMatchContentHeight(layout: ReturnType<typeof createTournamentHubLayout>, matchCount: number): number {
+  const rowCount = Math.ceil(matchCount / layout.matches.columns);
+
+  return layout.matches.cardHeight + Math.max(0, rowCount - 1) * layout.matches.rowGap;
 }
 
 function getGroupStageFormRight(layout: ReturnType<typeof createTournamentHubLayout>, formCount = 3): number {
@@ -71,6 +79,22 @@ function getStatsRankingRowYs(layout: ReturnType<typeof createTournamentHubLayou
   );
 }
 
+function getPreviousPlayoffFlagTextGap(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  const rowX = 18;
+  const flagX = rowX + 12;
+  const previousTextX = rowX + layout.playoff.flagWidth + 26;
+
+  return previousTextX - (flagX + layout.playoff.flagWidth / 2);
+}
+
+function getPlayoffFlagTextGap(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  const rowX = 18;
+  const flagX = rowX + 12;
+  const textX = flagX + layout.playoff.flagWidth / 2 + 18;
+
+  return textX - (flagX + layout.playoff.flagWidth / 2);
+}
+
 describe('Tournament Hub responsive layout', () => {
   it('keeps the desktop header, tabs and footer while using larger card layouts', () => {
     const layout = createTournamentHubLayout(false);
@@ -102,7 +126,7 @@ describe('Tournament Hub responsive layout', () => {
       cardWidth: 1344,
       cardHeight: 72,
       cardRadius: 8,
-      viewportHeight: 520
+      viewportHeight: 462
     });
     expect(layout.groupStage).toMatchObject({
       x: 128,
@@ -189,6 +213,7 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(mobile.matches.columns).toBe(1);
     expect(mobile.matches.cardWidth).toBe(1536);
+    expect(mobile.matches.viewportHeight).toBe(500);
     expect(mobile.matches.cardHeight).toBeGreaterThan(desktop.matches.cardHeight);
     expect(mobile.matches.cardRadius).toBe(8);
     expect(mobile.matches.actionHeight).toBe(mobile.matches.cardHeight);
@@ -217,11 +242,23 @@ describe('Tournament Hub responsive layout', () => {
   it('scrolls the full match list without relying on pagination pages', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
+    const formatIds: TournamentFormatId[] = ['cup-m', 'cup-l', 'cup-xl'];
 
     expect(getTournamentHubMatchMaxScroll(4, mobile)).toBe(0);
     expect(getTournamentHubMatchMaxScroll(20, mobile)).toBeGreaterThan(0);
     expect(getTournamentHubMatchMaxScroll(4, desktop)).toBe(0);
     expect(getTournamentHubMatchMaxScroll(20, desktop)).toBeGreaterThan(0);
+
+    formatIds.forEach((formatId) => {
+      const matchCount = getTournamentMatchCount(formatId);
+
+      expect(getTournamentHubMatchMaxScroll(matchCount, desktop)).toBe(
+        getMatchContentHeight(desktop, matchCount) - desktop.matches.viewportHeight!
+      );
+      expect(getTournamentHubMatchMaxScroll(matchCount, mobile)).toBe(
+        getMatchContentHeight(mobile, matchCount) - mobile.matches.viewportHeight!
+      );
+    });
   });
 
   it('uses desktop match cards that stay smaller than mobile but no longer use dense rows', () => {
@@ -239,7 +276,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.matches.teamFontSize).toBe('20px');
   });
 
-  it('keeps footer geometry for other tabs while the match viewport reaches into the freed footer space', () => {
+  it('keeps footer geometry while the match viewport stays above the restored footer', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
     const desktopFooterTop = desktop.footer.y - desktop.footer.buttonHeight / 2;
@@ -248,12 +285,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.footer.buttonWidth).toBeGreaterThan(170);
     expect(desktop.footer.buttonHeight).toBeGreaterThan(54);
     expect(desktop.footer.buttonRadius).toBe(8);
-    expect(desktop.matches.y + desktop.matches.viewportHeight!).toBeGreaterThan(desktopFooterTop);
+    expect(desktopFooterTop - (desktop.matches.y + desktop.matches.viewportHeight!)).toBeGreaterThanOrEqual(12);
     expect(desktopFooterTop - (desktop.groupStage.y + desktop.groupStage.viewportHeight!)).toBeGreaterThanOrEqual(12);
     expect(mobile.footer.buttonWidth).toBeGreaterThan(260);
     expect(mobile.footer.buttonHeight).toBeGreaterThan(54);
     expect(mobile.footer.buttonRadius).toBe(8);
-    expect(mobile.matches.y + mobile.matches.viewportHeight!).toBeGreaterThan(mobileFooterTop);
+    expect(mobileFooterTop - (mobile.matches.y + mobile.matches.viewportHeight!)).toBeGreaterThanOrEqual(12);
     expect(mobileFooterTop - (mobile.groupStage.y + mobile.groupStage.viewportHeight!)).toBeGreaterThanOrEqual(12);
   });
 
@@ -400,22 +437,76 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.playoff.width - cupLMobileBracketWidth).toBeGreaterThanOrEqual(590);
     expect(desktop.playoff.viewportHeight).toBe(462);
     expect(mobile.playoff.viewportHeight).toBe(500);
-    expect(desktop.playoff.viewportHeight).toBeLessThan(desktop.matches.viewportHeight!);
-    expect(mobile.playoff.viewportHeight).toBeLessThan(mobile.matches.viewportHeight!);
+    expect(desktop.playoff.viewportHeight).toBeLessThanOrEqual(desktop.matches.viewportHeight!);
+    expect(mobile.playoff.viewportHeight).toBeLessThanOrEqual(mobile.matches.viewportHeight!);
   });
 
-  it('gives Cup XL enough bracket width for two mirrored branches and a centered final', () => {
-    [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
-      const centerGap = Math.max(96, layout.playoff.maxColumnGap);
-      const branchWidth = layout.playoff.cardWidth * 3 + layout.playoff.maxColumnGap * 2;
-      const xlContentWidth = branchWidth * 2 + layout.playoff.cardWidth + centerGap * 2;
-      const finalX = branchWidth + centerGap;
+  it('fits the desktop Cup XL bracket while keeping mobile scroll-ready and mirrored', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+    const desktopGeometry = getTournamentHubCupXlPlayoffGeometry(desktop);
+    const mobileGeometry = getTournamentHubCupXlPlayoffGeometry(mobile);
+    const desktopFinalCenter = desktopGeometry.finalX + desktopGeometry.cardWidth / 2;
+    const desktopViewportCenter = desktop.playoff.width / 2;
 
-      expect(xlContentWidth).toBeGreaterThan(layout.playoff.width);
-      expect(finalX).toBeGreaterThan(branchWidth);
-      expect(finalX + layout.playoff.cardWidth).toBeLessThan(xlContentWidth - branchWidth);
-      expect(layout.playoff.cardHeight + 3 * layout.playoff.rowGap).toBeLessThanOrEqual(layout.playoff.viewportHeight);
+    expect(desktopGeometry.contentWidth).toBeLessThanOrEqual(desktop.playoff.width);
+    expect(desktopGeometry.startX).toBeGreaterThan(0);
+    expect(desktopFinalCenter).toBe(desktopViewportCenter);
+    expect(desktopGeometry.cardWidth).toBeLessThan(desktop.playoff.cardWidth);
+    expect(desktopGeometry.cardWidth).toBeGreaterThanOrEqual(168);
+    expect(desktopGeometry.columnGap).toBeLessThan(desktop.playoff.maxColumnGap);
+    expect(desktopGeometry.columnGap).toBe(20);
+    expect(desktopGeometry.centerGap).toBeLessThan(96);
+    expect(desktopGeometry.centerGap).toBeGreaterThan(desktopGeometry.columnGap);
+    expect(desktopGeometry.leftColumnXs[1] - desktopGeometry.leftColumnXs[0]).toBe(
+      desktopGeometry.cardWidth + desktopGeometry.columnGap
+    );
+    expect(desktopGeometry.leftColumnXs[2] - desktopGeometry.leftColumnXs[1]).toBe(
+      desktopGeometry.cardWidth + desktopGeometry.columnGap
+    );
+    expect(desktopGeometry.rightColumnXs[0] - desktopGeometry.rightColumnXs[1]).toBe(
+      desktopGeometry.cardWidth + desktopGeometry.columnGap
+    );
+    expect(desktopGeometry.rightColumnXs[1] - desktopGeometry.rightColumnXs[2]).toBe(
+      desktopGeometry.cardWidth + desktopGeometry.columnGap
+    );
+    expect(desktopGeometry.finalX - (desktopGeometry.leftColumnXs[2] + desktopGeometry.cardWidth)).toBe(
+      desktopGeometry.centerGap
+    );
+    expect(desktopGeometry.rightColumnXs[2] - (desktopGeometry.finalX + desktopGeometry.cardWidth)).toBe(
+      desktopGeometry.centerGap
+    );
+    expect(desktop.playoff.cardHeight + 3 * desktop.playoff.rowGap).toBeLessThanOrEqual(desktop.playoff.viewportHeight);
+
+    expect(mobileGeometry.cardWidth).toBe(mobile.playoff.cardWidth);
+    expect(mobileGeometry.columnGap).toBe(mobile.playoff.maxColumnGap);
+    expect(mobileGeometry.contentWidth).toBeGreaterThan(mobile.playoff.width);
+    expect(mobile.playoff.cardHeight + 3 * mobile.playoff.rowGap).toBeLessThanOrEqual(mobile.playoff.viewportHeight);
+  });
+
+  it('keeps playoff team rows aligned while reducing the flag-to-text gap', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+    const source = readSource('src/scenes/TournamentHubScene.ts');
+
+    [desktop, mobile].forEach((layout) => {
+      expect(getPlayoffFlagTextGap(layout)).toBeLessThan(getPreviousPlayoffFlagTextGap(layout));
+      expect(getPlayoffFlagTextGap(layout)).toBeGreaterThanOrEqual(16);
     });
+    expect(source).toContain('const PLAYOFF_TEAM_ROW_X = 18');
+    expect(source).toContain('const PLAYOFF_FLAG_OFFSET_X = 12');
+    expect(source).toContain('const PLAYOFF_FLAG_TEXT_GAP = 18');
+    expect(source).toContain('const PLAYOFF_SCORE_RIGHT_PADDING = 24');
+    expect(source).toContain('const PLAYOFF_TBD_FLAG_PLACEHOLDER_STROKE_ALPHA = 0.54');
+    expect(source).toContain('const teamLabelX = flagX + layout.playoff.flagWidth / 2 + PLAYOFF_FLAG_TEXT_GAP');
+    expect(source).toContain('this.add.image(flagX, y, getFlagAssetKey(team.flagCode))');
+    expect(source).toContain('flag.setDisplaySize(layout.playoff.flagWidth, layout.playoff.flagHeight)');
+    expect(source).toContain('const placeholder = this.add.rectangle(flagX, y, layout.playoff.flagWidth, layout.playoff.flagHeight, 0xffffff, 0)');
+    expect(source).toContain('placeholder.setStrokeStyle(1, TEAM_CARD_STYLE.panel.borderColor, PLAYOFF_TBD_FLAG_PLACEHOLDER_STROKE_ALPHA)');
+    expect(source).toContain('panel.add(placeholder)');
+    expect(source).toContain('.text(teamLabelX, y, getBracketTeamLabel(teamId), {');
+    expect(source).toContain('const scoreX = layout.playoff.cardWidth - PLAYOFF_SCORE_RIGHT_PADDING');
+    expect(source).not.toContain('const teamLabelX = x + layout.playoff.flagWidth + 26');
   });
 
   it('makes Stats compact on the left and larger on the right without leaving the content contract', () => {
@@ -540,22 +631,29 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
   });
 
-  it('omits the Matches tab footer navigation while keeping the shared footer available elsewhere', () => {
+  it('renders the shared footer exit button on Matches without restoring old pagination controls', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
     const matchesStart = source.indexOf('private createMatchesTab');
     const matchesEnd = source.indexOf('private createMobileMatchesList');
     const matchesBlock = source.slice(matchesStart, matchesEnd);
+    const renderStart = source.indexOf('private render()');
+    const renderEnd = source.indexOf('private renderMissingTournament');
+    const renderBlock = source.slice(renderStart, renderEnd);
 
     expect(matchesBlock).toContain('const matches = tournament.matches');
     expect(matchesBlock).toContain('this.createMobileMatchesList(tournament, matches, layout)');
+    expect(matchesBlock).not.toContain('.slice(');
     expect(matchesBlock).not.toContain('layout.footer.backX');
     expect(matchesBlock).not.toContain('layout.footer.pageX');
     expect(matchesBlock).not.toContain('layout.footer.nextX');
     expect(matchesBlock).not.toContain('changeMatchPage');
+    expect(renderBlock).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu'");
+    expect(renderBlock).toContain('borderWidth: 0');
+    expect(renderBlock).toContain('borderRadius: layout.footer.buttonRadius');
+    expect(renderBlock).toContain('height: layout.footer.buttonHeight');
+    expect(renderBlock).toContain('width: layout.footer.buttonWidth');
+    expect(renderBlock).not.toContain("if (this.activeTab !== 'matches')");
     expect(source).not.toContain('MATCHES_PER_PAGE');
-    expect(source).toContain("if (this.activeTab !== 'matches') {");
-    expect(source).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu'");
-    expect(source).toContain('borderWidth: 0');
     expect(source).toContain("this.activeTab === 'tables'");
     expect(source).toContain("this.activeTab === 'bracket'");
   });
@@ -652,6 +750,11 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('maxScrollX');
     expect(source).toContain('maxScrollY');
     expect(source).toContain('content.setMask(mask)');
+    expect(source).toContain('getTournamentHubCupXlPlayoffGeometry(layout)');
+    expect(source).toContain('cardWidth: geometry.cardWidth');
+    expect(source).toContain("teamFontSize: layout.mobileLandscape ? layout.playoff.teamFontSize : '16px'");
+    expect(source).toContain('const contentWidth = Math.max(layout.playoff.width, geometry.contentWidth)');
+    expect(source).toContain('this.drawBracketConnectors(connectorGraphics, leftColumnXs[0], geometry.columnGap');
     expect(source).toContain('layout.playoff.cardWidth');
     expect(source).toContain('layout.playoff.cardHeight');
     expect(source).toContain('TEAM_CARD_STYLE.panel.backgroundColor');
@@ -671,9 +774,9 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('targetMatch.homeTeamId === winnerTeamId || targetMatch.awayTeamId === winnerTeamId');
     expect(source).toContain('const startX = 0');
     expect(source).toContain('getBracketTeamLabel(teamId)');
-    expect(source).toContain('const flagX = x + 12');
-    expect(source).toContain('const teamLabelX = x + layout.playoff.flagWidth + 26');
-    expect(source).toContain('const scoreX = layout.playoff.cardWidth - 24');
+    expect(source).toContain('const flagX = x + PLAYOFF_FLAG_OFFSET_X');
+    expect(source).toContain('const teamLabelX = flagX + layout.playoff.flagWidth / 2 + PLAYOFF_FLAG_TEXT_GAP');
+    expect(source).toContain('const scoreX = layout.playoff.cardWidth - PLAYOFF_SCORE_RIGHT_PADDING');
     expect(source).toContain('fillRoundedRect(0, 0, width, statsLayout.tableHeight, 8)');
     expect(source).toContain('fillRoundedRect(0, 0, statsLayout.rankingCardWidth, statsLayout.rankingCardHeight, 8)');
     expect(source).toContain('getTeamScoreboardCode(team.flagCode)');
