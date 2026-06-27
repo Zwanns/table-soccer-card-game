@@ -74,7 +74,6 @@ const MOBILE_MATCH_AI_BADGE_HEIGHT = 16;
 const MOBILE_MATCH_AI_BADGE_RADIUS = 4;
 const MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10;
 const HUB_INPUT_GUARD_MS = 220;
-const MATCHES_PER_PAGE = 20;
 const MATCH_GRID = {
   x: 128,
   y: 168,
@@ -118,7 +117,6 @@ const STATS_TABLE_COLUMNS = {
 
 export class TournamentHubScene extends Phaser.Scene {
   private activeTab: TournamentHubTab = 'matches';
-  private matchPage = 0;
   private matchScrollY = 0;
   private groupStageScrollY = 0;
   private playoffScrollX = 0;
@@ -187,12 +185,14 @@ export class TournamentHubScene extends Phaser.Scene {
       this.createStatsTab(tournament, layout);
     }
 
-    new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
-      borderRadius: layout.footer.buttonRadius,
-      fontSize: layout.footer.fontSize,
-      height: layout.footer.buttonHeight,
-      width: layout.footer.buttonWidth
-    });
+    if (this.activeTab !== 'matches') {
+      new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
+        borderRadius: layout.footer.buttonRadius,
+        fontSize: layout.footer.fontSize,
+        height: layout.footer.buttonHeight,
+        width: layout.footer.buttonWidth
+      });
+    }
   }
 
   private renderMissingTournament(): void {
@@ -318,17 +318,12 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private createMatchesTab(tournament: TournamentState, layout: TournamentHubLayout): void {
-    const maxPage = Math.max(0, Math.ceil(tournament.matches.length / MATCHES_PER_PAGE) - 1);
-    this.matchPage = Phaser.Math.Clamp(this.matchPage, 0, maxPage);
-    const pageMatches = tournament.matches.slice(
-      this.matchPage * MATCHES_PER_PAGE,
-      this.matchPage * MATCHES_PER_PAGE + MATCHES_PER_PAGE
-    );
+    const matches = tournament.matches;
 
     if (layout.matches.viewportHeight !== null) {
-      this.createMobileMatchesList(tournament, pageMatches, layout);
+      this.createMobileMatchesList(tournament, matches, layout);
     } else {
-      pageMatches.forEach((match, index) => {
+      matches.forEach((match, index) => {
         const column = index % MATCH_GRID.columns;
         const row = Math.floor(index / MATCH_GRID.columns);
         const x = MATCH_GRID.x + column * (MATCH_GRID.cardWidth + MATCH_GRID.columnGap);
@@ -337,29 +332,6 @@ export class TournamentHubScene extends Phaser.Scene {
         this.createMatchRow(tournament, match, x, y);
       });
     }
-
-    new Button(this, layout.footer.backX, layout.footer.y, 'Back', () => this.runGuardedInputAction(() => this.changeMatchPage(-1, maxPage)), {
-      borderRadius: layout.footer.buttonRadius,
-      disabled: this.matchPage === 0,
-      fontSize: layout.footer.fontSize,
-      height: layout.footer.buttonHeight,
-      width: layout.footer.buttonWidth
-    });
-    this.add
-      .text(layout.footer.pageX, layout.footer.y, `${this.matchPage + 1} / ${maxPage + 1}`, {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.mobileLandscape ? '22px' : '20px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    new Button(this, layout.footer.nextX, layout.footer.y, '→', () => this.runGuardedInputAction(() => this.changeMatchPage(1, maxPage)), {
-      borderRadius: layout.footer.buttonRadius,
-      disabled: this.matchPage === maxPage,
-      fontSize: layout.footer.fontSize,
-      height: layout.footer.buttonHeight,
-      width: layout.footer.buttonWidth
-    });
   }
 
   private createMobileMatchesList(
@@ -1956,12 +1928,6 @@ export class TournamentHubScene extends Phaser.Scene {
         tournamentMatchId: match.id
       }
     });
-  }
-
-  private changeMatchPage(direction: -1 | 1, maxPage: number): void {
-    this.matchPage = Phaser.Math.Clamp(this.matchPage + direction, 0, maxPage);
-    this.matchScrollY = 0;
-    this.render();
   }
 
   private getTournament(): TournamentState | null {

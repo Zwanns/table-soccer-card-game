@@ -68,7 +68,7 @@ describe('Tournament Hub responsive layout', () => {
       cardWidth: 1344,
       cardHeight: 72,
       cardRadius: 8,
-      viewportHeight: 462
+      viewportHeight: 520
     });
     expect(layout.groupStage).toMatchObject({
       x: 128,
@@ -180,7 +180,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.matches.actionRightMargin).toBe(0);
   });
 
-  it('scrolls only the mobile match viewport and keeps pagination pages intact', () => {
+  it('scrolls the full match list without relying on pagination pages', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
 
@@ -205,18 +205,22 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.matches.teamFontSize).toBe('20px');
   });
 
-  it('uses larger rounded footer buttons close to the match viewport on desktop and mobile', () => {
+  it('keeps footer geometry for other tabs while the match viewport reaches into the freed footer space', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
+    const desktopFooterTop = desktop.footer.y - desktop.footer.buttonHeight / 2;
+    const mobileFooterTop = mobile.footer.y - mobile.footer.buttonHeight / 2;
 
     expect(desktop.footer.buttonWidth).toBeGreaterThan(170);
     expect(desktop.footer.buttonHeight).toBeGreaterThan(54);
     expect(desktop.footer.buttonRadius).toBe(8);
-    expect(desktop.footer.y - desktop.footer.buttonHeight / 2 - (desktop.matches.y + desktop.matches.viewportHeight!)).toBeLessThanOrEqual(8);
+    expect(desktop.matches.y + desktop.matches.viewportHeight!).toBeGreaterThan(desktopFooterTop);
+    expect(desktop.groupStage.y + desktop.groupStage.viewportHeight!).toBeLessThanOrEqual(desktopFooterTop + 8);
     expect(mobile.footer.buttonWidth).toBeGreaterThan(260);
     expect(mobile.footer.buttonHeight).toBeGreaterThan(54);
     expect(mobile.footer.buttonRadius).toBe(8);
-    expect(mobile.footer.y - mobile.footer.buttonHeight / 2 - (mobile.matches.y + mobile.matches.viewportHeight!)).toBeLessThanOrEqual(10);
+    expect(mobile.matches.y + mobile.matches.viewportHeight!).toBeGreaterThan(mobileFooterTop);
+    expect(mobile.groupStage.y + mobile.groupStage.viewportHeight!).toBeLessThanOrEqual(mobileFooterTop + 10);
   });
 
   it('keeps every Tournament Hub content area inside the tab-bar width contract', () => {
@@ -324,8 +328,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.playoff.maxColumnGap).toBe(150);
     expect(desktop.playoff.width - cupLDesktopBracketWidth).toBeGreaterThanOrEqual(180);
     expect(mobile.playoff.width - cupLMobileBracketWidth).toBeGreaterThanOrEqual(270);
-    expect(desktop.playoff.viewportHeight).toBe(desktop.matches.viewportHeight);
-    expect(mobile.playoff.viewportHeight).toBe(mobile.matches.viewportHeight);
+    expect(desktop.playoff.viewportHeight).toBe(462);
+    expect(mobile.playoff.viewportHeight).toBe(500);
+    expect(desktop.playoff.viewportHeight).toBeLessThan(desktop.matches.viewportHeight!);
+    expect(mobile.playoff.viewportHeight).toBeLessThan(mobile.matches.viewportHeight!);
   });
 
   it('gives Cup XL enough bracket width for two mirrored branches and a centered final', () => {
@@ -404,7 +410,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
     expect(source).toContain('const layout = createTournamentHubLayout()');
     expect(source).toContain('if (layout.matches.viewportHeight !== null) {');
-    expect(source).toContain('this.createMobileMatchesList(tournament, pageMatches, layout)');
+    expect(source).toContain('this.createMobileMatchesList(tournament, matches, layout)');
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
     expect(source).toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
@@ -426,6 +432,25 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("color: '#1f2a2e'");
     expect(source).toContain('MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10');
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
+  });
+
+  it('omits the Matches tab footer navigation while keeping the shared footer available elsewhere', () => {
+    const source = readSource('src/scenes/TournamentHubScene.ts');
+    const matchesStart = source.indexOf('private createMatchesTab');
+    const matchesEnd = source.indexOf('private createMobileMatchesList');
+    const matchesBlock = source.slice(matchesStart, matchesEnd);
+
+    expect(matchesBlock).toContain('const matches = tournament.matches');
+    expect(matchesBlock).toContain('this.createMobileMatchesList(tournament, matches, layout)');
+    expect(matchesBlock).not.toContain('layout.footer.backX');
+    expect(matchesBlock).not.toContain('layout.footer.pageX');
+    expect(matchesBlock).not.toContain('layout.footer.nextX');
+    expect(matchesBlock).not.toContain('changeMatchPage');
+    expect(source).not.toContain('MATCHES_PER_PAGE');
+    expect(source).toContain("if (this.activeTab !== 'matches') {");
+    expect(source).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Menu'");
+    expect(source).toContain("this.activeTab === 'tables'");
+    expect(source).toContain("this.activeTab === 'bracket'");
   });
 
   it('wires group-stage cards with expanded standings, form indicators and score tooltips', () => {
