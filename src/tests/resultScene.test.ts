@@ -39,20 +39,21 @@ describe('result scene mobile statistics card', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain("import { TEAM_CARD_STYLE } from '../ui/teamCardStyle'");
-    expect(source).toContain('const RESULT_TEAM_CODE_FONT_SIZE = \'34px\'');
-    expect(source).toContain('const RESULT_TEAM_FLAG_WIDTH = 64');
-    expect(source).toContain('const RESULT_TEAM_FLAG_HEIGHT = 48');
-    expect(source).toContain('const RESULT_TEAM_CODE_OFFSET_X = 48');
+    expect(source).toContain('const RESULT_TEAM_CODE_FONT_SIZE = \'38px\'');
+    expect(source).toContain('const RESULT_TEAM_FLAG_WIDTH = 70');
+    expect(source).toContain('const RESULT_TEAM_FLAG_HEIGHT = 52');
+    expect(source).toContain('const RESULT_TEAM_CODE_OFFSET_X = 52');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_WIDTH = 34');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_HEIGHT = 16');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_RADIUS = 4');
     expect(source).toContain('const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10');
+    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_TOP_Y = 12');
     expect(source).toContain('private createResultTeamCodeBlock');
     expect(source).toContain('const isAi = controllerType === \'AI\'');
     expect(source).toContain('const teamCodeY = isAi ? RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y : 0');
     expect(source).toContain('getTeamScoreboardCode(flagCode)');
     expect(source).toContain('getFlagAssetKey(flagCode)');
-    expect(source).toContain('this.addResultAiBadge(block, teamCodeX, flagBottomY)');
+    expect(source).toContain('this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y)');
     expect(source).toContain(".fillStyle(0xf0c95a, 1)");
     expect(source).toContain("color: '#1f2a2e'");
     expect(source).not.toContain('private createControllerBadge');
@@ -64,7 +65,7 @@ describe('result scene mobile statistics card', () => {
 
     expect(source).toContain('const RESULT_STATS_FONT_FAMILY = \'Arial, sans-serif\'');
     expect(source).toContain('fontFamily: SCOREBOARD_FONT_FAMILY');
-    expect(source).toContain("fontSize: '54px'");
+    expect(source).toContain("fontSize: '58px'");
     expect(source).toContain('fontFamily: RESULT_STATS_FONT_FAMILY');
     expect(source).toContain('fontSize: RESULT_TEAM_CODE_FONT_SIZE');
     expect(source).toContain("fontSize: '24px'");
@@ -76,7 +77,7 @@ describe('result scene mobile statistics card', () => {
     const source = readResultSceneSource();
 
     expect(source).toContain(".text(0, px(-height / 2 + 112), 'Match statistics'");
-    expect(source).toContain('const viewportTop = -104');
+    expect(source).toContain('const viewportTop = -132');
     expect(source).toContain('const statsStartY = 18');
     expect(source).toContain('const statsRowGap = 32');
     expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
@@ -104,8 +105,10 @@ describe('result scene mobile statistics card', () => {
     const actionsSource = readSource('src/ui/resultActionButtons.ts');
 
     expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
-    expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = 500');
-    expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = 360');
+    expect(source).toContain('const RESULT_SCREEN_VERTICAL_MARGIN = SCENE_HEIGHT - (RESULT_ACTION_BUTTON_Y + RESULT_ACTION_BUTTON_HEIGHT / 2)');
+    expect(source).toContain('const RESULT_SCOREBOARD_TOP_Y = RESULT_SCREEN_VERTICAL_MARGIN');
+    expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = RESULT_ACTION_BUTTON_Y - RESULT_ACTION_BUTTON_HEIGHT / 2 - RESULT_SCOREBOARD_TOP_Y');
+    expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = RESULT_SCOREBOARD_TOP_Y + RESULT_SCOREBOARD_HEIGHT / 2');
     expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Play Again', onClick: () => this.startReplayMatch() },\n        { label: 'Continue', onClick: () => this.returnToTournament() }\n      ], { attachedToPanel: true })");
     expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
     expect(source).toContain("{ label: 'Continue', onClick: () => this.returnToTournament() }");
@@ -124,6 +127,19 @@ describe('result scene mobile statistics card', () => {
     expect(actionsSource).toContain('export const RESULT_ACTION_BUTTON_RADIUS = 8');
     expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
     expect(actionsSource).toContain('borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true)');
+  });
+
+  it('positions the result card and footer as one vertically balanced block', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain("import {\n  RESULT_ACTION_BUTTON_HEIGHT,\n  RESULT_ACTION_BUTTON_Y,\n  createResultActionButtons\n} from '../ui/resultActionButtons'");
+    expect(source).toContain('const RESULT_SCREEN_VERTICAL_MARGIN = SCENE_HEIGHT - (RESULT_ACTION_BUTTON_Y + RESULT_ACTION_BUTTON_HEIGHT / 2)');
+    expect(source).toContain('const RESULT_SCOREBOARD_TOP_Y = RESULT_SCREEN_VERTICAL_MARGIN');
+    expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = RESULT_ACTION_BUTTON_Y - RESULT_ACTION_BUTTON_HEIGHT / 2 - RESULT_SCOREBOARD_TOP_Y');
+    expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = RESULT_SCOREBOARD_TOP_Y + RESULT_SCOREBOARD_HEIGHT / 2');
+    expect(source).toContain('this.createMatchStatsPanel(centerX, RESULT_SCOREBOARD_CENTER_Y, this.state, this.getPostMatchPenaltyAttempts())');
+    expect(source).toContain('const viewportHeight = 392');
+    expect(source).toContain('-height / 2 + 72');
   });
 
   it('orders tournament result actions as Play Again on the left and Continue on the right', () => {

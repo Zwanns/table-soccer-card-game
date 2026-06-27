@@ -4,7 +4,11 @@ import type { PlayerControllerType } from '../ai';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
-import { createResultActionButtons } from '../ui/resultActionButtons';
+import {
+  RESULT_ACTION_BUTTON_HEIGHT,
+  RESULT_ACTION_BUTTON_Y,
+  createResultActionButtons
+} from '../ui/resultActionButtons';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -29,17 +33,20 @@ import {
 } from '../tournament';
 
 const RESULT_SCOREBOARD_WIDTH = 840;
-const RESULT_SCOREBOARD_HEIGHT = 500;
-const RESULT_SCOREBOARD_CENTER_Y = 360;
+const RESULT_SCREEN_VERTICAL_MARGIN = SCENE_HEIGHT - (RESULT_ACTION_BUTTON_Y + RESULT_ACTION_BUTTON_HEIGHT / 2);
+const RESULT_SCOREBOARD_TOP_Y = RESULT_SCREEN_VERTICAL_MARGIN;
+const RESULT_SCOREBOARD_HEIGHT = RESULT_ACTION_BUTTON_Y - RESULT_ACTION_BUTTON_HEIGHT / 2 - RESULT_SCOREBOARD_TOP_Y;
+const RESULT_SCOREBOARD_CENTER_Y = RESULT_SCOREBOARD_TOP_Y + RESULT_SCOREBOARD_HEIGHT / 2;
 const RESULT_STATS_FONT_FAMILY = 'Arial, sans-serif';
-const RESULT_TEAM_CODE_FONT_SIZE = '34px';
-const RESULT_TEAM_FLAG_WIDTH = 64;
-const RESULT_TEAM_FLAG_HEIGHT = 48;
-const RESULT_TEAM_CODE_OFFSET_X = 48;
+const RESULT_TEAM_CODE_FONT_SIZE = '38px';
+const RESULT_TEAM_FLAG_WIDTH = 70;
+const RESULT_TEAM_FLAG_HEIGHT = 52;
+const RESULT_TEAM_CODE_OFFSET_X = 52;
 const RESULT_MOBILE_AI_BADGE_WIDTH = 34;
 const RESULT_MOBILE_AI_BADGE_HEIGHT = 16;
 const RESULT_MOBILE_AI_BADGE_RADIUS = 4;
 const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10;
+const RESULT_MOBILE_AI_BADGE_TOP_Y = 12;
 const RESULT_VERSION_MARGIN = 18;
 
 interface ResultSceneData {
@@ -263,7 +270,7 @@ export class ResultScene extends Phaser.Scene {
 
     const finalScore = this.createScoreLine(
       0,
-      -height / 2 + 64,
+      -height / 2 + 72,
       playerOne.flagCode,
       playerTwo.flagCode,
       state.matchSetups[playerOne.id]?.controllerType ?? 'HUMAN',
@@ -316,8 +323,8 @@ export class ResultScene extends Phaser.Scene {
     ];
     const timelineRows = createScorerTimeline(playerOneStats, playerTwoStats);
     const penaltyRows = createPenaltyTimeline(penaltyAttempts, playerOneTeamId, playerTwoTeamId);
-    const viewportTop = -104;
-    const viewportHeight = 330;
+    const viewportTop = -132;
+    const viewportHeight = 392;
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
     const content = this.add.container(0, viewportTop);
@@ -457,7 +464,7 @@ export class ResultScene extends Phaser.Scene {
       .text(0, 0, `${playerOneGoals}:${playerTwoGoals}`, {
         color: '#f0c95a',
         fontFamily: SCOREBOARD_FONT_FAMILY,
-        fontSize: '54px',
+        fontSize: '58px',
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
@@ -479,7 +486,6 @@ export class ResultScene extends Phaser.Scene {
     const isAi = controllerType === 'AI';
     const teamCodeX = RESULT_TEAM_CODE_OFFSET_X;
     const teamCodeY = isAi ? RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y : 0;
-    const flagBottomY = RESULT_TEAM_FLAG_HEIGHT / 2;
     const flag = this.add.image(0, 0, getFlagAssetKey(flagCode));
     flag.setDisplaySize(RESULT_TEAM_FLAG_WIDTH, RESULT_TEAM_FLAG_HEIGHT);
 
@@ -496,23 +502,22 @@ export class ResultScene extends Phaser.Scene {
     block.add([flag, teamCode]);
 
     if (isAi) {
-      this.addResultAiBadge(block, teamCodeX, flagBottomY);
+      this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y);
     }
 
     return block;
   }
 
-  private addResultAiBadge(container: Phaser.GameObjects.Container, x: number, bottomY: number): void {
-    const y = bottomY - RESULT_MOBILE_AI_BADGE_HEIGHT;
+  private addResultAiBadge(container: Phaser.GameObjects.Container, x: number, topY: number): void {
     const badge = this.add.graphics();
 
     badge
       .fillStyle(0xf0c95a, 1)
-      .fillRoundedRect(x, y, RESULT_MOBILE_AI_BADGE_WIDTH, RESULT_MOBILE_AI_BADGE_HEIGHT, RESULT_MOBILE_AI_BADGE_RADIUS);
+      .fillRoundedRect(x, topY, RESULT_MOBILE_AI_BADGE_WIDTH, RESULT_MOBILE_AI_BADGE_HEIGHT, RESULT_MOBILE_AI_BADGE_RADIUS);
     container.add(badge);
     container.add(
       this.add
-        .text(x + RESULT_MOBILE_AI_BADGE_WIDTH / 2, y + RESULT_MOBILE_AI_BADGE_HEIGHT / 2, 'AI', {
+        .text(x + RESULT_MOBILE_AI_BADGE_WIDTH / 2, topY + RESULT_MOBILE_AI_BADGE_HEIGHT / 2, 'AI', {
           color: '#1f2a2e',
           fontFamily: RESULT_STATS_FONT_FAMILY,
           fontSize: '12px',

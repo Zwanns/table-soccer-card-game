@@ -116,6 +116,30 @@ describe('match team setup snapshot', () => {
     expect(state.matchSetups.PLAYER_2.controllerType).toBe('HUMAN');
   });
 
+  it('keeps tournament simulation controller metadata when provided for result badges', () => {
+    const match: TournamentMatch = {
+      id: 'sim-controller-ai',
+      stage: 'group',
+      roundIndex: 0,
+      orderIndex: 0,
+      groupId: 'A',
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      status: 'available'
+    };
+    const state = createSimulatedTournamentGameState({
+      match,
+      homeTeam: NATIONAL_TEAMS.find((team) => team.flagCode === 'fr') ?? NATIONAL_TEAMS[0],
+      awayTeam: NATIONAL_TEAMS.find((team) => team.flagCode === 'es') ?? NATIONAL_TEAMS[1],
+      tournamentSeed: 'sim-controller-ai',
+      homeControllerType: 'AI',
+      awayControllerType: 'HUMAN'
+    });
+
+    expect(state.matchSetups.PLAYER_1.controllerType).toBe('AI');
+    expect(state.matchSetups.PLAYER_2.controllerType).toBe('HUMAN');
+  });
+
   it('uses one goalkeeper from the static squad', () => {
     const state = new GameEngine().startNewGame({
       seed: 'setup',

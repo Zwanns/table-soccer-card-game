@@ -69,6 +69,12 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).toContain('player2ControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
     expect(hubSource).toContain('createAiMarker');
     expect(hubSource).toContain('createSimulatedTournamentGameState');
+    expect(hubSource).toContain('homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
+    expect(hubSource).toContain('awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
+    expect(simulationSource).toContain('homeControllerType?: PlayerControllerType');
+    expect(simulationSource).toContain('awayControllerType?: PlayerControllerType');
+    expect(simulationSource).toContain('controllerType: options.homeControllerType');
+    expect(simulationSource).toContain('controllerType: options.awayControllerType');
     expect(simulationSource).not.toContain('AiTurnController');
     expect(simulationSource).not.toContain('chooseAiAction');
   });

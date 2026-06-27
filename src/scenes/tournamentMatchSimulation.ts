@@ -1,4 +1,5 @@
 import { GoalkeeperDeck, type Card, type CardRank, type GoalkeeperCard } from '../cards';
+import type { PlayerControllerType } from '../ai';
 import { createDefaultSquad } from '../data/defaultSquads';
 import type { NationalTeam } from '../data/nationalTeams';
 import {
@@ -15,6 +16,8 @@ type SimulatedTournamentMatchOptions = {
   homeTeam: NationalTeam;
   awayTeam: NationalTeam;
   tournamentSeed: string;
+  homeControllerType?: PlayerControllerType;
+  awayControllerType?: PlayerControllerType;
 };
 
 type SimulatedScore = {
@@ -55,12 +58,14 @@ export function createSimulatedTournamentGameState(options: SimulatedTournamentM
       PLAYER_1: createMatchTeamSetup({
         teamId: options.homeTeam.flagCode,
         squad: homeSquad,
-        goalkeeperKitId: 'gk1'
+        goalkeeperKitId: 'gk1',
+        controllerType: options.homeControllerType
       }),
       PLAYER_2: createMatchTeamSetup({
         teamId: options.awayTeam.flagCode,
         squad: awaySquad,
-        goalkeeperKitId: 'gk2'
+        goalkeeperKitId: 'gk2',
+        controllerType: options.awayControllerType
       })
     },
     activePlayerId: null,

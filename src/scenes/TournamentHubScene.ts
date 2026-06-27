@@ -1946,7 +1946,9 @@ export class TournamentHubScene extends Phaser.Scene {
         match,
         homeTeam,
         awayTeam,
-        tournamentSeed: tournament.seed
+        tournamentSeed: tournament.seed,
+        homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode),
+        awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)
       }),
       launchContext: {
         mode: 'tournament',
