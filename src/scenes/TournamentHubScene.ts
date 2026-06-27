@@ -866,7 +866,7 @@ export class TournamentHubScene extends Phaser.Scene {
     panel.add(background);
     panel.add(
       this.add
-        .text(18, 28, `Group ${group.id}`, {
+        .text(18, 34, `Group ${group.id}`, {
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
           fontSize: groupLayout.titleFontSize,

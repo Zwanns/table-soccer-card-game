@@ -19,6 +19,10 @@ function getGroupStageViewportWidth(layout: ReturnType<typeof createTournamentHu
   return layout.groupStage.cardWidth * layout.groupStage.columns + layout.groupStage.columnGap * (layout.groupStage.columns - 1);
 }
 
+function getGroupStageRowStep(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  return layout.groupStage.cardHeight + layout.groupStage.rowGap;
+}
+
 function getGroupStageFormRight(layout: ReturnType<typeof createTournamentHubLayout>, formCount = 3): number {
   return (
     layout.groupStage.formX +
@@ -105,11 +109,11 @@ describe('Tournament Hub responsive layout', () => {
       y: 166,
       columns: 2,
       cardWidth: 660,
-      cardHeight: 430,
+      cardHeight: 440,
       cardPadding: 18,
-      viewportHeight: 470,
-      headerY: 74,
-      rowStartY: 122,
+      viewportHeight: 462,
+      headerY: 82,
+      rowStartY: 132,
       rowHeight: 72,
       titleFontSize: '30px',
       headerFontSize: '20px',
@@ -245,12 +249,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.footer.buttonHeight).toBeGreaterThan(54);
     expect(desktop.footer.buttonRadius).toBe(8);
     expect(desktop.matches.y + desktop.matches.viewportHeight!).toBeGreaterThan(desktopFooterTop);
-    expect(desktop.groupStage.y + desktop.groupStage.viewportHeight!).toBeLessThanOrEqual(desktopFooterTop + 8);
+    expect(desktopFooterTop - (desktop.groupStage.y + desktop.groupStage.viewportHeight!)).toBeGreaterThanOrEqual(12);
     expect(mobile.footer.buttonWidth).toBeGreaterThan(260);
     expect(mobile.footer.buttonHeight).toBeGreaterThan(54);
     expect(mobile.footer.buttonRadius).toBe(8);
     expect(mobile.matches.y + mobile.matches.viewportHeight!).toBeGreaterThan(mobileFooterTop);
-    expect(mobile.groupStage.y + mobile.groupStage.viewportHeight!).toBeLessThanOrEqual(mobileFooterTop + 10);
+    expect(mobileFooterTop - (mobile.groupStage.y + mobile.groupStage.viewportHeight!)).toBeGreaterThanOrEqual(12);
   });
 
   it('keeps every Tournament Hub content area inside the tab-bar width contract', () => {
@@ -295,7 +299,9 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(mobile.groupStage.columns).toBe(2);
     expect(mobile.groupStage.cardWidth).toBe(756);
-    expect(mobile.groupStage.cardHeight).toBe(430);
+    expect(mobile.groupStage.cardHeight).toBe(440);
+    expect(mobile.groupStage.headerY).toBe(82);
+    expect(mobile.groupStage.rowStartY).toBe(132);
     expect(mobile.groupStage.titleFontSize).toBe('30px');
     expect(mobile.groupStage.headerFontSize).toBe('20px');
     expect(mobile.groupStage.teamFontSize).toBe('24px');
@@ -305,7 +311,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.groupStage.playedX).toBe(236);
     expect(mobile.groupStage.formX).toBe(654);
     expect(mobile.groupStage.formIndicatorGap).toBe(35);
-    expect(mobile.groupStage.viewportHeight).toBe(470);
+    expect(mobile.groupStage.viewportHeight).toBe(462);
     expect(mobile.groupStage.cornerRadius).toBe(8);
     expect(mobile.groupStage.formIndicatorRadius).toBe(12);
     expect(getTournamentHubGroupStageMaxScroll(2, mobile)).toBe(0);
@@ -338,6 +344,22 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.groupStage.playedX).toBe(236);
     expect(mobile.groupStage.formX).toBe(654);
     expect(mobile.groupStage.formIndicatorGap).toBe(35);
+  });
+
+  it('keeps the Group Stage scroll viewport safely above the footer on desktop and mobile', () => {
+    [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
+      const footerTop = layout.footer.y - layout.footer.buttonHeight / 2;
+      const groupBottom = layout.groupStage.y + layout.groupStage.viewportHeight!;
+      const statsBottom = layout.stats.y + layout.stats.tableHeight;
+
+      expect(layout.groupStage.viewportHeight).toBe(layout.stats.tableHeight);
+      expect(footerTop - groupBottom).toBeGreaterThanOrEqual(footerTop - statsBottom);
+      expect(footerTop - groupBottom).toBeGreaterThanOrEqual(12);
+      expect(layout.groupStage.viewportHeight).toBeGreaterThanOrEqual(layout.groupStage.cardHeight);
+      expect(getGroupStageRowStep(layout)).toBeGreaterThan(layout.groupStage.viewportHeight!);
+      expect(getTournamentHubGroupStageMaxScroll(2, layout)).toBe(0);
+      expect(getTournamentHubGroupStageMaxScroll(4, layout)).toBeGreaterThan(0);
+    });
   });
 
   it('compacts the team column and gives Form indicators non-overlapping space', () => {
@@ -462,6 +484,9 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(desktop.groupStage.columns).toBe(2);
     expect(desktop.groupStage.cardHeight).toBe(mobile.groupStage.cardHeight);
+    expect(desktop.groupStage.cardHeight).toBe(440);
+    expect(desktop.groupStage.headerY).toBe(82);
+    expect(desktop.groupStage.rowStartY).toBe(132);
     expect(desktop.groupStage.titleFontSize).toBe(mobile.groupStage.titleFontSize);
     expect(desktop.groupStage.formIndicatorRadius).toBe(mobile.groupStage.formIndicatorRadius);
     expect(desktop.groupStage.rowStartY + 3 * desktop.groupStage.rowHeight + desktop.groupStage.flagHeight / 2).toBeLessThan(
@@ -477,6 +502,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(getTournamentHubGroupStageMaxScroll(8, desktop)).toBeGreaterThan(
       getTournamentHubGroupStageMaxScroll(4, desktop)
     );
+    expect(getGroupStageRowStep(desktop)).toBeGreaterThan(desktop.groupStage.viewportHeight!);
+    expect(getGroupStageRowStep(mobile)).toBeGreaterThan(mobile.groupStage.viewportHeight!);
   });
 
   it('wires match-card scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
