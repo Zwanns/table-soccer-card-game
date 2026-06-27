@@ -106,8 +106,9 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('const RESULT_SCOREBOARD_WIDTH = 840');
     expect(source).toContain('const RESULT_SCOREBOARD_HEIGHT = 500');
     expect(source).toContain('const RESULT_SCOREBOARD_CENTER_Y = 360');
-    expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Continue', onClick: () => this.returnToTournament() },\n        { label: 'Play Again', onClick: () => this.startReplayMatch() }\n      ], { attachedToPanel: true })");
+    expect(source).toContain("createResultActionButtons(this, centerX, [\n        { label: 'Play Again', onClick: () => this.startReplayMatch() },\n        { label: 'Continue', onClick: () => this.returnToTournament() }\n      ], { attachedToPanel: true })");
     expect(source).toContain("{ label: 'Play Again', onClick: () => this.startReplayMatch() }");
+    expect(source).toContain("{ label: 'Continue', onClick: () => this.returnToTournament() }");
     expect(source).toContain("{ label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }");
     expect(source.match(/attachedToPanel: true/g)).toHaveLength(2);
     expect(source).not.toContain("'Back to tournament'");
@@ -125,6 +126,19 @@ describe('result scene mobile statistics card', () => {
     expect(actionsSource).toContain('borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true)');
   });
 
+  it('orders tournament result actions as Play Again on the left and Continue on the right', () => {
+    const source = readResultSceneSource();
+    const tournamentActions = source.slice(
+      source.indexOf("if (this.launchContext.mode === 'tournament')"),
+      source.indexOf('return;\n    }')
+    );
+
+    expect(tournamentActions.indexOf("{ label: 'Play Again', onClick: () => this.startReplayMatch() }")).toBeLessThan(
+      tournamentActions.indexOf("{ label: 'Continue', onClick: () => this.returnToTournament() }")
+    );
+    expect(tournamentActions).not.toContain("'Menu'");
+  });
+
   it('uses flat top corners and only rounded outer bottom corners for attached result buttons', () => {
     const actionsSource = readSource('src/ui/resultActionButtons.ts');
     const buttonSource = readSource('src/ui/Button.ts');
@@ -138,6 +152,8 @@ describe('result scene mobile statistics card', () => {
     expect(actionsSource).toContain('topRight: 0');
     expect(actionsSource).toContain('bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
     expect(actionsSource).toContain('bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(actionsSource).not.toContain('bottomRight: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(actionsSource).not.toContain('bottomLeft: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
     expect(buttonSource).toContain('export interface ButtonCornerRadius');
     expect(buttonSource).toContain('borderRadius?: number | ButtonCornerRadius');
     expect(buttonSource).toContain('fillButtonRoundedRect');

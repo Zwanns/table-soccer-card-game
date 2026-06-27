@@ -86,8 +86,8 @@ export class ResultScene extends Phaser.Scene {
   private createActions(centerX: number): void {
     if (this.launchContext.mode === 'tournament') {
       createResultActionButtons(this, centerX, [
-        { label: 'Continue', onClick: () => this.returnToTournament() },
-        { label: 'Play Again', onClick: () => this.startReplayMatch() }
+        { label: 'Play Again', onClick: () => this.startReplayMatch() },
+        { label: 'Continue', onClick: () => this.returnToTournament() }
       ], { attachedToPanel: true });
       return;
     }
