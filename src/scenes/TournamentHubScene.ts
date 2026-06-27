@@ -113,6 +113,7 @@ const STATS_TABLE_VIEWPORT_HEIGHT = 400;
 const STATS_RANKING_VIEWPORT_HEIGHT = 462;
 const STATS_RANKING_CARD_Y = 28;
 const STATS_RANKING_MAX_COLUMNS = 3;
+const STATS_TABLE_HEADER_COLOR = '#c4d0ca';
 const STATS_TOOLTIP_DEPTH = 10000;
 const STATS_TOOLTIP_PADDING_X = 12;
 const STATS_TOOLTIP_PADDING_Y = 8;
@@ -1249,7 +1250,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     const teamHeader = this.add
       .text(statsLayout.tableTeamHeaderX, y, 'Team', {
-        color: '#9fc5ad',
+        color: STATS_TABLE_HEADER_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: statsLayout.tableHeaderFontSize,
         fontStyle: '700'
@@ -1274,7 +1275,7 @@ export class TournamentHubScene extends Phaser.Scene {
       const header = this.add
         .text(statsLayout.tableColumns[column], y, label, {
           align: 'center',
-          color: '#9fc5ad',
+          color: STATS_TABLE_HEADER_COLOR,
           fontFamily: 'Arial, sans-serif',
           fontSize: statsLayout.tableHeaderFontSize,
           fontStyle: '700'
@@ -1474,7 +1475,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     visibleEntries.forEach((entry, index) => {
       const team = findTeam(entry.teamId);
-      const rowY = 22 + index * 25;
+      const rowY = 22 + index * statsLayout.rankingEntryRowGap;
       const flagX = 30;
       const entryTextX = flagX + statsLayout.rankingFlagWidth + 18;
 
@@ -1498,7 +1499,7 @@ export class TournamentHubScene extends Phaser.Scene {
       panel.add(this.createStatsTableValue(statsLayout.rankingCardWidth - 14, rowY, entry.value, statsLayout.rankingValueFontSize));
 
       if (index < visibleEntries.length - 1) {
-        this.addStatsRankingRowSeparator(panel, rowY + 12.5, statsLayout.rankingCardWidth);
+        this.addStatsRankingRowSeparator(panel, rowY + statsLayout.rankingEntryRowGap / 2, statsLayout.rankingCardWidth);
       }
     });
 

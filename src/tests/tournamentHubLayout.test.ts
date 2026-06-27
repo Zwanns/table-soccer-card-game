@@ -375,28 +375,48 @@ describe('Tournament Hub responsive layout', () => {
       const statsRight = layout.stats.rankingX + layout.stats.rankingWidth;
       const tableRight = layout.stats.tableX + layout.stats.tableWidth;
       const cardRowWidth = layout.stats.rankingCardWidth * 2 + layout.stats.rankingColumnGap;
+      const oneColumnRanking = layout.stats.rankingCardWidth > (layout.stats.rankingWidth - layout.stats.rankingColumnGap) / 2;
 
       expect(layout.stats.tableWidth).toBeLessThan(780);
       expect(tableRight).toBeLessThan(layout.stats.rankingX);
       expect(statsRight).toBe(layout.contentRight);
-      expect(cardRowWidth).toBeLessThanOrEqual(layout.stats.rankingWidth);
-      expect(layout.stats.tableHeaderFontSize).toBe('16px');
-      expect(layout.stats.tableTeamFontSize).toBe('18px');
-      expect(layout.stats.tableValueFontSize).toBe('17px');
+      if (layout.mobileLandscape) {
+        expect(layout.stats.tableWidth / layout.contentWidth).toBeGreaterThan(0.48);
+        expect(layout.stats.tableWidth / layout.contentWidth).toBeLessThan(0.52);
+        expect(oneColumnRanking).toBe(true);
+        expect(layout.stats.tableHeaderFontSize).toBe('19px');
+        expect(layout.stats.tableTeamFontSize).toBe('21px');
+        expect(layout.stats.tableValueFontSize).toBe('20px');
+        expect(layout.stats.rankingValueFontSize).toBe('21px');
+      } else {
+        expect(cardRowWidth).toBeLessThanOrEqual(layout.stats.rankingWidth);
+        expect(layout.stats.tableHeaderFontSize).toBe('16px');
+        expect(layout.stats.tableTeamFontSize).toBe('18px');
+        expect(layout.stats.tableValueFontSize).toBe('17px');
+        expect(layout.stats.rankingValueFontSize).toBe('17px');
+      }
       expect(layout.stats.rankingCardWidth).toBeGreaterThan(196);
       expect(layout.stats.rankingCardHeight).toBeGreaterThan(72);
       expect(layout.stats.rankingRowGap).toBeLessThanOrEqual(156);
-      expect(layout.stats.rankingValueFontSize).toBe('17px');
     });
   });
 
   it('fits the enlarged Stats individual cards vertically without requiring a scrollbar', () => {
-    [createTournamentHubLayout(false), createTournamentHubLayout(true)].forEach((layout) => {
-      expect(layout.stats.rankingCardWidth).toBe(300);
-      expect(layout.stats.rankingCardHeight).toBe(102);
-      expect(layout.stats.rankingRowGap).toBe(156);
-      expect(getStatsRankingContentHeight(layout, 3)).toBeLessThanOrEqual(462);
-    });
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+
+    expect(desktop.stats.rankingCardWidth).toBe(300);
+    expect(desktop.stats.rankingCardHeight).toBe(102);
+    expect(desktop.stats.rankingEntryRowGap).toBe(25);
+    expect(desktop.stats.rankingRowGap).toBe(156);
+    expect(getStatsRankingContentHeight(desktop, 3)).toBeLessThanOrEqual(462);
+    expect(mobile.stats.rankingCardWidth).toBe(mobile.stats.rankingWidth);
+    expect(mobile.stats.rankingCardHeight).toBe(128);
+    expect(mobile.stats.rankingTitleFontSize).toBe('26px');
+    expect(mobile.stats.rankingEntryFontSize).toBe('20px');
+    expect(mobile.stats.rankingValueFontSize).toBe('21px');
+    expect(mobile.stats.rankingEntryRowGap).toBe(32);
+    expect(getStatsRankingContentHeight(mobile, 3)).toBeLessThanOrEqual(480);
   });
 
   it('keeps the expanded group-card model inside the shared content width on desktop and mobile', () => {
@@ -544,8 +564,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("{ title: 'GK saves', entries: createPlayerRankingEntries(playerStats, 'goalkeeperSaves') }");
     expect(source).not.toContain("{ title: 'Goals'");
     expect(source).not.toContain("{ title: 'Shots'");
+    expect(source).toContain("const STATS_TABLE_HEADER_COLOR = '#c4d0ca'");
+    expect(source).toContain('color: STATS_TABLE_HEADER_COLOR');
     expect(source).toContain('this.addStatsRowSeparator(rows, rowY + STATS_TABLE_ROW_GAP / 2, width)');
-    expect(source).toContain('this.addStatsRankingRowSeparator(panel, rowY + 12.5, statsLayout.rankingCardWidth)');
+    expect(source).toContain('this.addStatsRankingRowSeparator(panel, rowY + statsLayout.rankingEntryRowGap / 2, statsLayout.rankingCardWidth)');
     expect(source).toContain('if (index < stats.length - 1)');
     expect(source).toContain('if (index < visibleEntries.length - 1)');
     expect(source).toContain('lineBetween(18, y, width - 18, y)');
@@ -559,6 +581,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("if (sort.column === 'team')");
     expect(source).toContain('const numericDifference = firstValue - secondValue');
     expect(source).toContain('directionMultiplier * numericDifference');
+    expect(source).toContain('const rowY = 22 + index * statsLayout.rankingEntryRowGap');
     expect(source).toContain('const entryTextX = flagX + statsLayout.rankingFlagWidth + 18');
     expect(source).toContain('this.bindTwoAxisPlayoffScroll(scrollZone, setScroll, maxScrollX, maxScrollY)');
     expect(source).toContain('maxScrollX');
