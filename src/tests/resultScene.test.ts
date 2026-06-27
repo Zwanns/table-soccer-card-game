@@ -76,11 +76,21 @@ describe('result scene mobile statistics card', () => {
   it('reduces the gap under the Match statistics heading before the stats rows', () => {
     const source = readResultSceneSource();
 
-    expect(source).toContain(".text(0, px(-height / 2 + 112), 'Match statistics'");
+    expect(source).toContain(".text(0, px(-height / 2 + 122), 'Match statistics'");
     expect(source).toContain('const viewportTop = -132');
-    expect(source).toContain('const statsStartY = 18');
+    expect(source).toContain('const statsStartY = 8');
     expect(source).toContain('const statsRowGap = 32');
     expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
+  });
+
+  it('adds breathing room above Match statistics while pulling stat rows closer below it', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain("-height / 2 + 72,\n      playerOne.flagCode");
+    expect(source).toContain(".text(0, px(-height / 2 + 122), 'Match statistics'");
+    expect(source).toContain('const statsStartY = 8');
+    expect(source).not.toContain(".text(0, px(-height / 2 + 112), 'Match statistics'");
+    expect(source).not.toContain('const statsStartY = 18');
   });
 
   it('puts all statistics and scorer content inside one touch-scrollable card content area', () => {

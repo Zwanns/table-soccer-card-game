@@ -280,7 +280,7 @@ export class ResultScene extends Phaser.Scene {
     );
 
     const title = this.add
-      .text(0, px(-height / 2 + 112), 'Match statistics', {
+      .text(0, px(-height / 2 + 122), 'Match statistics', {
         color: '#ffffff',
         fontFamily: RESULT_STATS_FONT_FAMILY,
         fontSize: '24px',
@@ -328,7 +328,7 @@ export class ResultScene extends Phaser.Scene {
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
     const content = this.add.container(0, viewportTop);
-    const statsStartY = 18;
+    const statsStartY = 8;
     const statsRowGap = 32;
     const scorersTitleY = statsStartY + rows.length * statsRowGap + 18;
     const scorersStartY = scorersTitleY + 34;
