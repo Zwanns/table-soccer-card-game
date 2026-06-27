@@ -151,6 +151,18 @@ export interface TournamentHubLayout {
   };
 }
 
+export interface TournamentHubCupXlPlayoffGeometry {
+  cardWidth: number;
+  columnGap: number;
+  centerGap: number;
+  branchWidth: number;
+  contentWidth: number;
+  startX: number;
+  finalX: number;
+  leftColumnXs: readonly [number, number, number];
+  rightColumnXs: readonly [number, number, number];
+}
+
 export function createTournamentHubLayout(
   mobileLandscape = isMobileLandscapeLayout()
 ): TournamentHubLayout {
@@ -189,7 +201,7 @@ export function createTournamentHubLayout(
         cardWidth: contentWidth,
         cardHeight: 92,
         cardRadius: 8,
-        viewportHeight: 562,
+        viewportHeight: 500,
         teamFontSize: '28px',
         scoreFontSize: '36px',
         labelFontSize: '24px',
@@ -346,7 +358,7 @@ export function createTournamentHubLayout(
       cardWidth: contentWidth,
       cardHeight: 72,
       cardRadius: 8,
-      viewportHeight: 520,
+      viewportHeight: 462,
       teamFontSize: '20px',
       scoreFontSize: '28px',
       labelFontSize: '18px',
@@ -466,6 +478,41 @@ export function createTournamentHubLayout(
       pageX: 800,
       nextX: contentRight - footerButtonWidth / 2
     }
+  };
+}
+
+export function getTournamentHubCupXlPlayoffGeometry(
+  layout: TournamentHubLayout
+): TournamentHubCupXlPlayoffGeometry {
+  const cardWidth = layout.mobileLandscape ? layout.playoff.cardWidth : 168;
+  const columnGap = layout.mobileLandscape ? layout.playoff.maxColumnGap : 20;
+  const centerGap = layout.mobileLandscape ? Math.max(96, columnGap) : 36;
+  const branchWidth = cardWidth * 3 + columnGap * 2;
+  const contentWidth = branchWidth * 2 + cardWidth + centerGap * 2;
+  const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
+  const leftColumnXs = [
+    startX,
+    startX + cardWidth + columnGap,
+    startX + (cardWidth + columnGap) * 2
+  ] as const;
+  const finalX = startX + branchWidth + centerGap;
+  const rightSemiFinalX = finalX + cardWidth + centerGap;
+  const rightColumnXs = [
+    rightSemiFinalX + (cardWidth + columnGap) * 2,
+    rightSemiFinalX + cardWidth + columnGap,
+    rightSemiFinalX
+  ] as const;
+
+  return {
+    cardWidth,
+    columnGap,
+    centerGap,
+    branchWidth,
+    contentWidth,
+    startX,
+    finalX,
+    leftColumnXs,
+    rightColumnXs
   };
 }
 
