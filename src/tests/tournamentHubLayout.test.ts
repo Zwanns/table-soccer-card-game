@@ -81,12 +81,12 @@ describe('Tournament Hub responsive layout', () => {
       headerY: 74,
       rowStartY: 122,
       rowHeight: 72,
-      titleFontSize: '28px',
-      headerFontSize: '19px',
-      teamFontSize: '22px',
-      valueFontSize: '20px',
+      titleFontSize: '30px',
+      headerFontSize: '20px',
+      teamFontSize: '23px',
+      valueFontSize: '21px',
       cornerRadius: 8,
-      formIndicatorRadius: 11
+      formIndicatorRadius: 12
     });
     expect(layout.playoff).toMatchObject({
       x: 128,
@@ -107,16 +107,16 @@ describe('Tournament Hub responsive layout', () => {
     });
     expect(layout.footer).toMatchObject({
       left: 128,
-      y: 666,
+      y: 674,
       right: 1472,
-      buttonWidth: 210,
-      buttonHeight: 60,
+      buttonWidth: 340,
+      buttonHeight: 64,
       buttonRadius: 8,
-      fontSize: '20px',
-      menuX: 233,
+      fontSize: '18px',
+      menuX: 298,
       backX: 600,
       pageX: 800,
-      nextX: 1367
+      nextX: 1302
     });
   });
 
@@ -266,18 +266,18 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.groupStage.columns).toBe(2);
     expect(mobile.groupStage.cardWidth).toBe(756);
     expect(mobile.groupStage.cardHeight).toBe(430);
-    expect(mobile.groupStage.titleFontSize).toBe('28px');
-    expect(mobile.groupStage.headerFontSize).toBe('19px');
-    expect(mobile.groupStage.teamFontSize).toBe('22px');
-    expect(mobile.groupStage.valueFontSize).toBe('20px');
-    expect(mobile.groupStage.flagWidth).toBe(44);
-    expect(mobile.groupStage.flagHeight).toBe(33);
+    expect(mobile.groupStage.titleFontSize).toBe('30px');
+    expect(mobile.groupStage.headerFontSize).toBe('20px');
+    expect(mobile.groupStage.teamFontSize).toBe('24px');
+    expect(mobile.groupStage.valueFontSize).toBe('22px');
+    expect(mobile.groupStage.flagWidth).toBe(50);
+    expect(mobile.groupStage.flagHeight).toBe(38);
     expect(mobile.groupStage.playedX).toBe(260);
     expect(mobile.groupStage.formX).toBe(668);
-    expect(mobile.groupStage.formIndicatorGap).toBe(26);
+    expect(mobile.groupStage.formIndicatorGap).toBe(28);
     expect(mobile.groupStage.viewportHeight).toBe(470);
     expect(mobile.groupStage.cornerRadius).toBe(8);
-    expect(mobile.groupStage.formIndicatorRadius).toBe(11);
+    expect(mobile.groupStage.formIndicatorRadius).toBe(12);
     expect(getTournamentHubGroupStageMaxScroll(2, mobile)).toBe(0);
     expect(getTournamentHubGroupStageMaxScroll(4, mobile)).toBeGreaterThan(0);
     expect(getTournamentHubGroupStageMaxScroll(8, mobile)).toBeGreaterThan(
@@ -292,13 +292,13 @@ describe('Tournament Hub responsive layout', () => {
     expect(desktop.groupStage.cardWidth).toBe(660);
     expect(desktop.groupStage.playedX).toBe(222);
     expect(desktop.groupStage.formX).toBe(584);
-    expect(desktop.groupStage.formIndicatorGap).toBe(22);
-    expect(desktop.groupStage.titleFontSize).toBe('28px');
-    expect(desktop.groupStage.headerFontSize).toBe('19px');
-    expect(desktop.groupStage.teamFontSize).toBe('22px');
-    expect(desktop.groupStage.valueFontSize).toBe('20px');
-    expect(desktop.groupStage.flagWidth).toBe(44);
-    expect(desktop.groupStage.flagHeight).toBe(33);
+    expect(desktop.groupStage.formIndicatorGap).toBe(23);
+    expect(desktop.groupStage.titleFontSize).toBe('30px');
+    expect(desktop.groupStage.headerFontSize).toBe('20px');
+    expect(desktop.groupStage.teamFontSize).toBe('23px');
+    expect(desktop.groupStage.valueFontSize).toBe('21px');
+    expect(desktop.groupStage.flagWidth).toBe(48);
+    expect(desktop.groupStage.flagHeight).toBe(36);
     expect(getGroupStageFormRight(desktop)).toBeLessThanOrEqual(
       desktop.groupStage.cardWidth - desktop.groupStage.cardPadding
     );
@@ -307,7 +307,7 @@ describe('Tournament Hub responsive layout', () => {
     );
     expect(mobile.groupStage.playedX).toBe(260);
     expect(mobile.groupStage.formX).toBe(668);
-    expect(mobile.groupStage.formIndicatorGap).toBe(26);
+    expect(mobile.groupStage.formIndicatorGap).toBe(28);
   });
 
   it('keeps Playoff narrower, masked and scroll-ready within the shared content contract', () => {
@@ -448,7 +448,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(matchesBlock).not.toContain('changeMatchPage');
     expect(source).not.toContain('MATCHES_PER_PAGE');
     expect(source).toContain("if (this.activeTab !== 'matches') {");
-    expect(source).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Menu'");
+    expect(source).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu'");
+    expect(source).toContain('borderWidth: 0');
     expect(source).toContain("this.activeTab === 'tables'");
     expect(source).toContain("this.activeTab === 'bracket'");
   });
@@ -477,12 +478,35 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('layout.groupStage.formIndicatorGap');
     expect(source).toContain('TEAM_CARD_STYLE.panel.borderColor');
     expect(source).toContain('this.addMobileGroupFormIndicators(');
+    expect(source).toContain('this.addMobileGroupRowSeparator(panel, rowY + groupLayout.rowHeight / 2, layout)');
+    expect(source).toContain('if (index < standings.length - 1) {');
+    expect(source).toContain('GROUP_ROW_SEPARATOR_COLOR');
     expect(source).toContain('getTeamGroupForm(tournament, group, teamId)');
+    expect(source).toContain('match.result?.homeTeamId ?? match.homeTeamId');
+    expect(source).toContain('match.result?.awayTeamId ?? match.awayTeamId');
     expect(source).toContain('0x71e48b');
     expect(source).toContain('0x9fc5ad');
     expect(source).toContain('0xff788a');
+    expect(source).toContain('GROUP_FORM_INACTIVE_COLOR');
+    expect(source).toContain('GROUP_FORM_INACTIVE_STROKE_COLOR');
+    expect(source).toContain('fillAlpha: 0');
+    expect(source).toContain('strokeAlpha: 0.72');
+    expect(source).toContain('indicator.setStrokeStyle(2, entry.strokeColor, entry.strokeAlpha)');
     expect(source).toContain('this.showStatsTooltip(indicator, entry.tooltip)');
+    expect(source).toContain('`vs ${opponent === undefined ? opponentId : getTeamScoreboardCode(opponent.flagCode)}`');
     expect(source).toContain('`vs ${opponent === undefined ? opponentId : opponent.name}\\n${goalsFor}:${goalsAgainst}`');
+  });
+
+  it('renders the Tournament Hub version label from the shared game version source', () => {
+    const source = readSource('src/scenes/TournamentHubScene.ts');
+
+    expect(source).toContain("import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
+    expect(source).toContain('private createVersionLabel(layout: TournamentHubLayout): void');
+    expect(source).toContain('this.createVersionLabel(layout)');
+    expect(source).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
+    expect(source).toContain('SCENE_WIDTH - 32');
+    expect(source).toContain('SCENE_HEIGHT - 10');
+    expect(source).toContain("fontSize: layout.mobileLandscape ? '14px' : '16px'");
   });
 
   it('wires Tournament Hub tabs, Playoff and Stats to the shared tournament panel style', () => {

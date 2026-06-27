@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   getTournamentFormat,
@@ -50,6 +50,9 @@ type StatsRankingCardDefinition = {
 
 type GroupFormEntry = {
   color: number;
+  fillAlpha: number;
+  strokeAlpha: number;
+  strokeColor: number;
   tooltip: string;
 };
 
@@ -74,6 +77,10 @@ const MOBILE_MATCH_AI_BADGE_HEIGHT = 16;
 const MOBILE_MATCH_AI_BADGE_RADIUS = 4;
 const MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10;
 const HUB_INPUT_GUARD_MS = 220;
+const GROUP_FORM_PLAYED_STROKE_COLOR = 0x10291f;
+const GROUP_FORM_INACTIVE_COLOR = 0xd7ddd9;
+const GROUP_FORM_INACTIVE_STROKE_COLOR = 0xb8c2bc;
+const GROUP_ROW_SEPARATOR_COLOR = 0xb8c2bc;
 const MATCH_GRID = {
   x: 128,
   y: 168,
@@ -186,13 +193,16 @@ export class TournamentHubScene extends Phaser.Scene {
     }
 
     if (this.activeTab !== 'matches') {
-      new Button(this, layout.footer.menuX, layout.footer.y, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
+      new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
+        borderWidth: 0,
         borderRadius: layout.footer.buttonRadius,
         fontSize: layout.footer.fontSize,
         height: layout.footer.buttonHeight,
         width: layout.footer.buttonWidth
       });
     }
+
+    this.createVersionLabel(layout);
   }
 
   private renderMissingTournament(): void {
@@ -219,6 +229,19 @@ export class TournamentHubScene extends Phaser.Scene {
     new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
       width: 260
     });
+  }
+
+  private createVersionLabel(layout: TournamentHubLayout): void {
+    this.add
+      .text(SCENE_WIDTH - 32, SCENE_HEIGHT - 10, `${GAME_TITLE} | v${GAME_VERSION}`, {
+        align: 'right',
+        color: '#b8d2c1',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: layout.mobileLandscape ? '14px' : '16px',
+        fontStyle: '700'
+      })
+      .setOrigin(1, 1)
+      .setDepth(STATS_TOOLTIP_DEPTH - 1);
   }
 
   private createHeader(tournament: TournamentState, layout: TournamentHubLayout): void {
@@ -867,9 +890,27 @@ export class TournamentHubScene extends Phaser.Scene {
       panel.add(this.createMobileGroupTableValue(groupLayout.goalsAgainstX, rowY, standing.goalsAgainst, layout));
       panel.add(this.createMobileGroupTableValue(groupLayout.pointsX, rowY, standing.points, layout));
       this.addMobileGroupFormIndicators(panel, tournament, group, standing.teamId, groupLayout.formX, rowY, layout);
+
+      if (index < standings.length - 1) {
+        this.addMobileGroupRowSeparator(panel, rowY + groupLayout.rowHeight / 2, layout);
+      }
     });
 
     return panel;
+  }
+
+  private addMobileGroupRowSeparator(
+    panel: Phaser.GameObjects.Container,
+    y: number,
+    layout: TournamentHubLayout
+  ): void {
+    const groupLayout = layout.groupStage;
+    const separator = this.add.graphics();
+
+    separator
+      .lineStyle(1, GROUP_ROW_SEPARATOR_COLOR, 0.24)
+      .lineBetween(groupLayout.cardPadding, y, groupLayout.cardWidth - groupLayout.cardPadding, y);
+    panel.add(separator);
   }
 
   private createMobileGroupTableHeader(
@@ -947,9 +988,9 @@ export class TournamentHubScene extends Phaser.Scene {
     const gap = layout.groupStage.formIndicatorGap;
 
     form.forEach((entry, index) => {
-      const indicator = this.add.circle(x + index * gap, y, radius, entry.color, 0.95);
+      const indicator = this.add.circle(x + index * gap, y, radius, entry.color, entry.fillAlpha);
 
-      indicator.setStrokeStyle(2, 0x10291f, 0.8);
+      indicator.setStrokeStyle(2, entry.strokeColor, entry.strokeAlpha);
       indicator.setInteractive({ useHandCursor: true });
       indicator.on('pointerover', () => this.showStatsTooltip(indicator, entry.tooltip));
       indicator.on('pointerout', () => this.hideStatsTooltip());
@@ -2013,18 +2054,39 @@ function getTeamGroupForm(
   teamId: TournamentTeamId
 ): GroupFormEntry[] {
   return tournament.matches
-    .filter(
-      (match) =>
+    .filter((match) => {
+      const homeTeamId = match.result?.homeTeamId ?? match.homeTeamId;
+      const awayTeamId = match.result?.awayTeamId ?? match.awayTeamId;
+
+      return (
         match.groupId === group.id &&
-        match.result !== undefined &&
-        (match.result.homeTeamId === teamId || match.result.awayTeamId === teamId)
-    )
+        homeTeamId !== undefined &&
+        awayTeamId !== undefined &&
+        (homeTeamId === teamId || awayTeamId === teamId)
+      );
+    })
     .sort((first, second) => first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex)
     .map((match) => {
+      const homeTeamId = match.result?.homeTeamId ?? match.homeTeamId;
+      const awayTeamId = match.result?.awayTeamId ?? match.awayTeamId;
       const result = match.result;
 
-      if (result === undefined) {
+      if (homeTeamId === undefined || awayTeamId === undefined) {
         return null;
+      }
+
+      if (result === undefined) {
+        const isHome = homeTeamId === teamId;
+        const opponentId = isHome ? awayTeamId : homeTeamId;
+        const opponent = findTeam(opponentId);
+
+        return {
+          color: GROUP_FORM_INACTIVE_COLOR,
+          fillAlpha: 0,
+          strokeAlpha: 0.72,
+          strokeColor: GROUP_FORM_INACTIVE_STROKE_COLOR,
+          tooltip: `vs ${opponent === undefined ? opponentId : getTeamScoreboardCode(opponent.flagCode)}`
+        };
       }
 
       const isHome = result.homeTeamId === teamId;
@@ -2036,6 +2098,9 @@ function getTeamGroupForm(
 
       return {
         color,
+        fillAlpha: 0.95,
+        strokeAlpha: 0.8,
+        strokeColor: GROUP_FORM_PLAYED_STROKE_COLOR,
         tooltip: `vs ${opponent === undefined ? opponentId : opponent.name}\n${goalsFor}:${goalsAgainst}`
       };
     })

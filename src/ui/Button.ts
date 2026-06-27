@@ -9,6 +9,7 @@ export interface ButtonCornerRadius {
 
 export interface ButtonOptions {
   borderRadius?: number | ButtonCornerRadius;
+  borderWidth?: number;
   disabled?: boolean;
   fontSize?: string;
   height?: number;
@@ -22,6 +23,7 @@ export class Button extends Phaser.GameObjects.Container {
     const width = options.width ?? 220;
     const height = options.height ?? 54;
     const borderRadius = options.borderRadius ?? 0;
+    const borderWidth = options.borderWidth ?? 2;
     const disabled = options.disabled === true;
     const baseColor = disabled ? 0x6d746f : 0xf0c95a;
     const hoverColor = disabled ? 0x6d746f : 0xffd978;
@@ -34,13 +36,17 @@ export class Button extends Phaser.GameObjects.Container {
         roundedBackground.clear();
         roundedBackground.fillStyle(color, disabled ? 0.78 : 1);
         fillButtonRoundedRect(roundedBackground, -width / 2, -height / 2, width, height, borderRadius);
-        roundedBackground.lineStyle(2, borderColor);
-        strokeButtonRoundedRect(roundedBackground, -width / 2, -height / 2, width, height, borderRadius);
+        if (borderWidth > 0) {
+          roundedBackground.lineStyle(borderWidth, borderColor);
+          strokeButtonRoundedRect(roundedBackground, -width / 2, -height / 2, width, height, borderRadius);
+        }
         return;
       }
 
       background.setFillStyle(color, disabled ? 0.78 : 1);
-      background.setStrokeStyle(2, borderColor);
+      if (borderWidth > 0) {
+        background.setStrokeStyle(borderWidth, borderColor);
+      }
     };
 
     drawBackground(baseColor);

@@ -86,8 +86,10 @@ describe('touch drag-scroll helpers', () => {
     expect(setupSource).not.toContain('touchHeight:');
     expect(hubLayout.footer.menuX - hubLayout.footer.buttonWidth / 2).toBe(hubLayout.contentLeft);
     expect(hubLayout.footer.nextX + hubLayout.footer.buttonWidth / 2).toBe(hubLayout.contentRight);
-    expect(hubLayout.footer.y).toBe(666);
-    expect(hubSource).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Menu'");
+    expect(hubLayout.footer.y).toBe(674);
+    expect(hubLayout.footer.buttonWidth).toBe(340);
+    expect(hubLayout.footer.buttonHeight).toBe(64);
+    expect(hubSource).toContain("new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu'");
     expect(hubSource).not.toContain('touchHeight:');
   });
 });

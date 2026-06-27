@@ -157,7 +157,7 @@ export function createTournamentHubLayout(
     const contentLeft = 32;
     const contentWidth = 1536;
     const contentRight = contentLeft + contentWidth;
-    const footerButtonWidth = 300;
+    const footerButtonWidth = 390;
 
     return {
       mobileLandscape: true,
@@ -219,10 +219,10 @@ export function createTournamentHubLayout(
         headerY: 74,
         rowStartY: 122,
         rowHeight: 72,
-        titleFontSize: '28px',
-        headerFontSize: '19px',
-        teamFontSize: '22px',
-        valueFontSize: '20px',
+        titleFontSize: '30px',
+        headerFontSize: '20px',
+        teamFontSize: '24px',
+        valueFontSize: '22px',
         teamHeaderX: 22,
         flagX: 40,
         teamCodeX: 76,
@@ -234,11 +234,11 @@ export function createTournamentHubLayout(
         goalsAgainstX: 540,
         pointsX: 608,
         formX: 668,
-        formIndicatorGap: 26,
-        flagWidth: 44,
-        flagHeight: 33,
+        formIndicatorGap: 28,
+        flagWidth: 50,
+        flagHeight: 38,
         cornerRadius: 8,
-        formIndicatorRadius: 11
+        formIndicatorRadius: 12
       },
       playoff: {
         x: contentLeft,
@@ -296,12 +296,12 @@ export function createTournamentHubLayout(
       },
       footer: {
         left: contentLeft,
-        y: 668,
+        y: 674,
         right: contentRight,
         buttonWidth: footerButtonWidth,
-        buttonHeight: 64,
+        buttonHeight: 68,
         buttonRadius: 8,
-        fontSize: '21px',
+        fontSize: '20px',
         menuX: contentLeft + footerButtonWidth / 2,
         backX: 500,
         pageX: 800,
@@ -313,7 +313,7 @@ export function createTournamentHubLayout(
   const contentLeft = 128;
   const contentWidth = 1344;
   const contentRight = contentLeft + contentWidth;
-  const footerButtonWidth = 210;
+  const footerButtonWidth = 340;
 
   return {
     mobileLandscape: false,
@@ -375,10 +375,10 @@ export function createTournamentHubLayout(
       headerY: 74,
       rowStartY: 122,
       rowHeight: 72,
-      titleFontSize: '28px',
-      headerFontSize: '19px',
-      teamFontSize: '22px',
-      valueFontSize: '20px',
+      titleFontSize: '30px',
+      headerFontSize: '20px',
+      teamFontSize: '23px',
+      valueFontSize: '21px',
       teamHeaderX: 22,
       flagX: 40,
       teamCodeX: 76,
@@ -390,11 +390,11 @@ export function createTournamentHubLayout(
       goalsAgainstX: 468,
       pointsX: 526,
       formX: 584,
-      formIndicatorGap: 22,
-      flagWidth: 44,
-      flagHeight: 33,
+      formIndicatorGap: 23,
+      flagWidth: 48,
+      flagHeight: 36,
       cornerRadius: 8,
-      formIndicatorRadius: 11
+      formIndicatorRadius: 12
     },
     playoff: {
       x: contentLeft,
@@ -452,12 +452,12 @@ export function createTournamentHubLayout(
     },
     footer: {
       left: contentLeft,
-      y: 666,
+      y: 674,
       right: contentRight,
       buttonWidth: footerButtonWidth,
-      buttonHeight: 60,
+      buttonHeight: 64,
       buttonRadius: 8,
-      fontSize: '20px',
+      fontSize: '18px',
       menuX: contentLeft + footerButtonWidth / 2,
       backX: 600,
       pageX: 800,
