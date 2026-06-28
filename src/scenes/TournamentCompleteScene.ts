@@ -10,43 +10,98 @@ import {
   type TournamentState,
   type TournamentTeamId
 } from '../tournament';
-import { Button } from '../ui/Button';
+import { Button, type ButtonCornerRadius } from '../ui/Button';
+import { isMobileLandscapeLayout } from '../ui/mobileLayout';
+import {
+  RESULT_ACTION_BUTTON_FONT_SIZE,
+  RESULT_ACTION_BUTTON_HEIGHT,
+  RESULT_ACTION_BUTTON_RADIUS
+} from '../ui/resultActionButtons';
+import {
+  MATCH_HEADER_BORDER_ALPHA,
+  MATCH_HEADER_BORDER_COLOR,
+  SCOREBOARD_BACKGROUND_ALPHA,
+  SCOREBOARD_BACKGROUND_COLOR,
+  SCOREBOARD_BORDER_ALPHA,
+  SCOREBOARD_BORDER_COLOR,
+  SCOREBOARD_FONT_FAMILY,
+  SCOREBOARD_TEXT_COLOR
+} from '../ui/scoreboardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
 
-const SUMMARY_PANEL = {
-  x: SCENE_WIDTH / 2,
-  y: 400,
-  width: 1120,
-  height: 372
-} as const;
-
-const CHAMPION_PATH_VIEWPORT = {
-  x: -494,
-  y: -20,
-  width: 610,
-  height: 148
-} as const;
-
-const CHAMPION_PATH_SCROLLBAR = {
-  x: CHAMPION_PATH_VIEWPORT.x + CHAMPION_PATH_VIEWPORT.width + 16,
-  y: CHAMPION_PATH_VIEWPORT.y,
-  width: 6,
-  minThumbHeight: 32
-} as const;
-
-const LEADER_CARD_LAYOUT = {
-  x: 350,
-  startY: -84,
-  gapY: 94,
-  width: 390,
-  height: 82
-} as const;
+const COMPLETE_ACTION_BUTTON_Y = 644;
+const COMPLETE_PANEL_BOTTOM_Y = COMPLETE_ACTION_BUTTON_Y - RESULT_ACTION_BUTTON_HEIGHT / 2;
+const COMPLETE_PANEL_RADIUS = 8;
+const COMPLETE_ROW_RADIUS = 6;
+const COMPLETE_SCROLLBAR_WIDTH = 6;
+const COMPLETE_SCROLLBAR_MIN_THUMB_HEIGHT = 34;
+const COMPLETE_PANEL_INNER_BORDER_COLOR = MATCH_HEADER_BORDER_COLOR;
+const COMPLETE_PANEL_INNER_BORDER_ALPHA = MATCH_HEADER_BORDER_ALPHA;
 
 type LeaderCardDefinition = {
   title: string;
   statLabel: string;
   player: TournamentPlayerStats | undefined;
 };
+
+interface TournamentCompleteLayout {
+  mobileLandscape: boolean;
+  header: {
+    titleY: number;
+    titleFontSize: string;
+    championY: number;
+    championFontSize: string;
+    flagWidth: number;
+    flagHeight: number;
+  };
+  panel: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  path: {
+    titleX: number;
+    titleY: number;
+    viewportX: number;
+    viewportY: number;
+    viewportWidth: number;
+    viewportHeight: number;
+    rowHeight: number;
+    rowGap: number;
+    stageX: number;
+    homeX: number;
+    scoreX: number;
+    awayX: number;
+    teamWidth: number;
+    headingFontSize: string;
+    rowFontSize: string;
+    scoreFontSize: string;
+    teamFlagWidth: number;
+    teamFlagHeight: number;
+  };
+  leaders: {
+    titleX: number;
+    titleY: number;
+    cardX: number;
+    startY: number;
+    gapY: number;
+    width: number;
+    height: number;
+    headingFontSize: string;
+    titleFontSize: string;
+    playerFontSize: string;
+    valueFontSize: string;
+    flagWidth: number;
+    flagHeight: number;
+  };
+  actions: {
+    y: number;
+    width: number;
+    height: number;
+    fontSize: string;
+  };
+}
 
 export class TournamentCompleteScene extends Phaser.Scene {
   public constructor() {
@@ -71,9 +126,11 @@ export class TournamentCompleteScene extends Phaser.Scene {
       return;
     }
 
-    this.createHeader(tournament, championTeamId);
-    this.createSummaryPanel(tournament, championTeamId, finalMatch);
-    this.createActions();
+    const layout = createTournamentCompleteLayout();
+
+    this.createHeader(championTeamId, layout);
+    this.createSummaryPanel(tournament, championTeamId, layout);
+    this.createActions(layout);
   }
 
   private renderMissingTournament(): void {
@@ -99,103 +156,81 @@ export class TournamentCompleteScene extends Phaser.Scene {
     });
   }
 
-  private createHeader(tournament: TournamentState, championTeamId: TournamentTeamId): void {
+  private createHeader(championTeamId: TournamentTeamId, layout: TournamentCompleteLayout): void {
     const champion = findTeam(championTeamId);
 
     this.add
-      .text(SCENE_WIDTH / 2, 42, GAME_TITLE, {
-        align: 'center',
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '34px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(SCENE_WIDTH / 2, 84, 'Tournament complete', {
+      .text(SCENE_WIDTH / 2, layout.header.titleY, 'Congratulations to the champion!', {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: layout.header.titleFontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
 
-    const championRow = this.add.container(SCENE_WIDTH / 2, 142);
+    const championRow = this.add.container(SCENE_WIDTH / 2, layout.header.championY);
 
     if (champion !== undefined) {
-      const flag = this.add.image(-152, 0, getFlagAssetKey(champion.flagCode));
-      flag.setDisplaySize(68, 48);
+      const flag = this.add.image(-158, 0, getFlagAssetKey(champion.flagCode));
+      flag.setDisplaySize(layout.header.flagWidth, layout.header.flagHeight);
       championRow.add(flag);
     }
 
     championRow.add(
       this.add
-        .text(-96, 0, `Champion: ${champion?.name ?? championTeamId}`, {
+        .text(-104, 0, champion?.name ?? championTeamId, {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '34px',
+          fontSize: layout.header.championFontSize,
           fontStyle: '700',
           wordWrap: { width: 520 }
         })
         .setOrigin(0, 0.5)
     );
-
-    const completedMatches = tournament.matches.filter((match) => match.status === 'completed').length;
-    this.add
-      .text(SCENE_WIDTH / 2, 192, `${completedMatches}/${tournament.matches.length} matches played`, {
-        align: 'center',
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
   }
 
   private createSummaryPanel(
     tournament: TournamentState,
     championTeamId: TournamentTeamId,
-    finalMatch: TournamentMatch
+    layout: TournamentCompleteLayout
   ): void {
-    const panel = this.add.container(SUMMARY_PANEL.x, SUMMARY_PANEL.y);
-    const background = this.add.rectangle(0, 0, SUMMARY_PANEL.width, SUMMARY_PANEL.height, 0x0b2118, 0.88);
-    background.setStrokeStyle(2, 0x5f9572, 0.95);
+    const panel = this.add.container(layout.panel.x, layout.panel.y);
+    const background = this.add.graphics();
+
+    background
+      .fillStyle(SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)
+      .fillRoundedRect(
+        -layout.panel.width / 2,
+        -layout.panel.height / 2,
+        layout.panel.width,
+        layout.panel.height,
+        COMPLETE_PANEL_RADIUS
+      )
+      .lineStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)
+      .strokeRoundedRect(
+        -layout.panel.width / 2,
+        -layout.panel.height / 2,
+        layout.panel.width,
+        layout.panel.height,
+        COMPLETE_PANEL_RADIUS
+      );
     panel.add(background);
 
-    panel.add(this.createSectionTitle(-488, -168, 'Final'));
-    panel.add(this.createFinalLine(finalMatch, -488, -126));
-    panel.add(this.createSectionTitle(-488, -72, 'Champion path'));
-    this.createChampionPath(panel, tournament, championTeamId);
+    panel.add(this.createSectionTitle(layout.path.titleX, layout.path.titleY, 'Champion path', layout.path.headingFontSize));
+    this.createChampionPath(panel, tournament, championTeamId, layout);
 
-    panel.add(this.createSectionTitle(150, -150, 'Tournament leaders'));
-    this.createLeaderCards(panel, tournament);
-  }
-
-  private createFinalLine(finalMatch: TournamentMatch, x: number, y: number): Phaser.GameObjects.Container {
-    const line = this.add.container(x, y);
-    const homeText = this.addTeamLabel(0, 0, finalMatch.homeTeamId);
-    const score = this.add
-      .text(322, 0, formatMatchScore(finalMatch), {
-        align: 'center',
-        color: '#f0c95a',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    const awayText = this.addTeamLabel(390, 0, finalMatch.awayTeamId);
-
-    line.add([homeText, score, awayText]);
-    return line;
+    panel.add(this.createSectionTitle(layout.leaders.titleX, layout.leaders.titleY, 'Tournament leaders', layout.leaders.headingFontSize));
+    this.createLeaderCards(panel, tournament, layout);
   }
 
   private createChampionPath(
     panel: Phaser.GameObjects.Container,
     tournament: TournamentState,
-    championTeamId: TournamentTeamId
+    championTeamId: TournamentTeamId,
+    layout: TournamentCompleteLayout
   ): void {
-    const content = this.add.container(CHAMPION_PATH_VIEWPORT.x, CHAMPION_PATH_VIEWPORT.y);
+    const content = this.add.container(layout.path.viewportX, layout.path.viewportY);
     const championMatches = tournament.matches
       .filter(
         (match) =>
@@ -206,7 +241,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
       .sort((first, second) => first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex);
 
     championMatches.forEach((match, index) => {
-      const row = this.createPathRow(match, 0, 14 + index * 28);
+      const row = this.createPathRow(match, 0, layout.path.rowHeight / 2 + index * layout.path.rowGap, layout);
       content.add(row);
     });
 
@@ -216,35 +251,35 @@ export class TournamentCompleteScene extends Phaser.Scene {
           .text(0, 18, 'No completed matches found.', {
             color: '#8fb39d',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
+            fontSize: layout.path.rowFontSize,
             fontStyle: '700'
           })
           .setOrigin(0, 0.5)
       );
     }
 
-    const contentHeight = Math.max(28, championMatches.length * 28);
-    const maxScroll = Math.max(0, contentHeight - CHAMPION_PATH_VIEWPORT.height);
+    const contentHeight = Math.max(layout.path.rowHeight, championMatches.length * layout.path.rowGap);
+    const maxScroll = Math.max(0, contentHeight - layout.path.viewportHeight);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
       .fillStyle(0xffffff)
       .fillRect(
-        SUMMARY_PANEL.x + CHAMPION_PATH_VIEWPORT.x,
-        SUMMARY_PANEL.y + CHAMPION_PATH_VIEWPORT.y,
-        CHAMPION_PATH_VIEWPORT.width,
-        CHAMPION_PATH_VIEWPORT.height
+        layout.panel.x + layout.path.viewportX,
+        layout.panel.y + layout.path.viewportY,
+        layout.path.viewportWidth,
+        layout.path.viewportHeight
       )
       .createGeometryMask();
     maskGraphics.setVisible(false);
     content.setMask(mask);
 
-    const scrollZoneWidth = CHAMPION_PATH_VIEWPORT.width + 34;
+    const scrollZoneWidth = layout.path.viewportWidth + 34;
     const scrollZone = this.add
       .zone(
-        CHAMPION_PATH_VIEWPORT.x + scrollZoneWidth / 2,
-        CHAMPION_PATH_VIEWPORT.y + CHAMPION_PATH_VIEWPORT.height / 2,
+        layout.path.viewportX + scrollZoneWidth / 2,
+        layout.path.viewportY + layout.path.viewportHeight / 2,
         scrollZoneWidth,
-        CHAMPION_PATH_VIEWPORT.height
+        layout.path.viewportHeight
       )
       .setInteractive();
 
@@ -253,24 +288,24 @@ export class TournamentCompleteScene extends Phaser.Scene {
     if (maxScroll > 0) {
       const track = this.add
         .rectangle(
-          CHAMPION_PATH_SCROLLBAR.x,
-          CHAMPION_PATH_SCROLLBAR.y,
-          CHAMPION_PATH_SCROLLBAR.width,
-          CHAMPION_PATH_VIEWPORT.height,
+          layout.path.viewportX + layout.path.viewportWidth + 16,
+          layout.path.viewportY,
+          COMPLETE_SCROLLBAR_WIDTH,
+          layout.path.viewportHeight,
           0x5f9572,
           0.28
         )
         .setOrigin(0.5, 0);
       const thumbHeight = Math.max(
-        CHAMPION_PATH_SCROLLBAR.minThumbHeight,
-        CHAMPION_PATH_VIEWPORT.height * (CHAMPION_PATH_VIEWPORT.height / contentHeight)
+        COMPLETE_SCROLLBAR_MIN_THUMB_HEIGHT,
+        layout.path.viewportHeight * (layout.path.viewportHeight / contentHeight)
       );
-      const maxThumbOffset = CHAMPION_PATH_VIEWPORT.height - thumbHeight;
+      const maxThumbOffset = layout.path.viewportHeight - thumbHeight;
       const thumb = this.add
         .rectangle(
-          CHAMPION_PATH_SCROLLBAR.x,
-          CHAMPION_PATH_SCROLLBAR.y,
-          CHAMPION_PATH_SCROLLBAR.width,
+          layout.path.viewportX + layout.path.viewportWidth + 16,
+          layout.path.viewportY,
+          COMPLETE_SCROLLBAR_WIDTH,
           thumbHeight,
           0xf0c95a,
           0.95
@@ -278,8 +313,8 @@ export class TournamentCompleteScene extends Phaser.Scene {
         .setOrigin(0.5, 0);
       let scrollY = 0;
       const updateScroll = (): void => {
-        content.y = CHAMPION_PATH_VIEWPORT.y - scrollY;
-        thumb.y = CHAMPION_PATH_SCROLLBAR.y + (scrollY / maxScroll) * maxThumbOffset;
+        content.y = layout.path.viewportY - scrollY;
+        thumb.y = layout.path.viewportY + (scrollY / maxScroll) * maxThumbOffset;
       };
 
       panel.add([track, thumb]);
@@ -291,33 +326,64 @@ export class TournamentCompleteScene extends Phaser.Scene {
     }
   }
 
-  private createPathRow(match: TournamentMatch, x: number, y: number): Phaser.GameObjects.Container {
+  private createPathRow(
+    match: TournamentMatch,
+    x: number,
+    y: number,
+    layout: TournamentCompleteLayout
+  ): Phaser.GameObjects.Container {
     const row = this.add.container(x, y);
+    const background = this.add.graphics();
+    background
+      .fillStyle(0x10251d, 0.72)
+      .fillRoundedRect(0, -layout.path.rowHeight / 2, layout.path.viewportWidth, layout.path.rowHeight, COMPLETE_ROW_RADIUS)
+      .lineStyle(1, COMPLETE_PANEL_INNER_BORDER_COLOR, 0.32)
+      .strokeRoundedRect(0, -layout.path.rowHeight / 2, layout.path.viewportWidth, layout.path.rowHeight, COMPLETE_ROW_RADIUS);
     const label = this.add
-      .text(0, 0, formatMatchStage(match), {
+      .text(layout.path.stageX, 0, formatMatchStage(match), {
         color: '#9fc5ad',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
+        fontSize: layout.path.rowFontSize,
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
-    const home = this.addTeamLabel(126, 0, match.homeTeamId, 150);
+    const home = this.addTeamLabel(
+      layout.path.homeX,
+      0,
+      match.homeTeamId,
+      layout.path.teamWidth,
+      layout.path.teamFlagWidth,
+      layout.path.teamFlagHeight,
+      layout.path.rowFontSize
+    );
     const score = this.add
-      .text(294, 0, formatMatchScore(match), {
+      .text(layout.path.scoreX, 0, formatMatchScore(match), {
         align: 'center',
         color: '#f0c95a',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontSize: layout.path.scoreFontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    const away = this.addTeamLabel(420, 0, match.awayTeamId, 150);
+    const away = this.addTeamLabel(
+      layout.path.awayX,
+      0,
+      match.awayTeamId,
+      layout.path.teamWidth,
+      layout.path.teamFlagWidth,
+      layout.path.teamFlagHeight,
+      layout.path.rowFontSize
+    );
 
-    row.add([label, home, score, away]);
+    row.add([background, label, home, score, away]);
     return row;
   }
 
-  private createLeaderCards(panel: Phaser.GameObjects.Container, tournament: TournamentState): void {
+  private createLeaderCards(
+    panel: Phaser.GameObjects.Container,
+    tournament: TournamentState,
+    layout: TournamentCompleteLayout
+  ): void {
     const playerStats = getTournamentPlayerStats(tournament);
     const leaders: LeaderCardDefinition[] = [
       {
@@ -339,29 +405,43 @@ export class TournamentCompleteScene extends Phaser.Scene {
 
     leaders.forEach((leader, index) => {
       panel.add(
-        this.createLeaderCard(LEADER_CARD_LAYOUT.x, LEADER_CARD_LAYOUT.startY + index * LEADER_CARD_LAYOUT.gapY, leader)
+        this.createLeaderCard(layout.leaders.cardX, layout.leaders.startY + index * layout.leaders.gapY, leader, layout)
       );
     });
   }
 
-  private createLeaderCard(x: number, y: number, leader: LeaderCardDefinition): Phaser.GameObjects.Container {
+  private createLeaderCard(
+    x: number,
+    y: number,
+    leader: LeaderCardDefinition,
+    layout: TournamentCompleteLayout
+  ): Phaser.GameObjects.Container {
     const card = this.add.container(x, y);
-    const background = this.add.rectangle(
-      0,
-      0,
-      LEADER_CARD_LAYOUT.width,
-      LEADER_CARD_LAYOUT.height,
-      0x123b2a,
-      0.9
-    );
-    background.setStrokeStyle(2, 0x5f9572, 0.94);
+    const background = this.add.graphics();
+    background
+      .fillStyle(0x10251d, 0.82)
+      .fillRoundedRect(
+        -layout.leaders.width / 2,
+        -layout.leaders.height / 2,
+        layout.leaders.width,
+        layout.leaders.height,
+        COMPLETE_PANEL_RADIUS
+      )
+      .lineStyle(2, COMPLETE_PANEL_INNER_BORDER_COLOR, COMPLETE_PANEL_INNER_BORDER_ALPHA)
+      .strokeRoundedRect(
+        -layout.leaders.width / 2,
+        -layout.leaders.height / 2,
+        layout.leaders.width,
+        layout.leaders.height,
+        COMPLETE_PANEL_RADIUS
+      );
     card.add(background);
     card.add(
       this.add
-        .text(-168, -22, leader.title, {
+        .text(-layout.leaders.width / 2 + 22, -layout.leaders.height / 2 + 28, leader.title, {
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '17px',
+          fontSize: layout.leaders.titleFontSize,
           fontStyle: '700'
         })
         .setOrigin(0, 0.5)
@@ -370,10 +450,10 @@ export class TournamentCompleteScene extends Phaser.Scene {
     if (leader.player === undefined) {
       card.add(
         this.add
-          .text(-168, 18, 'No data', {
+          .text(-layout.leaders.width / 2 + 22, 24, 'No data', {
             color: '#8fb39d',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
+            fontSize: layout.leaders.playerFontSize,
             fontStyle: '700'
           })
           .setOrigin(0, 0.5)
@@ -384,30 +464,30 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const team = findTeam(leader.player.teamId);
 
     if (team !== undefined) {
-      const flag = this.add.image(-168, 18, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(34, 24);
+      const flag = this.add.image(-layout.leaders.width / 2 + 40, 22, getFlagAssetKey(team.flagCode));
+      flag.setDisplaySize(layout.leaders.flagWidth, layout.leaders.flagHeight);
       card.add(flag);
     }
 
     const value = getLeaderValue(leader);
     card.add(
       this.add
-        .text(-142, 18, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
+        .text(-layout.leaders.width / 2 + 66, 22, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '15px',
+          fontSize: layout.leaders.playerFontSize,
           fontStyle: '700',
-          wordWrap: { width: 208 }
+          wordWrap: { width: layout.leaders.width - 178 }
         })
         .setOrigin(0, 0.5)
     );
     card.add(
       this.add
-        .text(168, 18, `${value} ${leader.statLabel}`, {
+        .text(layout.leaders.width / 2 - 24, 22, `${value} ${leader.statLabel}`, {
           align: 'right',
-          color: '#d9eadf',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+          color: SCOREBOARD_TEXT_COLOR,
+          fontFamily: SCOREBOARD_FONT_FAMILY,
+          fontSize: layout.leaders.valueFontSize,
           fontStyle: '700'
         })
         .setOrigin(1, 0.5)
@@ -416,12 +496,12 @@ export class TournamentCompleteScene extends Phaser.Scene {
     return card;
   }
 
-  private createSectionTitle(x: number, y: number, text: string): Phaser.GameObjects.Text {
+  private createSectionTitle(x: number, y: number, text: string, fontSize: string): Phaser.GameObjects.Text {
     return this.add
       .text(x, y, text, {
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
+        fontSize,
         fontStyle: '700'
       })
       .setOrigin(0, 0.5);
@@ -431,14 +511,17 @@ export class TournamentCompleteScene extends Phaser.Scene {
     x: number,
     y: number,
     teamId: TournamentTeamId | undefined,
-    width = 210
+    width = 210,
+    flagWidth = 30,
+    flagHeight = 22,
+    fontSize = '16px'
   ): Phaser.GameObjects.Container {
     const team = teamId === undefined ? undefined : findTeam(teamId);
     const label = this.add.container(x, y);
 
     if (team !== undefined) {
       const flag = this.add.image(0, 0, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(30, 22);
+      flag.setDisplaySize(flagWidth, flagHeight);
       label.add(flag);
     }
 
@@ -447,7 +530,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         .text(24, 0, team?.name ?? 'TBD', {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
+          fontSize,
           fontStyle: '700',
           wordWrap: { width }
         })
@@ -457,28 +540,29 @@ export class TournamentCompleteScene extends Phaser.Scene {
     return label;
   }
 
-  private createActions(): void {
-    new Button(this, 468, 666, 'Menu', () => this.scene.start('MenuScene'), {
-      fontSize: '18px',
-      width: 190
-    });
-    new Button(
-      this,
-      800,
-      666,
-      'View stats',
-      () =>
-        this.scene.start('TournamentHubScene', {
-          initialTab: 'stats'
-        }),
+  private createActions(layout: TournamentCompleteLayout): void {
+    const actions = [
+      { label: 'Menu', onClick: () => this.scene.start('MenuScene') },
       {
-        fontSize: '18px',
-        width: 220
-      }
-    );
-    new Button(this, 1132, 666, 'New tournament', () => this.startNewTournament(), {
-      fontSize: '18px',
-      width: 250
+        label: 'View stats',
+        onClick: () =>
+          this.scene.start('TournamentHubScene', {
+            initialTab: 'stats'
+          })
+      },
+      { label: 'New tournament', onClick: () => this.startNewTournament() }
+    ];
+    const buttonWidth = layout.actions.width / actions.length;
+    const firstButtonX = SCENE_WIDTH / 2 - layout.actions.width / 2 + buttonWidth / 2;
+
+    actions.forEach((action, index) => {
+      new Button(this, firstButtonX + index * buttonWidth, layout.actions.y, action.label, action.onClick, {
+        borderRadius: getCompleteActionButtonRadius(index, actions.length),
+        borderWidth: 0,
+        fontSize: layout.actions.fontSize,
+        height: layout.actions.height,
+        width: buttonWidth
+      });
     });
   }
 
@@ -487,6 +571,96 @@ export class TournamentCompleteScene extends Phaser.Scene {
     this.registry.remove('currentTournament');
     this.scene.start('TournamentSetupScene');
   }
+}
+
+function createTournamentCompleteLayout(
+  mobileLandscape = isMobileLandscapeLayout()
+): TournamentCompleteLayout {
+  const panelWidth = mobileLandscape ? 1280 : 1120;
+  const panelTop = mobileLandscape ? 132 : 150;
+  const panelHeight = COMPLETE_PANEL_BOTTOM_Y - panelTop;
+  const panelX = SCENE_WIDTH / 2;
+  const panelY = panelTop + panelHeight / 2;
+  const pathViewportWidth = mobileLandscape ? 730 : 640;
+  const leaderWidth = mobileLandscape ? 430 : 390;
+  const panelLeft = -panelWidth / 2;
+  const panelRight = panelWidth / 2;
+  const contentPaddingX = mobileLandscape ? 50 : 44;
+  const titleY = -panelHeight / 2 + 42;
+  const pathViewportY = titleY + 36;
+  const pathViewportHeight = panelHeight - (pathViewportY + panelHeight / 2) - 40;
+  const leaderCardX = panelRight - contentPaddingX - leaderWidth / 2;
+
+  return {
+    mobileLandscape,
+    header: {
+      titleY: mobileLandscape ? 38 : 50,
+      titleFontSize: mobileLandscape ? '30px' : '32px',
+      championY: mobileLandscape ? 92 : 108,
+      championFontSize: mobileLandscape ? '38px' : '36px',
+      flagWidth: mobileLandscape ? 76 : 72,
+      flagHeight: mobileLandscape ? 54 : 52
+    },
+    panel: {
+      x: panelX,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight
+    },
+    path: {
+      titleX: panelLeft + contentPaddingX,
+      titleY,
+      viewportX: panelLeft + contentPaddingX,
+      viewportY: pathViewportY,
+      viewportWidth: pathViewportWidth,
+      viewportHeight: pathViewportHeight,
+      rowHeight: mobileLandscape ? 42 : 40,
+      rowGap: mobileLandscape ? 48 : 46,
+      stageX: 14,
+      homeX: mobileLandscape ? 166 : 146,
+      scoreX: mobileLandscape ? 416 : 360,
+      awayX: mobileLandscape ? 494 : 428,
+      teamWidth: mobileLandscape ? 194 : 166,
+      headingFontSize: mobileLandscape ? '25px' : '24px',
+      rowFontSize: mobileLandscape ? '19px' : '18px',
+      scoreFontSize: mobileLandscape ? '24px' : '22px',
+      teamFlagWidth: mobileLandscape ? 38 : 34,
+      teamFlagHeight: mobileLandscape ? 28 : 25
+    },
+    leaders: {
+      titleX: leaderCardX - leaderWidth / 2,
+      titleY,
+      cardX: leaderCardX,
+      startY: titleY + (mobileLandscape ? 84 : 80),
+      gapY: mobileLandscape ? 118 : 112,
+      width: leaderWidth,
+      height: mobileLandscape ? 104 : 96,
+      headingFontSize: mobileLandscape ? '25px' : '24px',
+      titleFontSize: mobileLandscape ? '21px' : '20px',
+      playerFontSize: mobileLandscape ? '18px' : '17px',
+      valueFontSize: mobileLandscape ? '22px' : '20px',
+      flagWidth: mobileLandscape ? 38 : 34,
+      flagHeight: mobileLandscape ? 28 : 25
+    },
+    actions: {
+      y: COMPLETE_ACTION_BUTTON_Y,
+      width: panelWidth,
+      height: RESULT_ACTION_BUTTON_HEIGHT,
+      fontSize: mobileLandscape ? RESULT_ACTION_BUTTON_FONT_SIZE : '22px'
+    }
+  };
+}
+
+function getCompleteActionButtonRadius(index: number, actionCount: number): ButtonCornerRadius {
+  const isFirst = index === 0;
+  const isLast = index === actionCount - 1;
+
+  return {
+    topLeft: 0,
+    topRight: 0,
+    bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0,
+    bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0
+  };
 }
 
 function getFinalMatch(tournament: TournamentState): TournamentMatch | undefined {

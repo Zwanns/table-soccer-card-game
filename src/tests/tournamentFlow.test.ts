@@ -20,6 +20,10 @@ import {
   type TournamentMatch
 } from '../tournament';
 
+function readSource(path: string): string {
+  return readFileSync(join(process.cwd(), path), 'utf8').replace(/\r\n/g, '\n');
+}
+
 describe('tournament hub scene integration', () => {
   it('registers tournament setup and hub scenes in Phaser config', () => {
     const mainSource = readFileSync(join(process.cwd(), 'src', 'main.ts'), 'utf8');
@@ -385,19 +389,44 @@ describe('tournament hub scene integration', () => {
   });
 
   it('provides a tournament completion scene with champion summary and stats navigation', () => {
-    const completeSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentCompleteScene.ts'), 'utf8');
-    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
-    const resultSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
+    const completeSource = readSource('src/scenes/TournamentCompleteScene.ts');
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const resultSource = readSource('src/scenes/ResultScene.ts');
 
     expect(completeSource).toContain("super('TournamentCompleteScene')");
     expect(completeSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
     expect(completeSource).toContain('createTournamentBackground(this, TOURNAMENT_ASSETS.winnerBackground)');
-    expect(completeSource).toContain('Champion:');
+    expect(completeSource).toContain("import { isMobileLandscapeLayout } from '../ui/mobileLayout'");
+    expect(completeSource).toContain("import {\n  RESULT_ACTION_BUTTON_FONT_SIZE,\n  RESULT_ACTION_BUTTON_HEIGHT,\n  RESULT_ACTION_BUTTON_RADIUS\n} from '../ui/resultActionButtons'");
+    expect(completeSource).toContain('SCOREBOARD_BACKGROUND_COLOR,');
+    expect(completeSource).toContain('SCOREBOARD_BACKGROUND_ALPHA,');
+    expect(completeSource).toContain('SCOREBOARD_BORDER_COLOR,');
+    expect(completeSource).toContain('SCOREBOARD_BORDER_ALPHA');
+    expect(completeSource).toContain("this.createHeader(championTeamId, layout)");
+    expect(completeSource).toContain("'Congratulations to the champion!'");
+    expect(completeSource).not.toContain("'Tournament complete'");
+    expect(completeSource).not.toContain('Champion:');
+    expect(completeSource).not.toContain('matches played');
     expect(completeSource).toContain('Champion path');
     expect(completeSource).toContain('Tournament leaders');
     expect(completeSource).toContain('Top scorer');
     expect(completeSource).toContain('Top assist');
     expect(completeSource).toContain('Top goalkeeper');
+    expect(completeSource).toContain('function createTournamentCompleteLayout(');
+    expect(completeSource).toContain('mobileLandscape = isMobileLandscapeLayout()');
+    expect(completeSource).toContain('const panelHeight = COMPLETE_PANEL_BOTTOM_Y - panelTop');
+    expect(completeSource).toContain('fillRoundedRect(');
+    expect(completeSource).toContain('strokeRoundedRect(');
+    expect(completeSource).toContain('this.createPathRow(match, 0, layout.path.rowHeight / 2 + index * layout.path.rowGap, layout)');
+    expect(completeSource).not.toContain('private createFinalLine');
+    expect(completeSource).not.toContain("this.createSectionTitle(-488, -168, 'Final')");
+    expect(completeSource).toContain('borderRadius: getCompleteActionButtonRadius(index, actions.length)');
+    expect(completeSource).toContain('borderWidth: 0');
+    expect(completeSource).toContain('const buttonWidth = layout.actions.width / actions.length');
+    expect(completeSource).toContain('topLeft: 0');
+    expect(completeSource).toContain('topRight: 0');
+    expect(completeSource).toContain('bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(completeSource).toContain('bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0');
     expect(completeSource).toContain('View stats');
     expect(completeSource).toContain("initialTab: 'stats'");
     expect(completeSource).toContain('New tournament');
