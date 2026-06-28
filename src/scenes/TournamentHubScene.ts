@@ -23,6 +23,7 @@ import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
 import {
   createTournamentHubLayout,
+  getTournamentHubCupMPlayoffGeometry,
   getTournamentHubCupXlPlayoffGeometry,
   getTournamentHubGroupStageMaxScroll,
   getTournamentHubMatchMaxScroll,
@@ -1567,21 +1568,34 @@ export class TournamentHubScene extends Phaser.Scene {
 
   private createBracketTab(tournament: TournamentState, layout: TournamentHubLayout): void {
     const format = getTournamentFormat(tournament.formatId);
-    const playoffLayout = layout.playoff;
-
     if (format.id === 'cup-xl') {
       this.createCupXlBracketTab(tournament, layout);
       return;
     }
 
+    const cupMGeometry = format.id === 'cup-m' ? getTournamentHubCupMPlayoffGeometry(layout) : null;
+    const playoffLayout =
+      cupMGeometry === null
+        ? layout.playoff
+        : {
+            ...layout.playoff,
+            cardWidth: cupMGeometry.cardWidth,
+            cardHeight: cupMGeometry.cardHeight,
+            rowGap: cupMGeometry.rowGap
+          };
+    const renderLayout: TournamentHubLayout = {
+      ...layout,
+      playoff: playoffLayout
+    };
     const cardWidth = playoffLayout.cardWidth;
     const rounds = format.knockoutRounds.map((round) => ({
       stage: round.stage,
       matches: tournament.matches.filter((match) => match.stage === round.stage)
     }));
-    const columnGap = getBracketColumnGap(rounds.length, cardWidth, playoffLayout.width, playoffLayout.maxColumnGap);
+    const columnGap =
+      cupMGeometry?.columnGap ?? getBracketColumnGap(rounds.length, cardWidth, playoffLayout.width, playoffLayout.maxColumnGap);
     const totalWidth = rounds.length * cardWidth + Math.max(0, rounds.length - 1) * columnGap;
-    const startX = 0;
+    const startX = cupMGeometry?.startX ?? 0;
     const roundCenters = getBracketRoundCenters(
       rounds[0]?.matches.length ?? 0,
       rounds.length,
@@ -1589,7 +1603,7 @@ export class TournamentHubScene extends Phaser.Scene {
       playoffLayout.rowGap
     );
     const contentHeight = getBracketContentHeight(roundCenters, playoffLayout.cardHeight);
-    const contentWidth = Math.max(playoffLayout.width, totalWidth);
+    const contentWidth = Math.max(playoffLayout.width, startX + totalWidth);
     const maxScrollX = Math.max(0, contentWidth - playoffLayout.width);
     const maxScrollY = Math.max(0, contentHeight - playoffLayout.viewportHeight);
     const content = this.add.container(playoffLayout.x, playoffLayout.y);
@@ -1603,9 +1617,9 @@ export class TournamentHubScene extends Phaser.Scene {
       const centers = roundCenters[roundIndex] ?? [];
       const labelY = Math.min(...centers) - playoffLayout.cardHeight / 2 - 24;
 
-      content.add(this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY, layout));
+      content.add(this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY, renderLayout));
       round.matches.forEach((match, index) => {
-        content.add(this.createBracketMatch(match, x, centers[index] - playoffLayout.cardHeight / 2, layout));
+        content.add(this.createBracketMatch(match, x, centers[index] - playoffLayout.cardHeight / 2, renderLayout));
       });
     });
 

@@ -163,6 +163,16 @@ export interface TournamentHubCupXlPlayoffGeometry {
   rightColumnXs: readonly [number, number, number];
 }
 
+export interface TournamentHubCupMPlayoffGeometry {
+  cardWidth: number;
+  cardHeight: number;
+  rowGap: number;
+  columnGap: number;
+  contentWidth: number;
+  startX: number;
+  finalX: number;
+}
+
 export function createTournamentHubLayout(
   mobileLandscape = isMobileLandscapeLayout()
 ): TournamentHubLayout {
@@ -478,6 +488,28 @@ export function createTournamentHubLayout(
       pageX: 800,
       nextX: contentRight - footerButtonWidth / 2
     }
+  };
+}
+
+export function getTournamentHubCupMPlayoffGeometry(
+  layout: TournamentHubLayout
+): TournamentHubCupMPlayoffGeometry {
+  const cardWidth = layout.mobileLandscape ? 340 : 320;
+  const cardHeight = layout.mobileLandscape ? 132 : 124;
+  const rowGap = layout.mobileLandscape ? 172 : 160;
+  const columnGap = layout.mobileLandscape ? 230 : 220;
+  const contentWidth = cardWidth * 2 + columnGap;
+  const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
+  const finalX = startX + cardWidth + columnGap;
+
+  return {
+    cardWidth,
+    cardHeight,
+    rowGap,
+    columnGap,
+    contentWidth,
+    startX,
+    finalX
   };
 }
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { getTournamentMatchCount, type TournamentFormatId } from '../tournament';
 import {
   createTournamentHubLayout,
+  getTournamentHubCupMPlayoffGeometry,
   getTournamentHubCupXlPlayoffGeometry,
   getTournamentHubGroupStageMaxScroll,
   getTournamentHubMatchMaxScroll
@@ -93,6 +94,12 @@ function getPlayoffFlagTextGap(layout: ReturnType<typeof createTournamentHubLayo
   const textX = flagX + layout.playoff.flagWidth / 2 + 18;
 
   return textX - (flagX + layout.playoff.flagWidth / 2);
+}
+
+function getCupMPlayoffContentHeight(layout: ReturnType<typeof createTournamentHubLayout>): number {
+  const geometry = getTournamentHubCupMPlayoffGeometry(layout);
+
+  return geometry.cardHeight + geometry.rowGap + 56;
 }
 
 describe('Tournament Hub responsive layout', () => {
@@ -441,6 +448,35 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobile.playoff.viewportHeight).toBeLessThanOrEqual(mobile.matches.viewportHeight!);
   });
 
+  it('centers and enlarges the Cup M playoff bracket without requiring scroll', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+    const desktopGeometry = getTournamentHubCupMPlayoffGeometry(desktop);
+    const mobileGeometry = getTournamentHubCupMPlayoffGeometry(mobile);
+
+    expect(desktopGeometry.cardWidth).toBe(320);
+    expect(desktopGeometry.cardHeight).toBe(124);
+    expect(desktopGeometry.cardWidth).toBeGreaterThan(desktop.playoff.cardWidth);
+    expect(desktopGeometry.cardHeight).toBeGreaterThan(desktop.playoff.cardHeight);
+    expect(desktopGeometry.startX).toBe(242);
+    expect(desktopGeometry.startX).toBeGreaterThan(200);
+    expect(desktopGeometry.finalX).toBe(desktopGeometry.startX + desktopGeometry.cardWidth + desktopGeometry.columnGap);
+    expect(desktopGeometry.finalX).toBeGreaterThan(desktopGeometry.startX + desktopGeometry.cardWidth);
+    expect(desktopGeometry.startX + desktopGeometry.contentWidth).toBeLessThanOrEqual(desktop.playoff.width);
+    expect(getCupMPlayoffContentHeight(desktop)).toBeLessThanOrEqual(desktop.playoff.viewportHeight);
+
+    expect(mobileGeometry.cardWidth).toBe(340);
+    expect(mobileGeometry.cardHeight).toBe(132);
+    expect(mobileGeometry.cardWidth).toBeGreaterThan(mobile.playoff.cardWidth);
+    expect(mobileGeometry.cardHeight).toBeGreaterThan(mobile.playoff.cardHeight);
+    expect(mobileGeometry.startX).toBe(313);
+    expect(mobileGeometry.startX).toBeGreaterThan(300);
+    expect(mobileGeometry.finalX).toBe(mobileGeometry.startX + mobileGeometry.cardWidth + mobileGeometry.columnGap);
+    expect(mobileGeometry.finalX).toBeGreaterThan(mobileGeometry.startX + mobileGeometry.cardWidth);
+    expect(mobileGeometry.startX + mobileGeometry.contentWidth).toBeLessThanOrEqual(mobile.playoff.width);
+    expect(getCupMPlayoffContentHeight(mobile)).toBeLessThanOrEqual(mobile.playoff.viewportHeight);
+  });
+
   it('fits the desktop Cup XL bracket while keeping mobile scroll-ready and mirrored', () => {
     const desktop = createTournamentHubLayout(false);
     const mobile = createTournamentHubLayout(true);
@@ -765,6 +801,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('maxScrollX');
     expect(source).toContain('maxScrollY');
     expect(source).toContain('content.setMask(mask)');
+    expect(source).toContain('getTournamentHubCupMPlayoffGeometry(layout)');
+    expect(source).toContain("format.id === 'cup-m' ? getTournamentHubCupMPlayoffGeometry(layout) : null");
+    expect(source).toContain('cardHeight: cupMGeometry.cardHeight');
+    expect(source).toContain('rowGap: cupMGeometry.rowGap');
     expect(source).toContain('getTournamentHubCupXlPlayoffGeometry(layout)');
     expect(source).toContain('cardWidth: geometry.cardWidth');
     expect(source).toContain("teamFontSize: layout.mobileLandscape ? layout.playoff.teamFontSize : '16px'");
@@ -787,7 +827,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('if (!isWinnerSeededIntoMatch(sourceMatch, targetMatch))');
     expect(source).toContain("sourceMatch?.status !== 'completed'");
     expect(source).toContain('targetMatch.homeTeamId === winnerTeamId || targetMatch.awayTeamId === winnerTeamId');
-    expect(source).toContain('const startX = 0');
+    expect(source).toContain('const startX = cupMGeometry?.startX ?? 0');
     expect(source).toContain('getBracketTeamLabel(teamId)');
     expect(source).toContain('const flagX = x + PLAYOFF_FLAG_OFFSET_X');
     expect(source).toContain('const teamLabelX = flagX + layout.playoff.flagWidth / 2 + PLAYOFF_FLAG_TEXT_GAP');
