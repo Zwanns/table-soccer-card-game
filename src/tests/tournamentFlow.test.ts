@@ -114,33 +114,47 @@ describe('tournament hub scene integration', () => {
     expect(simulateBlock).not.toContain("this.scene.start('GameScene'");
   });
 
-  it('routes Next Match through AI-only simulations before starting the next human match', () => {
+  it('splits tournament footer progression into advance and play actions', () => {
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const advanceStart = hubSource.indexOf('private handleAdvanceToNextMatch');
+    const advanceEnd = hubSource.indexOf('private handlePlayNextMatch');
+    const advanceBlock = hubSource.slice(advanceStart, advanceEnd);
+    const playStart = hubSource.indexOf('private handlePlayNextMatch');
+    const playEnd = hubSource.indexOf('private handleFinishTournament');
+    const playBlock = hubSource.slice(playStart, playEnd);
 
     expect(hubSource).toContain('const footerAction = getTournamentFooterAction(tournament)');
     expect(hubSource).toContain("new Button(this, layout.footer.nextX, layout.footer.y, footerAction.label");
-    expect(hubSource).toContain('private handleNextMatch(tournament: TournamentState): void');
-    expect(hubSource).toContain('if (!hasFutureHumanRelevantMatch(tournament))');
+    expect(hubSource).toContain('private handleAdvanceToNextMatch(tournament: TournamentState): void');
+    expect(hubSource).toContain('private handlePlayNextMatch(tournament: TournamentState): void');
     expect(hubSource).toContain('const nextMatch = findNextAvailableMatch(currentTournament)');
     expect(hubSource).toContain('function isAiVsAiTournamentMatch(');
-    expect(hubSource).toContain('if (!isAiVsAiTournamentMatch(currentTournament, nextMatch))');
-    expect(hubSource).toContain('this.startTournamentMatch(currentTournament, nextMatch)');
+    expect(advanceBlock).toContain('const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch)');
+    expect(advanceBlock).toContain('this.render()');
+    expect(advanceBlock).not.toContain("this.scene.start('GameScene'");
+    expect(advanceBlock).not.toContain('this.startTournamentMatch(');
+    expect(playBlock).toContain('const nextMatch = findNextAvailableMatch(tournament)');
+    expect(playBlock).toContain('this.startTournamentMatch(tournament, nextMatch)');
+    expect(playBlock).not.toContain('this.simulateTournamentMatch(');
     expect(hubSource).toContain('const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch)');
     expect(hubSource).toContain('saveTournament(currentTournament)');
     expect(hubSource).toContain('function findNextAvailableMatch(tournament: TournamentState): TournamentMatch | undefined');
+    expect(hubSource).not.toContain("'Next Match'");
     expect(hubSource).not.toContain('function getAvailableMatchActions(');
     expect(hubSource).not.toContain('private runMatchAction(');
     expect(hubSource).not.toContain("new Button(this, action.kind === 'simulate'");
   });
 
-  it('replaces Next Match with Finish tournament when no human-relevant matches remain', () => {
+  it('chooses the correct footer labels for advance, play and finish states', () => {
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
     const resultSource = readSource('src/scenes/ResultScene.ts');
 
     expect(hubSource).toContain("return { kind: 'finish', label: 'Finish tournament' }");
-    expect(hubSource).toContain("return { kind: 'next', label: 'Next Match' }");
+    expect(hubSource).toContain("return { kind: 'play', label: 'Play next match' }");
+    expect(hubSource).toContain("return { kind: 'advance', label: 'Advance to next match' }");
     expect(hubSource).toContain('function hasFutureHumanRelevantMatch(tournament: TournamentState): boolean');
     expect(hubSource).toContain('function hasRemainingUnplayedMatches(tournament: TournamentState): boolean');
+    expect(hubSource).toContain('function isHumanRelevantTournamentMatch(tournament: TournamentState, match: TournamentMatch): boolean');
     expect(hubSource).toContain("private handleFooterAction(tournament: TournamentState, action: TournamentFooterAction['kind']): void");
     expect(hubSource).toContain('private handleFinishTournament(tournament: TournamentState): void');
     expect(hubSource).toContain("this.scene.start('TournamentCompleteScene')");

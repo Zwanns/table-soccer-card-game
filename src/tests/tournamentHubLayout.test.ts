@@ -724,7 +724,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).not.toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
     expect(source).not.toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
     expect(source).not.toContain('private runMatchAction(');
-    expect(source).toContain('this.startTournamentMatch(currentTournament, nextMatch)');
+    expect(source).toContain('this.startTournamentMatch(tournament, nextMatch)');
     expect(source).toContain('if (!this.canRunGuardedInputAction()) {\n      return;\n    }\n\n    if (match.homeTeamId === undefined');
     expect(source).toContain('this.matchScrollY = 0');
     expect(source).toContain('layout.matches.scoreX');
@@ -768,6 +768,10 @@ describe('Tournament Hub responsive layout', () => {
     expect(renderBlock).toContain('new Button(this, layout.footer.nextX, layout.footer.y, footerAction.label');
     expect(renderBlock).toContain('this.handleFooterAction(tournament, footerAction.kind)');
     expect(renderBlock).not.toContain("if (this.activeTab !== 'matches')");
+    expect(source).toContain("'Advance to next match'");
+    expect(source).toContain("'Play next match'");
+    expect(source).toContain("'Finish tournament'");
+    expect(source).not.toContain("'Next Match'");
     expect(source).not.toContain('MATCHES_PER_PAGE');
     expect(source).toContain("this.activeTab === 'tables'");
     expect(source).toContain("this.activeTab === 'bracket'");

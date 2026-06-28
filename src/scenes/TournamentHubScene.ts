@@ -63,7 +63,7 @@ type PlayoffRenderRound = {
 };
 
 type TournamentFooterAction = {
-  kind: 'next' | 'finish';
+  kind: 'advance' | 'play' | 'finish';
   label: string;
 };
 
@@ -2074,15 +2074,20 @@ export class TournamentHubScene extends Phaser.Scene {
   }
 
   private handleFooterAction(tournament: TournamentState, action: TournamentFooterAction['kind']): void {
-    if (action === 'finish') {
-      this.handleFinishTournament(tournament);
-      return;
+    switch (action) {
+      case 'advance':
+        this.handleAdvanceToNextMatch(tournament);
+        return;
+      case 'play':
+        this.handlePlayNextMatch(tournament);
+        return;
+      case 'finish':
+        this.handleFinishTournament(tournament);
+        return;
     }
-
-    this.handleNextMatch(tournament);
   }
 
-  private handleNextMatch(tournament: TournamentState): void {
+  private handleAdvanceToNextMatch(tournament: TournamentState): void {
     if (!this.canRunGuardedInputAction()) {
       return;
     }
@@ -2096,15 +2101,9 @@ export class TournamentHubScene extends Phaser.Scene {
 
     let currentTournament = tournament;
     const maxSteps = currentTournament.matches.length * 2;
+    let simulatedAnyMatch = false;
 
     for (let step = 0; step < maxSteps; step += 1) {
-      if (currentTournament.stage === 'complete') {
-        this.registry.set('currentTournament', currentTournament);
-        saveTournament(currentTournament);
-        this.scene.start('TournamentCompleteScene');
-        return;
-      }
-
       const nextMatch = findNextAvailableMatch(currentTournament);
 
       if (nextMatch === undefined) {
@@ -2117,7 +2116,7 @@ export class TournamentHubScene extends Phaser.Scene {
       if (!isAiVsAiTournamentMatch(currentTournament, nextMatch)) {
         this.registry.set('currentTournament', currentTournament);
         saveTournament(currentTournament);
-        this.startTournamentMatch(currentTournament, nextMatch);
+        this.render();
         return;
       }
 
@@ -2130,6 +2129,7 @@ export class TournamentHubScene extends Phaser.Scene {
       currentTournament = simulatedTournament;
       this.registry.set('currentTournament', currentTournament);
       saveTournament(currentTournament);
+      simulatedAnyMatch = true;
 
       if (!hasFutureHumanRelevantMatch(currentTournament)) {
         this.render();
@@ -2137,7 +2137,29 @@ export class TournamentHubScene extends Phaser.Scene {
       }
     }
 
-    this.showSimulationError('Could not find the next playable tournament match.');
+    if (simulatedAnyMatch) {
+      this.render();
+      return;
+    }
+
+    this.showSimulationError('Could not advance to the next playable tournament match.');
+  }
+
+  private handlePlayNextMatch(tournament: TournamentState): void {
+    if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
+    const nextMatch = findNextAvailableMatch(tournament);
+
+    if (nextMatch === undefined || isAiVsAiTournamentMatch(tournament, nextMatch)) {
+      this.render();
+      return;
+    }
+
+    this.registry.set('currentTournament', tournament);
+    saveTournament(tournament);
+    this.startTournamentMatch(tournament, nextMatch);
   }
 
   private handleFinishTournament(tournament: TournamentState): void {
@@ -2453,11 +2475,21 @@ function getTournamentFooterAction(tournament: TournamentState): TournamentFoote
     return null;
   }
 
+  const nextMatch = findNextAvailableMatch(tournament);
+
+  if (nextMatch === undefined) {
+    return null;
+  }
+
   if (!hasFutureHumanRelevantMatch(tournament)) {
     return { kind: 'finish', label: 'Finish tournament' };
   }
 
-  return { kind: 'next', label: 'Next Match' };
+  if (isHumanRelevantTournamentMatch(tournament, nextMatch)) {
+    return { kind: 'play', label: 'Play next match' };
+  }
+
+  return { kind: 'advance', label: 'Advance to next match' };
 }
 
 function findNextAvailableMatch(tournament: TournamentState): TournamentMatch | undefined {
@@ -2477,8 +2509,14 @@ function hasFutureHumanRelevantMatch(tournament: TournamentState): boolean {
   return tournament.matches.some(
     (match) =>
       match.status !== 'completed' &&
-      ((match.homeTeamId !== undefined && getTournamentTeamControllerType(tournament, match.homeTeamId) !== 'AI') ||
-        (match.awayTeamId !== undefined && getTournamentTeamControllerType(tournament, match.awayTeamId) !== 'AI'))
+      isHumanRelevantTournamentMatch(tournament, match)
+  );
+}
+
+function isHumanRelevantTournamentMatch(tournament: TournamentState, match: TournamentMatch): boolean {
+  return (
+    (match.homeTeamId !== undefined && getTournamentTeamControllerType(tournament, match.homeTeamId) !== 'AI') ||
+    (match.awayTeamId !== undefined && getTournamentTeamControllerType(tournament, match.awayTeamId) !== 'AI')
   );
 }
 

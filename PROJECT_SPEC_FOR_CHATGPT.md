@@ -10,7 +10,7 @@
 
 Tutorial Match v2 запускается из меню режимов как отдельный guided quick match. Он использует обычный `GameScene`, фиксированные команды Brazil vs Germany, scripted setup/preset карт, `TutorialController` для шагов и `TutorialOverlay` для подсказок/подсветки. Tutorial v2 обучает базовому циклу: выбрать карту, пробить карту соперника, использовать пример special rule `6 beats Ace`, выйти на GK, ударить, забить и увидеть смену владения. После первого гола он показывает подключение полузащитника, правило `opposite slot only`, запрет игры полузащитником против пустого слота, потерю мяча после подключения полузащитника и единую open zone для контратаки. Тексты Tutorial Match локализованы на EN / PL / UA через `src/tutorial/tutorialTexts.ts`, а выбранный язык общий с Rules через `src/i18n/languageStore.ts`. Он не меняет правила `GameEngine`, карточные правила, GK-логику, AI, tournament flow или penalty flow.
 
-Текущая версия приложения в коде: `1.3.7`.
+Текущая версия приложения в коде: `1.4.0`.
 
 ## 2. Технологии и команды
 
@@ -42,7 +42,7 @@ src/config.ts
 Глобальная конфигурация:
 
 - `GAME_TITLE = 'Total Soccer: Mundial'`
-- `GAME_VERSION = '1.3.7'`
+- `GAME_VERSION = '1.4.0'`
 - `GAME_AUTHOR = 'Oleh Myronchuk'`
 - `SCENE_WIDTH = 1600`
 - `SCENE_HEIGHT = 720`
