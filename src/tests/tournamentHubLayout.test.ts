@@ -99,7 +99,7 @@ function getPlayoffFlagTextGap(layout: ReturnType<typeof createTournamentHubLayo
 function getCupMPlayoffContentHeight(layout: ReturnType<typeof createTournamentHubLayout>): number {
   const geometry = getTournamentHubCupMPlayoffGeometry(layout);
 
-  return geometry.cardHeight + geometry.rowGap + 56;
+  return geometry.verticalOffset + geometry.cardHeight + geometry.rowGap + 56;
 }
 
 describe('Tournament Hub responsive layout', () => {
@@ -456,6 +456,9 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(desktopGeometry.cardWidth).toBe(320);
     expect(desktopGeometry.cardHeight).toBe(124);
+    expect(desktopGeometry.rowGap).toBe(160);
+    expect(desktopGeometry.columnGap).toBe(220);
+    expect(desktopGeometry.verticalOffset).toBe(36);
     expect(desktopGeometry.cardWidth).toBeGreaterThan(desktop.playoff.cardWidth);
     expect(desktopGeometry.cardHeight).toBeGreaterThan(desktop.playoff.cardHeight);
     expect(desktopGeometry.startX).toBe(242);
@@ -467,6 +470,9 @@ describe('Tournament Hub responsive layout', () => {
 
     expect(mobileGeometry.cardWidth).toBe(340);
     expect(mobileGeometry.cardHeight).toBe(132);
+    expect(mobileGeometry.rowGap).toBe(172);
+    expect(mobileGeometry.columnGap).toBe(230);
+    expect(mobileGeometry.verticalOffset).toBe(40);
     expect(mobileGeometry.cardWidth).toBeGreaterThan(mobile.playoff.cardWidth);
     expect(mobileGeometry.cardHeight).toBeGreaterThan(mobile.playoff.cardHeight);
     expect(mobileGeometry.startX).toBe(313);
@@ -475,6 +481,36 @@ describe('Tournament Hub responsive layout', () => {
     expect(mobileGeometry.finalX).toBeGreaterThan(mobileGeometry.startX + mobileGeometry.cardWidth);
     expect(mobileGeometry.startX + mobileGeometry.contentWidth).toBeLessThanOrEqual(mobile.playoff.width);
     expect(getCupMPlayoffContentHeight(mobile)).toBeLessThanOrEqual(mobile.playoff.viewportHeight);
+  });
+
+  it('lowers only the Cup M playoff bracket while preserving approved size and horizontal geometry', () => {
+    const desktop = createTournamentHubLayout(false);
+    const mobile = createTournamentHubLayout(true);
+    const desktopGeometry = getTournamentHubCupMPlayoffGeometry(desktop);
+    const mobileGeometry = getTournamentHubCupMPlayoffGeometry(mobile);
+
+    expect(desktopGeometry).toMatchObject({
+      cardWidth: 320,
+      cardHeight: 124,
+      rowGap: 160,
+      columnGap: 220,
+      contentWidth: 860,
+      startX: 242,
+      finalX: 782
+    });
+    expect(mobileGeometry).toMatchObject({
+      cardWidth: 340,
+      cardHeight: 132,
+      rowGap: 172,
+      columnGap: 230,
+      contentWidth: 910,
+      startX: 313,
+      finalX: 883
+    });
+    expect(desktopGeometry.verticalOffset).toBeGreaterThan(0);
+    expect(mobileGeometry.verticalOffset).toBeGreaterThan(desktopGeometry.verticalOffset);
+    expect(getCupMPlayoffContentHeight(desktop)).toBe(376);
+    expect(getCupMPlayoffContentHeight(mobile)).toBe(400);
   });
 
   it('fits the desktop Cup XL bracket while keeping mobile scroll-ready and mirrored', () => {
@@ -805,6 +841,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain("format.id === 'cup-m' ? getTournamentHubCupMPlayoffGeometry(layout) : null");
     expect(source).toContain('cardHeight: cupMGeometry.cardHeight');
     expect(source).toContain('rowGap: cupMGeometry.rowGap');
+    expect(source).toContain('cupMGeometry?.verticalOffset ?? 0');
     expect(source).toContain('getTournamentHubCupXlPlayoffGeometry(layout)');
     expect(source).toContain('cardWidth: geometry.cardWidth');
     expect(source).toContain("teamFontSize: layout.mobileLandscape ? layout.playoff.teamFontSize : '16px'");

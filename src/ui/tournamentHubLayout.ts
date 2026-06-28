@@ -167,6 +167,7 @@ export interface TournamentHubCupMPlayoffGeometry {
   cardWidth: number;
   cardHeight: number;
   rowGap: number;
+  verticalOffset: number;
   columnGap: number;
   contentWidth: number;
   startX: number;
@@ -497,6 +498,7 @@ export function getTournamentHubCupMPlayoffGeometry(
   const cardWidth = layout.mobileLandscape ? 340 : 320;
   const cardHeight = layout.mobileLandscape ? 132 : 124;
   const rowGap = layout.mobileLandscape ? 172 : 160;
+  const verticalOffset = layout.mobileLandscape ? 40 : 36;
   const columnGap = layout.mobileLandscape ? 230 : 220;
   const contentWidth = cardWidth * 2 + columnGap;
   const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
@@ -506,6 +508,7 @@ export function getTournamentHubCupMPlayoffGeometry(
     cardWidth,
     cardHeight,
     rowGap,
+    verticalOffset,
     columnGap,
     contentWidth,
     startX,

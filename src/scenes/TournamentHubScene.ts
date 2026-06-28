@@ -1601,7 +1601,7 @@ export class TournamentHubScene extends Phaser.Scene {
       rounds.length,
       playoffLayout.cardHeight,
       playoffLayout.rowGap
-    );
+    ).map((centers) => centers.map((center) => center + (cupMGeometry?.verticalOffset ?? 0)));
     const contentHeight = getBracketContentHeight(roundCenters, playoffLayout.cardHeight);
     const contentWidth = Math.max(playoffLayout.width, startX + totalWidth);
     const maxScrollX = Math.max(0, contentWidth - playoffLayout.width);
