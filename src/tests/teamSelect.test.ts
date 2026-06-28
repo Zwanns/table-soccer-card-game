@@ -6,6 +6,10 @@ function readTeamSelectSource(): string {
   return readFileSync(join(process.cwd(), 'src', 'scenes', 'TeamSelectScene.ts'), 'utf8');
 }
 
+function readScrollEdgeFadeSource(): string {
+  return readFileSync(join(process.cwd(), 'src', 'ui', 'scrollEdgeFade.ts'), 'utf8');
+}
+
 describe('quick match team selection AI controls', () => {
   it('uses HUMAN as the default quick match controller type', () => {
     const source = readTeamSelectSource();
@@ -170,20 +174,23 @@ describe('quick match team selection AI controls', () => {
 
   it('fades country grid cards at overflowing viewport edges without dark overlays', () => {
     const source = readTeamSelectSource();
+    const fadeSource = readScrollEdgeFadeSource();
 
-    expect(source).toContain('const TEAM_GRID_EDGE_FADE_HEIGHT = 52');
-    expect(source).toContain('const TEAM_GRID_EDGE_FADE_MIN_ALPHA = 0.22');
-    expect(source).toContain('const TEAM_GRID_SCROLL_EDGE_EPSILON = 0.5');
+    expect(source).toContain("import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade'");
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_HEIGHT = 52');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_MIN_ALPHA = 0.22');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_EPSILON = 0.5');
     expect(source).toContain('let refreshTeamGridItems = (): void => {}');
-    expect(source).toContain('this.updateCountryGridItemAlphas(content, teamOptions, viewportTop, teamGridScrollY, maxScroll)');
-    expect(source).toContain('private updateCountryGridItemAlphas(');
-    expect(source).toContain('const viewportBottom = viewportTop + TEAM_GRID_VIEWPORT_HEIGHT');
-    expect(source).toContain('const shouldFadeTop = scrollY > TEAM_GRID_SCROLL_EDGE_EPSILON');
-    expect(source).toContain('const shouldFadeBottom = scrollY < maxScroll - TEAM_GRID_SCROLL_EDGE_EPSILON');
-    expect(source).toContain('const itemCenterY = content.y + option.y');
-    expect(source).toContain('const distanceToTopEdge = itemCenterY - viewportTop');
-    expect(source).toContain('const distanceToBottomEdge = viewportBottom - itemCenterY');
-    expect(source).toContain('option.setAlpha(alpha)');
+    expect(source).toContain('updateScrollableItemEdgeAlphas({');
+    expect(source).toContain('viewportHeight: TEAM_GRID_VIEWPORT_HEIGHT');
+    expect(source).toContain('scrollY: teamGridScrollY');
+    expect(fadeSource).toContain('const viewportBottom = options.viewportTop + options.viewportHeight');
+    expect(fadeSource).toContain('const shouldFadeTop = options.scrollY > SCROLL_EDGE_FADE_EPSILON');
+    expect(fadeSource).toContain('const shouldFadeBottom = options.scrollY < options.maxScroll - SCROLL_EDGE_FADE_EPSILON');
+    expect(fadeSource).toContain('const itemCenterY = options.content.y + item.y');
+    expect(fadeSource).toContain('const distanceToTopEdge = itemCenterY - options.viewportTop');
+    expect(fadeSource).toContain('const distanceToBottomEdge = viewportBottom - itemCenterY');
+    expect(fadeSource).toContain('item.setAlpha(alpha)');
     expect(source).not.toContain('fade.fillRect');
     expect(source).not.toContain('TEAM_GRID_EDGE_FADE_MAX_ALPHA');
   });

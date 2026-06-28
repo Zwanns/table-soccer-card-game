@@ -155,24 +155,20 @@ describe('read-only squad scenes', () => {
 
   it('fades team list cards themselves near the viewport edges without dark overlays', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
+    const fadeSource = readSource('src/ui/scrollEdgeFade.ts');
 
-    expect(selectSource).toContain('const TEAM_LIST_FADE_HEIGHT = 52');
-    expect(selectSource).toContain('const TEAM_LIST_FADE_MIN_ALPHA = 0.22');
-    expect(selectSource).toContain('const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5');
-    expect(selectSource).toContain('this.updateTeamListItemAlphas(content, teamOptions, maxScroll)');
-    expect(selectSource).toContain(
-      'teamOptions: readonly Phaser.GameObjects.Container[],'
-    );
-    expect(selectSource).toContain('maxScroll: number');
-    expect(selectSource).toContain('const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT');
-    expect(selectSource).toContain('const shouldFadeTop = this.teamGridScrollY > TEAM_LIST_SCROLL_EDGE_EPSILON');
-    expect(selectSource).toContain('const shouldFadeBottom = this.teamGridScrollY < maxScroll - TEAM_LIST_SCROLL_EDGE_EPSILON');
-    expect(selectSource).toContain('const itemCenterY = content.y + option.y');
-    expect(selectSource).toContain('if (shouldFadeTop)');
-    expect(selectSource).toContain('const distanceToTopEdge = itemCenterY - GRID_VIEWPORT_TOP');
-    expect(selectSource).toContain('if (shouldFadeBottom)');
-    expect(selectSource).toContain('const distanceToBottomEdge = viewportBottom - itemCenterY');
-    expect(selectSource).toContain('option.setAlpha(alpha)');
+    expect(selectSource).toContain("import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade'");
+    expect(selectSource).toContain('updateScrollableItemEdgeAlphas({');
+    expect(selectSource).toContain('viewportTop: GRID_VIEWPORT_TOP');
+    expect(selectSource).toContain('viewportHeight: GRID_VIEWPORT_HEIGHT');
+    expect(selectSource).toContain('scrollY: this.teamGridScrollY');
+    expect(selectSource).toContain('maxScroll');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_HEIGHT = 52');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_MIN_ALPHA = 0.22');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_EPSILON = 0.5');
+    expect(fadeSource).toContain('const viewportBottom = options.viewportTop + options.viewportHeight');
+    expect(fadeSource).toContain('item.setAlpha(alpha)');
+    expect(selectSource).not.toContain('private updateTeamListItemAlphas');
     expect(selectSource).not.toContain('private createTeamListFade');
     expect(selectSource).not.toContain('TEAM_LIST_FADE_MAX_ALPHA');
     expect(selectSource).not.toContain('fade.fillRect');

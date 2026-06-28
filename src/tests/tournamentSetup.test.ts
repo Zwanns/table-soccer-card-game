@@ -36,6 +36,13 @@ function getSetupFooterTop(layout: ReturnType<typeof createTournamentSetupLayout
   return firstButton.y - firstButton.height / 2;
 }
 
+function getGroupBottomPadding(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return (
+    layout.groups.panelHeight -
+    (layout.groups.slotStartY + 3 * layout.groups.slotStepY + layout.groups.slotHeight)
+  );
+}
+
 describe('tournament setup scene integration', () => {
   it('registers the tournament setup scene', () => {
     const mainSource = readSourceFile('src', 'main.ts');
@@ -97,6 +104,10 @@ describe('tournament setup scene integration', () => {
 
   it('renders only the cleaned setup footer actions with the hub wording for menu exit', () => {
     const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const footerBlock = setupSource.slice(
+      setupSource.indexOf('private createBottomButtons'),
+      setupSource.indexOf('private changeFormat')
+    );
     const desktopLayout = createTournamentSetupLayout(false);
     const mobileLayout = createTournamentSetupLayout(true);
 
@@ -111,6 +122,9 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain("{ label: 'Exit to Main Menu', onClick: () => this.scene.start('MenuScene'), disabled: false }");
     expect(setupSource).toContain("{ label: 'Fill randomly', onClick: () => this.fillRandom(), disabled: false }");
     expect(setupSource).toContain("{ label: 'Start tournament', onClick: () => this.startTournament(), disabled: !complete }");
+    expect(footerBlock).toContain('borderRadius: 8');
+    expect(footerBlock).toContain('borderWidth: 0');
+    expect(footerBlock).toContain('disabled: definition.disabled');
     expect(setupSource).not.toContain("{ label: 'Menu'");
     expect(setupSource).not.toContain("{ label: 'Clear'");
     expect(setupSource).not.toContain("{ label: 'Fill empty slots'");
@@ -195,6 +209,49 @@ describe('tournament setup scene integration', () => {
     expect(desktopLayout.groups.slotFlagHeight).toBe(22);
     expect(mobileLayout.groups.slotFlagWidth).toBe(48);
     expect(mobileLayout.groups.slotFlagHeight).toBe(36);
+  });
+
+  it('keeps reduced bottom inner padding in desktop and mobile group cards without shrinking slots', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(getGroupBottomPadding(desktopLayout)).toBe(2);
+    expect(getGroupBottomPadding(desktopLayout)).toBeLessThan(3);
+    expect(desktopLayout.groups.slotHeight).toBe(44);
+    expect(desktopLayout.groups.slotStartY).toBe(51);
+    expect(getGroupBottomPadding(mobileLayout)).toBe(28);
+    expect(getGroupBottomPadding(mobileLayout)).toBeLessThan(36);
+    expect(mobileLayout.groups.slotHeight).toBe(82);
+    expect(mobileLayout.groups.slotStartY).toBe(84);
+  });
+
+  it('uses the same alpha fade contract as Teams for the setup team list', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const teamGridBlock = setupSource.slice(
+      setupSource.indexOf('private createTeamGrid'),
+      setupSource.indexOf('private createTeamOption')
+    );
+    const teamSelectSource = readSourceFile('src', 'scenes', 'TeamSelectScene.ts');
+    const squadSelectSource = readSourceFile('src', 'scenes', 'SquadSelectScene.ts');
+    const fadeSource = readSourceFile('src', 'ui', 'scrollEdgeFade.ts');
+
+    expect(setupSource).toContain("import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade'");
+    expect(teamSelectSource).toContain("import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade'");
+    expect(squadSelectSource).toContain("import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade'");
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_HEIGHT = 52');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_MIN_ALPHA = 0.22');
+    expect(fadeSource).toContain('export const SCROLL_EDGE_FADE_EPSILON = 0.5');
+    expect(teamGridBlock).toContain('updateScrollableItemEdgeAlphas({');
+    expect(teamGridBlock).toContain('content,');
+    expect(teamGridBlock).toContain('items: teamOptions');
+    expect(teamGridBlock).toContain('viewportTop: teamLayout.viewportTop');
+    expect(teamGridBlock).toContain('viewportHeight: teamLayout.viewportHeight');
+    expect(teamGridBlock).toContain('scrollY: this.teamGridScrollY');
+    expect(teamGridBlock).toContain('maxScroll');
+    expect(teamGridBlock).toContain('dragScroll.updateScrollableItemInputs(content, teamOptions)');
+    expect(teamGridBlock).toContain('dragScroll.bindScrollableTapTarget(option');
+    expect(setupSource).not.toContain('createTeamListFade');
+    expect(setupSource).not.toContain('fillGradientStyle');
   });
 
   it('resets setup draft on each fresh scene create and uses a 3-column scrollable team list', () => {
@@ -311,6 +368,7 @@ describe('tournament setup scene integration', () => {
       panelRadius: 8,
       gapX: 14,
       gapY: 16,
+      slotStartY: 51,
       slotWidth: 200,
       slotHeight: 44
     });

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
+import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
 import {
@@ -533,7 +534,17 @@ export class TournamentSetupScene extends Phaser.Scene {
       setScroll
     });
 
-    refreshItemInputs = () => dragScroll.updateScrollableItemInputs(content, teamOptions);
+    refreshItemInputs = () => {
+      dragScroll.updateScrollableItemInputs(content, teamOptions);
+      updateScrollableItemEdgeAlphas({
+        content,
+        items: teamOptions,
+        viewportTop: teamLayout.viewportTop,
+        viewportHeight: teamLayout.viewportHeight,
+        scrollY: this.teamGridScrollY,
+        maxScroll
+      });
+    };
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
     teamOptions.forEach((option, index) => {
@@ -713,6 +724,8 @@ export class TournamentSetupScene extends Phaser.Scene {
       }
 
       new Button(this, buttonLayout.x, buttonLayout.y, definition.label, definition.onClick, {
+        borderRadius: 8,
+        borderWidth: 0,
         disabled: definition.disabled,
         fontSize: buttonLayout.fontSize,
         width: buttonLayout.width,

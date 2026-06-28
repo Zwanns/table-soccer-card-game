@@ -14,6 +14,7 @@ import { createTeamScreenLayout, rectCenter, type TeamScreenRect } from '../ui/t
 import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
 import { buildTeamColorSwatches } from '../ui/teamColorSwatches';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
+import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
 
 const GRID_COLUMNS = 4;
 const CARD_WIDTH = 180;
@@ -37,9 +38,6 @@ const TEAM_PREVIEW_BACK_Y = 432;
 const TEAM_PREVIEW_CARD_SCALE = 1.45;
 const TEAM_PREVIEW_DISPLAY_RANK = 'N';
 const SQUAD_SECTION_ROW_GAP = 28;
-const TEAM_LIST_FADE_HEIGHT = 52;
-const TEAM_LIST_FADE_MIN_ALPHA = 0.22;
-const TEAM_LIST_SCROLL_EDGE_EPSILON = 0.5;
 const SQUAD_PANEL_COLORS = {
   background: 0x11161a,
   backgroundAlpha: 0.82,
@@ -173,7 +171,14 @@ export class SquadSelectScene extends Phaser.Scene {
 
     refreshItemInputs = () => {
       dragScroll.updateScrollableItemInputs(content, teamOptions);
-      this.updateTeamListItemAlphas(content, teamOptions, maxScroll);
+      updateScrollableItemEdgeAlphas({
+        content,
+        items: teamOptions,
+        viewportTop: GRID_VIEWPORT_TOP,
+        viewportHeight: GRID_VIEWPORT_HEIGHT,
+        scrollY: this.teamGridScrollY,
+        maxScroll
+      });
     };
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
@@ -208,35 +213,6 @@ export class SquadSelectScene extends Phaser.Scene {
     } else {
       content.once(Phaser.GameObjects.Events.DESTROY, () => maskGraphics.destroy());
     }
-  }
-
-  private updateTeamListItemAlphas(
-    content: Phaser.GameObjects.Container,
-    teamOptions: readonly Phaser.GameObjects.Container[],
-    maxScroll: number
-  ): void {
-    const viewportBottom = GRID_VIEWPORT_TOP + GRID_VIEWPORT_HEIGHT;
-    const shouldFadeTop = this.teamGridScrollY > TEAM_LIST_SCROLL_EDGE_EPSILON;
-    const shouldFadeBottom = this.teamGridScrollY < maxScroll - TEAM_LIST_SCROLL_EDGE_EPSILON;
-
-    teamOptions.forEach((option) => {
-      const itemCenterY = content.y + option.y;
-      let alpha = 1;
-
-      if (shouldFadeTop) {
-        const distanceToTopEdge = itemCenterY - GRID_VIEWPORT_TOP;
-        const topFadeProgress = Phaser.Math.Clamp(distanceToTopEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
-        alpha = Math.min(alpha, TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * topFadeProgress);
-      }
-
-      if (shouldFadeBottom) {
-        const distanceToBottomEdge = viewportBottom - itemCenterY;
-        const bottomFadeProgress = Phaser.Math.Clamp(distanceToBottomEdge / TEAM_LIST_FADE_HEIGHT, 0, 1);
-        alpha = Math.min(alpha, TEAM_LIST_FADE_MIN_ALPHA + (1 - TEAM_LIST_FADE_MIN_ALPHA) * bottomFadeProgress);
-      }
-
-      option.setAlpha(alpha);
-    });
   }
 
   private createTeamOption(x: number, y: number, team: NationalTeam): Phaser.GameObjects.Container {
