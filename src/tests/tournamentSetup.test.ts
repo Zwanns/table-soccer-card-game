@@ -20,6 +20,7 @@ import {
   createTournamentSetupLayout,
   getTournamentSetupGroupMaxScroll
 } from '../ui/tournamentSetupLayout';
+import { createTournamentHubLayout } from '../ui/tournamentHubLayout';
 import { getTournamentFormat, getTournamentMatchCount, type TournamentFormatId } from '../tournament';
 
 const readSourceFile = (...pathSegments: string[]) =>
@@ -27,6 +28,12 @@ const readSourceFile = (...pathSegments: string[]) =>
 
 function getFormatControlWidth(layout: ReturnType<typeof createTournamentSetupLayout>): number {
   return layout.format.width * 3 + layout.format.gapX * 2;
+}
+
+function getSetupFooterTop(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  const firstButton = layout.bottomButtons[0]!;
+
+  return firstButton.y - firstButton.height / 2;
 }
 
 describe('tournament setup scene integration', () => {
@@ -141,6 +148,55 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).not.toContain("text(188");
   });
 
+  it('stretches setup content downward to match the Tournament Hub footer spacing', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+    const desktopHubLayout = createTournamentHubLayout(false);
+    const mobileHubLayout = createTournamentHubLayout(true);
+    const desktopFooterTop = getSetupFooterTop(desktopLayout);
+    const mobileFooterTop = getSetupFooterTop(mobileLayout);
+    const desktopCupXlGroupBottom =
+      desktopLayout.groups.startY +
+      desktopLayout.groups.panelHeight * 2 +
+      desktopLayout.groups.gapY;
+    const desktopTeamBottom = desktopLayout.teams.viewportTop + desktopLayout.teams.viewportHeight;
+    const mobileGroupBottom = mobileLayout.groups.startY + mobileLayout.groups.viewportHeight!;
+    const mobileTeamBottom = mobileLayout.teams.viewportTop + mobileLayout.teams.viewportHeight;
+    const desktopHubFooterTop = desktopHubLayout.footer.y - desktopHubLayout.footer.buttonHeight / 2;
+    const mobileHubFooterTop = mobileHubLayout.footer.y - mobileHubLayout.footer.buttonHeight / 2;
+    const desktopHubGroupGap =
+      desktopHubFooterTop - (desktopHubLayout.groupStage.y + desktopHubLayout.groupStage.viewportHeight!);
+    const mobileHubMatchGap =
+      mobileHubFooterTop - (mobileHubLayout.matches.y + mobileHubLayout.matches.viewportHeight!);
+
+    expect(desktopFooterTop - desktopCupXlGroupBottom).toBe(desktopHubGroupGap);
+    expect(desktopFooterTop - desktopTeamBottom).toBe(desktopHubGroupGap);
+    expect(mobileFooterTop - mobileGroupBottom).toBe(mobileHubMatchGap);
+    expect(mobileFooterTop - mobileTeamBottom).toBe(mobileHubMatchGap);
+  });
+
+  it('polishes group cards with rounded panels and larger readable slot content', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(setupSource).toContain('fillRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius)');
+    expect(setupSource).toContain('strokeRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius)');
+    expect(setupSource).toContain('flag.setDisplaySize(layout.groups.slotFlagWidth, layout.groups.slotFlagHeight)');
+    expect(desktopLayout.groups.panelRadius).toBe(8);
+    expect(mobileLayout.groups.panelRadius).toBe(8);
+    expect(desktopLayout.groups.titleFontSize).toBe('20px');
+    expect(mobileLayout.groups.titleFontSize).toBe('30px');
+    expect(desktopLayout.groups.slotFontSize).toBe('20px');
+    expect(mobileLayout.groups.slotFontSize).toBe('30px');
+    expect(desktopLayout.groups.emptyFontSize).toBe('16px');
+    expect(mobileLayout.groups.emptyFontSize).toBe('22px');
+    expect(desktopLayout.groups.slotFlagWidth).toBe(30);
+    expect(desktopLayout.groups.slotFlagHeight).toBe(22);
+    expect(mobileLayout.groups.slotFlagWidth).toBe(48);
+    expect(mobileLayout.groups.slotFlagHeight).toBe(36);
+  });
+
   it('resets setup draft on each fresh scene create and uses a 3-column scrollable team list', () => {
     const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
@@ -202,14 +258,14 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
     expect(desktopLayout.teams.flagX).toBe(-44);
-    expect(desktopLayout.groups.slotFlagX).toBe(32);
+    expect(desktopLayout.groups.slotFlagX).toBe(34);
     expect(desktopLayout.teams.codeX).toBe(24);
-    expect(desktopLayout.groups.slotCodeX).toBe(94);
+    expect(desktopLayout.groups.slotCodeX).toBe(96);
     expect(setupSource).toContain('.text(teamLayout.codeX, 0, teamCode');
     expect(setupSource).toContain(".setOrigin(0.5)");
     expect(desktopLayout.teams.codeFontSize).toBe('22px');
-    expect(desktopLayout.groups.emptyFontSize).toBe('14px');
-    expect(desktopLayout.groups.slotFontSize).toBe('18px');
+    expect(desktopLayout.groups.emptyFontSize).toBe('16px');
+    expect(desktopLayout.groups.slotFontSize).toBe('20px');
     expect(setupSource).toContain('fontSize: teamLayout.codeFontSize');
     expect(setupSource).toContain('fontSize: team === undefined ? layout.groups.emptyFontSize : layout.groups.slotFontSize');
     expect(setupSource).toContain('showTeamTooltip(team.name');
@@ -233,8 +289,8 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain('dragScroll.bindDragTarget(scrollZone)');
     expect(desktopLayout.groups.viewportHeight).toBeNull();
     expect(mobileLayout.groups.columns).toBe(2);
-    expect(mobileLayout.groups.viewportHeight).toBe(350);
-    expect(mobileLayout.groups.panelHeight).toBe(330);
+    expect(mobileLayout.groups.viewportHeight).toBe(476);
+    expect(mobileLayout.groups.panelHeight).toBe(476);
     expect(mobileLayout.groups.slotHeight).toBeGreaterThan(desktopLayout.groups.slotHeight);
     expect(getTournamentSetupGroupMaxScroll(2, mobileLayout)).toBe(0);
     expect(getTournamentSetupGroupMaxScroll(4, mobileLayout)).toBeGreaterThan(0);
@@ -251,11 +307,12 @@ describe('tournament setup scene integration', () => {
       startX: 54,
       startY: 166,
       panelWidth: 220,
-      panelHeight: 196,
+      panelHeight: 223,
+      panelRadius: 8,
       gapX: 14,
       gapY: 16,
       slotWidth: 200,
-      slotHeight: 38
+      slotHeight: 44
     });
     expect(mobileLayout.teams.columns).toBe(2);
     expect(mobileLayout.teams.buttonHeight).toBeGreaterThan(desktopLayout.teams.buttonHeight);

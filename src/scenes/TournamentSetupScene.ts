@@ -308,20 +308,16 @@ export class TournamentSetupScene extends Phaser.Scene {
     interactive: boolean
   ): Phaser.GameObjects.Container {
     const panel = this.add.container(x, y);
-    const background = this.add.rectangle(
-      0,
-      0,
-      layout.groups.panelWidth,
-      layout.groups.panelHeight,
-      TEAM_CARD_STYLE.panel.backgroundColor,
-      TEAM_CARD_STYLE.panel.backgroundAlpha
-    );
-    background.setOrigin(0);
-    background.setStrokeStyle(
-      TEAM_CARD_STYLE.panel.borderWidth,
-      TEAM_CARD_STYLE.panel.borderColor,
-      TEAM_CARD_STYLE.panel.borderAlpha
-    );
+    const background = this.add.graphics();
+    background
+      .fillStyle(TEAM_CARD_STYLE.panel.backgroundColor, TEAM_CARD_STYLE.panel.backgroundAlpha)
+      .fillRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius)
+      .lineStyle(
+        TEAM_CARD_STYLE.panel.borderWidth,
+        TEAM_CARD_STYLE.panel.borderColor,
+        TEAM_CARD_STYLE.panel.borderAlpha
+      )
+      .strokeRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius);
     const title = this.add
       .text(layout.groups.titleX, layout.groups.titleY, `Group ${groupId}`, {
         color: '#f0c95a',
@@ -402,7 +398,7 @@ export class TournamentSetupScene extends Phaser.Scene {
 
     if (team !== undefined) {
       const flag = this.add.image(layout.groups.slotFlagX, layout.groups.slotHeight / 2, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(layout.mobileLandscape ? 34 : 24, layout.mobileLandscape ? 26 : 18);
+      flag.setDisplaySize(layout.groups.slotFlagWidth, layout.groups.slotFlagHeight);
       const aiButton = this.createAiButton(
         layout.groups.slotWidth - layout.groups.slotAiButtonWidth / 2,
         layout.groups.slotHeight / 2,

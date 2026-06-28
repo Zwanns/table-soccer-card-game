@@ -18,6 +18,7 @@ export interface TournamentSetupLayout {
     startY: number;
     panelWidth: number;
     panelHeight: number;
+    panelRadius: number;
     gapX: number;
     gapY: number;
     viewportWidth: number | null;
@@ -31,6 +32,8 @@ export interface TournamentSetupLayout {
     slotWidth: number;
     slotHeight: number;
     slotFlagX: number;
+    slotFlagWidth: number;
+    slotFlagHeight: number;
     slotCodeX: number;
     slotAiButtonWidth: number;
     slotFontSize: string;
@@ -81,24 +84,27 @@ export function createTournamentSetupLayout(
         startX: 40,
         startY: 150,
         panelWidth: 475,
-        panelHeight: 330,
+        panelHeight: 476,
+        panelRadius: 8,
         gapX: 22,
-        gapY: 18,
+        gapY: 24,
         viewportWidth: 1010,
-        viewportHeight: 350,
+        viewportHeight: 476,
         titleX: 16,
-        titleY: 24,
-        titleFontSize: '24px',
+        titleY: 32,
+        titleFontSize: '30px',
         slotX: 12,
-        slotStartY: 52,
-        slotStepY: 66,
+        slotStartY: 76,
+        slotStepY: 94,
         slotWidth: 451,
-        slotHeight: 62,
-        slotFlagX: 42,
-        slotCodeX: 205,
+        slotHeight: 82,
+        slotFlagX: 46,
+        slotFlagWidth: 48,
+        slotFlagHeight: 36,
+        slotCodeX: 210,
         slotAiButtonWidth: 64,
-        slotFontSize: '24px',
-        emptyFontSize: '18px'
+        slotFontSize: '30px',
+        emptyFontSize: '22px'
       },
       teams: {
         columns: 2,
@@ -108,7 +114,7 @@ export function createTournamentSetupLayout(
         gapY: 8,
         startX: 1192,
         viewportTop: 150,
-        viewportHeight: 350,
+        viewportHeight: 476,
         viewportPadding: 8,
         flagX: -72,
         codeX: 32,
@@ -130,24 +136,27 @@ export function createTournamentSetupLayout(
       startX: 54,
       startY: 166,
       panelWidth: 220,
-      panelHeight: 196,
+      panelHeight: 223,
+      panelRadius: 8,
       gapX: 14,
       gapY: 16,
       viewportWidth: null,
       viewportHeight: null,
       titleX: 14,
-      titleY: 16,
-      titleFontSize: '17px',
+      titleY: 20,
+      titleFontSize: '20px',
       slotX: 10,
-      slotStartY: 44,
-      slotStepY: 36,
+      slotStartY: 50,
+      slotStepY: 42,
       slotWidth: 200,
-      slotHeight: 38,
-      slotFlagX: 32,
-      slotCodeX: 94,
+      slotHeight: 44,
+      slotFlagX: 34,
+      slotFlagWidth: 30,
+      slotFlagHeight: 22,
+      slotCodeX: 96,
       slotAiButtonWidth: 44,
-      slotFontSize: '18px',
-      emptyFontSize: '14px'
+      slotFontSize: '20px',
+      emptyFontSize: '16px'
     },
     teams: {
       columns: 3,
