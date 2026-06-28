@@ -36,11 +36,33 @@ function getSetupFooterTop(layout: ReturnType<typeof createTournamentSetupLayout
   return firstButton.y - firstButton.height / 2;
 }
 
+function getSetupFooterLeft(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  const firstButton = layout.bottomButtons[0]!;
+
+  return firstButton.x - firstButton.width / 2;
+}
+
+function getDesktopGroupRowWidth(layout: ReturnType<typeof createTournamentSetupLayout>, groupCount = 4): number {
+  return groupCount * layout.groups.panelWidth + Math.max(0, groupCount - 1) * layout.groups.gapX;
+}
+
 function getGroupBottomPadding(layout: ReturnType<typeof createTournamentSetupLayout>): number {
   return (
     layout.groups.panelHeight -
     (layout.groups.slotStartY + 3 * layout.groups.slotStepY + layout.groups.slotHeight)
   );
+}
+
+function getFontSizePx(fontSize: string): number {
+  return Number.parseInt(fontSize, 10);
+}
+
+function getGroupTitleTopPadding(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return layout.groups.titleY - getFontSizePx(layout.groups.titleFontSize) / 2;
+}
+
+function getGroupTitleBottomPadding(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return layout.groups.slotStartY - (layout.groups.titleY + getFontSizePx(layout.groups.titleFontSize) / 2);
 }
 
 describe('tournament setup scene integration', () => {
@@ -211,6 +233,22 @@ describe('tournament setup scene integration', () => {
     expect(mobileLayout.groups.slotFlagHeight).toBe(36);
   });
 
+  it('balances group title vertical padding above the first slot on desktop and mobile', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(desktopLayout.groups.titleY).toBe(26);
+    expect(mobileLayout.groups.titleY).toBe(42);
+    [desktopLayout, mobileLayout].forEach((layout) => {
+      expect(Math.abs(getGroupTitleTopPadding(layout) - getGroupTitleBottomPadding(layout))).toBeLessThanOrEqual(1);
+      expect(getGroupTitleTopPadding(layout)).toBeGreaterThan(0);
+      expect(getGroupTitleBottomPadding(layout)).toBeGreaterThan(0);
+      expect(layout.groups.slotStartY).toBeGreaterThan(
+        layout.groups.titleY + getFontSizePx(layout.groups.titleFontSize) / 2
+      );
+    });
+  });
+
   it('keeps reduced bottom inner padding in desktop and mobile group cards without shrinking slots', () => {
     const desktopLayout = createTournamentSetupLayout(false);
     const mobileLayout = createTournamentSetupLayout(true);
@@ -315,9 +353,9 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
     expect(desktopLayout.teams.flagX).toBe(-44);
-    expect(desktopLayout.groups.slotFlagX).toBe(34);
+    expect(desktopLayout.groups.slotFlagX).toBe(32);
     expect(desktopLayout.teams.codeX).toBe(24);
-    expect(desktopLayout.groups.slotCodeX).toBe(96);
+    expect(desktopLayout.groups.slotCodeX).toBe(90);
     expect(setupSource).toContain('.text(teamLayout.codeX, 0, teamCode');
     expect(setupSource).toContain(".setOrigin(0.5)");
     expect(desktopLayout.teams.codeFontSize).toBe('22px');
@@ -361,21 +399,45 @@ describe('tournament setup scene integration', () => {
     const mobileLayout = createTournamentSetupLayout(true);
 
     expect(desktopLayout.groups).toMatchObject({
-      startX: 54,
+      startX: 128,
       startY: 166,
-      panelWidth: 220,
+      panelWidth: 204,
       panelHeight: 223,
       panelRadius: 8,
       gapX: 14,
       gapY: 16,
       slotStartY: 51,
-      slotWidth: 200,
+      slotWidth: 184,
       slotHeight: 44
     });
     expect(mobileLayout.teams.columns).toBe(2);
     expect(mobileLayout.teams.buttonHeight).toBeGreaterThan(desktopLayout.teams.buttonHeight);
     expect(new Set(mobileLayout.bottomButtons.map((button) => button.y))).toEqual(new Set([674]));
     expect(mobileLayout.bottomButtons.every((button) => button.height >= 68)).toBe(true);
+  });
+
+  it('aligns the desktop group area with the footer while keeping four cards in one row', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+    const desktopTeamViewportLeft =
+      desktopLayout.teams.startX - desktopLayout.teams.buttonWidth / 2 - desktopLayout.teams.viewportPadding;
+    const desktopGroupRowRight = desktopLayout.groups.startX + getDesktopGroupRowWidth(desktopLayout);
+
+    expect(desktopLayout.groups.panelWidth).toBe(204);
+    expect(desktopLayout.groups.panelWidth).toBeLessThan(220);
+    expect(desktopLayout.groups.startX).toBe(getSetupFooterLeft(desktopLayout));
+    expect(desktopGroupRowRight).toBeLessThanOrEqual(desktopTeamViewportLeft);
+    expect(desktopLayout.groups.slotX + desktopLayout.groups.slotWidth).toBeLessThanOrEqual(
+      desktopLayout.groups.panelWidth - desktopLayout.groups.slotX
+    );
+    expect(desktopLayout.groups.slotFlagX + desktopLayout.groups.slotFlagWidth / 2).toBeLessThan(
+      desktopLayout.groups.slotCodeX
+    );
+    expect(desktopLayout.groups.slotCodeX).toBeLessThan(
+      desktopLayout.groups.slotWidth - desktopLayout.groups.slotAiButtonWidth
+    );
+    expect(mobileLayout.groups.panelWidth).toBe(475);
+    expect(mobileLayout.groups.startX).toBe(40);
   });
 
   it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
