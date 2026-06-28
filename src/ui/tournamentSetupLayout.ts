@@ -11,9 +11,7 @@ export interface TournamentSetupButtonLayout {
 export interface TournamentSetupLayout {
   mobileLandscape: boolean;
   title: { y: number; fontSize: string };
-  subtitle: { y: number; fontSize: string };
   format: { startX: number; gapX: number; y: number; width: number; height: number; fontSize: string };
-  summary: { participantsX: number; matchesX: number; y: number; fontSize: string };
   groups: {
     columns: number | null;
     startX: number;
@@ -59,21 +57,15 @@ export interface TournamentSetupLayout {
 }
 
 const DESKTOP_BOTTOM_BUTTONS: readonly TournamentSetupButtonLayout[] = [
-  { x: 130, y: 666, width: 170, height: 54, fontSize: '18px' },
-  { x: 342, y: 666, width: 170, height: 54, fontSize: '18px' },
-  { x: 574, y: 666, width: 220, height: 54, fontSize: '17px' },
-  { x: 832, y: 666, width: 220, height: 54, fontSize: '17px' },
-  { x: 1090, y: 666, width: 230, height: 54, fontSize: '17px' },
-  { x: 1360, y: 666, width: 230, height: 54, fontSize: '18px' }
+  { x: 298, y: 674, width: 340, height: 64, fontSize: '18px' },
+  { x: 800, y: 674, width: 340, height: 64, fontSize: '18px' },
+  { x: 1302, y: 674, width: 340, height: 64, fontSize: '18px' }
 ];
 
 const MOBILE_BOTTOM_BUTTONS: readonly TournamentSetupButtonLayout[] = [
-  { x: 285, y: 548, width: 460, height: 56, fontSize: '19px' },
-  { x: 800, y: 548, width: 460, height: 56, fontSize: '19px' },
-  { x: 1315, y: 548, width: 460, height: 56, fontSize: '18px' },
-  { x: 285, y: 624, width: 460, height: 56, fontSize: '18px' },
-  { x: 800, y: 624, width: 460, height: 56, fontSize: '18px' },
-  { x: 1315, y: 624, width: 460, height: 56, fontSize: '19px' }
+  { x: 227, y: 674, width: 390, height: 68, fontSize: '20px' },
+  { x: 800, y: 674, width: 390, height: 68, fontSize: '20px' },
+  { x: 1373, y: 674, width: 390, height: 68, fontSize: '20px' }
 ];
 
 export function createTournamentSetupLayout(
@@ -82,10 +74,8 @@ export function createTournamentSetupLayout(
   if (mobileLandscape) {
     return {
       mobileLandscape: true,
-      title: { y: 18, fontSize: '24px' },
-      subtitle: { y: 45, fontSize: '20px' },
-      format: { startX: 420, gapX: 380, y: 86, width: 300, height: 54, fontSize: '21px' },
-      summary: { participantsX: 300, matchesX: 1300, y: 128, fontSize: '18px' },
+      title: { y: 28, fontSize: '26px' },
+      format: { startX: 32, gapX: 0, y: 86, width: 512, height: 58, fontSize: '21px' },
       groups: {
         columns: 2,
         startX: 40,
@@ -133,10 +123,8 @@ export function createTournamentSetupLayout(
 
   return {
     mobileLandscape: false,
-    title: { y: 30, fontSize: '30px' },
-    subtitle: { y: 68, fontSize: '28px' },
-    format: { startX: 550, gapX: 250, y: 112, width: 210, height: 48, fontSize: '20px' },
-    summary: { participantsX: 352, matchesX: 1244, y: 124, fontSize: '20px' },
+    title: { y: 68, fontSize: '24px' },
+    format: { startX: 128, gapX: 0, y: 116, width: 448, height: 54, fontSize: '20px' },
     groups: {
       columns: null,
       startX: 54,

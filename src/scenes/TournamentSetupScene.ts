@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
@@ -17,7 +17,6 @@ import {
   createTournamentSetupDraft,
   fillEmptyTournamentSetupSlots,
   fillTournamentSetupRandom,
-  getSelectedTournamentTeamIds,
   isTournamentSetupComplete,
   selectTournamentSetupTeam,
   shuffleTournamentSetupGroups,
@@ -94,30 +93,19 @@ export class TournamentSetupScene extends Phaser.Scene {
     this.message = null;
 
     const centerX = SCENE_WIDTH / 2;
-    const selectedCount = getSelectedTournamentTeamIds(this.draft).length;
-    const totalCount = this.draft.slots.length;
     const layout = createTournamentSetupLayout();
 
     createTournamentBackground(this);
     this.add
-      .text(centerX, layout.title.y, GAME_TITLE, {
-        color: '#ffffff',
+      .text(centerX, layout.title.y, 'Tournament', {
+        color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
         fontSize: layout.title.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
-    this.add
-      .text(centerX, layout.subtitle.y, 'Tournament', {
-        color: '#f0c95a',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.subtitle.fontSize,
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
 
     this.createFormatButtons(layout);
-    this.createSummary(selectedCount, totalCount, layout);
     this.createGroupSlots(layout);
     this.createTeamGrid(layout);
     this.createBottomButtons(layout);
@@ -127,7 +115,10 @@ export class TournamentSetupScene extends Phaser.Scene {
     FORMAT_IDS.forEach((formatId, index) => {
       const selected = this.draft.formatId === formatId;
       const style = selected ? TEAM_CARD_STYLE.selected : TEAM_CARD_STYLE.normal;
-      const x = layout.format.startX + index * layout.format.gapX;
+      const x =
+        layout.format.startX +
+        layout.format.width / 2 +
+        index * (layout.format.width + layout.format.gapX);
       const button = this.add.container(x, layout.format.y);
       const background = this.add.rectangle(
         0,
@@ -139,7 +130,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       );
       background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
       const label = this.add
-        .text(0, 0, FORMAT_LABELS[formatId], {
+        .text(0, 0, getTournamentSetupFormatLabel(formatId), {
           align: 'center',
           color: style.textColor,
           fontFamily: 'Arial, sans-serif',
@@ -147,8 +138,6 @@ export class TournamentSetupScene extends Phaser.Scene {
           fontStyle: '700'
         })
         .setOrigin(0.5);
-      const format = getTournamentFormat(formatId);
-      // Do not show team count in the format button (removed per UI request)
       button.add([background, label]);
       button.setSize(layout.format.width, layout.format.height);
       button.setInteractive({ useHandCursor: true });
@@ -166,27 +155,6 @@ export class TournamentSetupScene extends Phaser.Scene {
       });
       button.on('pointerdown', () => this.changeFormat(formatId));
     });
-  }
-
-  private createSummary(selectedCount: number, totalCount: number, layout: TournamentSetupLayout): void {
-    const matchesCount = getTournamentMatchCount(this.draft.formatId);
-
-    this.add
-      .text(layout.summary.participantsX, layout.summary.y, `Participants ${selectedCount}/${totalCount}`, {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.summary.fontSize,
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(layout.summary.matchesX, layout.summary.y, `${matchesCount} matches`, {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.summary.fontSize,
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
   }
 
   private createGroupSlots(layout: TournamentSetupLayout): void {
@@ -736,11 +704,8 @@ export class TournamentSetupScene extends Phaser.Scene {
   private createBottomButtons(layout: TournamentSetupLayout): void {
     const complete = isTournamentSetupComplete(this.draft);
     const definitions = [
-      { label: 'Menu', onClick: () => this.scene.start('MenuScene'), disabled: false },
-      { label: 'Clear', onClick: () => this.clear(), disabled: false },
+      { label: 'Exit to Main Menu', onClick: () => this.scene.start('MenuScene'), disabled: false },
       { label: 'Fill randomly', onClick: () => this.fillRandom(), disabled: false },
-      { label: 'Fill empty slots', onClick: () => this.fillEmpty(), disabled: false },
-      { label: 'Shuffle groups', onClick: () => this.shuffleGroups(), disabled: !complete },
       { label: 'Start tournament', onClick: () => this.startTournament(), disabled: !complete }
     ] as const;
 
@@ -858,4 +823,11 @@ export class TournamentSetupScene extends Phaser.Scene {
 
 function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
   return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
+}
+
+function getTournamentSetupFormatLabel(formatId: TournamentFormatId): string {
+  const format = getTournamentFormat(formatId);
+  const matchCount = getTournamentMatchCount(formatId);
+
+  return `${FORMAT_LABELS[formatId]} (${format.teamCount} teams / ${matchCount} matches)`;
 }

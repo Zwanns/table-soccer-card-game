@@ -20,9 +20,14 @@ import {
   createTournamentSetupLayout,
   getTournamentSetupGroupMaxScroll
 } from '../ui/tournamentSetupLayout';
+import { getTournamentFormat, getTournamentMatchCount, type TournamentFormatId } from '../tournament';
 
 const readSourceFile = (...pathSegments: string[]) =>
   readFileSync(join(process.cwd(), ...pathSegments), 'utf8').replace(/\r\n/g, '\n');
+
+function getFormatControlWidth(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return layout.format.width * 3 + layout.format.gapX * 2;
+}
 
 describe('tournament setup scene integration', () => {
   it('registers the tournament setup scene', () => {
@@ -36,6 +41,73 @@ describe('tournament setup scene integration', () => {
 
     expect(menuSource).toContain('Tournament');
     expect(menuSource).toContain("this.scene.start('TournamentSetupScene')");
+  });
+
+  it('uses Tournament as the setup heading without rendering the game title or separate summary counters', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+
+    expect(setupSource).toContain(".text(centerX, layout.title.y, 'Tournament'");
+    expect(setupSource).not.toContain("import { GAME_TITLE");
+    expect(setupSource).not.toContain('GAME_TITLE');
+    expect(setupSource).not.toContain('Participants');
+    expect(setupSource).not.toContain('createSummary');
+    expect(setupSource).not.toContain('layout.summary');
+    expect(setupSource).not.toContain('`${matchesCount} matches`');
+  });
+
+  it('renders setup cup buttons as full-width contiguous segments with team and match counts', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(desktopLayout.format.startX).toBe(128);
+    expect(desktopLayout.format.gapX).toBe(0);
+    expect(getFormatControlWidth(desktopLayout)).toBe(1344);
+    expect(mobileLayout.format.startX).toBe(32);
+    expect(mobileLayout.format.gapX).toBe(0);
+    expect(getFormatControlWidth(mobileLayout)).toBe(1536);
+    expect(setupSource).toContain('index * (layout.format.width + layout.format.gapX)');
+    expect(setupSource).toContain('getTournamentSetupFormatLabel(formatId)');
+    expect(setupSource).toContain('const format = getTournamentFormat(formatId)');
+    expect(setupSource).toContain('const matchCount = getTournamentMatchCount(formatId)');
+    expect(setupSource).toContain('`${FORMAT_LABELS[formatId]} (${format.teamCount} teams / ${matchCount} matches)`');
+  });
+
+  it('exposes the expected setup cup labels from tournament constants', () => {
+    const formatIds: TournamentFormatId[] = ['cup-m', 'cup-l', 'cup-xl'];
+    const labels = formatIds.map((formatId) => {
+      const format = getTournamentFormat(formatId);
+
+      return `${format.name} (${format.teamCount} teams / ${getTournamentMatchCount(formatId)} matches)`;
+    });
+
+    expect(labels).toEqual([
+      'Cup M (8 teams / 15 matches)',
+      'Cup L (16 teams / 31 matches)',
+      'Cup XL (32 teams / 63 matches)'
+    ]);
+  });
+
+  it('renders only the cleaned setup footer actions with the hub wording for menu exit', () => {
+    const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+
+    expect(desktopLayout.bottomButtons).toHaveLength(3);
+    expect(desktopLayout.bottomButtons.map(({ x, y }) => ({ x, y }))).toEqual([
+      { x: 298, y: 674 },
+      { x: 800, y: 674 },
+      { x: 1302, y: 674 }
+    ]);
+    expect(mobileLayout.bottomButtons).toHaveLength(3);
+    expect(new Set(mobileLayout.bottomButtons.map((button) => button.y))).toEqual(new Set([674]));
+    expect(setupSource).toContain("{ label: 'Exit to Main Menu', onClick: () => this.scene.start('MenuScene'), disabled: false }");
+    expect(setupSource).toContain("{ label: 'Fill randomly', onClick: () => this.fillRandom(), disabled: false }");
+    expect(setupSource).toContain("{ label: 'Start tournament', onClick: () => this.startTournament(), disabled: !complete }");
+    expect(setupSource).not.toContain("{ label: 'Menu'");
+    expect(setupSource).not.toContain("{ label: 'Clear'");
+    expect(setupSource).not.toContain("{ label: 'Fill empty slots'");
+    expect(setupSource).not.toContain("{ label: 'Shuffle groups'");
   });
 
   it('renders a full-height AI toggle button without a delete control in group slots', () => {
@@ -171,7 +243,7 @@ describe('tournament setup scene integration', () => {
     );
   });
 
-  it('keeps exact desktop geometry and uses compact mobile teams and two action rows', () => {
+  it('keeps exact desktop group geometry and uses compact mobile teams with the cleaned footer row', () => {
     const desktopLayout = createTournamentSetupLayout(false);
     const mobileLayout = createTournamentSetupLayout(true);
 
@@ -185,18 +257,10 @@ describe('tournament setup scene integration', () => {
       slotWidth: 200,
       slotHeight: 38
     });
-    expect(desktopLayout.bottomButtons.map(({ x, y }) => ({ x, y }))).toEqual([
-      { x: 130, y: 666 },
-      { x: 342, y: 666 },
-      { x: 574, y: 666 },
-      { x: 832, y: 666 },
-      { x: 1090, y: 666 },
-      { x: 1360, y: 666 }
-    ]);
     expect(mobileLayout.teams.columns).toBe(2);
     expect(mobileLayout.teams.buttonHeight).toBeGreaterThan(desktopLayout.teams.buttonHeight);
-    expect(new Set(mobileLayout.bottomButtons.map((button) => button.y))).toEqual(new Set([548, 624]));
-    expect(mobileLayout.bottomButtons.every((button) => button.height >= 56)).toBe(true);
+    expect(new Set(mobileLayout.bottomButtons.map((button) => button.y))).toEqual(new Set([674]));
+    expect(mobileLayout.bottomButtons.every((button) => button.height >= 68)).toBe(true);
   });
 
   it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
@@ -351,6 +415,22 @@ describe('tournament setup draft helpers', () => {
     expect(tournament.matches.filter((match) => match.status === 'completed')).toHaveLength(0);
     expect(tournament.matches[0]?.status).not.toBe('completed');
     expect(tournament.matches.every((match) => match.result === undefined)).toBe(true);
+  });
+
+  it('updates the setup slot count when each cup format is selected', () => {
+    let draft = createTournamentSetupDraft('cup-m');
+
+    draft = changeTournamentSetupFormat(draft, 'cup-m');
+    expect(draft.formatId).toBe('cup-m');
+    expect(draft.slots).toHaveLength(8);
+
+    draft = changeTournamentSetupFormat(draft, 'cup-l');
+    expect(draft.formatId).toBe('cup-l');
+    expect(draft.slots).toHaveLength(16);
+
+    draft = changeTournamentSetupFormat(draft, 'cup-xl');
+    expect(draft.formatId).toBe('cup-xl');
+    expect(draft.slots).toHaveLength(32);
   });
 
   it('starts a new tournament by opening the hub without simulating or playing a match', () => {
