@@ -80,6 +80,38 @@ describe('tournament creation', () => {
     }
   });
 
+  it.each(FORMAT_CASES)('orders %s group matches by matchday across all groups', (formatId, teamCount) => {
+    const tournament = createTournamentState({
+      formatId,
+      teamIds: teamIds(teamCount),
+      seed: `${formatId}-calendar-test`
+    });
+    const groupMatches = tournament.matches.filter((match) => match.stage === 'group');
+    const groupCount = tournament.groups.length;
+    const groupIds = tournament.groups.map((group) => group.id);
+
+    expect(groupMatches.slice(0, groupCount * 2).map((match) => match.groupId)).toEqual(
+      groupIds.flatMap((groupId) => [groupId, groupId])
+    );
+    expect(groupMatches.slice(groupCount * 2, groupCount * 4).map((match) => match.groupId)).toEqual(
+      groupIds.flatMap((groupId) => [groupId, groupId])
+    );
+    expect(groupMatches.slice(groupCount * 4, groupCount * 6).map((match) => match.groupId)).toEqual(
+      groupIds.flatMap((groupId) => [groupId, groupId])
+    );
+    expect(groupMatches.slice(0, 4).map((match) => match.id)).toEqual(['group-A-1', 'group-A-2', 'group-B-1', 'group-B-2']);
+    expect(groupMatches.findIndex((match) => match.id === 'group-B-1')).toBeLessThan(
+      groupMatches.findIndex((match) => match.id === 'group-A-3')
+    );
+
+    tournament.groups.forEach((group) => {
+      const matches = groupMatches.filter((match) => match.groupId === group.id);
+
+      expect(matches).toHaveLength(6);
+      expect(matches.map((match) => match.roundIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+    });
+  });
+
   it('rejects duplicated tournament teams', () => {
     const teams = teamIds(8);
 

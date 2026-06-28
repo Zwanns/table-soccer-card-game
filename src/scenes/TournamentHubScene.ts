@@ -9,6 +9,9 @@ import {
   getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
   getTournamentTeamStatsRanking,
+  createTournamentMatchResultFromGameState,
+  saveTournament,
+  submitTournamentMatchResultObject,
   type TournamentGroup,
   type TournamentMatch,
   type TournamentStage,
@@ -59,6 +62,13 @@ type GroupFormEntry = {
 
 type PlayoffRenderRound = {
   matches: readonly TournamentMatch[];
+};
+
+type TournamentMatchActionKind = 'simulate' | 'play';
+
+type TournamentMatchActionDefinition = {
+  kind: TournamentMatchActionKind;
+  label: string;
 };
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
@@ -422,18 +432,11 @@ export class TournamentHubScene extends Phaser.Scene {
           playX -
           layout.matches.actionWidth -
           layout.matches.actionGap;
-        const actions = [
-          {
-            x: simX,
-            width: layout.matches.actionWidth,
-            onTap: () => this.runGuardedInputAction(() => this.simulateTournamentMatch(tournament, match))
-          },
-          {
-            x: playX,
-            width: layout.matches.actionWidth,
-            onTap: () => this.runGuardedInputAction(() => this.startTournamentMatch(tournament, match))
-          }
-        ];
+        const actions = getAvailableMatchActions(tournament, match).map((action) => ({
+          x: action.kind === 'simulate' ? simX : playX,
+          width: layout.matches.actionWidth,
+          onTap: () => this.runGuardedInputAction(() => this.runMatchAction(tournament, match, action.kind))
+        }));
 
         actions.forEach((action) => {
           const zone = this.add
@@ -555,24 +558,17 @@ export class TournamentHubScene extends Phaser.Scene {
         playX -
         layout.matches.actionWidth -
         layout.matches.actionGap;
-      row.add(
-        this.createMobileMatchActionVisual(
-          simX,
-          layout.matches.cardHeight / 2,
-          'Sim',
-          layout.matches.actionWidth,
-          layout
-        )
-      );
-      row.add(
-        this.createMobileMatchActionVisual(
-          playX,
-          layout.matches.cardHeight / 2,
-          'Play',
-          layout.matches.actionWidth,
-          layout
-        )
-      );
+      getAvailableMatchActions(tournament, match).forEach((action) => {
+        row.add(
+          this.createMobileMatchActionVisual(
+            action.kind === 'simulate' ? simX : playX,
+            layout.matches.cardHeight / 2,
+            action.label,
+            layout.matches.actionWidth,
+            layout
+          )
+        );
+      });
     } else {
       row.add(
         this.add
@@ -744,20 +740,15 @@ export class TournamentHubScene extends Phaser.Scene {
     }
 
     if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
-      row.add(
-        new Button(this, 548, 19, 'Sim', () => this.simulateTournamentMatch(tournament, match), {
-          fontSize: '14px',
-          height: 30,
-          width: 58
-        })
-      );
-      row.add(
-        new Button(this, 614, 19, 'Play', () => this.startTournamentMatch(tournament, match), {
-          fontSize: '14px',
-          height: 30,
-          width: 70
-        })
-      );
+      getAvailableMatchActions(tournament, match).forEach((action) => {
+        row.add(
+          new Button(this, action.kind === 'simulate' ? 548 : 614, 19, action.label, () => this.runMatchAction(tournament, match, action.kind), {
+            fontSize: '14px',
+            height: 30,
+            width: action.kind === 'simulate' ? 58 : 70
+          })
+        );
+      });
     }
   }
 
@@ -2183,6 +2174,20 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
+  private runMatchAction(tournament: TournamentState, match: TournamentMatch, action: TournamentMatchActionKind): void {
+    if (action === 'simulate') {
+      this.simulateTournamentMatch(tournament, match);
+      return;
+    }
+
+    if (isAiVsAiTournamentMatch(tournament, match)) {
+      this.simulateTournamentMatch(tournament, match);
+      return;
+    }
+
+    this.startTournamentMatch(tournament, match);
+  }
+
   private startTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
     if (!this.canRunGuardedInputAction()) {
       return;
@@ -2230,21 +2235,46 @@ export class TournamentHubScene extends Phaser.Scene {
       return;
     }
 
-    this.scene.start('ResultScene', {
-      state: createSimulatedTournamentGameState({
+    const gameState = createSimulatedTournamentGameState({
         match,
         homeTeam,
         awayTeam,
         tournamentSeed: tournament.seed,
         homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode),
         awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)
-      }),
-      launchContext: {
-        mode: 'tournament',
-        tournamentId: tournament.id,
-        tournamentMatchId: match.id
+      });
+    const result = createTournamentMatchResultFromGameState(match.id, gameState, homeTeam.flagCode, awayTeam.flagCode);
+
+    try {
+      const updatedTournament = submitTournamentMatchResultObject(tournament, result);
+
+      this.registry.set('currentTournament', updatedTournament);
+      saveTournament(updatedTournament);
+
+      if (updatedTournament.stage === 'complete') {
+        this.scene.start('TournamentCompleteScene');
+        return;
       }
-    });
+
+      this.render();
+    } catch (error) {
+      this.showSimulationError(error instanceof Error ? error.message : 'Could not simulate tournament match.');
+    }
+  }
+
+  private showSimulationError(message: string): void {
+    this.add
+      .text(SCENE_WIDTH / 2, SCENE_HEIGHT - 78, message, {
+        align: 'center',
+        color: '#f7a6a6',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: '700',
+        stroke: '#142231',
+        strokeThickness: 4,
+        wordWrap: { width: 760 }
+      })
+      .setOrigin(0.5);
   }
 
   private getTournament(): TournamentState | null {
@@ -2448,6 +2478,29 @@ function getStatsTeamCode(teamId: TournamentTeamId): string {
   const team = findTeam(teamId);
 
   return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
+}
+
+function getAvailableMatchActions(
+  tournament: TournamentState,
+  match: TournamentMatch
+): TournamentMatchActionDefinition[] {
+  if (isAiVsAiTournamentMatch(tournament, match)) {
+    return [{ kind: 'play', label: 'Play' }];
+  }
+
+  return [
+    { kind: 'simulate', label: 'Sim' },
+    { kind: 'play', label: 'Play' }
+  ];
+}
+
+function isAiVsAiTournamentMatch(tournament: TournamentState, match: TournamentMatch): boolean {
+  return (
+    match.homeTeamId !== undefined &&
+    match.awayTeamId !== undefined &&
+    getTournamentTeamControllerType(tournament, match.homeTeamId) === 'AI' &&
+    getTournamentTeamControllerType(tournament, match.awayTeamId) === 'AI'
+  );
 }
 
 function getStatsTableHeaderTooltip(column: keyof typeof STATS_TABLE_COLUMNS): string {

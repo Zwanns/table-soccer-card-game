@@ -15,6 +15,8 @@ import { createSimulatedTournamentGameState } from '../scenes/tournamentMatchSim
 import {
   createTournamentMatchResultFromGameState,
   createTournamentState,
+  getTournamentPlayerStats,
+  getTournamentPlayerStatsRanking,
   getTournamentTeamControllerType,
   submitTournamentMatchResultObject,
   type TournamentMatch
@@ -75,8 +77,8 @@ describe('tournament hub scene integration', () => {
   });
 
   it('passes tournament participant controller types to visual matches without replacing simulations', () => {
-    const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
-    const simulationSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'tournamentMatchSimulation.ts'), 'utf8');
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const simulationSource = readSource('src/scenes/tournamentMatchSimulation.ts');
 
     expect(hubSource).toContain('getTournamentTeamControllerType');
     expect(hubSource).toContain('player1ControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
@@ -91,6 +93,36 @@ describe('tournament hub scene integration', () => {
     expect(simulationSource).toContain('controllerType: options.awayControllerType');
     expect(simulationSource).not.toContain('AiTurnController');
     expect(simulationSource).not.toContain('chooseAiAction');
+  });
+
+  it('keeps tournament simulations in Hub while saving results and reserving Complete for the final', () => {
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const simulateStart = hubSource.indexOf('private simulateTournamentMatch');
+    const simulateEnd = hubSource.indexOf('private showSimulationError');
+    const simulateBlock = hubSource.slice(simulateStart, simulateEnd);
+
+    expect(hubSource).toContain('createTournamentMatchResultFromGameState');
+    expect(hubSource).toContain('submitTournamentMatchResultObject');
+    expect(hubSource).toContain('saveTournament(updatedTournament)');
+    expect(hubSource).toContain("this.registry.set('currentTournament', updatedTournament)");
+    expect(hubSource).toContain("if (updatedTournament.stage === 'complete')");
+    expect(hubSource).toContain("this.scene.start('TournamentCompleteScene')");
+    expect(hubSource).toContain('this.render()');
+    expect(simulateBlock).not.toContain("this.scene.start('ResultScene'");
+    expect(simulateBlock).not.toContain("this.scene.start('GameScene'");
+  });
+
+  it('routes AI vs AI Play through simulation and keeps Sim hidden for those cards', () => {
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+
+    expect(hubSource).toContain('function getAvailableMatchActions(');
+    expect(hubSource).toContain('function isAiVsAiTournamentMatch(');
+    expect(hubSource).toContain("return [{ kind: 'play', label: 'Play' }]");
+    expect(hubSource).toContain("return [\n    { kind: 'simulate', label: 'Sim' },\n    { kind: 'play', label: 'Play' }\n  ]");
+    expect(hubSource).toContain("if (isAiVsAiTournamentMatch(tournament, match)) {\n      this.simulateTournamentMatch(tournament, match)");
+    expect(hubSource).toContain('getAvailableMatchActions(tournament, match).forEach((action) => {');
+    expect(hubSource).toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
+    expect(hubSource).toContain('action.kind === \'simulate\' ? simX : playX');
   });
 
   it('stores participant controller types in tournament state while preserving team ids', () => {
@@ -521,6 +553,70 @@ describe('tournament match result normalization', () => {
 
     expect(gameState.isDraw).toBe(false);
     expect(result.winnerTeamId).toBeDefined();
+  });
+
+  it('creates assists for simulated goals and keeps scorer and assist providers separate', () => {
+    const match: TournamentMatch = {
+      id: 'group-A-1',
+      stage: 'group',
+      roundIndex: 0,
+      orderIndex: 0,
+      groupId: 'A',
+      homeTeamId: 'fr',
+      awayTeamId: 'es',
+      status: 'available'
+    };
+    const gameState = createSimulatedTournamentGameState({
+      match,
+      homeTeam: requireNationalTeam('fr'),
+      awayTeam: requireNationalTeam('es'),
+      tournamentSeed: 'simulate-assists'
+    });
+    const result = createTournamentMatchResultFromGameState(match.id, gameState, 'fr', 'es');
+    const assistStats = result.playerStats.filter((stats) => stats.assists > 0);
+    const goalEvents = gameState.log
+      .map((event, index) => ({ event, index }))
+      .filter((entry) => entry.event.type === 'GOAL_SCORED');
+
+    expect(assistStats.length).toBeGreaterThan(0);
+    goalEvents.forEach(({ event, index }) => {
+      if (event.type !== 'GOAL_SCORED') {
+        return;
+      }
+
+      const assistEvent = [...gameState.log.slice(0, index)]
+        .reverse()
+        .find((candidate) => candidate.type === 'CARD_DEFEATED' && candidate.playerId === event.playerId);
+
+      expect(assistEvent).toBeDefined();
+      if (assistEvent?.type === 'CARD_DEFEATED') {
+        expect(assistEvent.attackerCard.rank).not.toBe(event.scorer.rank);
+      }
+    });
+  });
+
+  it('includes simulated assists in tournament top assists without breaking scorer and goalkeeper rankings', () => {
+    let tournament = createTournamentState({
+      formatId: 'cup-m',
+      teamIds: ['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar'],
+      seed: 'simulate-assists'
+    });
+    const match = tournament.matches.find((candidate) => candidate.id === 'group-A-1')!;
+    const gameState = createSimulatedTournamentGameState({
+      match,
+      homeTeam: requireNationalTeam(match.homeTeamId!),
+      awayTeam: requireNationalTeam(match.awayTeamId!),
+      tournamentSeed: tournament.seed
+    });
+    const result = createTournamentMatchResultFromGameState(match.id, gameState, match.homeTeamId!, match.awayTeamId!);
+
+    tournament = submitTournamentMatchResultObject(tournament, result);
+
+    const playerStats = getTournamentPlayerStats(tournament);
+
+    expect(getTournamentPlayerStatsRanking(playerStats, 'assists', 1)[0]?.assists).toBeGreaterThan(0);
+    expect(getTournamentPlayerStatsRanking(playerStats, 'goals', 1)[0]?.goals).toBeGreaterThan(0);
+    expect(getTournamentPlayerStatsRanking(playerStats, 'goalkeeperSaves', 1)[0]?.goalkeeperSaves).toBeGreaterThan(0);
   });
 
   it('uses English tournament hub labels and flag rows in the playoff bracket', () => {

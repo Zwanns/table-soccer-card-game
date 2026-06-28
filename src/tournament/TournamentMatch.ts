@@ -13,19 +13,23 @@ const GROUP_PAIRINGS: ReadonlyArray<readonly [number, number]> = [
 export function createTournamentMatches(format: TournamentFormat, groups: readonly TournamentGroup[]): TournamentMatch[] {
   const matches: TournamentMatch[] = [];
 
-  for (const group of groups) {
-    GROUP_PAIRINGS.forEach(([homeIndex, awayIndex], pairingIndex) => {
-      matches.push({
-        id: `group-${group.id}-${pairingIndex + 1}`,
-        stage: 'group',
-        roundIndex: Math.floor(pairingIndex / 2),
-        orderIndex: matches.length,
-        groupId: group.id,
-        homeTeamId: group.teamIds[homeIndex],
-        awayTeamId: group.teamIds[awayIndex],
-        status: 'available'
+  for (let roundIndex = 0; roundIndex < GROUP_PAIRINGS.length / 2; roundIndex += 1) {
+    for (const group of groups) {
+      GROUP_PAIRINGS.slice(roundIndex * 2, roundIndex * 2 + 2).forEach(([homeIndex, awayIndex], roundPairingIndex) => {
+        const pairingIndex = roundIndex * 2 + roundPairingIndex;
+
+        matches.push({
+          id: `group-${group.id}-${pairingIndex + 1}`,
+          stage: 'group',
+          roundIndex,
+          orderIndex: matches.length,
+          groupId: group.id,
+          homeTeamId: group.teamIds[homeIndex],
+          awayTeamId: group.teamIds[awayIndex],
+          status: 'available'
+        });
       });
-    });
+    }
   }
 
   format.knockoutRounds.forEach((round, roundIndex) => {

@@ -708,7 +708,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(getGroupStageRowStep(mobile)).toBeGreaterThan(mobile.groupStage.viewportHeight!);
   });
 
-  it('wires match-card scrolling and tap-safe Sim and Play actions without changing their handlers', () => {
+  it('wires match-card scrolling and tap-safe tournament match actions through the shared action router', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
     expect(source).toContain('const HUB_INPUT_GUARD_MS = 220');
@@ -722,8 +722,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
     expect(source).toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
-    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.simulateTournamentMatch(tournament, match))');
-    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.startTournamentMatch(tournament, match))');
+    expect(source).toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
+    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.runMatchAction(tournament, match, action.kind))');
+    expect(source).toContain('private runMatchAction(tournament: TournamentState, match: TournamentMatch, action: TournamentMatchActionKind): void');
+    expect(source).toContain("if (action === 'simulate') {\n      this.simulateTournamentMatch(tournament, match)");
+    expect(source).toContain('if (isAiVsAiTournamentMatch(tournament, match)) {\n      this.simulateTournamentMatch(tournament, match)');
+    expect(source).toContain('this.startTournamentMatch(tournament, match)');
     expect(source).toContain('if (!this.canRunGuardedInputAction()) {\n      return;\n    }\n\n    if (match.homeTeamId === undefined');
     expect(source).toContain('this.matchScrollY = 0');
     expect(source).toContain('layout.matches.actionWidth');

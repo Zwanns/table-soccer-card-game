@@ -29,6 +29,7 @@ type SimulatedScore = {
 
 const GOAL_TABLE = [0, 0, 1, 1, 1, 2, 2, 3, 4] as const;
 const SCORER_RANKS: readonly CardRank[] = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6'];
+const ASSIST_RANKS: readonly CardRank[] = ['K', 'Q', 'J', '10', '9', '8', '7', '6', 'A'];
 
 export function createSimulatedTournamentGameState(options: SimulatedTournamentMatchOptions): GameState {
   const random = createTournamentRandom(`${options.tournamentSeed}:${options.match.id}:simulation`);
@@ -163,11 +164,20 @@ function createShotEvents(options: {
     const goalkeeperCard = createGoalkeeperCard(index);
     const turnNumber = options.firstTurnNumber + index;
 
-    events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
-
     if (index < options.goals) {
+      const assistRank = getAssistRank(rank, index);
+      const assistCard = createCard(assistRank, index + options.shots);
       const scorer = options.squad.fieldPlayers[rank];
 
+      events.push({
+        type: 'CARD_DEFEATED',
+        playerId: options.playerId,
+        turnNumber,
+        positionId: 'defender-1',
+        attackerCard: assistCard,
+        defenderCard: createCard('2', index)
+      });
+      events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
       events.push({
         type: 'GOAL_SCORED',
         playerId: options.playerId,
@@ -181,11 +191,16 @@ function createShotEvents(options: {
         }
       });
     } else {
+      events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
       events.push({ type: 'GOALKEEPER_SAVE', playerId: options.playerId, attackerCard, goalkeeperCard });
     }
   }
 
   return events;
+}
+
+function getAssistRank(scorerRank: CardRank, goalIndex: number): CardRank {
+  return ASSIST_RANKS.find((rank, index) => index >= goalIndex && rank !== scorerRank) ?? 'K';
 }
 
 function createCard(rank: CardRank, index: number): Card {
