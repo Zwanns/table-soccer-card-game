@@ -34,6 +34,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image(MENU_ASSETS.resultDrawBackground, MENU_ASSET_PATHS.resultDrawBackground);
     this.load.image(MENU_ASSETS.resultWinBackground, MENU_ASSET_PATHS.resultWinBackground);
     this.load.image(TOURNAMENT_ASSETS.background, TOURNAMENT_ASSET_PATHS.background);
+    this.load.image(TOURNAMENT_ASSETS.statsBackground, TOURNAMENT_ASSET_PATHS.statsBackground);
+    this.load.image(TOURNAMENT_ASSETS.winnerBackground, TOURNAMENT_ASSET_PATHS.winnerBackground);
     this.load.image(MENU_ASSETS.logoOn, MENU_ASSET_PATHS.logoOn);
     this.load.image(MENU_ASSETS.logoOff, MENU_ASSET_PATHS.logoOff);
     this.load.image('turn-ball', ASSET_PATHS.ball);

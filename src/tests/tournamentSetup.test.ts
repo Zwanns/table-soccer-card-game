@@ -335,7 +335,9 @@ describe('tournament setup scene integration', () => {
 
     expect(setupSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
     expect(setupSource).toContain('createTournamentBackground(this)');
-    expect(backgroundSource).toContain('scene.textures.exists(TOURNAMENT_ASSETS.background)');
+    expect(backgroundSource).toContain('textureKey: string = TOURNAMENT_ASSETS.background');
+    expect(backgroundSource).toContain('scene.textures.exists(textureKey) ? textureKey : TOURNAMENT_ASSETS.background');
+    expect(backgroundSource).toContain('if (!scene.textures.exists(resolvedTextureKey))');
     expect(backgroundSource).toContain('Math.max(SCENE_WIDTH / background.width, SCENE_HEIGHT / background.height)');
     expect(backgroundSource).toContain('TOURNAMENT_BACKGROUND_FALLBACK_COLOR');
     expect(backgroundSource).toContain('.setDepth(TOURNAMENT_BACKGROUND_DEPTH)');

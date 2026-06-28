@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH, TOURNAMENT_ASSETS } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   getTournamentFormat,
@@ -194,7 +194,7 @@ export class TournamentHubScene extends Phaser.Scene {
     const tournament = this.getTournament();
     const layout = createTournamentHubLayout();
 
-    createTournamentBackground(this);
+    createTournamentBackground(this, this.getBackgroundAssetKey());
 
     if (tournament === null) {
       this.renderMissingTournament();
@@ -249,6 +249,10 @@ export class TournamentHubScene extends Phaser.Scene {
     new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
       width: 260
     });
+  }
+
+  private getBackgroundAssetKey(): string {
+    return this.activeTab === 'stats' ? TOURNAMENT_ASSETS.statsBackground : TOURNAMENT_ASSETS.background;
   }
 
   private createVersionLabel(layout: TournamentHubLayout): void {

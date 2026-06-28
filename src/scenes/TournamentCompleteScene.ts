@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH, TOURNAMENT_ASSETS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   deleteStoredTournament,
@@ -11,6 +11,7 @@ import {
   type TournamentTeamId
 } from '../tournament';
 import { Button } from '../ui/Button';
+import { createTournamentBackground } from '../ui/tournamentBackground';
 
 const SUMMARY_PANEL = {
   x: SCENE_WIDTH / 2,
@@ -55,7 +56,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
   public create(): void {
     const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
 
-    this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a);
+    createTournamentBackground(this, TOURNAMENT_ASSETS.winnerBackground);
 
     if (tournament === undefined || tournament.stage !== 'complete') {
       this.renderMissingTournament();

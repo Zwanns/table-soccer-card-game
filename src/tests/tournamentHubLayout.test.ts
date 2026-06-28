@@ -719,7 +719,7 @@ describe('Tournament Hub responsive layout', () => {
   it('renders the Tournament Hub version label from the shared game version source', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
-    expect(source).toContain("import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
+    expect(source).toContain("import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH, TOURNAMENT_ASSETS } from '../config'");
     expect(source).toContain('private createVersionLabel(layout: TournamentHubLayout): void');
     expect(source).toContain('this.createVersionLabel(layout)');
     expect(source).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');

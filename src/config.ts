@@ -28,9 +28,13 @@ export const MENU_ASSET_PATHS = {
 } as const;
 
 export const TOURNAMENT_ASSETS = {
-  background: 'tournaments-bg'
+  background: 'tournaments-bg',
+  statsBackground: 'cup-stats-bg',
+  winnerBackground: 'cup-win-bg'
 } as const;
 
 export const TOURNAMENT_ASSET_PATHS = {
-  background: '/menu/tournaments-bg.webp'
+  background: '/menu/tournaments-bg.webp',
+  statsBackground: '/menu/cup-stats-bg.webp',
+  winnerBackground: '/menu/cup-win-bg.webp'
 } as const;

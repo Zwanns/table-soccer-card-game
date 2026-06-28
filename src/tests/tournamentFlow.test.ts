@@ -39,9 +39,16 @@ describe('tournament hub scene integration', () => {
 
   it('uses the shared tournament background on the tournament hub', () => {
     const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+    const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentBackground.ts'), 'utf8');
 
     expect(hubSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
-    expect(hubSource).toContain('createTournamentBackground(this)');
+    expect(hubSource).toContain('createTournamentBackground(this, this.getBackgroundAssetKey())');
+    expect(hubSource).toContain("this.activeTab === 'stats' ? TOURNAMENT_ASSETS.statsBackground : TOURNAMENT_ASSETS.background");
+    expect(hubSource).toContain("matches: 'Matches'");
+    expect(hubSource).toContain("tables: 'Group Stage'");
+    expect(hubSource).toContain("bracket: 'Playoff'");
+    expect(backgroundSource).toContain('textureKey: string = TOURNAMENT_ASSETS.background');
+    expect(backgroundSource).toContain('scene.textures.exists(textureKey) ? textureKey : TOURNAMENT_ASSETS.background');
     expect(hubSource).not.toContain(
       'this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x123b2a)'
     );
@@ -377,8 +384,11 @@ describe('tournament hub scene integration', () => {
   it('provides a tournament completion scene with champion summary and stats navigation', () => {
     const completeSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentCompleteScene.ts'), 'utf8');
     const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
+    const resultSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'ResultScene.ts'), 'utf8');
 
     expect(completeSource).toContain("super('TournamentCompleteScene')");
+    expect(completeSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
+    expect(completeSource).toContain('createTournamentBackground(this, TOURNAMENT_ASSETS.winnerBackground)');
     expect(completeSource).toContain('Champion:');
     expect(completeSource).toContain('Champion path');
     expect(completeSource).toContain('Tournament leaders');
@@ -388,6 +398,8 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).toContain('View stats');
     expect(completeSource).toContain("initialTab: 'stats'");
     expect(completeSource).toContain('New tournament');
+    expect(resultSource).not.toContain('TOURNAMENT_ASSETS.winnerBackground');
+    expect(resultSource).not.toContain('cup-win-bg');
     expect(hubSource).toContain('initialTab?: TournamentHubTab');
   });
 });

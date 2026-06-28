@@ -145,6 +145,8 @@ describe('project scaffold', () => {
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'teams-bg.webp'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'menu-2-bg.webp'))).toBe(true);
     expect(existsSync(join(process.cwd(), 'public', 'menu', 'tournaments-bg.webp'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'menu', 'cup-stats-bg.webp'))).toBe(true);
+    expect(existsSync(join(process.cwd(), 'public', 'menu', 'cup-win-bg.webp'))).toBe(true);
     expect(MENU_ASSETS.logoOn).toBe('menu-logo-on');
     expect(MENU_ASSETS.logoOff).toBe('menu-logo-off');
     expect(MENU_ASSETS.teamsBackground).toBe('teams-bg');
@@ -158,7 +160,11 @@ describe('project scaffold', () => {
     expect(MENU_ASSET_PATHS.resultDrawBackground).toBe('menu/remis-bg.webp');
     expect(MENU_ASSET_PATHS.resultWinBackground).toBe('menu/gamestat-bg.webp');
     expect(TOURNAMENT_ASSETS.background).toBe('tournaments-bg');
+    expect(TOURNAMENT_ASSETS.statsBackground).toBe('cup-stats-bg');
+    expect(TOURNAMENT_ASSETS.winnerBackground).toBe('cup-win-bg');
     expect(TOURNAMENT_ASSET_PATHS.background).toBe('/menu/tournaments-bg.webp');
+    expect(TOURNAMENT_ASSET_PATHS.statsBackground).toBe('/menu/cup-stats-bg.webp');
+    expect(TOURNAMENT_ASSET_PATHS.winnerBackground).toBe('/menu/cup-win-bg.webp');
     expect(menuSceneSource).toContain('createBackground');
     expect(menuSceneSource).toContain('createOverlay');
     expect(menuSceneSource).toContain('createDecor');
@@ -171,6 +177,10 @@ describe('project scaffold', () => {
     expect(bootSceneSource).toContain('MENU_ASSETS.teamSelectBackground');
     expect(bootSceneSource).toContain('TOURNAMENT_ASSETS.background');
     expect(bootSceneSource).toContain('TOURNAMENT_ASSET_PATHS.background');
+    expect(bootSceneSource).toContain('TOURNAMENT_ASSETS.statsBackground');
+    expect(bootSceneSource).toContain('TOURNAMENT_ASSET_PATHS.statsBackground');
+    expect(bootSceneSource).toContain('TOURNAMENT_ASSETS.winnerBackground');
+    expect(bootSceneSource).toContain('TOURNAMENT_ASSET_PATHS.winnerBackground');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOn');
     expect(bootSceneSource).toContain('MENU_ASSETS.logoOff');
     expect(configSource).not.toContain('menu-logo.png');
