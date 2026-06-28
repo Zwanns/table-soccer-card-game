@@ -42,11 +42,14 @@ describe('tournament hub scene integration', () => {
     const backgroundSource = readFileSync(join(process.cwd(), 'src', 'ui', 'tournamentBackground.ts'), 'utf8');
 
     expect(hubSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
-    expect(hubSource).toContain('createTournamentBackground(this, this.getBackgroundAssetKey())');
-    expect(hubSource).toContain("this.activeTab === 'stats' ? TOURNAMENT_ASSETS.statsBackground : TOURNAMENT_ASSETS.background");
+    expect(hubSource).toContain('createTournamentBackground(this)');
+    expect(hubSource).not.toContain('getBackgroundAssetKey');
+    expect(hubSource).not.toContain('TOURNAMENT_ASSETS.statsBackground');
+    expect(hubSource).not.toContain('cup-stats-bg');
     expect(hubSource).toContain("matches: 'Matches'");
     expect(hubSource).toContain("tables: 'Group Stage'");
     expect(hubSource).toContain("bracket: 'Playoff'");
+    expect(hubSource).toContain("stats: 'Stats'");
     expect(backgroundSource).toContain('textureKey: string = TOURNAMENT_ASSETS.background');
     expect(backgroundSource).toContain('scene.textures.exists(textureKey) ? textureKey : TOURNAMENT_ASSETS.background');
     expect(hubSource).not.toContain(
