@@ -8,6 +8,7 @@ import {
   createEmptyField,
   GameEngine,
   createMatchTeamSetup,
+  getMatchStats,
   type GameState,
   type Player
 } from '../game';
@@ -116,8 +117,10 @@ describe('tournament hub scene integration', () => {
   it('routes Next Match through AI-only simulations before starting the next human match', () => {
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
 
-    expect(hubSource).toContain("new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match'");
+    expect(hubSource).toContain('const footerAction = getTournamentFooterAction(tournament)');
+    expect(hubSource).toContain("new Button(this, layout.footer.nextX, layout.footer.y, footerAction.label");
     expect(hubSource).toContain('private handleNextMatch(tournament: TournamentState): void');
+    expect(hubSource).toContain('if (!hasFutureHumanRelevantMatch(tournament))');
     expect(hubSource).toContain('const nextMatch = findNextAvailableMatch(currentTournament)');
     expect(hubSource).toContain('function isAiVsAiTournamentMatch(');
     expect(hubSource).toContain('if (!isAiVsAiTournamentMatch(currentTournament, nextMatch))');
@@ -128,6 +131,21 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).not.toContain('function getAvailableMatchActions(');
     expect(hubSource).not.toContain('private runMatchAction(');
     expect(hubSource).not.toContain("new Button(this, action.kind === 'simulate'");
+  });
+
+  it('replaces Next Match with Finish tournament when no human-relevant matches remain', () => {
+    const hubSource = readSource('src/scenes/TournamentHubScene.ts');
+    const resultSource = readSource('src/scenes/ResultScene.ts');
+
+    expect(hubSource).toContain("return { kind: 'finish', label: 'Finish tournament' }");
+    expect(hubSource).toContain("return { kind: 'next', label: 'Next Match' }");
+    expect(hubSource).toContain('function hasFutureHumanRelevantMatch(tournament: TournamentState): boolean');
+    expect(hubSource).toContain('function hasRemainingUnplayedMatches(tournament: TournamentState): boolean');
+    expect(hubSource).toContain("private handleFooterAction(tournament: TournamentState, action: TournamentFooterAction['kind']): void");
+    expect(hubSource).toContain('private handleFinishTournament(tournament: TournamentState): void');
+    expect(hubSource).toContain("this.scene.start('TournamentCompleteScene')");
+    expect(hubSource).toContain('const maxSteps = currentTournament.matches.length * 3');
+    expect(resultSource).toContain("this.scene.start('TournamentHubScene')");
   });
 
   it('stores participant controller types in tournament state while preserving team ids', () => {
@@ -604,6 +622,53 @@ describe('tournament match result normalization', () => {
     });
   });
 
+  it('keeps simulated match scorers, assists, shots and goalkeeper saves consistent with team stats', () => {
+    const { gameState, result } = createSimulatedResultWithGoals('simulate-stat-consistency');
+    const [homeStats, awayStats] = getMatchStats(gameState);
+    const goalEvents = gameState.log.filter((event) => event.type === 'GOAL_SCORED');
+    const homeGoalEvents = goalEvents.filter((event) => event.type === 'GOAL_SCORED' && event.playerId === 'PLAYER_1');
+    const awayGoalEvents = goalEvents.filter((event) => event.type === 'GOAL_SCORED' && event.playerId === 'PLAYER_2');
+    const homeAssists = result.playerStats
+      .filter((stats) => stats.teamId === result.homeTeamId)
+      .reduce((sum, stats) => sum + stats.assists, 0);
+    const awayAssists = result.playerStats
+      .filter((stats) => stats.teamId === result.awayTeamId)
+      .reduce((sum, stats) => sum + stats.assists, 0);
+
+    expect(homeGoalEvents).toHaveLength(result.homeGoals);
+    expect(awayGoalEvents).toHaveLength(result.awayGoals);
+    expect(result.teamStats.home.shots).toBeGreaterThanOrEqual(result.homeGoals);
+    expect(result.teamStats.away.shots).toBeGreaterThanOrEqual(result.awayGoals);
+    expect(result.teamStats.home.goalkeeperSaves).toBeGreaterThanOrEqual(0);
+    expect(result.teamStats.away.goalkeeperSaves).toBeGreaterThanOrEqual(0);
+    expect(result.teamStats.home.goalkeeperSaves).toBe(awayStats.shots - result.awayGoals);
+    expect(result.teamStats.away.goalkeeperSaves).toBe(homeStats.shots - result.homeGoals);
+    expect(result.teamStats.home.goalkeeperSaves).toBeLessThanOrEqual(awayStats.shots);
+    expect(result.teamStats.away.goalkeeperSaves).toBeLessThanOrEqual(homeStats.shots);
+    expect(homeAssists).toBeLessThanOrEqual(result.homeGoals);
+    expect(awayAssists).toBeLessThanOrEqual(result.awayGoals);
+
+    goalEvents.forEach((event) => {
+      if (event.type !== 'GOAL_SCORED') {
+        return;
+      }
+
+      const scoringTeamId = event.playerId === 'PLAYER_1' ? result.homeTeamId : result.awayTeamId;
+      const scoringSquad = createDefaultSquad(scoringTeamId);
+      const assistEvent = [...gameState.log.slice(0, gameState.log.indexOf(event))]
+        .reverse()
+        .find((candidate) => candidate.type === 'CARD_DEFEATED' && candidate.playerId === event.playerId);
+
+      expect(event.scorer.teamId).toBe(scoringTeamId);
+      expect(scoringSquad.fieldPlayers[event.scorer.rank]).toBeDefined();
+
+      if (assistEvent?.type === 'CARD_DEFEATED') {
+        expect(createDefaultSquad(scoringTeamId).fieldPlayers[assistEvent.attackerCard.rank]).toBeDefined();
+        expect(assistEvent.attackerCard.rank).not.toBe(event.scorer.rank);
+      }
+    });
+  });
+
   it('includes simulated assists in tournament top assists without breaking scorer and goalkeeper rankings', () => {
     let tournament = createTournamentState({
       formatId: 'cup-m',
@@ -628,6 +693,47 @@ describe('tournament match result normalization', () => {
     expect(getTournamentPlayerStatsRanking(playerStats, 'goalkeeperSaves', 1)[0]?.goalkeeperSaves).toBeGreaterThan(0);
   });
 
+  it('keeps aggregated simulated individual goals aligned with team goals across a tournament sample', () => {
+    let tournament = createTournamentState({
+      formatId: 'cup-m',
+      teamIds: ['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar'],
+      seed: 'simulate-aggregate-consistency'
+    });
+
+    for (const initialMatch of tournament.matches.slice(0, 6)) {
+      const match = tournament.matches.find((candidate) => candidate.id === initialMatch.id)!;
+      const gameState = createSimulatedTournamentGameState({
+        match,
+        homeTeam: requireNationalTeam(match.homeTeamId!),
+        awayTeam: requireNationalTeam(match.awayTeamId!),
+        tournamentSeed: tournament.seed
+      });
+      const result = createTournamentMatchResultFromGameState(match.id, gameState, match.homeTeamId!, match.awayTeamId!);
+
+      tournament = submitTournamentMatchResultObject(tournament, result);
+    }
+
+    const teamGoals = new Map<string, number>();
+    const playerGoals = new Map<string, number>();
+
+    tournament.matches.forEach((match) => {
+      if (match.result === undefined) {
+        return;
+      }
+
+      teamGoals.set(match.result.homeTeamId, (teamGoals.get(match.result.homeTeamId) ?? 0) + match.result.homeGoals);
+      teamGoals.set(match.result.awayTeamId, (teamGoals.get(match.result.awayTeamId) ?? 0) + match.result.awayGoals);
+
+      match.result.playerStats.forEach((stats) => {
+        playerGoals.set(stats.teamId, (playerGoals.get(stats.teamId) ?? 0) + stats.goals);
+      });
+    });
+
+    teamGoals.forEach((goals, teamId) => {
+      expect(playerGoals.get(teamId) ?? 0).toBe(goals);
+    });
+  });
+
   it('uses English tournament hub labels and flag rows in the playoff bracket', () => {
     const hubSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'TournamentHubScene.ts'), 'utf8');
 
@@ -646,6 +752,36 @@ describe('tournament match result normalization', () => {
     expect(hubSource).toContain('drawBracketConnectors');
   });
 });
+
+function createSimulatedResultWithGoals(seedPrefix: string) {
+  const match: TournamentMatch = {
+    id: 'group-A-1',
+    stage: 'group',
+    roundIndex: 0,
+    orderIndex: 0,
+    groupId: 'A',
+    homeTeamId: 'fr',
+    awayTeamId: 'es',
+    status: 'available'
+  };
+
+  for (let index = 0; index < 100; index += 1) {
+    const tournamentSeed = `${seedPrefix}-${index}`;
+    const gameState = createSimulatedTournamentGameState({
+      match,
+      homeTeam: requireNationalTeam('fr'),
+      awayTeam: requireNationalTeam('es'),
+      tournamentSeed
+    });
+    const result = createTournamentMatchResultFromGameState(match.id, gameState, 'fr', 'es');
+
+    if (result.homeGoals > 0 && result.awayGoals > 0) {
+      return { gameState, result };
+    }
+  }
+
+  throw new Error('Expected simulated match seed with goals for both teams.');
+}
 
 function requireNationalTeam(teamId: string) {
   const team = NATIONAL_TEAMS.find((candidate) => candidate.flagCode === teamId);

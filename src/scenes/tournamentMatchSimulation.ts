@@ -184,43 +184,50 @@ function createShotEvents(options: {
   squad: ReturnType<typeof createDefaultSquad>;
 }): GameEvent[] {
   const events: GameEvent[] = [];
+  const goalCount = Math.max(0, options.goals);
+  const shotCount = Math.max(options.shots, goalCount);
+  const savedShotCount = shotCount - goalCount;
 
-  for (let index = 0; index < options.shots; index += 1) {
+  for (let index = 0; index < goalCount; index += 1) {
     const rank = SCORER_RANKS[index % SCORER_RANKS.length] ?? 'A';
     const attackerCard = createCard(rank, index);
     const goalkeeperCard = createGoalkeeperCard(index);
     const turnNumber = options.firstTurnNumber + index;
+    const assistRank = getAssistRank(rank, index);
+    const assistCard = createCard(assistRank, index + shotCount);
+    const scorer = options.squad.fieldPlayers[rank];
 
-    if (index < options.goals) {
-      const assistRank = getAssistRank(rank, index);
-      const assistCard = createCard(assistRank, index + options.shots);
-      const scorer = options.squad.fieldPlayers[rank];
+    events.push({
+      type: 'CARD_DEFEATED',
+      playerId: options.playerId,
+      turnNumber,
+      positionId: 'defender-1',
+      attackerCard: assistCard,
+      defenderCard: createCard('2', index)
+    });
+    events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
+    events.push({
+      type: 'GOAL_SCORED',
+      playerId: options.playerId,
+      turnNumber,
+      attackerCard,
+      scorer: {
+        playerName: scorer.name,
+        shirtNumber: scorer.shirtNumber,
+        rank,
+        teamId: options.teamId
+      }
+    });
+  }
 
-      events.push({
-        type: 'CARD_DEFEATED',
-        playerId: options.playerId,
-        turnNumber,
-        positionId: 'defender-1',
-        attackerCard: assistCard,
-        defenderCard: createCard('2', index)
-      });
-      events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
-      events.push({
-        type: 'GOAL_SCORED',
-        playerId: options.playerId,
-        turnNumber,
-        attackerCard,
-        scorer: {
-          playerName: scorer.name,
-          shirtNumber: scorer.shirtNumber,
-          rank,
-          teamId: options.teamId
-        }
-      });
-    } else {
-      events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
-      events.push({ type: 'GOALKEEPER_SAVE', playerId: options.playerId, attackerCard, goalkeeperCard });
-    }
+  for (let index = 0; index < savedShotCount; index += 1) {
+    const shotIndex = goalCount + index;
+    const rank = SCORER_RANKS[shotIndex % SCORER_RANKS.length] ?? 'A';
+    const attackerCard = createCard(rank, shotIndex);
+    const goalkeeperCard = createGoalkeeperCard(shotIndex);
+
+    events.push({ type: 'SHOT_ON_GOAL', playerId: options.playerId, attackerCard, goalkeeperCard });
+    events.push({ type: 'GOALKEEPER_SAVE', playerId: options.playerId, attackerCard, goalkeeperCard });
   }
 
   return events;

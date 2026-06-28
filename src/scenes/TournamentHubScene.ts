@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   getTournamentFormat,
@@ -60,6 +60,11 @@ type GroupFormEntry = {
 
 type PlayoffRenderRound = {
   matches: readonly TournamentMatch[];
+};
+
+type TournamentFooterAction = {
+  kind: 'next' | 'finish';
+  label: string;
 };
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
@@ -223,15 +228,17 @@ export class TournamentHubScene extends Phaser.Scene {
       height: layout.footer.buttonHeight,
       width: layout.footer.buttonWidth
     });
-    new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match', () => this.handleNextMatch(tournament), {
-      borderWidth: 0,
-      borderRadius: layout.footer.buttonRadius,
-      fontSize: layout.footer.fontSize,
-      height: layout.footer.buttonHeight,
-      width: layout.footer.buttonWidth
-    });
+    const footerAction = getTournamentFooterAction(tournament);
 
-    this.createVersionLabel(layout);
+    if (footerAction !== null) {
+      new Button(this, layout.footer.nextX, layout.footer.y, footerAction.label, () => this.handleFooterAction(tournament, footerAction.kind), {
+        borderWidth: 0,
+        borderRadius: layout.footer.buttonRadius,
+        fontSize: layout.footer.fontSize,
+        height: layout.footer.buttonHeight,
+        width: layout.footer.buttonWidth
+      });
+    }
   }
 
   private renderMissingTournament(): void {
@@ -258,19 +265,6 @@ export class TournamentHubScene extends Phaser.Scene {
     new Button(this, SCENE_WIDTH / 2, 500, 'Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
       width: 260
     });
-  }
-
-  private createVersionLabel(layout: TournamentHubLayout): void {
-    this.add
-      .text(SCENE_WIDTH - 32, SCENE_HEIGHT - 10, `${GAME_TITLE} | v${GAME_VERSION}`, {
-        align: 'right',
-        color: '#b8d2c1',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.mobileLandscape ? '14px' : '16px',
-        fontStyle: '700'
-      })
-      .setOrigin(1, 1)
-      .setDepth(STATS_TOOLTIP_DEPTH - 1);
   }
 
   private createHeader(tournament: TournamentState, layout: TournamentHubLayout): void {
@@ -2079,8 +2073,24 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
+  private handleFooterAction(tournament: TournamentState, action: TournamentFooterAction['kind']): void {
+    if (action === 'finish') {
+      this.handleFinishTournament(tournament);
+      return;
+    }
+
+    this.handleNextMatch(tournament);
+  }
+
   private handleNextMatch(tournament: TournamentState): void {
     if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
+    if (!hasFutureHumanRelevantMatch(tournament)) {
+      this.registry.set('currentTournament', tournament);
+      saveTournament(tournament);
+      this.render();
       return;
     }
 
@@ -2120,9 +2130,53 @@ export class TournamentHubScene extends Phaser.Scene {
       currentTournament = simulatedTournament;
       this.registry.set('currentTournament', currentTournament);
       saveTournament(currentTournament);
+
+      if (!hasFutureHumanRelevantMatch(currentTournament)) {
+        this.render();
+        return;
+      }
     }
 
     this.showSimulationError('Could not find the next playable tournament match.');
+  }
+
+  private handleFinishTournament(tournament: TournamentState): void {
+    if (!this.canRunGuardedInputAction()) {
+      return;
+    }
+
+    let currentTournament = tournament;
+    const maxSteps = currentTournament.matches.length * 3;
+
+    for (let step = 0; step < maxSteps; step += 1) {
+      if (currentTournament.stage === 'complete') {
+        this.registry.set('currentTournament', currentTournament);
+        saveTournament(currentTournament);
+        this.scene.start('TournamentCompleteScene');
+        return;
+      }
+
+      const nextMatch = findNextAvailableMatch(currentTournament);
+
+      if (nextMatch === undefined) {
+        this.registry.set('currentTournament', currentTournament);
+        saveTournament(currentTournament);
+        this.render();
+        return;
+      }
+
+      const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch);
+
+      if (simulatedTournament === null) {
+        return;
+      }
+
+      currentTournament = simulatedTournament;
+      this.registry.set('currentTournament', currentTournament);
+      saveTournament(currentTournament);
+    }
+
+    this.showSimulationError('Could not finish the tournament automatically.');
   }
 
   private startTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
@@ -2394,12 +2448,37 @@ function getStatsTeamCode(teamId: TournamentTeamId): string {
   return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
 }
 
+function getTournamentFooterAction(tournament: TournamentState): TournamentFooterAction | null {
+  if (tournament.stage === 'complete' || !hasRemainingUnplayedMatches(tournament)) {
+    return null;
+  }
+
+  if (!hasFutureHumanRelevantMatch(tournament)) {
+    return { kind: 'finish', label: 'Finish tournament' };
+  }
+
+  return { kind: 'next', label: 'Next Match' };
+}
+
 function findNextAvailableMatch(tournament: TournamentState): TournamentMatch | undefined {
   return tournament.matches.find(
     (match) =>
       match.status === 'available' &&
       match.homeTeamId !== undefined &&
       match.awayTeamId !== undefined
+  );
+}
+
+function hasRemainingUnplayedMatches(tournament: TournamentState): boolean {
+  return tournament.matches.some((match) => match.status !== 'completed');
+}
+
+function hasFutureHumanRelevantMatch(tournament: TournamentState): boolean {
+  return tournament.matches.some(
+    (match) =>
+      match.status !== 'completed' &&
+      ((match.homeTeamId !== undefined && getTournamentTeamControllerType(tournament, match.homeTeamId) !== 'AI') ||
+        (match.awayTeamId !== undefined && getTournamentTeamControllerType(tournament, match.awayTeamId) !== 'AI'))
   );
 }
 

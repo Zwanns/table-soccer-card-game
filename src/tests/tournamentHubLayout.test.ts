@@ -743,7 +743,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
   });
 
-  it('renders the shared footer exit and Next Match buttons without restoring old pagination controls', () => {
+  it('renders the shared footer exit and tournament action buttons without restoring old pagination controls', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
     const matchesStart = source.indexOf('private createMatchesTab');
     const matchesEnd = source.indexOf('private createMobileMatchesList');
@@ -764,8 +764,9 @@ describe('Tournament Hub responsive layout', () => {
     expect(renderBlock).toContain('borderRadius: layout.footer.buttonRadius');
     expect(renderBlock).toContain('height: layout.footer.buttonHeight');
     expect(renderBlock).toContain('width: layout.footer.buttonWidth');
-    expect(renderBlock).toContain("new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match'");
-    expect(renderBlock).toContain('this.handleNextMatch(tournament)');
+    expect(renderBlock).toContain('const footerAction = getTournamentFooterAction(tournament)');
+    expect(renderBlock).toContain('new Button(this, layout.footer.nextX, layout.footer.y, footerAction.label');
+    expect(renderBlock).toContain('this.handleFooterAction(tournament, footerAction.kind)');
     expect(renderBlock).not.toContain("if (this.activeTab !== 'matches')");
     expect(source).not.toContain('MATCHES_PER_PAGE');
     expect(source).toContain("this.activeTab === 'tables'");
@@ -815,16 +816,16 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('`vs ${opponent === undefined ? opponentId : opponent.name}\\n${goalsFor}:${goalsAgainst}`');
   });
 
-  it('renders the Tournament Hub version label from the shared game version source', () => {
+  it('does not render the Tournament Hub version label over the footer actions', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
+    const menuSource = readSource('src/scenes/MenuScene.ts');
 
-    expect(source).toContain("import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
-    expect(source).toContain('private createVersionLabel(layout: TournamentHubLayout): void');
-    expect(source).toContain('this.createVersionLabel(layout)');
-    expect(source).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
-    expect(source).toContain('SCENE_WIDTH - 32');
-    expect(source).toContain('SCENE_HEIGHT - 10');
-    expect(source).toContain("fontSize: layout.mobileLandscape ? '14px' : '16px'");
+    expect(source).toContain("import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config'");
+    expect(source).not.toContain('GAME_VERSION');
+    expect(source).not.toContain('private createVersionLabel');
+    expect(source).not.toContain('this.createVersionLabel');
+    expect(source).not.toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
+    expect(menuSource).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
   });
 
   it('wires Tournament Hub tabs, Playoff and Stats to the shared tournament panel style', () => {
