@@ -1581,7 +1581,11 @@ export class TournamentHubScene extends Phaser.Scene {
             ...layout.playoff,
             cardWidth: cupMGeometry.cardWidth,
             cardHeight: cupMGeometry.cardHeight,
-            rowGap: cupMGeometry.rowGap
+            rowGap: cupMGeometry.rowGap,
+            teamFontSize: cupMGeometry.teamFontSize,
+            scoreFontSize: cupMGeometry.scoreFontSize,
+            flagWidth: cupMGeometry.flagWidth,
+            flagHeight: cupMGeometry.flagHeight
           };
     const renderLayout: TournamentHubLayout = {
       ...layout,
@@ -1619,7 +1623,15 @@ export class TournamentHubScene extends Phaser.Scene {
 
       content.add(this.createBracketColumnLabel(STAGE_LABELS[round.stage], x, labelY, renderLayout));
       round.matches.forEach((match, index) => {
-        content.add(this.createBracketMatch(match, x, centers[index] - playoffLayout.cardHeight / 2, renderLayout));
+        content.add(
+          this.createBracketMatch(
+            match,
+            x,
+            centers[index] - playoffLayout.cardHeight / 2,
+            renderLayout,
+            format.id === 'cup-m'
+          )
+        );
       });
     });
 
@@ -2027,7 +2039,13 @@ export class TournamentHubScene extends Phaser.Scene {
     }
   }
 
-  private createBracketMatch(match: TournamentMatch, x: number, y: number, layout: TournamentHubLayout): Phaser.GameObjects.Container {
+  private createBracketMatch(
+    match: TournamentMatch,
+    x: number,
+    y: number,
+    layout: TournamentHubLayout,
+    useFullTeamNames = false
+  ): Phaser.GameObjects.Container {
     const width = layout.playoff.cardWidth;
     const height = layout.playoff.cardHeight;
     const panel = this.add.container(x, y);
@@ -2051,7 +2069,8 @@ export class TournamentHubScene extends Phaser.Scene {
       PLAYOFF_TEAM_ROW_X,
       height * 0.36,
       match.status === 'locked',
-      layout
+      layout,
+      useFullTeamNames
     );
     this.addBracketTeamRow(
       panel,
@@ -2060,7 +2079,8 @@ export class TournamentHubScene extends Phaser.Scene {
       PLAYOFF_TEAM_ROW_X,
       height * 0.68,
       match.status === 'locked',
-      layout
+      layout,
+      useFullTeamNames
     );
 
     return panel;
@@ -2073,7 +2093,8 @@ export class TournamentHubScene extends Phaser.Scene {
     x: number,
     y: number,
     muted: boolean,
-    layout: TournamentHubLayout
+    layout: TournamentHubLayout,
+    useFullTeamNames: boolean
   ): void {
     const team = teamId === undefined ? undefined : findTeam(teamId);
     const scoreX = layout.playoff.cardWidth - PLAYOFF_SCORE_RIGHT_PADDING;
@@ -2092,7 +2113,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
     panel.add(
       this.add
-        .text(teamLabelX, y, getBracketTeamLabel(teamId), {
+        .text(teamLabelX, y, getBracketTeamLabel(teamId, useFullTeamNames), {
           color: muted ? '#8fb39d' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.playoff.teamFontSize,
@@ -2273,14 +2294,18 @@ function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
   return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
 }
 
-function getBracketTeamLabel(teamId: TournamentTeamId | undefined): string {
+function getBracketTeamLabel(teamId: TournamentTeamId | undefined, useFullTeamName = false): string {
   const team = teamId === undefined ? undefined : findTeam(teamId);
 
   if (teamId === undefined) {
     return 'TBD';
   }
 
-  return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
+  if (team === undefined) {
+    return teamId;
+  }
+
+  return useFullTeamName ? team.name : getTeamScoreboardCode(team.flagCode);
 }
 
 function hasCompletedWinner(match: TournamentMatch | undefined): boolean {

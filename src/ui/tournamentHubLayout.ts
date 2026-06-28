@@ -169,6 +169,10 @@ export interface TournamentHubCupMPlayoffGeometry {
   rowGap: number;
   verticalOffset: number;
   columnGap: number;
+  teamFontSize: string;
+  scoreFontSize: string;
+  flagWidth: number;
+  flagHeight: number;
   contentWidth: number;
   startX: number;
   finalX: number;
@@ -500,6 +504,10 @@ export function getTournamentHubCupMPlayoffGeometry(
   const rowGap = layout.mobileLandscape ? 172 : 160;
   const verticalOffset = layout.mobileLandscape ? 40 : 36;
   const columnGap = layout.mobileLandscape ? 230 : 220;
+  const teamFontSize = layout.mobileLandscape ? '23px' : '20px';
+  const scoreFontSize = layout.mobileLandscape ? '24px' : '22px';
+  const flagWidth = layout.mobileLandscape ? 48 : 44;
+  const flagHeight = layout.mobileLandscape ? 36 : 33;
   const contentWidth = cardWidth * 2 + columnGap;
   const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
   const finalX = startX + cardWidth + columnGap;
@@ -510,6 +518,10 @@ export function getTournamentHubCupMPlayoffGeometry(
     rowGap,
     verticalOffset,
     columnGap,
+    teamFontSize,
+    scoreFontSize,
+    flagWidth,
+    flagHeight,
     contentWidth,
     startX,
     finalX
