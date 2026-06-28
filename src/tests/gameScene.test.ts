@@ -186,7 +186,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
 
-  it('opens a Pause overlay with Results, Continue and Exit to Menu actions', () => {
+  it('opens a Pause overlay with Sim, Continue and Exit to Menu actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
@@ -196,8 +196,12 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("{ label: 'Continue', onClick: () => this.closePauseModal() }");
     expect(source).toContain("label: 'Exit to Menu'");
     expect(source).toContain('this.openExitConfirmModal()');
-    expect(source).toContain("label: 'Results'");
-    expect(source).toContain('this.openResult(state)');
+    expect(source).toContain("label: 'Sim'");
+    expect(source).toContain('this.simulatePausedMatch(state)');
+    expect(source).toContain('private simulatePausedMatch(state: Readonly<GameState>): void');
+    expect(source).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
+    expect(source).toContain("this.scene.start('TournamentCompleteScene')");
+    expect(source).toContain("this.scene.start('TournamentHubScene', { initialTab: 'matches' })");
     const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal()'));
     expect(pauseBlock).not.toContain("label: 'About'");
     expect(pauseBlock).not.toContain("this.openMatchInfoModal('about')");

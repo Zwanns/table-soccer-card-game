@@ -18,13 +18,10 @@ import {
   RESULT_ACTION_BUTTON_RADIUS
 } from '../ui/resultActionButtons';
 import {
-  MATCH_HEADER_BORDER_ALPHA,
-  MATCH_HEADER_BORDER_COLOR,
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
   SCOREBOARD_BORDER_ALPHA,
   SCOREBOARD_BORDER_COLOR,
-  SCOREBOARD_FONT_FAMILY,
   SCOREBOARD_TEXT_COLOR
 } from '../ui/scoreboardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
@@ -35,8 +32,6 @@ const COMPLETE_PANEL_RADIUS = 8;
 const COMPLETE_ROW_RADIUS = 6;
 const COMPLETE_SCROLLBAR_WIDTH = 6;
 const COMPLETE_SCROLLBAR_MIN_THUMB_HEIGHT = 34;
-const COMPLETE_PANEL_INNER_BORDER_COLOR = MATCH_HEADER_BORDER_COLOR;
-const COMPLETE_PANEL_INNER_BORDER_ALPHA = MATCH_HEADER_BORDER_ALPHA;
 
 type LeaderCardDefinition = {
   title: string;
@@ -170,24 +165,29 @@ export class TournamentCompleteScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const championRow = this.add.container(SCENE_WIDTH / 2, layout.header.championY);
+    const championName = champion?.name ?? championTeamId;
+    const championLabel = this.add
+      .text(0, 0, championName, {
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: layout.header.championFontSize,
+        fontStyle: '700',
+        wordWrap: { width: 520 }
+      })
+      .setOrigin(0, 0.5);
+    const flagGap = champion === undefined ? 0 : 16;
+    const totalWidth = (champion === undefined ? 0 : layout.header.flagWidth) + flagGap + championLabel.width;
+    let labelX = -totalWidth / 2;
 
     if (champion !== undefined) {
-      const flag = this.add.image(-158, 0, getFlagAssetKey(champion.flagCode));
+      const flag = this.add.image(labelX + layout.header.flagWidth / 2, 0, getFlagAssetKey(champion.flagCode));
       flag.setDisplaySize(layout.header.flagWidth, layout.header.flagHeight);
       championRow.add(flag);
+      labelX += layout.header.flagWidth + flagGap;
     }
 
-    championRow.add(
-      this.add
-        .text(-104, 0, champion?.name ?? championTeamId, {
-          color: '#ffffff',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: layout.header.championFontSize,
-          fontStyle: '700',
-          wordWrap: { width: 520 }
-        })
-        .setOrigin(0, 0.5)
-    );
+    championLabel.setX(labelX);
+    championRow.add(championLabel);
   }
 
   private createSummaryPanel(
@@ -231,14 +231,15 @@ export class TournamentCompleteScene extends Phaser.Scene {
     layout: TournamentCompleteLayout
   ): void {
     const content = this.add.container(layout.path.viewportX, layout.path.viewportY);
+    const matchOrder = new Map(tournament.matches.map((match, index) => [match.id, index]));
     const championMatches = tournament.matches
       .filter(
         (match) =>
           match.status === 'completed' &&
           match.result !== undefined &&
-          (match.homeTeamId === championTeamId || match.awayTeamId === championTeamId)
+          (match.result.homeTeamId === championTeamId || match.result.awayTeamId === championTeamId)
       )
-      .sort((first, second) => first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex);
+      .sort((first, second) => (matchOrder.get(first.id) ?? 0) - (matchOrder.get(second.id) ?? 0));
 
     championMatches.forEach((match, index) => {
       const row = this.createPathRow(match, 0, layout.path.rowHeight / 2 + index * layout.path.rowGap, layout);
@@ -335,9 +336,9 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const row = this.add.container(x, y);
     const background = this.add.graphics();
     background
-      .fillStyle(0x10251d, 0.72)
+      .fillStyle(SCOREBOARD_BACKGROUND_COLOR, 0.22)
       .fillRoundedRect(0, -layout.path.rowHeight / 2, layout.path.viewportWidth, layout.path.rowHeight, COMPLETE_ROW_RADIUS)
-      .lineStyle(1, COMPLETE_PANEL_INNER_BORDER_COLOR, 0.32)
+      .lineStyle(1, SCOREBOARD_BORDER_COLOR, 0.24)
       .strokeRoundedRect(0, -layout.path.rowHeight / 2, layout.path.viewportWidth, layout.path.rowHeight, COMPLETE_ROW_RADIUS);
     const label = this.add
       .text(layout.path.stageX, 0, formatMatchStage(match), {
@@ -360,7 +361,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
       .text(layout.path.scoreX, 0, formatMatchScore(match), {
         align: 'center',
         color: '#f0c95a',
-        fontFamily: SCOREBOARD_FONT_FAMILY,
+        fontFamily: 'Arial, sans-serif',
         fontSize: layout.path.scoreFontSize,
         fontStyle: '700'
       })
@@ -419,7 +420,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const card = this.add.container(x, y);
     const background = this.add.graphics();
     background
-      .fillStyle(0x10251d, 0.82)
+      .fillStyle(SCOREBOARD_BACKGROUND_COLOR, 0.24)
       .fillRoundedRect(
         -layout.leaders.width / 2,
         -layout.leaders.height / 2,
@@ -427,7 +428,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         layout.leaders.height,
         COMPLETE_PANEL_RADIUS
       )
-      .lineStyle(2, COMPLETE_PANEL_INNER_BORDER_COLOR, COMPLETE_PANEL_INNER_BORDER_ALPHA)
+      .lineStyle(1, SCOREBOARD_BORDER_COLOR, 0.28)
       .strokeRoundedRect(
         -layout.leaders.width / 2,
         -layout.leaders.height / 2,
@@ -486,7 +487,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         .text(layout.leaders.width / 2 - 24, 22, `${value} ${leader.statLabel}`, {
           align: 'right',
           color: SCOREBOARD_TEXT_COLOR,
-          fontFamily: SCOREBOARD_FONT_FAMILY,
+          fontFamily: 'Arial, sans-serif',
           fontSize: layout.leaders.valueFontSize,
           fontStyle: '700'
         })
@@ -581,7 +582,7 @@ function createTournamentCompleteLayout(
   const panelHeight = COMPLETE_PANEL_BOTTOM_Y - panelTop;
   const panelX = SCENE_WIDTH / 2;
   const panelY = panelTop + panelHeight / 2;
-  const pathViewportWidth = mobileLandscape ? 730 : 640;
+  const pathViewportWidth = mobileLandscape ? 660 : 580;
   const leaderWidth = mobileLandscape ? 430 : 390;
   const panelLeft = -panelWidth / 2;
   const panelRight = panelWidth / 2;
@@ -617,10 +618,10 @@ function createTournamentCompleteLayout(
       rowHeight: mobileLandscape ? 42 : 40,
       rowGap: mobileLandscape ? 48 : 46,
       stageX: 14,
-      homeX: mobileLandscape ? 166 : 146,
-      scoreX: mobileLandscape ? 416 : 360,
-      awayX: mobileLandscape ? 494 : 428,
-      teamWidth: mobileLandscape ? 194 : 166,
+      homeX: mobileLandscape ? 150 : 132,
+      scoreX: mobileLandscape ? 374 : 326,
+      awayX: mobileLandscape ? 448 : 390,
+      teamWidth: mobileLandscape ? 174 : 150,
       headingFontSize: mobileLandscape ? '25px' : '24px',
       rowFontSize: mobileLandscape ? '19px' : '18px',
       scoreFontSize: mobileLandscape ? '24px' : '22px',

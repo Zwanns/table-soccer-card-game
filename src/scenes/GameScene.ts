@@ -9,8 +9,9 @@ import {
 import { AiTurnController, type AiAction, type AiTurnCheckReason, type PlayerControllerType } from '../ai';
 import type { Card } from '../cards';
 import { GAME_AUTHOR, GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import { getLanguageCode, getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
-import { QUICK_MATCH_CONTEXT, type MatchLaunchContext } from '../tournament';
+import { QUICK_MATCH_CONTEXT, saveTournament, type MatchLaunchContext, type TournamentState } from '../tournament';
 import {
   GameEngine,
   getFieldPlayerForCard,
@@ -69,6 +70,7 @@ import {
   type GoalkeeperShotSceneEffect,
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
+import { submitSimulatedTournamentMatch } from './tournamentMatchSimulation';
 
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
 const DECK_Y = MATCH_DECK_Y;
@@ -969,10 +971,10 @@ export class GameScene extends Phaser.Scene {
 
     this.pauseModal = createMatchPauseOverlay(this, [
       {
-        label: 'Results',
+        label: 'Sim',
         onClick: () => {
           this.closePauseModal();
-          this.openResult(state);
+          this.simulatePausedMatch(state);
         }
       },
       { label: 'Continue', onClick: () => this.closePauseModal() },
@@ -2128,6 +2130,55 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('ResultScene', { state, launchContext: this.launchContext });
   }
 
+  private simulatePausedMatch(state: Readonly<GameState>): void {
+    if (this.launchContext.mode !== 'tournament') {
+      this.openResult(state);
+      return;
+    }
+
+    const launchContext = this.launchContext;
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+
+    if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
+      this.openResult(state);
+      return;
+    }
+
+    const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
+
+    if (match === undefined || match.homeTeamId === undefined || match.awayTeamId === undefined) {
+      this.openResult(state);
+      return;
+    }
+
+    const homeTeam = findNationalTeam(match.homeTeamId);
+    const awayTeam = findNationalTeam(match.awayTeamId);
+
+    if (homeTeam === undefined || awayTeam === undefined) {
+      this.openResult(state);
+      return;
+    }
+
+    let updatedTournament: TournamentState;
+
+    try {
+      updatedTournament = submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam);
+    } catch {
+      this.openResult(state);
+      return;
+    }
+
+    this.registry.set('currentTournament', updatedTournament);
+    saveTournament(updatedTournament);
+
+    if (updatedTournament.stage === 'complete') {
+      this.scene.start('TournamentCompleteScene');
+      return;
+    }
+
+    this.scene.start('TournamentHubScene', { initialTab: 'matches' });
+  }
+
   private executeAiAction(action: AiAction): void {
     switch (action.type) {
       case 'DRAW_FROM_DECK':
@@ -2419,6 +2470,10 @@ function createAiMatchSeed(
       : 'quick-match';
 
   return `${contextSeed}:${player1FlagCode}:${player2FlagCode}:${player1ControllerType}:${player2ControllerType}`;
+}
+
+function findNationalTeam(flagCode: string) {
+  return NATIONAL_TEAMS.find((team) => team.flagCode === flagCode);
 }
 
 function getInfoLanguageCode(language: AboutLanguage): string {

@@ -280,7 +280,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     this.pauseModal = createMatchPauseOverlay(this, [
       {
-        label: 'Results',
+        label: 'Sim',
         onClick: () => this.completeShootoutFromPause()
       },
       { label: 'Continue', onClick: () => this.closePauseModal() },

@@ -84,9 +84,9 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).toContain('player1ControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
     expect(hubSource).toContain('player2ControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
     expect(hubSource).toContain('createAiMarker');
-    expect(hubSource).toContain('createSimulatedTournamentGameState');
-    expect(hubSource).toContain('homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
-    expect(hubSource).toContain('awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
+    expect(hubSource).toContain('submitSimulatedTournamentMatch');
+    expect(simulationSource).toContain('homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode)');
+    expect(simulationSource).toContain('awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)');
     expect(simulationSource).toContain('homeControllerType?: PlayerControllerType');
     expect(simulationSource).toContain('awayControllerType?: PlayerControllerType');
     expect(simulationSource).toContain('controllerType: options.homeControllerType');
@@ -100,29 +100,34 @@ describe('tournament hub scene integration', () => {
     const simulateStart = hubSource.indexOf('private simulateTournamentMatch');
     const simulateEnd = hubSource.indexOf('private showSimulationError');
     const simulateBlock = hubSource.slice(simulateStart, simulateEnd);
+    const simulationSource = readSource('src/scenes/tournamentMatchSimulation.ts');
 
-    expect(hubSource).toContain('createTournamentMatchResultFromGameState');
-    expect(hubSource).toContain('submitTournamentMatchResultObject');
-    expect(hubSource).toContain('saveTournament(updatedTournament)');
-    expect(hubSource).toContain("this.registry.set('currentTournament', updatedTournament)");
-    expect(hubSource).toContain("if (updatedTournament.stage === 'complete')");
+    expect(simulationSource).toContain('createTournamentMatchResultFromGameState');
+    expect(simulationSource).toContain('submitTournamentMatchResultObject');
+    expect(hubSource).toContain('saveTournament(currentTournament)');
+    expect(hubSource).toContain("this.registry.set('currentTournament', currentTournament)");
+    expect(hubSource).toContain("if (currentTournament.stage === 'complete')");
     expect(hubSource).toContain("this.scene.start('TournamentCompleteScene')");
     expect(hubSource).toContain('this.render()');
     expect(simulateBlock).not.toContain("this.scene.start('ResultScene'");
     expect(simulateBlock).not.toContain("this.scene.start('GameScene'");
   });
 
-  it('routes AI vs AI Play through simulation and keeps Sim hidden for those cards', () => {
+  it('routes Next Match through AI-only simulations before starting the next human match', () => {
     const hubSource = readSource('src/scenes/TournamentHubScene.ts');
 
-    expect(hubSource).toContain('function getAvailableMatchActions(');
+    expect(hubSource).toContain("new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match'");
+    expect(hubSource).toContain('private handleNextMatch(tournament: TournamentState): void');
+    expect(hubSource).toContain('const nextMatch = findNextAvailableMatch(currentTournament)');
     expect(hubSource).toContain('function isAiVsAiTournamentMatch(');
-    expect(hubSource).toContain("return [{ kind: 'play', label: 'Play' }]");
-    expect(hubSource).toContain("return [\n    { kind: 'simulate', label: 'Sim' },\n    { kind: 'play', label: 'Play' }\n  ]");
-    expect(hubSource).toContain("if (isAiVsAiTournamentMatch(tournament, match)) {\n      this.simulateTournamentMatch(tournament, match)");
-    expect(hubSource).toContain('getAvailableMatchActions(tournament, match).forEach((action) => {');
-    expect(hubSource).toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
-    expect(hubSource).toContain('action.kind === \'simulate\' ? simX : playX');
+    expect(hubSource).toContain('if (!isAiVsAiTournamentMatch(currentTournament, nextMatch))');
+    expect(hubSource).toContain('this.startTournamentMatch(currentTournament, nextMatch)');
+    expect(hubSource).toContain('const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch)');
+    expect(hubSource).toContain('saveTournament(currentTournament)');
+    expect(hubSource).toContain('function findNextAvailableMatch(tournament: TournamentState): TournamentMatch | undefined');
+    expect(hubSource).not.toContain('function getAvailableMatchActions(');
+    expect(hubSource).not.toContain('private runMatchAction(');
+    expect(hubSource).not.toContain("new Button(this, action.kind === 'simulate'");
   });
 
   it('stores participant controller types in tournament state while preserving team ids', () => {
@@ -258,7 +263,7 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('], { statsPanel });');
     expect(penaltySource).toContain("label: 'Continue'");
     expect(penaltySource).toContain("label: 'Exit to Menu'");
-    expect(penaltySource).toContain("label: 'Results'");
+    expect(penaltySource).toContain("label: 'Sim'");
     expect(penaltySource).toContain('onClick: () => this.completeShootoutFromPause()');
     expect(penaltySource).not.toContain("label: 'About'");
     expect(penaltySource).toContain('this.rulesModal = createMatchRulesOverlay({');
@@ -441,6 +446,10 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).not.toContain('matches played');
     expect(completeSource).toContain('Champion path');
     expect(completeSource).toContain('Tournament leaders');
+    expect(completeSource).toContain('const matchOrder = new Map(tournament.matches.map((match, index) => [match.id, index]))');
+    expect(completeSource).toContain(".sort((first, second) => (matchOrder.get(first.id) ?? 0) - (matchOrder.get(second.id) ?? 0))");
+    expect(completeSource).not.toContain('first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex');
+    expect(completeSource).not.toContain('SCOREBOARD_FONT_FAMILY');
     expect(completeSource).toContain('Top scorer');
     expect(completeSource).toContain('Top assist');
     expect(completeSource).toContain('Top goalkeeper');

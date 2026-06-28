@@ -9,7 +9,15 @@ import {
   type GameState,
   type Player
 } from '../game';
-import { createTournamentRandom, type TournamentMatch, type TournamentStage } from '../tournament';
+import {
+  createTournamentMatchResultFromGameState,
+  createTournamentRandom,
+  getTournamentTeamControllerType,
+  submitTournamentMatchResultObject,
+  type TournamentMatch,
+  type TournamentStage,
+  type TournamentState
+} from '../tournament';
 
 type SimulatedTournamentMatchOptions = {
   match: TournamentMatch;
@@ -79,6 +87,25 @@ export function createSimulatedTournamentGameState(options: SimulatedTournamentM
     turnNumber: Math.max(1, score.homeShots + score.awayShots),
     log: [...log, { type: 'GAME_OVER', winnerId }]
   };
+}
+
+export function submitSimulatedTournamentMatch(
+  tournament: TournamentState,
+  match: TournamentMatch,
+  homeTeam: NationalTeam,
+  awayTeam: NationalTeam
+): TournamentState {
+  const gameState = createSimulatedTournamentGameState({
+    match,
+    homeTeam,
+    awayTeam,
+    tournamentSeed: tournament.seed,
+    homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode),
+    awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)
+  });
+  const result = createTournamentMatchResultFromGameState(match.id, gameState, homeTeam.flagCode, awayTeam.flagCode);
+
+  return submitTournamentMatchResultObject(tournament, result);
 }
 
 function createSimulatedScore(stage: TournamentStage, random: () => number): SimulatedScore {

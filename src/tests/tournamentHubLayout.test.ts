@@ -708,7 +708,7 @@ describe('Tournament Hub responsive layout', () => {
     expect(getGroupStageRowStep(mobile)).toBeGreaterThan(mobile.groupStage.viewportHeight!);
   });
 
-  it('wires match-card scrolling and tap-safe tournament match actions through the shared action router', () => {
+  it('wires match-card scrolling while keeping match cards informational', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
 
     expect(source).toContain('const HUB_INPUT_GUARD_MS = 220');
@@ -721,17 +721,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('this.createMobileMatchesList(tournament, matches, layout)');
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('dragScroll.bindDragTarget(scrollZone)');
-    expect(source).toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
-    expect(source).toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
-    expect(source).toContain('onTap: () => this.runGuardedInputAction(() => this.runMatchAction(tournament, match, action.kind))');
-    expect(source).toContain('private runMatchAction(tournament: TournamentState, match: TournamentMatch, action: TournamentMatchActionKind): void');
-    expect(source).toContain("if (action === 'simulate') {\n      this.simulateTournamentMatch(tournament, match)");
-    expect(source).toContain('if (isAiVsAiTournamentMatch(tournament, match)) {\n      this.simulateTournamentMatch(tournament, match)');
-    expect(source).toContain('this.startTournamentMatch(tournament, match)');
+    expect(source).not.toContain('dragScroll.bindScrollableTapTarget(zone, action.onTap)');
+    expect(source).not.toContain('getAvailableMatchActions(tournament, match).map((action) => ({');
+    expect(source).not.toContain('private runMatchAction(');
+    expect(source).toContain('this.startTournamentMatch(currentTournament, nextMatch)');
     expect(source).toContain('if (!this.canRunGuardedInputAction()) {\n      return;\n    }\n\n    if (match.homeTeamId === undefined');
     expect(source).toContain('this.matchScrollY = 0');
-    expect(source).toContain('layout.matches.actionWidth');
-    expect(source).toContain('layout.matches.actionGap');
     expect(source).toContain('layout.matches.scoreX');
     expect(source).toContain('layout.matches.cardRadius');
     expect(source).toContain('borderRadius: layout.footer.buttonRadius');
@@ -743,10 +738,12 @@ describe('Tournament Hub responsive layout', () => {
     expect(source).toContain('.fillStyle(0xf0c95a, 1)');
     expect(source).toContain("color: '#1f2a2e'");
     expect(source).toContain('MOBILE_MATCH_AI_TEAM_CODE_OFFSET_Y = -10');
+    expect(source).not.toContain('createMobileMatchActionVisual');
+    expect(source).not.toContain("new Button(this, action.kind === 'simulate'");
     expect(source).not.toContain("getTournamentTeamControllerType(tournament, teamId),");
   });
 
-  it('renders the shared footer exit button on Matches without restoring old pagination controls', () => {
+  it('renders the shared footer exit and Next Match buttons without restoring old pagination controls', () => {
     const source = readSource('src/scenes/TournamentHubScene.ts');
     const matchesStart = source.indexOf('private createMatchesTab');
     const matchesEnd = source.indexOf('private createMobileMatchesList');
@@ -767,6 +764,8 @@ describe('Tournament Hub responsive layout', () => {
     expect(renderBlock).toContain('borderRadius: layout.footer.buttonRadius');
     expect(renderBlock).toContain('height: layout.footer.buttonHeight');
     expect(renderBlock).toContain('width: layout.footer.buttonWidth');
+    expect(renderBlock).toContain("new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match'");
+    expect(renderBlock).toContain('this.handleNextMatch(tournament)');
     expect(renderBlock).not.toContain("if (this.activeTab !== 'matches')");
     expect(source).not.toContain('MATCHES_PER_PAGE');
     expect(source).toContain("this.activeTab === 'tables'");

@@ -9,9 +9,7 @@ import {
   getTournamentPlayerStatsRanking,
   getTournamentTeamStats,
   getTournamentTeamStatsRanking,
-  createTournamentMatchResultFromGameState,
   saveTournament,
-  submitTournamentMatchResultObject,
   type TournamentGroup,
   type TournamentMatch,
   type TournamentStage,
@@ -33,7 +31,7 @@ import {
   type TournamentHubLayout
 } from '../ui/tournamentHubLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
-import { createSimulatedTournamentGameState } from './tournamentMatchSimulation';
+import { submitSimulatedTournamentMatch } from './tournamentMatchSimulation';
 
 type TournamentHubTab = 'matches' | 'tables' | 'bracket' | 'stats';
 
@@ -62,13 +60,6 @@ type GroupFormEntry = {
 
 type PlayoffRenderRound = {
   matches: readonly TournamentMatch[];
-};
-
-type TournamentMatchActionKind = 'simulate' | 'play';
-
-type TournamentMatchActionDefinition = {
-  kind: TournamentMatchActionKind;
-  label: string;
 };
 
 const TAB_LABELS: Record<TournamentHubTab, string> = {
@@ -226,6 +217,13 @@ export class TournamentHubScene extends Phaser.Scene {
     }
 
     new Button(this, layout.footer.menuX, layout.footer.y, 'Exit to Main Menu', () => this.runGuardedInputAction(() => this.scene.start('MenuScene')), {
+      borderWidth: 0,
+      borderRadius: layout.footer.buttonRadius,
+      fontSize: layout.footer.fontSize,
+      height: layout.footer.buttonHeight,
+      width: layout.footer.buttonWidth
+    });
+    new Button(this, layout.footer.nextX, layout.footer.y, 'Next Match', () => this.handleNextMatch(tournament), {
       borderWidth: 0,
       borderRadius: layout.footer.buttonRadius,
       fontSize: layout.footer.fontSize,
@@ -422,40 +420,6 @@ export class TournamentHubScene extends Phaser.Scene {
 
       row.setPosition(layout.matches.x, rowY);
       content.add(row);
-
-      if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
-        const playX =
-          layout.matches.cardWidth -
-          layout.matches.actionRightMargin -
-          layout.matches.actionWidth / 2;
-        const simX =
-          playX -
-          layout.matches.actionWidth -
-          layout.matches.actionGap;
-        const actions = getAvailableMatchActions(tournament, match).map((action) => ({
-          x: action.kind === 'simulate' ? simX : playX,
-          width: layout.matches.actionWidth,
-          onTap: () => this.runGuardedInputAction(() => this.runMatchAction(tournament, match, action.kind))
-        }));
-
-        actions.forEach((action) => {
-          const zone = this.add
-            .zone(
-              layout.matches.x + action.x,
-              rowY + layout.matches.cardHeight / 2,
-              action.width,
-              layout.matches.actionHeight
-            )
-            .setInteractive({ useHandCursor: true });
-
-          zone.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
-            setScroll(this.matchScrollY + deltaY * TOUCH_SCROLL_WHEEL_FACTOR);
-          });
-          dragScroll.bindScrollableTapTarget(zone, action.onTap);
-          actionTargets.push(zone);
-          content.add(zone);
-        });
-      }
     });
 
     const maskGraphics = this.make.graphics();
@@ -549,39 +513,17 @@ export class TournamentHubScene extends Phaser.Scene {
       layout
     );
 
-    if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
-      const playX =
-        layout.matches.cardWidth -
-        layout.matches.actionRightMargin -
-        layout.matches.actionWidth / 2;
-      const simX =
-        playX -
-        layout.matches.actionWidth -
-        layout.matches.actionGap;
-      getAvailableMatchActions(tournament, match).forEach((action) => {
-        row.add(
-          this.createMobileMatchActionVisual(
-            action.kind === 'simulate' ? simX : playX,
-            layout.matches.cardHeight / 2,
-            action.label,
-            layout.matches.actionWidth,
-            layout
-          )
-        );
-      });
-    } else {
-      row.add(
-        this.add
-          .text(layout.matches.cardWidth - 24, layout.matches.cardHeight / 2, formatMatchStatus(match), {
-            align: 'right',
-            color: match.status === 'completed' ? '#f0c95a' : '#8fb39d',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: layout.matches.labelFontSize,
-            fontStyle: '700'
-          })
-          .setOrigin(1, 0.5)
-      );
-    }
+    row.add(
+      this.add
+        .text(layout.matches.cardWidth - 24, layout.matches.cardHeight / 2, formatMatchStatus(match), {
+          align: 'right',
+          color: match.status === 'completed' ? '#f0c95a' : '#8fb39d',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: layout.matches.labelFontSize,
+          fontStyle: '700'
+        })
+        .setOrigin(1, 0.5)
+    );
 
     return row;
   }
@@ -653,29 +595,6 @@ export class TournamentHubScene extends Phaser.Scene {
     );
   }
 
-  private createMobileMatchActionVisual(
-    x: number,
-    y: number,
-    label: string,
-    width: number,
-    layout: TournamentHubLayout
-  ): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
-    const background = this.add.rectangle(0, 0, width, layout.matches.actionHeight, 0xf0c95a, 1);
-    background.setStrokeStyle(2, 0x2d382f, 0.95);
-    const text = this.add
-      .text(0, 0, label, {
-        color: '#1f2a2e',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: layout.matches.actionFontSize,
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-
-    button.add([background, text]);
-    return button;
-  }
-
   private createMatchRow(tournament: TournamentState, match: TournamentMatch, x: number, y: number): void {
     const row = this.add.container(x, y);
     const background = this.add.rectangle(0, 0, MATCH_GRID.cardWidth, MATCH_GRID.cardHeight, 0x0b2118, 0.86);
@@ -725,31 +644,17 @@ export class TournamentHubScene extends Phaser.Scene {
       match.awayTeamId !== undefined && getTournamentTeamControllerType(tournament, match.awayTeamId) === 'AI'
     );
 
-    if (match.status !== 'available') {
-      row.add(
-        this.add
-          .text(626, 19, formatMatchStatus(match), {
-            align: 'right',
-            color: match.status === 'completed' ? '#9dd2a7' : '#8fb39d',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '15px',
-            fontStyle: '700'
-          })
-          .setOrigin(1, 0.5)
-      );
-    }
-
-    if (match.status === 'available' && match.homeTeamId !== undefined && match.awayTeamId !== undefined) {
-      getAvailableMatchActions(tournament, match).forEach((action) => {
-        row.add(
-          new Button(this, action.kind === 'simulate' ? 548 : 614, 19, action.label, () => this.runMatchAction(tournament, match, action.kind), {
-            fontSize: '14px',
-            height: 30,
-            width: action.kind === 'simulate' ? 58 : 70
-          })
-        );
-      });
-    }
+    row.add(
+      this.add
+        .text(626, 19, formatMatchStatus(match), {
+          align: 'right',
+          color: match.status === 'completed' ? '#9dd2a7' : '#8fb39d',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '15px',
+          fontStyle: '700'
+        })
+        .setOrigin(1, 0.5)
+    );
   }
 
   private createTablesTab(tournament: TournamentState, layout: TournamentHubLayout): void {
@@ -2174,18 +2079,50 @@ export class TournamentHubScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private runMatchAction(tournament: TournamentState, match: TournamentMatch, action: TournamentMatchActionKind): void {
-    if (action === 'simulate') {
-      this.simulateTournamentMatch(tournament, match);
+  private handleNextMatch(tournament: TournamentState): void {
+    if (!this.canRunGuardedInputAction()) {
       return;
     }
 
-    if (isAiVsAiTournamentMatch(tournament, match)) {
-      this.simulateTournamentMatch(tournament, match);
-      return;
+    let currentTournament = tournament;
+    const maxSteps = currentTournament.matches.length * 2;
+
+    for (let step = 0; step < maxSteps; step += 1) {
+      if (currentTournament.stage === 'complete') {
+        this.registry.set('currentTournament', currentTournament);
+        saveTournament(currentTournament);
+        this.scene.start('TournamentCompleteScene');
+        return;
+      }
+
+      const nextMatch = findNextAvailableMatch(currentTournament);
+
+      if (nextMatch === undefined) {
+        this.registry.set('currentTournament', currentTournament);
+        saveTournament(currentTournament);
+        this.render();
+        return;
+      }
+
+      if (!isAiVsAiTournamentMatch(currentTournament, nextMatch)) {
+        this.registry.set('currentTournament', currentTournament);
+        saveTournament(currentTournament);
+        this.startTournamentMatch(currentTournament, nextMatch);
+        return;
+      }
+
+      const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch);
+
+      if (simulatedTournament === null) {
+        return;
+      }
+
+      currentTournament = simulatedTournament;
+      this.registry.set('currentTournament', currentTournament);
+      saveTournament(currentTournament);
     }
 
-    this.startTournamentMatch(tournament, match);
+    this.showSimulationError('Could not find the next playable tournament match.');
   }
 
   private startTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
@@ -2219,46 +2156,23 @@ export class TournamentHubScene extends Phaser.Scene {
     });
   }
 
-  private simulateTournamentMatch(tournament: TournamentState, match: TournamentMatch): void {
-    if (!this.canRunGuardedInputAction()) {
-      return;
-    }
-
+  private simulateTournamentMatch(tournament: TournamentState, match: TournamentMatch): TournamentState | null {
     if (match.homeTeamId === undefined || match.awayTeamId === undefined) {
-      return;
+      return null;
     }
 
     const homeTeam = findTeam(match.homeTeamId);
     const awayTeam = findTeam(match.awayTeamId);
 
     if (homeTeam === undefined || awayTeam === undefined) {
-      return;
+      return null;
     }
 
-    const gameState = createSimulatedTournamentGameState({
-        match,
-        homeTeam,
-        awayTeam,
-        tournamentSeed: tournament.seed,
-        homeControllerType: getTournamentTeamControllerType(tournament, homeTeam.flagCode),
-        awayControllerType: getTournamentTeamControllerType(tournament, awayTeam.flagCode)
-      });
-    const result = createTournamentMatchResultFromGameState(match.id, gameState, homeTeam.flagCode, awayTeam.flagCode);
-
     try {
-      const updatedTournament = submitTournamentMatchResultObject(tournament, result);
-
-      this.registry.set('currentTournament', updatedTournament);
-      saveTournament(updatedTournament);
-
-      if (updatedTournament.stage === 'complete') {
-        this.scene.start('TournamentCompleteScene');
-        return;
-      }
-
-      this.render();
+      return submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam);
     } catch (error) {
       this.showSimulationError(error instanceof Error ? error.message : 'Could not simulate tournament match.');
+      return null;
     }
   }
 
@@ -2480,18 +2394,13 @@ function getStatsTeamCode(teamId: TournamentTeamId): string {
   return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
 }
 
-function getAvailableMatchActions(
-  tournament: TournamentState,
-  match: TournamentMatch
-): TournamentMatchActionDefinition[] {
-  if (isAiVsAiTournamentMatch(tournament, match)) {
-    return [{ kind: 'play', label: 'Play' }];
-  }
-
-  return [
-    { kind: 'simulate', label: 'Sim' },
-    { kind: 'play', label: 'Play' }
-  ];
+function findNextAvailableMatch(tournament: TournamentState): TournamentMatch | undefined {
+  return tournament.matches.find(
+    (match) =>
+      match.status === 'available' &&
+      match.homeTeamId !== undefined &&
+      match.awayTeamId !== undefined
+  );
 }
 
 function isAiVsAiTournamentMatch(tournament: TournamentState, match: TournamentMatch): boolean {
