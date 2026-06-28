@@ -42,8 +42,30 @@ function getSetupFooterLeft(layout: ReturnType<typeof createTournamentSetupLayou
   return firstButton.x - firstButton.width / 2;
 }
 
+function getSetupFooterRight(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  const lastButton = layout.bottomButtons[layout.bottomButtons.length - 1]!;
+
+  return lastButton.x + lastButton.width / 2;
+}
+
 function getDesktopGroupRowWidth(layout: ReturnType<typeof createTournamentSetupLayout>, groupCount = 4): number {
   return groupCount * layout.groups.panelWidth + Math.max(0, groupCount - 1) * layout.groups.gapX;
+}
+
+function getTeamListViewportLeft(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return layout.teams.startX - layout.teams.buttonWidth / 2 - layout.teams.viewportPadding;
+}
+
+function getTeamListViewportWidth(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return (
+    layout.teams.columns * layout.teams.buttonWidth +
+    Math.max(0, layout.teams.columns - 1) * layout.teams.gapX +
+    layout.teams.viewportPadding * 2
+  );
+}
+
+function getTeamListViewportRight(layout: ReturnType<typeof createTournamentSetupLayout>): number {
+  return getTeamListViewportLeft(layout) + getTeamListViewportWidth(layout);
 }
 
 function getGroupBottomPadding(layout: ReturnType<typeof createTournamentSetupLayout>): number {
@@ -352,9 +374,9 @@ describe('tournament setup scene integration', () => {
 
     expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
-    expect(desktopLayout.teams.flagX).toBe(-44);
+    expect(desktopLayout.teams.flagX).toBe(-42);
     expect(desktopLayout.groups.slotFlagX).toBe(32);
-    expect(desktopLayout.teams.codeX).toBe(24);
+    expect(desktopLayout.teams.codeX).toBe(22);
     expect(desktopLayout.groups.slotCodeX).toBe(90);
     expect(setupSource).toContain('.text(teamLayout.codeX, 0, teamCode');
     expect(setupSource).toContain(".setOrigin(0.5)");
@@ -419,8 +441,7 @@ describe('tournament setup scene integration', () => {
   it('aligns the desktop group area with the footer while keeping four cards in one row', () => {
     const desktopLayout = createTournamentSetupLayout(false);
     const mobileLayout = createTournamentSetupLayout(true);
-    const desktopTeamViewportLeft =
-      desktopLayout.teams.startX - desktopLayout.teams.buttonWidth / 2 - desktopLayout.teams.viewportPadding;
+    const desktopTeamViewportLeft = getTeamListViewportLeft(desktopLayout);
     const desktopGroupRowRight = desktopLayout.groups.startX + getDesktopGroupRowWidth(desktopLayout);
 
     expect(desktopLayout.groups.panelWidth).toBe(204);
@@ -438,6 +459,31 @@ describe('tournament setup scene integration', () => {
     );
     expect(mobileLayout.groups.panelWidth).toBe(475);
     expect(mobileLayout.groups.startX).toBe(40);
+  });
+
+  it('keeps the desktop team list inset from the right edge without changing its column count', () => {
+    const desktopLayout = createTournamentSetupLayout(false);
+    const mobileLayout = createTournamentSetupLayout(true);
+    const desktopGroupRowRight = desktopLayout.groups.startX + getDesktopGroupRowWidth(desktopLayout);
+    const desktopTeamViewportLeft = getTeamListViewportLeft(desktopLayout);
+    const desktopTeamViewportRight = getTeamListViewportRight(desktopLayout);
+    const footerRight = getSetupFooterRight(desktopLayout);
+
+    expect(desktopLayout.teams.columns).toBe(3);
+    expect(desktopLayout.teams.buttonWidth).toBe(146);
+    expect(desktopLayout.teams.buttonWidth).toBeLessThan(154);
+    expect(desktopLayout.teams.gapX).toBe(10);
+    expect(desktopLayout.teams.gapX).toBeLessThan(12);
+    expect(desktopTeamViewportRight).toBeLessThanOrEqual(footerRight);
+    expect(1600 - desktopTeamViewportRight).toBeGreaterThanOrEqual(130);
+    expect(desktopGroupRowRight).toBeLessThanOrEqual(desktopTeamViewportLeft);
+    expect(desktopLayout.teams.flagX - desktopLayout.teams.flagWidth / 2).toBeGreaterThanOrEqual(
+      -desktopLayout.teams.buttonWidth / 2
+    );
+    expect(desktopLayout.teams.codeX + 36).toBeLessThanOrEqual(desktopLayout.teams.buttonWidth / 2);
+    expect(mobileLayout.teams.columns).toBe(2);
+    expect(mobileLayout.teams.buttonWidth).toBe(220);
+    expect(mobileLayout.teams.gapX).toBe(12);
   });
 
   it('keeps selected slots as replacement targets and disables already selected teams in the right list', () => {
