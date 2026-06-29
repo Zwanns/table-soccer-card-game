@@ -9,6 +9,7 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'be',
   'br',
   'by',
+  'ca',
   'ch',
   'cl',
   'de',

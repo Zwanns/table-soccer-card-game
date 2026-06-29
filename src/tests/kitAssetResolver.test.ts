@@ -59,6 +59,24 @@ describe('kit asset resolver', () => {
     });
   });
 
+  it('uses the default blue shirt number without an outline for Ukraine', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('ua');
+
+    expect(resolveTeamKitAsset('ua')).toEqual({
+      assetKey: 'kit-ua',
+      numberColor: '#0057B8'
+    });
+  });
+
+  it('resolves the registered Canada kit without an outline', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('ca');
+
+    expect(resolveTeamKitAsset('ca')).toEqual({
+      assetKey: 'kit-ca',
+      numberColor: '#FFFFFF'
+    });
+  });
+
   it('resolves newly registered team WebP assets by flagCode', () => {
     for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
