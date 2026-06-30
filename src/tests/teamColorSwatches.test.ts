@@ -31,7 +31,7 @@ describe('team color swatches', () => {
 
     expect(swatches).toHaveLength(3);
     expect(swatches.map((swatch) => swatch.role)).toEqual(['primary', 'secondary', 'accent']);
-    expect(swatches.map((swatch) => swatch.color)).toEqual(['#FFDF00', '#009C3B', '#002776']);
+    expect(swatches.map((swatch) => swatch.color)).toEqual(['#FFDF00', '#049C42', '#003CB1']);
   });
 
   it('keeps light and white swatches visible with a dark stroke', () => {

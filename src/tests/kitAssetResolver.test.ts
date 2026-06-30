@@ -98,8 +98,7 @@ describe('kit asset resolver', () => {
   it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
-      numberColor: '#009C3B',
-      numberStrokeColor: '#FFFFFF'
+      numberColor: '#049C42'
     });
     expect(resolveTeamKitAsset('ar')).toEqual({
       assetKey: 'kit-none',

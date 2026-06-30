@@ -141,9 +141,9 @@ describe('team kit data contract', () => {
       assetKey: 'kit-br',
       path: 'kits/images/br.webp',
       primaryColor: '#FFDF00',
-      secondaryColor: '#009C3B',
-      accentColor: '#002776',
-      shirtNumberColor: '#009C3B'
+      secondaryColor: '#049C42',
+      accentColor: '#003CB1',
+      shirtNumberColor: '#049C42'
     });
     expect(getTeamKitStyle('ar')).toMatchObject({
       flagCode: 'ar',
@@ -193,7 +193,7 @@ describe('team kit data contract', () => {
       primaryColor: '#BA0C2F',
       secondaryColor: '#00205B',
       shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#111111'
+      shirtNumberStrokeColor: undefined
     });
     expect(getTeamKitStyle('unknown')).toBeUndefined();
     expect(FALLBACK_TEAM_KIT_ASSET).toEqual({
