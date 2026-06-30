@@ -99,7 +99,7 @@ Fonts/          Локальные шрифты
 3. Запустить `npm run validate:kits`.
 4. Закоммитить новый `.webp` и generated registry.
 
-Вручную добавлять `flagCode` в `AVAILABLE_MANUAL_KIT_FLAG_CODES` больше не нужно: registry генерируется из файлов в `public/kits/images/`. Reserved-файлы `none.webp`, `gk1.webp` и `gk2.webp` остаются fallback/goalkeeper assets и не входят в team registry.
+Вручную добавлять `flagCode` в `AVAILABLE_MANUAL_KIT_FLAG_CODES` больше не нужно: registry генерируется из файлов в `public/kits/images/`. `npm run dev` и `npm run build` синхронизируют registry автоматически; запущенный dev-сервер также следит за добавлением, заменой и удалением `public/kits/images/*.webp` и перезагружает страницу. Reserved-файлы `none.webp`, `gk1.webp` и `gk2.webp` остаются fallback/goalkeeper assets и не входят в team registry.
 
 ## Примечания
 

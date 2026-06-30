@@ -36,7 +36,8 @@ const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
   ['by', '#FFFFFF'],
   ['gr', '#0D5EAF'],
   ['ng', '#000000'],
-  ['no', '#FFFFFF']
+  ['no', '#FFFFFF'],
+  ['py', '#0038A8']
 ]);
 
 describe('team kit data contract', () => {

@@ -77,6 +77,16 @@ describe('kit asset resolver', () => {
     });
   });
 
+  it('resolves the registered Paraguay kit with explicit shirt number colors', () => {
+    AVAILABLE_MANUAL_KIT_FLAG_CODES.add('py');
+
+    expect(resolveTeamKitAsset('py')).toEqual({
+      assetKey: 'kit-py',
+      numberColor: '#0038A8',
+      numberStrokeColor: '#FFFFFF'
+    });
+  });
+
   it('resolves newly registered team WebP assets by flagCode', () => {
     for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);

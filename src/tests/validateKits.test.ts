@@ -168,7 +168,8 @@ describe('kit validator', () => {
     expect(readme).toContain('gk1.webp');
     expect(readme).toContain('gk2.webp');
     expect(readme).toContain('SHIRT_NUMBER_ANCHOR');
-    expect(readme).toContain('Run `npm run validate:kits` to sync and validate the generated registry.');
+    expect(readme).toContain('`npm run dev` and `npm run build` sync the generated registry automatically.');
+    expect(readme).toContain('While the dev server is running, adding, replacing, or deleting `public/kits/images/*.webp` also refreshes the registry and reloads the page.');
     expect(readme).toContain('Do not edit `AVAILABLE_MANUAL_KIT_FLAG_CODES` manually.');
     expect(readme).toContain('Do not add `none`, `gk1`, or `gk2` to the generated team registry.');
     expect(readme).toContain('scripts/wiki-kits/');

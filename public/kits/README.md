@@ -61,11 +61,11 @@ Adding a new field kit:
 
 1. Put the file in `public/kits/images/<flagCode>.webp`.
 2. Keep the file WebP, 702 x 900 px.
-3. Run `npm run validate:kits` to sync and validate the generated registry.
+3. Run `npm run validate:kits`.
 4. Run `npm test`.
 5. Commit the new `.webp` file and the generated registry update.
 
-`npm run validate:kits` runs `npm run sync:kits` before validation. `npm test` also runs the sync hook before Vitest.
+`npm run dev` and `npm run build` sync the generated registry automatically. While the dev server is running, adding, replacing, or deleting `public/kits/images/*.webp` also refreshes the registry and reloads the page. `npm run validate:kits` runs `npm run sync:kits` before validation. `npm test` also runs the sync hook before Vitest.
 
 Do not edit `AVAILABLE_MANUAL_KIT_FLAG_CODES` manually. The runtime imports the generated registry through `src/data/teamKits.ts`, because the browser cannot read `public/kits/images/` with `fs`.
 

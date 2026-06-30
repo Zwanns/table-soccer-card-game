@@ -31,6 +31,7 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'no',
   'pl',
   'pt',
+  'py',
   'se',
   'sk',
   'tr',

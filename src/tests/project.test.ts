@@ -58,6 +58,23 @@ describe('project scaffold', () => {
     expect(GAME_VERSION).toBe('1.4.0');
   });
 
+  it('auto-syncs kit registry through the Vite dev and build pipeline', () => {
+    const viteConfigSource = readFileSync(join(process.cwd(), 'vite.config.ts'), 'utf8');
+    const kitRegistryPluginSource = readFileSync(
+      join(process.cwd(), 'scripts', 'vite-kit-registry-plugin.ts'),
+      'utf8'
+    );
+
+    expect(viteConfigSource).toContain('createKitRegistrySyncPlugin()');
+    expect(kitRegistryPluginSource).toContain('syncKitRegistry({');
+    expect(kitRegistryPluginSource).toContain("environment.command === 'serve' || environment.command === 'build'");
+    expect(kitRegistryPluginSource).toContain("server.watcher.add(join(projectRoot, KIT_IMAGE_GLOB))");
+    expect(kitRegistryPluginSource).toContain("server.watcher.on('add', handleKitFileEvent)");
+    expect(kitRegistryPluginSource).toContain("server.watcher.on('change', handleKitFileEvent)");
+    expect(kitRegistryPluginSource).toContain("server.watcher.on('unlink', handleKitFileEvent)");
+    expect(kitRegistryPluginSource).toContain("server.ws.send({ type: 'full-reload' })");
+  });
+
   it('uses the configured game author', () => {
     expect(GAME_AUTHOR).toBe('Oleh Myronchuk');
     expect(GAME_AUTHOR_URL).toBe('https://www.linkedin.com/in/myronczuk-oleg/');
