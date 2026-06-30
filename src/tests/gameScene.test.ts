@@ -785,6 +785,73 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('this.render(state, {\n        hiddenRestoredCards: pendingRestores,\n        interactive: false\n      });');
   });
 
+  it('cancels initial deal timers and tweens before leaving the match scene', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('private isNavigationAwayInProgress = false');
+    expect(source).toContain('private isSceneShutDown = false');
+    expect(source).toContain('private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null');
+    expect(source).toContain('private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>()');
+    expect(source).toContain('private readonly activeInitialDealCards = new Set<CardView>()');
+    expect(source).toContain('private prepareToLeaveMatchScene(): void');
+    expect(source).toContain('this.isNavigationAwayInProgress = true;');
+    expect(source).toContain('this.cleanupInitialDealFlow();');
+    expect(source).toContain('private exitToMainMenu(): void');
+    expect(source).toContain("this.scene.start('MenuScene');");
+    expect(source).toContain("new Button(this, -125, 76, 'Menu', () => this.exitToMainMenu())");
+    expect(source).not.toContain("new Button(this, -125, 76, 'Menu', () => this.scene.start('MenuScene'))");
+  });
+
+  it('guards initial deal delayed callbacks after scene exit or shutdown', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('private canRunInitialDealStep(): boolean');
+    expect(source).toContain(
+      'return this.sys.isActive() && this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;'
+    );
+    expect(source).toContain('private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void');
+    expect(source).toContain('this.pendingInitialDealTimer?.remove(false);');
+    expect(source).toContain('if (!this.canRunInitialDealStep()) {\n        return;\n      }\n\n      callback();');
+    expect(source).toContain('this.scheduleInitialDealDelayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));');
+    expect(source).not.toContain('this.time.delayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));');
+  });
+
+  it('cleans pause overlays and input blockers when leaving from the pause menu', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const cleanupBlock = source.slice(
+      source.indexOf('private prepareToLeaveMatchScene(): void'),
+      source.indexOf('private exitToMainMenu(): void')
+    );
+
+    expect(cleanupBlock).toContain('this.exitConfirmModal?.destroy();');
+    expect(cleanupBlock).toContain('this.pauseModal?.destroy();');
+    expect(cleanupBlock).toContain('this.infoModal?.destroy();');
+    expect(cleanupBlock).toContain('this.message?.destroy();');
+    expect(cleanupBlock).toContain('this.tutorialOverlay?.destroy();');
+    expect(cleanupBlock).toContain('this.input.enabled = true;');
+    expect(cleanupBlock).toContain('clearDeckTurnBallMarker(this);');
+    expect(cleanupBlock).toContain('this.aiTurnController?.dispose();');
+    expect(source).toContain('this.input.enabled = true;\n    this.cleanupInitialDealFlow();');
+  });
+
+  it('keeps normal initial deal completion while removing tracked deal objects', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const restoreBlock = source.slice(
+      source.indexOf('private animateRestoredCards('),
+      source.indexOf('private isSceneStableForAi(): boolean')
+    );
+
+    expect(restoreBlock).toContain('this.activeInitialDealCards.add(card);');
+    expect(restoreBlock).toContain('let dealTween: Phaser.Tweens.Tween;');
+    expect(restoreBlock).toContain('dealTween = this.tweens.add({');
+    expect(restoreBlock).toContain('this.activeInitialDealTweens.delete(dealTween);');
+    expect(restoreBlock).toContain('this.activeInitialDealCards.delete(card);');
+    expect(restoreBlock).toContain('card.destroy();');
+    expect(restoreBlock).toContain('this.animatedRestoreCount += 1;');
+    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.render(state);');
+    expect(restoreBlock).toContain('this.activeInitialDealTweens.add(dealTween);');
+  });
+
   it('animates goalkeeper impact card for goal shot outcome', () => {
     const source = readSource('src/scenes/GameScene.ts');
 

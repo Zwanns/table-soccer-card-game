@@ -198,6 +198,11 @@ export class GameScene extends Phaser.Scene {
   private isMatchEffectInProgress = false;
   private isAttackAnimationInProgress = false;
   private isRestoreAnimationInProgress = false;
+  private isNavigationAwayInProgress = false;
+  private isSceneShutDown = false;
+  private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null;
+  private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>();
+  private readonly activeInitialDealCards = new Set<CardView>();
 
   public constructor() {
     super('GameScene');
@@ -226,7 +231,11 @@ export class GameScene extends Phaser.Scene {
     this.isMatchEffectInProgress = false;
     this.isAttackAnimationInProgress = false;
     this.isRestoreAnimationInProgress = false;
+    this.isNavigationAwayInProgress = false;
+    this.isSceneShutDown = false;
     this.startWhistlePlayed = false;
+    this.input.enabled = true;
+    this.cleanupInitialDealFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
     this.pauseModal?.destroy();
@@ -249,6 +258,7 @@ export class GameScene extends Phaser.Scene {
   public create(): void {
     this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, this.handleLoadError, this);
     this.aiTurnController?.dispose();
+    this.input.enabled = true;
     this.player1CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player1Name, this.player1FlagCode);
     this.player2CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player2Name, this.player2FlagCode);
     this.engine = new GameEngine();
@@ -942,7 +952,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const leaveButton = new Button(this, -125, 76, 'Menu', () => this.scene.start('MenuScene'));
+    const leaveButton = new Button(this, -125, 76, 'Menu', () => this.exitToMainMenu());
     const stayButton = new Button(this, 125, 76, 'Stay', () => this.closeExitConfirmModal());
 
     panel.add([background, title, text, leaveButton, stayButton]);
@@ -2039,6 +2049,11 @@ export class GameScene extends Phaser.Scene {
     entries: readonly RestoreAnimationEntry[],
     index = 0
   ): void {
+    if (!this.canRunInitialDealStep()) {
+      this.isRestoreAnimationInProgress = false;
+      return;
+    }
+
     const entry = entries[index];
 
     if (entry === undefined) {
@@ -2074,8 +2089,10 @@ export class GameScene extends Phaser.Scene {
     card.setScale(MATCH_CARD_SCALE * 0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
+    this.activeInitialDealCards.add(card);
 
-    this.tweens.add({
+    let dealTween: Phaser.Tweens.Tween;
+    dealTween = this.tweens.add({
       targets: card,
       x: target.x,
       y: target.y,
@@ -2085,7 +2102,15 @@ export class GameScene extends Phaser.Scene {
       duration: 420,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
+        this.activeInitialDealTweens.delete(dealTween);
+        this.activeInitialDealCards.delete(card);
         card.destroy();
+
+        if (!this.canRunInitialDealStep()) {
+          this.isRestoreAnimationInProgress = false;
+          return;
+        }
+
         this.animatedRestoreCount += 1;
 
         const hiddenRestoredCards = entries.slice(index + 1);
@@ -2095,7 +2120,7 @@ export class GameScene extends Phaser.Scene {
             hiddenRestoredCards,
             interactive: false
           });
-          this.time.delayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));
+          this.scheduleInitialDealDelayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));
           return;
         }
 
@@ -2103,11 +2128,14 @@ export class GameScene extends Phaser.Scene {
         this.render(state);
       }
     });
+    this.activeInitialDealTweens.add(dealTween);
   }
 
   private isSceneStableForAi(): boolean {
     return (
       this.input.enabled &&
+      !this.isNavigationAwayInProgress &&
+      !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
       this.pauseModal === null &&
       this.infoModal === null &&
@@ -2118,6 +2146,39 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private canRunInitialDealStep(): boolean {
+    return this.sys.isActive() && this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
+  }
+
+  private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void {
+    this.pendingInitialDealTimer?.remove(false);
+    this.pendingInitialDealTimer = this.time.delayedCall(delayMs, () => {
+      this.pendingInitialDealTimer = null;
+
+      if (!this.canRunInitialDealStep()) {
+        return;
+      }
+
+      callback();
+    });
+  }
+
+  private cleanupInitialDealFlow(): void {
+    this.pendingInitialDealTimer?.remove(false);
+    this.pendingInitialDealTimer = null;
+
+    for (const tween of this.activeInitialDealTweens) {
+      tween.stop();
+    }
+    this.activeInitialDealTweens.clear();
+
+    for (const card of this.activeInitialDealCards) {
+      card.destroy();
+    }
+    this.activeInitialDealCards.clear();
+    this.isRestoreAnimationInProgress = false;
+  }
+
   private isTutorialBlockingSystemUi(): boolean {
     return (
       this.matchMode === 'tutorial' &&
@@ -2126,7 +2187,36 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private prepareToLeaveMatchScene(): void {
+    if (this.isNavigationAwayInProgress) {
+      return;
+    }
+
+    this.isNavigationAwayInProgress = true;
+    this.cleanupInitialDealFlow();
+    this.exitConfirmModal?.destroy();
+    this.exitConfirmModal = null;
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    this.infoModal?.destroy();
+    this.infoModal = null;
+    this.activeInfoModal = null;
+    this.message?.destroy();
+    this.message = null;
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = null;
+    this.input.enabled = true;
+    clearDeckTurnBallMarker(this);
+    this.aiTurnController?.dispose();
+  }
+
+  private exitToMainMenu(): void {
+    this.prepareToLeaveMatchScene();
+    this.scene.start('MenuScene');
+  }
+
   private openResult(state: Readonly<GameState>): void {
+    this.prepareToLeaveMatchScene();
     this.scene.start('ResultScene', { state, launchContext: this.launchContext });
   }
 
@@ -2136,6 +2226,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.prepareToLeaveMatchScene();
     const launchContext = this.launchContext;
     const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
 
@@ -2197,6 +2288,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleSceneShutdown(): void {
+    this.isSceneShutDown = true;
+    this.isNavigationAwayInProgress = true;
+    this.cleanupInitialDealFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
     this.pauseModal?.destroy();
@@ -2209,6 +2303,7 @@ export class GameScene extends Phaser.Scene {
     this.tutorialController = null;
     this.aiTurnController?.dispose();
     this.aiTurnController = null;
+    this.input.enabled = true;
   }
 
   private getPendingRestoreAnimationEntries(state: Readonly<GameState>): RestoreAnimationEntry[] {
