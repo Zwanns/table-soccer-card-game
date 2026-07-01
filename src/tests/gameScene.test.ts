@@ -10,6 +10,16 @@ function readSource(relativePath: string): string {
   return normalizeSourceLineEndings(readFileSync(join(process.cwd(), relativePath), 'utf8'));
 }
 
+function readConstNumber(source: string, constName: string, key: string): number {
+  const blockMatch = source.match(new RegExp(`const ${constName} = \\{([\\s\\S]*?)\\} as const;`));
+  expect(blockMatch).not.toBeNull();
+
+  const valueMatch = blockMatch![1].match(new RegExp(`${key}: (-?\\d+)`));
+  expect(valueMatch).not.toBeNull();
+
+  return Number(valueMatch![1]);
+}
+
 describe('GameScene visual layout contracts', () => {
   it('uses a bounce chain for the active deck ball instead of yoyo levitation', () => {
     const source = readSource('src/ui/DeckView.ts');
@@ -286,6 +296,30 @@ describe('GameScene visual layout contracts', () => {
     expect(visualBlock).toContain("const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };");
     expect(visualBlock).toContain('const scale = Math.min(');
     expect(visualBlock).toContain('image.setDisplaySize(source.width * scale, source.height * scale);');
+  });
+
+  it('enlarges the match-finished referee image and lets it overflow above the panel safely', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const modalWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'width');
+    const modalHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'height');
+    const imageWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageWidth');
+    const imageHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageHeight');
+    const imageY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageY');
+    const titleY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'titleY');
+    const bodyY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'bodyY');
+    const buttonY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonY');
+    const buttonHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonHeight');
+
+    expect(imageWidth).toBe(300);
+    expect(imageHeight).toBe(250);
+    expect(imageWidth).toBeGreaterThan(180);
+    expect(imageHeight).toBeGreaterThan(150);
+    expect(imageY - imageHeight / 2).toBeLessThan(-modalHeight / 2);
+    expect(imageY + imageHeight / 2).toBeLessThan(titleY);
+    expect(titleY).toBeLessThan(bodyY);
+    expect(bodyY).toBeLessThan(buttonY);
+    expect(buttonY + buttonHeight / 2).toBeLessThanOrEqual(modalHeight / 2);
+    expect(imageWidth).toBeLessThan(modalWidth);
   });
 
   it('plays the final whistle once on modal appearance and suppresses the ResultScene duplicate', () => {

@@ -98,12 +98,12 @@ const INFO_BACK_BUTTON = {
 const MATCH_FINISHED_MODAL = {
   width: 620,
   height: 430,
-  imageWidth: 180,
-  imageHeight: 150,
-  imageY: -112,
-  titleY: 18,
-  bodyY: 82,
-  buttonY: 162,
+  imageWidth: 300,
+  imageHeight: 250,
+  imageY: -150,
+  titleY: 38,
+  bodyY: 104,
+  buttonY: 174,
   buttonWidth: 190,
   buttonHeight: 58
 } as const;
