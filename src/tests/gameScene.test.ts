@@ -202,11 +202,11 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
     expect(source).toContain("this.scene.start('TournamentCompleteScene')");
     expect(source).toContain("this.scene.start('TournamentHubScene', { initialTab: 'matches' })");
-    const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal()'));
+    const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal('));
     expect(pauseBlock).not.toContain("label: 'About'");
     expect(pauseBlock).not.toContain("this.openMatchInfoModal('about')");
     expect(source).toContain('], { state });');
-    expect(source).toContain('private closePauseModal(): void');
+    expect(source).toContain('private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
     expect(source).toContain('this.pauseModal === null');
     expect(overlaySource).toContain('setDepth(MATCH_OVERLAY_DEPTH)');
     expect(overlaySource).toContain('overlay.setInteractive()');
@@ -240,7 +240,7 @@ describe('GameScene visual layout contracts', () => {
       source.indexOf('private createMatchFinishedRefereeVisual()')
     );
 
-    expect(modalBlock).toContain('this.cleanupInitialDealFlow();');
+    expect(modalBlock).toContain('this.cancelAutomaticCardFlow();');
     expect(modalBlock).toContain('this.aiTurnController?.dispose();');
     expect(modalBlock).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);');
     expect(modalBlock).toContain('overlay.setInteractive();');
@@ -912,7 +912,7 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(source).toContain('hiddenCards: hiddenRestoredCards');
     expect(source).toContain(
-      'if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {\n      this.isRestoreAnimationInProgress = true;\n      this.markInitialDealStarted();\n      this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));\n      return;\n    }'
+      'if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {\n      this.markInitialDealStarted();\n      const flowId = this.startAutomaticCardFlow();\n      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));\n      return;\n    }'
     );
     expect(source).toContain('const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('this.render(state, { hiddenRestoredCards, interactive: false });');
@@ -928,8 +928,8 @@ describe('GameScene visual layout contracts', () => {
     expect(createBlock).toContain('setupPreset: this.matchMode === \'tutorial\' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined');
     expect(createBlock).toContain('this.startTurn();');
     expect(createBlock).not.toContain('this.drawAttackCard();');
-    expect(renderBlock).toContain('this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));');
-    expect(renderBlock.indexOf('this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));')).toBeLessThan(
+    expect(renderBlock).toContain('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));');
+    expect(renderBlock.indexOf('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));')).toBeLessThan(
       renderBlock.indexOf('this.aiTurnController?.requestTurnCheck(options.aiCheckReason);')
     );
   });
@@ -999,44 +999,81 @@ describe('GameScene visual layout contracts', () => {
     expect(renderBlock).toContain('const matchControls = createMatchControlButtons({');
     expect(renderBlock).toContain('onPause: () => this.openPauseModal(state)');
     expect(renderBlock).toContain('onRules: () => this.openMatchInfoModal(\'rules\')');
-    expect(modalBlock).toContain('this.cleanupInitialDealFlow();');
+    expect(modalBlock).toContain('this.cancelAutomaticCardFlow();');
     expect(modalBlock).toContain('this.input.enabled = true;');
     expect(modalBlock).toContain('const okButton = new Button(');
     expect(modalBlock).toContain('MATCH_FINISHED_MODAL.buttonY');
     expect(modalBlock).toContain('\'OK\'');
   });
 
-  it('cancels initial deal timers and tweens before leaving the match scene', () => {
+  it('cancels automatic card-flow timers and tweens before leaving the match scene', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('private isNavigationAwayInProgress = false');
     expect(source).toContain('private isSceneShutDown = false');
-    expect(source).toContain('private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null');
-    expect(source).toContain('private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>()');
-    expect(source).toContain('private readonly activeInitialDealCards = new Set<CardView>()');
+    expect(source).toContain('private isAutomaticCardFlowInProgress = false');
+    expect(source).toContain('private isAutomaticCardFlowPaused = false');
+    expect(source).toContain('private cardRestoreFlowId = 0');
+    expect(source).toContain('private readonly pendingCardRestoreCallbacks = new Set<Phaser.Time.TimerEvent>()');
+    expect(source).toContain('private readonly activeCardRestoreTweens = new Set<Phaser.Tweens.Tween>()');
+    expect(source).toContain('private readonly activeCardRestoreCards = new Set<CardView>()');
     expect(source).toContain('private prepareToLeaveMatchScene(): void');
     expect(source).toContain('this.isNavigationAwayInProgress = true;');
-    expect(source).toContain('this.cleanupInitialDealFlow();');
+    expect(source).toContain('this.cancelAutomaticCardFlow();');
     expect(source).toContain('private exitToMainMenu(): void');
     expect(source).toContain("this.scene.start('MenuScene');");
     expect(source).toContain("new Button(this, -125, 76, 'Menu', () => this.exitToMainMenu())");
     expect(source).not.toContain("new Button(this, -125, 76, 'Menu', () => this.scene.start('MenuScene'))");
   });
 
-  it('guards initial deal delayed callbacks after scene exit or shutdown', () => {
+  it('guards automatic card-flow delayed callbacks after scene exit, shutdown, or stale flow generation', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
     expect(source).toContain('private canRunSceneSetup(): boolean');
-    expect(source).toContain('private canRunInitialDealStep(): boolean');
+    expect(source).toContain('private canRunAutomaticCardFlowStep(flowId: number): boolean');
     expect(source).toContain(
       'return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;'
     );
-    expect(source).toContain('return this.canRunSceneSetup();');
-    expect(source).toContain('private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void');
-    expect(source).toContain('this.pendingInitialDealTimer?.remove(false);');
-    expect(source).toContain('if (!this.canRunInitialDealStep()) {\n        return;\n      }\n\n      callback();');
-    expect(source).toContain('this.scheduleInitialDealDelayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));');
+    expect(source).toContain('return this.canRunSceneSetup() && flowId === this.cardRestoreFlowId;');
+    expect(source).toContain('private scheduleCardRestoreDelayedCall(delayMs: number, flowId: number, callback: () => void): void');
+    expect(source).toContain('this.pendingCardRestoreCallbacks.delete(timer);');
+    expect(source).toContain('if (!this.canRunAutomaticCardFlowStep(flowId)) {\n        return;\n      }\n\n      callback();');
+    expect(source).toContain('this.scheduleCardRestoreDelayedCall(45, flowId, () =>');
+    expect(source).toContain('this.animateRestoredCards(state, entries, index + 1, flowId)');
     expect(source).not.toContain('this.time.delayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));');
+  });
+
+  it('keeps pause and exit-confirm modal ownership separate from automatic card-flow cleanup', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const pauseBlock = source.slice(
+      source.indexOf('private openPauseModal('),
+      source.indexOf('private openMatchInfoModal(')
+    );
+    const exitBlock = source.slice(
+      source.indexOf('private openExitConfirmModal('),
+      source.indexOf('private openPauseModal(')
+    );
+    const flowBlock = source.slice(
+      source.indexOf('private pauseAutomaticCardFlow('),
+      source.indexOf('private isTutorialBlockingSystemUi()')
+    );
+
+    expect(pauseBlock).toContain('this.pauseAutomaticCardFlow();');
+    expect(pauseBlock).toContain('this.closePauseModal({ resumeAutomaticCardFlow: false });');
+    expect(pauseBlock).toContain('this.openExitConfirmModal();');
+    expect(pauseBlock).toContain('private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
+    expect(pauseBlock).toContain('if (options.resumeAutomaticCardFlow !== false) {\n      this.resumeAutomaticCardFlow();\n    }');
+    expect(exitBlock).toContain('this.pauseAutomaticCardFlow();');
+    expect(exitBlock).toContain('private closeExitConfirmModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
+    expect(exitBlock).toContain('if (options.resumeAutomaticCardFlow !== false) {\n      this.resumeAutomaticCardFlow();\n    }');
+    expect(flowBlock).toContain('timer.paused = true;');
+    expect(flowBlock).toContain('tween.pause();');
+    expect(flowBlock).toContain('timer.paused = false;');
+    expect(flowBlock).toContain('tween.resume();');
+    expect(flowBlock).toContain('this.cardRestoreFlowId += 1;');
+    expect(flowBlock).not.toContain('this.pauseModal?.destroy();');
+    expect(flowBlock).not.toContain('this.exitConfirmModal?.destroy();');
+    expect(flowBlock).not.toContain('this.matchFinishedModal?.destroy();');
   });
 
   it('cleans pause overlays and input blockers when leaving from the pause menu', () => {
@@ -1054,25 +1091,25 @@ describe('GameScene visual layout contracts', () => {
     expect(cleanupBlock).toContain('this.input.enabled = true;');
     expect(cleanupBlock).toContain('clearDeckTurnBallMarker(this);');
     expect(cleanupBlock).toContain('this.aiTurnController?.dispose();');
-    expect(source).toContain('this.input.enabled = true;\n    this.cleanupInitialDealFlow();');
+    expect(source).toContain('this.input.enabled = true;\n    this.cancelAutomaticCardFlow();');
   });
 
-  it('keeps normal initial deal completion while removing tracked deal objects', () => {
+  it('keeps normal automatic card restore completion while removing tracked deal objects', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const restoreBlock = source.slice(
       source.indexOf('private animateRestoredCards('),
       source.indexOf('private isSceneStableForAi(): boolean')
     );
 
-    expect(restoreBlock).toContain('this.activeInitialDealCards.add(card);');
+    expect(restoreBlock).toContain('this.activeCardRestoreCards.add(card);');
     expect(restoreBlock).toContain('let dealTween: Phaser.Tweens.Tween;');
     expect(restoreBlock).toContain('dealTween = this.tweens.add({');
-    expect(restoreBlock).toContain('this.activeInitialDealTweens.delete(dealTween);');
-    expect(restoreBlock).toContain('this.activeInitialDealCards.delete(card);');
+    expect(restoreBlock).toContain('this.activeCardRestoreTweens.delete(dealTween);');
+    expect(restoreBlock).toContain('this.activeCardRestoreCards.delete(card);');
     expect(restoreBlock).toContain('card.destroy();');
     expect(restoreBlock).toContain('this.animatedRestoreCount += 1;');
-    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.markInitialDealComplete();\n        this.render(state);');
-    expect(restoreBlock).toContain('this.activeInitialDealTweens.add(dealTween);');
+    expect(restoreBlock).toContain('this.completeAutomaticCardFlow(flowId);\n        this.markInitialDealComplete();\n        this.render(state);');
+    expect(restoreBlock).toContain('this.activeCardRestoreTweens.add(dealTween);');
   });
 
   it('animates goalkeeper impact card for goal shot outcome', () => {

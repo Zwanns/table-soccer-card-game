@@ -220,9 +220,12 @@ export class GameScene extends Phaser.Scene {
   private matchFinishedWhistlePlayed = false;
   private isInitialDealStarted = false;
   private isInitialDealComplete = false;
-  private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null;
-  private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>();
-  private readonly activeInitialDealCards = new Set<CardView>();
+  private isAutomaticCardFlowInProgress = false;
+  private isAutomaticCardFlowPaused = false;
+  private cardRestoreFlowId = 0;
+  private readonly pendingCardRestoreCallbacks = new Set<Phaser.Time.TimerEvent>();
+  private readonly activeCardRestoreTweens = new Set<Phaser.Tweens.Tween>();
+  private readonly activeCardRestoreCards = new Set<CardView>();
 
   public constructor() {
     super('GameScene');
@@ -259,9 +262,11 @@ export class GameScene extends Phaser.Scene {
     this.matchFinishedWhistlePlayed = false;
     this.isInitialDealStarted = false;
     this.isInitialDealComplete = false;
+    this.isAutomaticCardFlowInProgress = false;
+    this.isAutomaticCardFlowPaused = false;
     this.startWhistlePlayed = false;
     this.input.enabled = true;
-    this.cleanupInitialDealFlow();
+    this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
     this.pauseModal?.destroy();
@@ -425,9 +430,9 @@ export class GameScene extends Phaser.Scene {
     this.refreshTutorialOverlay(state);
 
     if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {
-      this.isRestoreAnimationInProgress = true;
       this.markInitialDealStarted();
-      this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));
+      const flowId = this.startAutomaticCardFlow();
+      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));
       return;
     }
 
@@ -976,6 +981,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.pauseAutomaticCardFlow();
+
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
     const modal = this.add.container(0, 0);
@@ -1014,9 +1021,13 @@ export class GameScene extends Phaser.Scene {
     this.exitConfirmModal = modal;
   }
 
-  private closeExitConfirmModal(): void {
+  private closeExitConfirmModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void {
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
+
+    if (options.resumeAutomaticCardFlow !== false) {
+      this.resumeAutomaticCardFlow();
+    }
 
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
@@ -1034,11 +1045,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.pauseAutomaticCardFlow();
     this.pauseModal = createMatchPauseOverlay(this, [
       {
         label: 'Sim',
         onClick: () => {
-          this.closePauseModal();
+          this.closePauseModal({ resumeAutomaticCardFlow: false });
           this.simulatePausedMatch(state);
         }
       },
@@ -1046,16 +1058,20 @@ export class GameScene extends Phaser.Scene {
       {
         label: 'Exit to Menu',
         onClick: () => {
-          this.closePauseModal();
+          this.closePauseModal({ resumeAutomaticCardFlow: false });
           this.openExitConfirmModal();
         }
       }
     ], { state });
   }
 
-  private closePauseModal(): void {
+  private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void {
     this.pauseModal?.destroy();
     this.pauseModal = null;
+
+    if (options.resumeAutomaticCardFlow !== false) {
+      this.resumeAutomaticCardFlow();
+    }
 
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
@@ -2103,17 +2119,17 @@ export class GameScene extends Phaser.Scene {
   private animateRestoredCards(
     state: Readonly<GameState>,
     entries: readonly RestoreAnimationEntry[],
-    index = 0
+    index = 0,
+    flowId = this.cardRestoreFlowId
   ): void {
-    if (!this.canRunInitialDealStep()) {
-      this.isRestoreAnimationInProgress = false;
+    if (!this.canRunAutomaticCardFlowStep(flowId)) {
       return;
     }
 
     const entry = entries[index];
 
     if (entry === undefined) {
-      this.isRestoreAnimationInProgress = false;
+      this.completeAutomaticCardFlow(flowId);
       this.markInitialDealComplete();
       this.render(state);
       return;
@@ -2146,7 +2162,7 @@ export class GameScene extends Phaser.Scene {
     card.setScale(MATCH_CARD_SCALE * 0.92);
     card.setAlpha(0.92);
     card.setRotation(entry.playerId === state.players[0].id ? -0.12 : 0.12);
-    this.activeInitialDealCards.add(card);
+    this.activeCardRestoreCards.add(card);
 
     let dealTween: Phaser.Tweens.Tween;
     dealTween = this.tweens.add({
@@ -2159,12 +2175,11 @@ export class GameScene extends Phaser.Scene {
       duration: 420,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
-        this.activeInitialDealTweens.delete(dealTween);
-        this.activeInitialDealCards.delete(card);
+        this.activeCardRestoreTweens.delete(dealTween);
+        this.activeCardRestoreCards.delete(card);
         card.destroy();
 
-        if (!this.canRunInitialDealStep()) {
-          this.isRestoreAnimationInProgress = false;
+        if (!this.canRunAutomaticCardFlowStep(flowId)) {
           return;
         }
 
@@ -2177,16 +2192,18 @@ export class GameScene extends Phaser.Scene {
             hiddenRestoredCards,
             interactive: false
           });
-          this.scheduleInitialDealDelayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));
+          this.scheduleCardRestoreDelayedCall(45, flowId, () =>
+            this.animateRestoredCards(state, entries, index + 1, flowId)
+          );
           return;
         }
 
-        this.isRestoreAnimationInProgress = false;
+        this.completeAutomaticCardFlow(flowId);
         this.markInitialDealComplete();
         this.render(state);
       }
     });
-    this.activeInitialDealTweens.add(dealTween);
+    this.activeCardRestoreTweens.add(dealTween);
   }
 
   private isSceneStableForAi(): boolean {
@@ -2194,6 +2211,7 @@ export class GameScene extends Phaser.Scene {
       this.input.enabled &&
       this.isGameplayReady &&
       !this.isInitialDealActive() &&
+      !this.isAutomaticCardFlowInProgress &&
       !this.isNavigationAwayInProgress &&
       !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
@@ -2213,6 +2231,7 @@ export class GameScene extends Phaser.Scene {
       this.input.enabled &&
       this.isGameplayReady &&
       !this.isInitialDealActive() &&
+      !this.isAutomaticCardFlowInProgress &&
       !this.isNavigationAwayInProgress &&
       !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
@@ -2230,8 +2249,28 @@ export class GameScene extends Phaser.Scene {
     return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
   }
 
-  private canRunInitialDealStep(): boolean {
-    return this.canRunSceneSetup();
+  private canRunAutomaticCardFlowStep(flowId: number): boolean {
+    return this.canRunSceneSetup() && flowId === this.cardRestoreFlowId;
+  }
+
+  private startAutomaticCardFlow(): number {
+    this.cardRestoreFlowId += 1;
+    this.isAutomaticCardFlowInProgress = true;
+    this.isAutomaticCardFlowPaused = false;
+    this.isRestoreAnimationInProgress = true;
+    this.isGameplayReady = false;
+
+    return this.cardRestoreFlowId;
+  }
+
+  private completeAutomaticCardFlow(flowId: number): void {
+    if (flowId !== this.cardRestoreFlowId) {
+      return;
+    }
+
+    this.isAutomaticCardFlowInProgress = false;
+    this.isAutomaticCardFlowPaused = false;
+    this.isRestoreAnimationInProgress = false;
   }
 
   private isInitialDealActive(): boolean {
@@ -2252,32 +2291,75 @@ export class GameScene extends Phaser.Scene {
     this.isGameplayReady = true;
   }
 
-  private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void {
-    this.pendingInitialDealTimer?.remove(false);
-    this.pendingInitialDealTimer = this.time.delayedCall(delayMs, () => {
-      this.pendingInitialDealTimer = null;
+  private scheduleCardRestoreDelayedCall(delayMs: number, flowId: number, callback: () => void): void {
+    const timer = this.time.delayedCall(delayMs, () => {
+      this.pendingCardRestoreCallbacks.delete(timer);
 
-      if (!this.canRunInitialDealStep()) {
+      if (!this.canRunAutomaticCardFlowStep(flowId)) {
         return;
       }
 
       callback();
     });
+
+    this.pendingCardRestoreCallbacks.add(timer);
+
+    if (this.isAutomaticCardFlowPaused) {
+      timer.paused = true;
+    }
   }
 
-  private cleanupInitialDealFlow(): void {
-    this.pendingInitialDealTimer?.remove(false);
-    this.pendingInitialDealTimer = null;
+  private pauseAutomaticCardFlow(): void {
+    if (!this.isAutomaticCardFlowInProgress || this.isAutomaticCardFlowPaused) {
+      return;
+    }
 
-    for (const tween of this.activeInitialDealTweens) {
+    this.isAutomaticCardFlowPaused = true;
+
+    for (const timer of this.pendingCardRestoreCallbacks) {
+      timer.paused = true;
+    }
+
+    for (const tween of this.activeCardRestoreTweens) {
+      tween.pause();
+    }
+  }
+
+  private resumeAutomaticCardFlow(): void {
+    if (!this.isAutomaticCardFlowInProgress || !this.isAutomaticCardFlowPaused || this.isNavigationAwayInProgress) {
+      return;
+    }
+
+    this.isAutomaticCardFlowPaused = false;
+
+    for (const timer of this.pendingCardRestoreCallbacks) {
+      timer.paused = false;
+    }
+
+    for (const tween of this.activeCardRestoreTweens) {
+      tween.resume();
+    }
+  }
+
+  private cancelAutomaticCardFlow(): void {
+    this.cardRestoreFlowId += 1;
+
+    for (const timer of this.pendingCardRestoreCallbacks) {
+      timer.remove(false);
+    }
+    this.pendingCardRestoreCallbacks.clear();
+
+    for (const tween of this.activeCardRestoreTweens) {
       tween.stop();
     }
-    this.activeInitialDealTweens.clear();
+    this.activeCardRestoreTweens.clear();
 
-    for (const card of this.activeInitialDealCards) {
+    for (const card of this.activeCardRestoreCards) {
       card.destroy();
     }
-    this.activeInitialDealCards.clear();
+    this.activeCardRestoreCards.clear();
+    this.isAutomaticCardFlowInProgress = false;
+    this.isAutomaticCardFlowPaused = false;
     this.isRestoreAnimationInProgress = false;
   }
 
@@ -2303,10 +2385,10 @@ export class GameScene extends Phaser.Scene {
 
     this.isMatchFinishedModalOpen = true;
     this.isMatchFinishedOkHandled = false;
-    this.cleanupInitialDealFlow();
+    this.cancelAutomaticCardFlow();
     this.aiTurnController?.dispose();
-    this.closePauseModal();
-    this.closeExitConfirmModal();
+    this.closePauseModal({ resumeAutomaticCardFlow: false });
+    this.closeExitConfirmModal({ resumeAutomaticCardFlow: false });
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
@@ -2440,7 +2522,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.isNavigationAwayInProgress = true;
-    this.cleanupInitialDealFlow();
+    this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
     this.pauseModal?.destroy();
@@ -2549,7 +2631,7 @@ export class GameScene extends Phaser.Scene {
   private handleSceneShutdown(): void {
     this.isSceneShutDown = true;
     this.isNavigationAwayInProgress = true;
-    this.cleanupInitialDealFlow();
+    this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
     this.pauseModal?.destroy();
