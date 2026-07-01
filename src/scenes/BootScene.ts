@@ -13,8 +13,6 @@ import { getRegisteredKitAssetsToLoad } from './bootKitAssets';
 const ASSET_PATHS = {
   ball: '/cards/ball.webp',
   matchFinishedReferee: '/menu/arbitr-end.webp',
-  goalkeeperGoal: '/menu/bramka.webp',
-  goalkeeperSaveHand: '/menu/gk-hand.webp',
   sounds: {
     whistleStart: '/sounds/referees-whistle-start.mp3',
     whistleFinish: '/sounds/referees-whistle-finish.mp3',
@@ -43,8 +41,6 @@ export class BootScene extends Phaser.Scene {
     this.load.image(MENU_ASSETS.logoOff, MENU_ASSET_PATHS.logoOff);
     this.load.image('turn-ball', ASSET_PATHS.ball);
     this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee);
-    this.load.image('goalkeeper-goal-fx', ASSET_PATHS.goalkeeperGoal);
-    this.load.image('goalkeeper-save-hand-fx', ASSET_PATHS.goalkeeperSaveHand);
     this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath());
     for (const flagCode of AVAILABLE_TEAM_COVER_FLAG_CODES) {
       this.load.image(getTeamCoverTextureKey(flagCode), getTeamCoverPath(flagCode));

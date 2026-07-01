@@ -137,13 +137,13 @@ describe('BootScene kit asset loading', () => {
     expect(bootSceneSource).toContain("this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee)");
   });
 
-  it('preloads goalkeeper shot outcome FX from public menu assets', () => {
+  it('does not preload reverted goalkeeper shot outcome FX assets', () => {
     const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
 
-    expect(bootSceneSource).toContain("goalkeeperGoal: '/menu/bramka.webp'");
-    expect(bootSceneSource).toContain("goalkeeperSaveHand: '/menu/gk-hand.webp'");
-    expect(bootSceneSource).toContain("this.load.image('goalkeeper-goal-fx', ASSET_PATHS.goalkeeperGoal)");
-    expect(bootSceneSource).toContain("this.load.image('goalkeeper-save-hand-fx', ASSET_PATHS.goalkeeperSaveHand)");
+    expect(bootSceneSource).not.toContain("goalkeeperGoal: '/menu/bramka.webp'");
+    expect(bootSceneSource).not.toContain("goalkeeperSaveHand: '/menu/gk-hand.webp'");
+    expect(bootSceneSource).not.toContain("this.load.image('goalkeeper-goal-fx'");
+    expect(bootSceneSource).not.toContain("this.load.image('goalkeeper-save-hand-fx'");
   });
 });
 
