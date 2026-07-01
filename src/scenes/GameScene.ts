@@ -94,6 +94,18 @@ const INFO_BACK_BUTTON = {
   height: 42,
   fontSize: '18px'
 } as const;
+const MATCH_FINISHED_MODAL = {
+  width: 620,
+  height: 430,
+  imageWidth: 180,
+  imageHeight: 150,
+  imageY: -112,
+  titleY: 18,
+  bodyY: 82,
+  buttonY: 162,
+  buttonWidth: 190,
+  buttonHeight: 58
+} as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const GOALKEEPER_SHOT_BALL_SIZE = 42;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
@@ -179,6 +191,7 @@ export class GameScene extends Phaser.Scene {
   private exitConfirmModal: Phaser.GameObjects.Container | null = null;
   private pauseModal: Phaser.GameObjects.Container | null = null;
   private infoModal: Phaser.GameObjects.Container | null = null;
+  private matchFinishedModal: Phaser.GameObjects.Container | null = null;
   private activeInfoModal: InfoModalKind | null = null;
   private infoLanguage: AboutLanguage = getPreferredLanguage();
   private animatedRestoreCount = 0;
@@ -200,6 +213,9 @@ export class GameScene extends Phaser.Scene {
   private isRestoreAnimationInProgress = false;
   private isNavigationAwayInProgress = false;
   private isSceneShutDown = false;
+  private isMatchFinishedModalOpen = false;
+  private isMatchFinishedOkHandled = false;
+  private matchFinishedWhistlePlayed = false;
   private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null;
   private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>();
   private readonly activeInitialDealCards = new Set<CardView>();
@@ -233,6 +249,9 @@ export class GameScene extends Phaser.Scene {
     this.isRestoreAnimationInProgress = false;
     this.isNavigationAwayInProgress = false;
     this.isSceneShutDown = false;
+    this.isMatchFinishedModalOpen = false;
+    this.isMatchFinishedOkHandled = false;
+    this.matchFinishedWhistlePlayed = false;
     this.startWhistlePlayed = false;
     this.input.enabled = true;
     this.cleanupInitialDealFlow();
@@ -974,7 +993,8 @@ export class GameScene extends Phaser.Scene {
       this.isTutorialBlockingSystemUi() ||
       this.pauseModal !== null ||
       this.infoModal !== null ||
-      this.exitConfirmModal !== null
+      this.exitConfirmModal !== null ||
+      this.matchFinishedModal !== null
     ) {
       return;
     }
@@ -1011,7 +1031,8 @@ export class GameScene extends Phaser.Scene {
     if (
       (kind === 'rules' && this.isTutorialBlockingSystemUi()) ||
       this.infoModal !== null ||
-      this.pauseModal !== null
+      this.pauseModal !== null ||
+      this.matchFinishedModal !== null
     ) {
       return;
     }
@@ -2139,6 +2160,8 @@ export class GameScene extends Phaser.Scene {
       this.exitConfirmModal === null &&
       this.pauseModal === null &&
       this.infoModal === null &&
+      this.matchFinishedModal === null &&
+      !this.isMatchFinishedModalOpen &&
       (this.tutorialController === null || this.tutorialController.isComplete()) &&
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
@@ -2187,6 +2210,149 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private shouldShowMatchFinishedModal(state: Readonly<GameState>): boolean {
+    return (
+      state.phase === 'GAME_OVER' &&
+      state.players.some((player) => player.deck.cards.length === 0 || player.goalkeeperDeck.getSize() === 0)
+    );
+  }
+
+  private showMatchFinishedModal(state: Readonly<GameState>): void {
+    if (this.isNavigationAwayInProgress || this.isSceneShutDown || this.matchFinishedModal !== null) {
+      return;
+    }
+
+    this.isMatchFinishedModalOpen = true;
+    this.isMatchFinishedOkHandled = false;
+    this.cleanupInitialDealFlow();
+    this.aiTurnController?.dispose();
+    this.closePauseModal();
+    this.closeExitConfirmModal();
+    this.infoModal?.destroy();
+    this.infoModal = null;
+    this.activeInfoModal = null;
+    this.input.enabled = true;
+    this.playMatchFinishedWhistleOnce();
+
+    const centerX = SCENE_WIDTH / 2;
+    const centerY = SCENE_HEIGHT / 2;
+    const modal = this.add.container(0, 0).setDepth(1100);
+    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);
+    overlay.setInteractive();
+
+    const panel = this.add.container(centerX, centerY);
+    const background = this.add.graphics();
+    background.fillStyle(0x0b2118, 0.98);
+    background.fillRoundedRect(
+      -MATCH_FINISHED_MODAL.width / 2,
+      -MATCH_FINISHED_MODAL.height / 2,
+      MATCH_FINISHED_MODAL.width,
+      MATCH_FINISHED_MODAL.height,
+      16
+    );
+    background.lineStyle(2, 0xf0c95a, 0.92);
+    background.strokeRoundedRect(
+      -MATCH_FINISHED_MODAL.width / 2,
+      -MATCH_FINISHED_MODAL.height / 2,
+      MATCH_FINISHED_MODAL.width,
+      MATCH_FINISHED_MODAL.height,
+      16
+    );
+
+    const refereeVisual = this.createMatchFinishedRefereeVisual();
+    const title = this.add
+      .text(0, MATCH_FINISHED_MODAL.titleY, 'Match finished', {
+        align: 'center',
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '30px',
+        fontStyle: '700'
+      })
+      .setOrigin(0.5);
+    const body = this.add
+      .text(0, MATCH_FINISHED_MODAL.bodyY, 'The match is over because one side has no cards left.', {
+        align: 'center',
+        color: '#d9eadf',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '20px',
+        wordWrap: { width: MATCH_FINISHED_MODAL.width - 96 }
+      })
+      .setOrigin(0.5);
+    const okButton = new Button(
+      this,
+      0,
+      MATCH_FINISHED_MODAL.buttonY,
+      'OK',
+      () => this.confirmMatchFinishedModal(state),
+      {
+        borderRadius: 8,
+        borderWidth: 0,
+        fontSize: '24px',
+        height: MATCH_FINISHED_MODAL.buttonHeight,
+        width: MATCH_FINISHED_MODAL.buttonWidth
+      }
+    );
+
+    panel.add([background, refereeVisual, title, body, okButton]);
+    modal.add([overlay, panel]);
+    this.matchFinishedModal = modal;
+  }
+
+  private createMatchFinishedRefereeVisual(): Phaser.GameObjects.GameObject {
+    if (!this.textures.exists('arbitr-end')) {
+      const fallback = this.add.container(0, MATCH_FINISHED_MODAL.imageY);
+      const placeholder = this.add.graphics();
+      placeholder.fillStyle(0x142a21, 1);
+      placeholder.fillRoundedRect(
+        -MATCH_FINISHED_MODAL.imageWidth / 2,
+        -MATCH_FINISHED_MODAL.imageHeight / 2,
+        MATCH_FINISHED_MODAL.imageWidth,
+        MATCH_FINISHED_MODAL.imageHeight,
+        12
+      );
+      placeholder.lineStyle(2, 0x5f9572, 0.8);
+      placeholder.strokeRoundedRect(
+        -MATCH_FINISHED_MODAL.imageWidth / 2,
+        -MATCH_FINISHED_MODAL.imageHeight / 2,
+        MATCH_FINISHED_MODAL.imageWidth,
+        MATCH_FINISHED_MODAL.imageHeight,
+        12
+      );
+      fallback.add(placeholder);
+      return fallback;
+    }
+
+    const image = this.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');
+    const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };
+    const scale = Math.min(
+      MATCH_FINISHED_MODAL.imageWidth / source.width,
+      MATCH_FINISHED_MODAL.imageHeight / source.height
+    );
+    image.setDisplaySize(source.width * scale, source.height * scale);
+    return image;
+  }
+
+  private playMatchFinishedWhistleOnce(): void {
+    if (this.matchFinishedWhistlePlayed) {
+      return;
+    }
+
+    this.matchFinishedWhistlePlayed = true;
+    this.playSound('sound-whistle-finish', 0.68);
+  }
+
+  private confirmMatchFinishedModal(state: Readonly<GameState>): void {
+    if (this.isMatchFinishedOkHandled || this.isNavigationAwayInProgress || this.isSceneShutDown) {
+      return;
+    }
+
+    this.isMatchFinishedOkHandled = true;
+    this.isMatchFinishedModalOpen = false;
+    this.matchFinishedModal?.destroy();
+    this.matchFinishedModal = null;
+    this.openResultScene(state, true);
+  }
+
   private prepareToLeaveMatchScene(): void {
     if (this.isNavigationAwayInProgress) {
       return;
@@ -2200,6 +2366,9 @@ export class GameScene extends Phaser.Scene {
     this.pauseModal = null;
     this.infoModal?.destroy();
     this.infoModal = null;
+    this.matchFinishedModal?.destroy();
+    this.matchFinishedModal = null;
+    this.isMatchFinishedModalOpen = false;
     this.activeInfoModal = null;
     this.message?.destroy();
     this.message = null;
@@ -2216,13 +2385,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openResult(state: Readonly<GameState>): void {
+    if (this.shouldShowMatchFinishedModal(state)) {
+      this.showMatchFinishedModal(state);
+      return;
+    }
+
+    this.openResultScene(state);
+  }
+
+  private openResultScene(state: Readonly<GameState>, suppressFinalWhistle = false): void {
     this.prepareToLeaveMatchScene();
-    this.scene.start('ResultScene', { state, launchContext: this.launchContext });
+    this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });
   }
 
   private simulatePausedMatch(state: Readonly<GameState>): void {
     if (this.launchContext.mode !== 'tournament') {
-      this.openResult(state);
+      this.openResultScene(state);
       return;
     }
 
@@ -2231,14 +2409,14 @@ export class GameScene extends Phaser.Scene {
     const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
 
     if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
-      this.openResult(state);
+      this.openResultScene(state);
       return;
     }
 
     const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
 
     if (match === undefined || match.homeTeamId === undefined || match.awayTeamId === undefined) {
-      this.openResult(state);
+      this.openResultScene(state);
       return;
     }
 
@@ -2246,7 +2424,7 @@ export class GameScene extends Phaser.Scene {
     const awayTeam = findNationalTeam(match.awayTeamId);
 
     if (homeTeam === undefined || awayTeam === undefined) {
-      this.openResult(state);
+      this.openResultScene(state);
       return;
     }
 
@@ -2255,7 +2433,7 @@ export class GameScene extends Phaser.Scene {
     try {
       updatedTournament = submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam);
     } catch {
-      this.openResult(state);
+      this.openResultScene(state);
       return;
     }
 
@@ -2297,6 +2475,9 @@ export class GameScene extends Phaser.Scene {
     this.pauseModal = null;
     this.infoModal?.destroy();
     this.infoModal = null;
+    this.matchFinishedModal?.destroy();
+    this.matchFinishedModal = null;
+    this.isMatchFinishedModalOpen = false;
     this.activeInfoModal = null;
     this.tutorialOverlay?.destroy();
     this.tutorialOverlay = null;

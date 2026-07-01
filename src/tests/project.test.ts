@@ -437,6 +437,7 @@ describe('project scaffold', () => {
   it('ships production game assets from public with normalized paths', () => {
     const requiredAssets = [
       join('public', 'cards', 'ball.webp'),
+      join('public', 'menu', 'arbitr-end.webp'),
       join('public', 'sounds', 'referees-whistle-start.mp3'),
       join('public', 'sounds', 'referees-whistle-finish.mp3'),
       join('public', 'sounds', 'bolely-net.mp3'),

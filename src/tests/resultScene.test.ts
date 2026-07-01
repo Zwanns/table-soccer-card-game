@@ -27,6 +27,16 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('background.setFlipX(true)');
   });
 
+  it('can suppress the final whistle when the match-finished modal already played it', () => {
+    const source = readResultSceneSource();
+
+    expect(source).toContain('suppressFinalWhistle?: boolean');
+    expect(source).toContain('private suppressFinalWhistle = false');
+    expect(source).toContain('this.suppressFinalWhistle = data.suppressFinalWhistle === true;');
+    expect(source).toContain("if (this.state?.phase === 'GAME_OVER' && !this.suppressFinalWhistle)");
+    expect(source).toContain("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });");
+  });
+
   it('renders result text with snapped coordinates and high-resolution text canvases', () => {
     const source = readResultSceneSource();
 

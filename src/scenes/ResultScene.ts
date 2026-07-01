@@ -52,11 +52,13 @@ const RESULT_VERSION_MARGIN = 18;
 interface ResultSceneData {
   state?: Readonly<GameState>;
   launchContext?: MatchLaunchContext;
+  suppressFinalWhistle?: boolean;
 }
 
 export class ResultScene extends Phaser.Scene {
   private state: Readonly<GameState> | null = null;
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
+  private suppressFinalWhistle = false;
   private message: Phaser.GameObjects.Text | null = null;
 
   public constructor() {
@@ -66,6 +68,7 @@ export class ResultScene extends Phaser.Scene {
   public init(data: ResultSceneData): void {
     this.state = data.state ?? null;
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
+    this.suppressFinalWhistle = data.suppressFinalWhistle === true;
   }
 
   public create(): void {
@@ -76,7 +79,7 @@ export class ResultScene extends Phaser.Scene {
     const playerOneGoals = playerOne?.goals ?? 0;
     const playerTwoGoals = playerTwo?.goals ?? 0;
 
-    if (this.state?.phase === 'GAME_OVER') {
+    if (this.state?.phase === 'GAME_OVER' && !this.suppressFinalWhistle) {
       playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });
     }
 

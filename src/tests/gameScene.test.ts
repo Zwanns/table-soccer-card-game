@@ -217,6 +217,96 @@ describe('GameScene visual layout contracts', () => {
     expect(overlaySource).toContain('const buttons = createResultActionButtons(scene, centerX, actions);');
   });
 
+  it('shows a referee match-finished modal before results for card-depletion game over states', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('const MATCH_FINISHED_MODAL = {');
+    expect(source).toContain('private matchFinishedModal: Phaser.GameObjects.Container | null = null');
+    expect(source).toContain('private isMatchFinishedModalOpen = false');
+    expect(source).toContain('private isMatchFinishedOkHandled = false');
+    expect(source).toContain('private matchFinishedWhistlePlayed = false');
+    expect(source).toContain('private shouldShowMatchFinishedModal(state: Readonly<GameState>): boolean');
+    expect(source).toContain(
+      "state.phase === 'GAME_OVER' &&\n      state.players.some((player) => player.deck.cards.length === 0 || player.goalkeeperDeck.getSize() === 0)"
+    );
+    expect(source).toContain('if (this.shouldShowMatchFinishedModal(state)) {\n      this.showMatchFinishedModal(state);\n      return;\n    }');
+    expect(source).toContain('private showMatchFinishedModal(state: Readonly<GameState>): void');
+  });
+
+  it('builds the match-finished modal as a centered overlay with referee art and OK action', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const modalBlock = source.slice(
+      source.indexOf('private showMatchFinishedModal('),
+      source.indexOf('private createMatchFinishedRefereeVisual()')
+    );
+
+    expect(modalBlock).toContain('this.cleanupInitialDealFlow();');
+    expect(modalBlock).toContain('this.aiTurnController?.dispose();');
+    expect(modalBlock).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);');
+    expect(modalBlock).toContain('overlay.setInteractive();');
+    expect(modalBlock).toContain('background.fillRoundedRect(');
+    expect(modalBlock).toContain('const refereeVisual = this.createMatchFinishedRefereeVisual();');
+    expect(modalBlock).toContain("'Match finished'");
+    expect(modalBlock).toContain("'The match is over because one side has no cards left.'");
+    expect(modalBlock).toContain("'OK'");
+    expect(modalBlock).toContain('() => this.confirmMatchFinishedModal(state)');
+    expect(modalBlock).toContain('borderWidth: 0');
+    expect(modalBlock).toContain('borderRadius: 8');
+  });
+
+  it('uses the referee image when loaded and falls back safely when missing', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const visualBlock = source.slice(
+      source.indexOf('private createMatchFinishedRefereeVisual()'),
+      source.indexOf('private playMatchFinishedWhistleOnce()')
+    );
+
+    expect(visualBlock).toContain("if (!this.textures.exists('arbitr-end'))");
+    expect(visualBlock).toContain('placeholder.fillRoundedRect(');
+    expect(visualBlock).toContain("const image = this.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');");
+    expect(visualBlock).toContain("const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };");
+    expect(visualBlock).toContain('const scale = Math.min(');
+    expect(visualBlock).toContain('image.setDisplaySize(source.width * scale, source.height * scale);');
+  });
+
+  it('plays the final whistle once on modal appearance and suppresses the ResultScene duplicate', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+
+    expect(source).toContain('private playMatchFinishedWhistleOnce(): void');
+    expect(source).toContain('if (this.matchFinishedWhistlePlayed) {\n      return;\n    }');
+    expect(source).toContain("this.playSound('sound-whistle-finish', 0.68);");
+    expect(source).toContain('this.openResultScene(state, true);');
+    expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+  });
+
+  it('waits for OK before opening results and guards against duplicate OK transitions', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const confirmBlock = source.slice(
+      source.indexOf('private confirmMatchFinishedModal('),
+      source.indexOf('private prepareToLeaveMatchScene()')
+    );
+
+    expect(confirmBlock).toContain('if (this.isMatchFinishedOkHandled || this.isNavigationAwayInProgress || this.isSceneShutDown) {');
+    expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
+    expect(confirmBlock).toContain('this.isMatchFinishedModalOpen = false;');
+    expect(confirmBlock).toContain('this.matchFinishedModal?.destroy();');
+    expect(confirmBlock).toContain('this.openResultScene(state, true);');
+    expect(source.indexOf('private showMatchFinishedModal(')).toBeLessThan(source.indexOf('private confirmMatchFinishedModal('));
+  });
+
+  it('keeps pause-menu Sim on the direct result path without the referee modal', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const simulateBlock = source.slice(
+      source.indexOf('private simulatePausedMatch('),
+      source.indexOf('private executeAiAction(')
+    );
+
+    expect(simulateBlock).toContain('this.openResultScene(state);');
+    expect(simulateBlock).not.toContain('this.openResult(state);');
+    expect(simulateBlock).not.toContain('this.showMatchFinishedModal');
+    expect(simulateBlock).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
+  });
+
   it('uses the result screen button row for Pause actions', () => {
     const source = readSource('src/ui/matchPauseOverlay.ts');
     const resultActionsSource = readSource('src/ui/resultActionButtons.ts');

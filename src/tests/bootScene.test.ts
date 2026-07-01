@@ -129,6 +129,13 @@ describe('BootScene kit asset loading', () => {
     expect(source).not.toContain('menu/menu-ball.png');
     expect(source).not.toContain('menu-ball');
   });
+
+  it('preloads the referee match-finished illustration from public assets', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    expect(bootSceneSource).toContain("matchFinishedReferee: '/menu/arbitr-end.webp'");
+    expect(bootSceneSource).toContain("this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee)");
+  });
 });
 
 describe('BootScene cover asset loading', () => {
