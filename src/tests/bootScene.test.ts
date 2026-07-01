@@ -136,6 +136,15 @@ describe('BootScene kit asset loading', () => {
     expect(bootSceneSource).toContain("matchFinishedReferee: '/menu/arbitr-end.webp'");
     expect(bootSceneSource).toContain("this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee)");
   });
+
+  it('preloads goalkeeper shot outcome FX from public menu assets', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    expect(bootSceneSource).toContain("goalkeeperGoal: '/menu/bramka.webp'");
+    expect(bootSceneSource).toContain("goalkeeperSaveHand: '/menu/gk-hand.webp'");
+    expect(bootSceneSource).toContain("this.load.image('goalkeeper-goal-fx', ASSET_PATHS.goalkeeperGoal)");
+    expect(bootSceneSource).toContain("this.load.image('goalkeeper-save-hand-fx', ASSET_PATHS.goalkeeperSaveHand)");
+  });
 });
 
 describe('BootScene cover asset loading', () => {

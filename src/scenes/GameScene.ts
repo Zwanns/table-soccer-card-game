@@ -107,10 +107,19 @@ const MATCH_FINISHED_MODAL = {
   buttonHeight: 58
 } as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
+const GOALKEEPER_GOAL_FX_TEXTURE_KEY = 'goalkeeper-goal-fx';
+const GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY = 'goalkeeper-save-hand-fx';
 const GOALKEEPER_SHOT_BALL_SIZE = 42;
 const GOALKEEPER_SHOT_BALL_FLIGHT_MS = 320;
 const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58;
 const GOALKEEPER_SHOT_BALL_OUTCOME_MS = 220;
+const GOALKEEPER_SHOT_BACKGROUND_FX_DEPTH = 620;
+const GOALKEEPER_SHOT_BACKGROUND_BALL_DEPTH = 680;
+const GOALKEEPER_GOAL_FX_WIDTH = 220;
+const GOALKEEPER_GOAL_FX_HEIGHT = 104;
+const GOALKEEPER_SAVE_HAND_FX_SIZE = 142;
+const GOALKEEPER_GOAL_FX_X_OFFSET = 128;
+const GOALKEEPER_SAVE_HAND_FX_X_OFFSET = 72;
 const SHOT_SOURCE_KICK_FORWARD_MS = 90;
 const SHOT_SOURCE_KICK_RETURN_MS = 80;
 const SHOT_SOURCE_KICK_DISTANCE = 16;
@@ -141,6 +150,19 @@ interface CardVisualTransform {
   scaleX: number;
   scaleY: number;
   alpha: number;
+}
+
+interface GoalkeeperShotFx {
+  image: Phaser.GameObjects.Image;
+  ballTarget: { x: number; y: number };
+}
+
+interface GoalkeeperShotFxLayout {
+  defendingSide: 'left' | 'right';
+  goalImage: { x: number; y: number };
+  goalBallTarget: { x: number; y: number };
+  handImage: { x: number; y: number };
+  handBallTarget: { x: number; y: number };
 }
 
 interface RestoreAnimationEntry {
@@ -1617,7 +1639,7 @@ export class GameScene extends Phaser.Scene {
     const sourceSnapshot = this.createGoalkeeperShotSourceSnapshot(state, context);
 
     this.playShotSourceKick(state, context, sourceSnapshot, start, () => {
-      this.animateBallFlightToGoalkeeper({
+      const startBallFlight = (): void => this.animateBallFlightToGoalkeeper({
         start,
         target,
         activeOnLeft: context.attackerId === state.players[0].id,
@@ -1627,6 +1649,30 @@ export class GameScene extends Phaser.Scene {
         onComplete,
         onEffectStarted
       });
+
+      if (outcome === 'goal') {
+        this.animateGoalkeeperShotSourceHit(sourceSnapshot, target, startBallFlight);
+        return;
+      }
+
+      startBallFlight();
+    });
+  }
+
+  private animateGoalkeeperShotSourceHit(
+    sourceSnapshot: CardView,
+    target: { x: number; y: number },
+    onComplete: () => void
+  ): void {
+    this.tweens.add({
+      targets: sourceSnapshot,
+      x: target.x,
+      y: target.y,
+      scale: MATCH_CARD_SCALE * 1.04,
+      rotation: 0,
+      duration: 340,
+      ease: 'Cubic.easeIn',
+      onComplete
     });
   }
 
@@ -1767,7 +1813,7 @@ export class GameScene extends Phaser.Scene {
   }): void {
     const ball = this.add.image(options.start.x, options.start.y, TURN_BALL_TEXTURE_KEY);
     ball.setDisplaySize(GOALKEEPER_SHOT_BALL_SIZE, GOALKEEPER_SHOT_BALL_SIZE);
-    ball.setDepth(900);
+    ball.setDepth(GOALKEEPER_SHOT_BACKGROUND_BALL_DEPTH);
 
     const baseScaleX = ball.scaleX;
     const baseScaleY = ball.scaleY;
@@ -1889,6 +1935,8 @@ export class GameScene extends Phaser.Scene {
     onComplete: () => void
   ): void {
     const goalAnimation = getGoalkeeperGoalAnimation(target, activeOnLeft ? 'right' : 'left');
+    const goalFx = this.createGoalkeeperGoalFx(target, activeOnLeft);
+    const ballTarget = goalFx?.ballTarget ?? goalAnimation.target;
 
     if (goalkeeperImpactCard !== null) {
       this.tweens.add({
@@ -1905,8 +1953,8 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: ball,
-      x: goalAnimation.target.x,
-      y: goalAnimation.target.y,
+      x: ballTarget.x,
+      y: ballTarget.y,
       angle: ball.angle + goalAnimation.angle,
       alpha: 0,
       scaleX: baseScaleX * 0.35,
@@ -1915,6 +1963,7 @@ export class GameScene extends Phaser.Scene {
       ease: goalAnimation.ease,
       onComplete: () => {
         ball.destroy();
+        goalFx?.image.destroy();
         goalkeeperImpactCard?.destroy();
         onComplete();
       }
@@ -1929,7 +1978,8 @@ export class GameScene extends Phaser.Scene {
     baseScaleY: number,
     onComplete: () => void
   ): void {
-    const deflection = getGoalkeeperShotSaveDeflection(target, activeOnLeft);
+    const handFx = this.createGoalkeeperSaveHandFx(target, activeOnLeft);
+    const deflection = handFx?.ballTarget ?? getGoalkeeperShotSaveDeflection(target, activeOnLeft);
     const rotationSign = activeOnLeft ? -1 : 1;
 
     this.tweens.add({
@@ -1944,9 +1994,65 @@ export class GameScene extends Phaser.Scene {
       ease: 'Cubic.easeOut',
       onComplete: () => {
         ball.destroy();
+        handFx?.image.destroy();
         onComplete();
       }
     });
+  }
+
+  private createGoalkeeperGoalFx(target: { x: number; y: number }, activeOnLeft: boolean): GoalkeeperShotFx | null {
+    if (!this.textures.exists(GOALKEEPER_GOAL_FX_TEXTURE_KEY)) {
+      return null;
+    }
+
+    const layout = getGoalkeeperShotFxLayout(target, activeOnLeft);
+    const image = this.add.image(layout.goalImage.x, layout.goalImage.y, GOALKEEPER_GOAL_FX_TEXTURE_KEY);
+    image.setDepth(GOALKEEPER_SHOT_BACKGROUND_FX_DEPTH);
+    image.setDisplaySize(GOALKEEPER_GOAL_FX_WIDTH, GOALKEEPER_GOAL_FX_HEIGHT);
+    image.setFlipX(layout.defendingSide === 'left');
+    image.setAlpha(0.82);
+
+    this.tweens.add({
+      targets: image,
+      alpha: 0.96,
+      scaleX: image.scaleX * 1.04,
+      scaleY: image.scaleY * 1.04,
+      duration: 180,
+      ease: 'Sine.easeOut'
+    });
+
+    return {
+      image,
+      ballTarget: layout.goalBallTarget
+    };
+  }
+
+  private createGoalkeeperSaveHandFx(target: { x: number; y: number }, activeOnLeft: boolean): GoalkeeperShotFx | null {
+    if (!this.textures.exists(GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY)) {
+      return null;
+    }
+
+    const layout = getGoalkeeperShotFxLayout(target, activeOnLeft);
+    const image = this.add.image(layout.handImage.x, layout.handImage.y, GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY);
+    image.setDepth(GOALKEEPER_SHOT_BACKGROUND_FX_DEPTH);
+    image.setDisplaySize(GOALKEEPER_SAVE_HAND_FX_SIZE, GOALKEEPER_SAVE_HAND_FX_SIZE);
+    image.setFlipX(layout.defendingSide === 'left');
+    image.setAlpha(0.86);
+
+    this.tweens.add({
+      targets: image,
+      alpha: 1,
+      scaleX: image.scaleX * 1.08,
+      scaleY: image.scaleY * 1.08,
+      duration: GOALKEEPER_SHOT_BALL_OUTCOME_MS / 2,
+      ease: 'Sine.easeOut',
+      yoyo: true
+    });
+
+    return {
+      image,
+      ballTarget: layout.handBallTarget
+    };
   }
 
   private animateGoalkeeperShotPostForwardDeflection(
@@ -2768,6 +2874,34 @@ function getGoalkeeperShotSaveDeflection(
   return {
     x: target.x + (activeOnLeft ? -155 : 155),
     y: target.y + 104
+  };
+}
+
+function getGoalkeeperShotFxLayout(
+  target: { x: number; y: number },
+  activeOnLeft: boolean
+): GoalkeeperShotFxLayout {
+  const defendingSide = activeOnLeft ? 'right' : 'left';
+  const direction = defendingSide === 'right' ? 1 : -1;
+
+  return {
+    defendingSide,
+    goalImage: {
+      x: target.x + direction * GOALKEEPER_GOAL_FX_X_OFFSET,
+      y: target.y
+    },
+    goalBallTarget: {
+      x: target.x + direction * (GOALKEEPER_GOAL_FX_X_OFFSET + 18),
+      y: target.y + 6
+    },
+    handImage: {
+      x: target.x + direction * GOALKEEPER_SAVE_HAND_FX_X_OFFSET,
+      y: target.y + 8
+    },
+    handBallTarget: {
+      x: target.x + direction * (GOALKEEPER_SAVE_HAND_FX_X_OFFSET - 8),
+      y: target.y + 16
+    }
   };
 }
 

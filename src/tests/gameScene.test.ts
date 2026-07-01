@@ -641,8 +641,12 @@ describe('GameScene visual layout contracts', () => {
     const deckSource = readSource('src/ui/DeckView.ts');
 
     expect(gameSceneSource).toContain("const TURN_BALL_TEXTURE_KEY = 'turn-ball'");
+    expect(gameSceneSource).toContain("const GOALKEEPER_GOAL_FX_TEXTURE_KEY = 'goalkeeper-goal-fx'");
+    expect(gameSceneSource).toContain("const GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY = 'goalkeeper-save-hand-fx'");
     expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_SIZE = 42');
     expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BALL_ARC_HEIGHT = 58');
+    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BACKGROUND_FX_DEPTH = 620');
+    expect(gameSceneSource).toContain('const GOALKEEPER_SHOT_BACKGROUND_BALL_DEPTH = 680');
     expect(gameSceneSource).toContain("type GoalkeeperShotAnimationOutcome = Extract<AttackAnimationOutcome, 'goal' | 'post' | 'save'>");
     expect(gameSceneSource).toContain('private playGoalkeeperShotBallFlight(');
     expect(gameSceneSource).toContain('outcome: GoalkeeperShotAnimationOutcome');
@@ -668,6 +672,28 @@ describe('GameScene visual layout contracts', () => {
     expect(deckSource).toContain('showActiveMarker?: boolean');
     expect(deckSource).toContain('if (options.active === true && options.showActiveMarker !== false)');
     expect(deckSource).toContain('export function getDeckTurnBallWorldPosition');
+  });
+
+  it('runs the goalkeeper goal branch through an attacker-card hit before ball flight', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const flightBlock = source.slice(
+      source.indexOf('private playGoalkeeperShotBallFlight('),
+      source.indexOf('private createGoalkeeperShotSourceSnapshot(')
+    );
+    const hitBlock = source.slice(
+      source.indexOf('private animateGoalkeeperShotSourceHit('),
+      source.indexOf('private createGoalkeeperShotSourceSnapshot(')
+    );
+
+    expect(flightBlock).toContain("if (outcome === 'goal') {");
+    expect(flightBlock).toContain('this.animateGoalkeeperShotSourceHit(sourceSnapshot, target, startBallFlight);');
+    expect(flightBlock).toContain('startBallFlight();');
+    expect(hitBlock).toContain('targets: sourceSnapshot');
+    expect(hitBlock).toContain('x: target.x');
+    expect(hitBlock).toContain('y: target.y');
+    expect(hitBlock).toContain('scale: MATCH_CARD_SCALE * 1.04');
+    expect(hitBlock).toContain('duration: 340');
+    expect(hitBlock).toContain("ease: 'Cubic.easeIn'");
   });
 
   it('keeps a temporary source kick available before goalkeeper shot ball flight', () => {
@@ -789,7 +815,7 @@ describe('GameScene visual layout contracts', () => {
     );
 
     expect(impactBlock).toContain("if (outcome === 'save') {\n      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
-    expect(saveBlock).toContain('ball.destroy();\n        onComplete();');
+    expect(saveBlock).toContain('ball.destroy();\n        handFx?.image.destroy();\n        onComplete();');
     expect(saveBlock).not.toContain('sourceSnapshot.destroy();');
   });
 
@@ -1049,9 +1075,16 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.animateGoalkeeperShotGoalDisappear(');
     expect(source).toContain('private animateGoalkeeperShotGoalDisappear(');
     expect(source).toContain("const goalAnimation = getGoalkeeperGoalAnimation(target, activeOnLeft ? 'right' : 'left')");
+    expect(source).toContain('const goalFx = this.createGoalkeeperGoalFx(target, activeOnLeft);');
+    expect(source).toContain('const ballTarget = goalFx?.ballTarget ?? goalAnimation.target;');
+    expect(source).toContain('private createGoalkeeperGoalFx(');
+    expect(source).toContain('GOALKEEPER_GOAL_FX_TEXTURE_KEY');
+    expect(source).toContain('image.setDisplaySize(GOALKEEPER_GOAL_FX_WIDTH, GOALKEEPER_GOAL_FX_HEIGHT);');
+    expect(source).toContain("if (!this.textures.exists(GOALKEEPER_GOAL_FX_TEXTURE_KEY)) {\n      return null;\n    }");
     expect(source).toContain('angle: goalAnimation.angle');
     expect(source).toContain('scale: goalAnimation.scale');
     expect(source).toContain('angle: ball.angle + goalAnimation.angle');
+    expect(source).toContain('goalFx?.image.destroy();');
     expect(source).toContain('goalkeeperImpactCard?.destroy();');
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOAL_SCORED'))");
   });
@@ -1065,12 +1098,36 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('yoyo: true');
     expect(source).toContain("if (outcome === 'save') {\n      this.animateGoalkeeperShotSaveDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
     expect(source).toContain('private animateGoalkeeperShotSaveDeflection(');
-    expect(source).toContain('const deflection = getGoalkeeperShotSaveDeflection(target, activeOnLeft)');
+    expect(source).toContain('const handFx = this.createGoalkeeperSaveHandFx(target, activeOnLeft);');
+    expect(source).toContain('const deflection = handFx?.ballTarget ?? getGoalkeeperShotSaveDeflection(target, activeOnLeft);');
+    expect(source).toContain('private createGoalkeeperSaveHandFx(');
+    expect(source).toContain('GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY');
+    expect(source).toContain('image.setDisplaySize(GOALKEEPER_SAVE_HAND_FX_SIZE, GOALKEEPER_SAVE_HAND_FX_SIZE);');
+    expect(source).toContain("if (!this.textures.exists(GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY)) {\n      return null;\n    }");
+    expect(source).toContain('handFx?.image.destroy();');
     expect(source).toContain('x: target.x + (activeOnLeft ? -155 : 155)');
     expect(source).toContain('y: target.y + 104');
     expect(source).toContain('angle: ball.angle + rotationSign * 420');
     expect(source).not.toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
+  });
+
+  it('positions goalkeeper goal and hand FX by the defending side', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const layoutBlock = source.slice(
+      source.indexOf('function getGoalkeeperShotFxLayout('),
+      source.indexOf('function getGoalkeeperShotPostForwardDeflection(')
+    );
+
+    expect(layoutBlock).toContain("const defendingSide = activeOnLeft ? 'right' : 'left';");
+    expect(layoutBlock).toContain("const direction = defendingSide === 'right' ? 1 : -1;");
+    expect(layoutBlock).toContain('x: target.x + direction * GOALKEEPER_GOAL_FX_X_OFFSET');
+    expect(layoutBlock).toContain('x: target.x + direction * (GOALKEEPER_GOAL_FX_X_OFFSET + 18)');
+    expect(layoutBlock).toContain('x: target.x + direction * GOALKEEPER_SAVE_HAND_FX_X_OFFSET');
+    expect(layoutBlock).toContain('x: target.x + direction * (GOALKEEPER_SAVE_HAND_FX_X_OFFSET - 8)');
+    expect(source).toContain("image.setFlipX(layout.defendingSide === 'left');");
+    expect(source).toContain('image.setDepth(GOALKEEPER_SHOT_BACKGROUND_FX_DEPTH);');
+    expect(source).toContain('ball.setDepth(GOALKEEPER_SHOT_BACKGROUND_BALL_DEPTH);');
   });
 
   it('rolls the goalkeeper rank on the same field card after a goalkeeper save', () => {
