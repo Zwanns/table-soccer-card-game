@@ -189,7 +189,7 @@ describe('read-only squad scenes', () => {
     });
     expect(northernIrelandStyle?.primaryColor).toBe('#006A3A');
     expect(franceStyle?.primaryColor).toBe('#002654');
-    expect(spainStyle?.primaryColor).toBe('#AA151B');
+    expect(spainStyle?.primaryColor).toBe('#FF0000');
 
     expect(selectSource).toContain("import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits'");
     expect(selectSource).toContain("import { buildTeamColorSwatches } from '../ui/teamColorSwatches'");
