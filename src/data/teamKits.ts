@@ -72,7 +72,14 @@ export const DEFAULT_SHIRT_NUMBER_STYLE = {
 const TEAM_KIT_STYLE_ROWS = [
   ['al', '#D71920', '#111111', '#FFFFFF', '#111111'],
   ['dz', '#00843D', '#FFFFFF', '#00843D', undefined],
-  ['ar', '#75AADB', '#FFFFFF', '#111111', '#FFFFFF', '#111111'],
+  [
+    'ar',
+    '#75AADB', // primaryColor: основной цвет формы
+    '#FFFFFF', // secondaryColor: дополнительный цвет формы и цвет номера по умолчанию
+    '#111111', // accentColor: акцентный цвет деталей формы
+    '#FFFFFF', // shirtNumberStrokeColor: цвет обводки номера
+    '#111111' // shirtNumberColor: основной цвет номера
+  ],
   ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111', '#FFFFFF'],
   ['au', '#FFCD00', '#00843D', '#006747', '#FFFFFF'],
   ['at', '#ED2939', '#FFFFFF', '#FFFFFF', '#111111'],
@@ -104,7 +111,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['kz', '#00AFCA', '#FEC50C', '#003B5C', '#FFFFFF'],
   ['ml', '#FCD116', '#14B53A', '#007A33', '#FFFFFF'],
   ['mx', '#006847', '#FFFFFF', '#FFFFFF', undefined],
-  ['ma', '#C1272D', '#006233', '#FFFFFF', undefined],
+  ['ma', '#C1272D', '#006233', '#FFFFFF', '#006233', '#FFFFFF'],
   ['nl', '#F36C21', '#111111', '#111111', undefined],
   ['ng', '#008753', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#000000'],
   ['nir', '#006A3A', '#FFFFFF', '#FFFFFF', '#111111'],
