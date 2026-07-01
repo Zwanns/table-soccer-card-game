@@ -239,6 +239,8 @@ export class GameScene extends Phaser.Scene {
   private isMatchFinishedModalOpen = false;
   private isMatchFinishedOkHandled = false;
   private matchFinishedWhistlePlayed = false;
+  private isInitialDealStarted = false;
+  private isInitialDealComplete = false;
   private pendingInitialDealTimer: Phaser.Time.TimerEvent | null = null;
   private readonly activeInitialDealTweens = new Set<Phaser.Tweens.Tween>();
   private readonly activeInitialDealCards = new Set<CardView>();
@@ -276,6 +278,8 @@ export class GameScene extends Phaser.Scene {
     this.isMatchFinishedModalOpen = false;
     this.isMatchFinishedOkHandled = false;
     this.matchFinishedWhistlePlayed = false;
+    this.isInitialDealStarted = false;
+    this.isInitialDealComplete = false;
     this.startWhistlePlayed = false;
     this.input.enabled = true;
     this.cleanupInitialDealFlow();
@@ -352,12 +356,13 @@ export class GameScene extends Phaser.Scene {
     const centerX = MATCH_FIELD_CENTER_X;
     const interactive = options.interactive !== false;
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
+    const hasPendingRestores = pendingRestores.length > 0;
     const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);
 
-    if (interactive && pendingRestores.length > 0) {
+    if (interactive && hasPendingRestores) {
       this.isGameplayReady = false;
     } else if (interactive && !this.isRestoreAnimationInProgress) {
-      this.isGameplayReady = true;
+      this.markInitialDealComplete();
     }
 
     const gameInteractive =
@@ -440,9 +445,10 @@ export class GameScene extends Phaser.Scene {
     this.recordTutorialTargetLine(state);
     this.refreshTutorialOverlay(state);
 
-    if (interactive && pendingRestores.length > 0) {
+    if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {
       this.isRestoreAnimationInProgress = true;
-      this.animateRestoredCards(state, pendingRestores);
+      this.markInitialDealStarted();
+      this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));
       return;
     }
 
@@ -2213,7 +2219,7 @@ export class GameScene extends Phaser.Scene {
 
     if (entry === undefined) {
       this.isRestoreAnimationInProgress = false;
-      this.isGameplayReady = true;
+      this.markInitialDealComplete();
       this.render(state);
       return;
     }
@@ -2281,7 +2287,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.isRestoreAnimationInProgress = false;
-        this.isGameplayReady = true;
+        this.markInitialDealComplete();
         this.render(state);
       }
     });
@@ -2292,6 +2298,7 @@ export class GameScene extends Phaser.Scene {
     return (
       this.input.enabled &&
       this.isGameplayReady &&
+      !this.isInitialDealActive() &&
       !this.isNavigationAwayInProgress &&
       !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
@@ -2310,6 +2317,7 @@ export class GameScene extends Phaser.Scene {
     return (
       this.input.enabled &&
       this.isGameplayReady &&
+      !this.isInitialDealActive() &&
       !this.isNavigationAwayInProgress &&
       !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
@@ -2323,8 +2331,30 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private canRunSceneSetup(): boolean {
+    return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
+  }
+
   private canRunInitialDealStep(): boolean {
-    return this.sys.isActive() && this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
+    return this.canRunSceneSetup();
+  }
+
+  private isInitialDealActive(): boolean {
+    return this.isInitialDealStarted && !this.isInitialDealComplete;
+  }
+
+  private markInitialDealStarted(): void {
+    if (this.isInitialDealComplete) {
+      return;
+    }
+
+    this.isInitialDealStarted = true;
+  }
+
+  private markInitialDealComplete(): void {
+    this.isInitialDealStarted = true;
+    this.isInitialDealComplete = true;
+    this.isGameplayReady = true;
   }
 
   private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void {

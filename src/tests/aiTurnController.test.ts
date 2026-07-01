@@ -338,7 +338,7 @@ describe('AiTurnController', () => {
   });
 
   it('integrates with GameScene only after stable renders and disables field input during AI turns', () => {
-    const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
+    const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8').replace(/\r\n/g, '\n');
 
     expect(source).toContain(
       'const gameInteractive =\n      interactive &&\n      this.canAcceptGameplayInput() &&\n      !(this.aiTurnController?.isAiTurn(state) ?? false)'

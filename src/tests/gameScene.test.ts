@@ -892,15 +892,16 @@ describe('GameScene visual layout contracts', () => {
 
     expect(source).toContain('const pendingRestores = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);');
+    expect(source).toContain('const hasPendingRestores = pendingRestores.length > 0;');
     expect(source).toContain(
-      'if (interactive && pendingRestores.length > 0) {\n      this.isGameplayReady = false;\n    } else if (interactive && !this.isRestoreAnimationInProgress) {\n      this.isGameplayReady = true;\n    }'
+      'if (interactive && hasPendingRestores) {\n      this.isGameplayReady = false;\n    } else if (interactive && !this.isRestoreAnimationInProgress) {\n      this.markInitialDealComplete();\n    }'
     );
     expect(source).toContain(
       'const gameInteractive =\n      interactive &&\n      this.canAcceptGameplayInput() &&\n      !(this.aiTurnController?.isAiTurn(state) ?? false);'
     );
     expect(source).toContain('hiddenCards: hiddenRestoredCards');
     expect(source).toContain(
-      'if (interactive && pendingRestores.length > 0) {\n      this.isRestoreAnimationInProgress = true;\n      this.animateRestoredCards(state, pendingRestores);\n      return;\n    }'
+      'if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {\n      this.isRestoreAnimationInProgress = true;\n      this.markInitialDealStarted();\n      this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));\n      return;\n    }'
     );
     expect(source).toContain('const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('this.render(state, { hiddenRestoredCards, interactive: false });');
@@ -916,8 +917,8 @@ describe('GameScene visual layout contracts', () => {
     expect(createBlock).toContain('setupPreset: this.matchMode === \'tutorial\' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined');
     expect(createBlock).toContain('this.startTurn();');
     expect(createBlock).not.toContain('this.drawAttackCard();');
-    expect(renderBlock).toContain('this.animateRestoredCards(state, pendingRestores);');
-    expect(renderBlock.indexOf('this.animateRestoredCards(state, pendingRestores);')).toBeLessThan(
+    expect(renderBlock).toContain('this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));');
+    expect(renderBlock.indexOf('this.scheduleInitialDealDelayedCall(0, () => this.animateRestoredCards(state, pendingRestores));')).toBeLessThan(
       renderBlock.indexOf('this.aiTurnController?.requestTurnCheck(options.aiCheckReason);')
     );
   });
@@ -927,7 +928,10 @@ describe('GameScene visual layout contracts', () => {
     const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
 
     expect(source).toContain('private isGameplayReady = false');
+    expect(source).toContain('private isInitialDealStarted = false');
+    expect(source).toContain('private isInitialDealComplete = false');
     expect(renderBlock).toContain('this.isGameplayReady = false;');
+    expect(renderBlock).toContain('this.markInitialDealStarted();');
     expect(renderBlock).toContain('this.canAcceptGameplayInput()');
     expect(renderBlock).toContain('interactive: gameInteractive');
     expect(renderBlock).toContain(
@@ -937,6 +941,8 @@ describe('GameScene visual layout contracts', () => {
       'this.player2CoverTextureKey,\n        gameInteractive,\n        () => this.drawAttackCard(),'
     );
     expect(source).toContain('private canAcceptGameplayInput(): boolean');
+    expect(source).toContain('private isInitialDealActive(): boolean');
+    expect(source).toContain('!this.isInitialDealActive()');
     expect(source).toContain('!this.isRestoreAnimationInProgress');
   });
 
@@ -955,8 +961,8 @@ describe('GameScene visual layout contracts', () => {
     expect(commitBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
     expect(gapBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
     expect(targetBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
-    expect(restoreBlock).toContain('this.isGameplayReady = true;\n      this.render(state);');
-    expect(restoreBlock).toContain('this.isGameplayReady = true;\n        this.render(state);');
+    expect(restoreBlock).toContain('this.markInitialDealComplete();\n      this.render(state);');
+    expect(restoreBlock).toContain('this.markInitialDealComplete();\n        this.render(state);');
   });
 
   it('keeps Quick Match, Tournament Match and Tutorial Match startup on the guarded automatic deal path', () => {
@@ -1009,10 +1015,12 @@ describe('GameScene visual layout contracts', () => {
   it('guards initial deal delayed callbacks after scene exit or shutdown', () => {
     const source = readSource('src/scenes/GameScene.ts');
 
+    expect(source).toContain('private canRunSceneSetup(): boolean');
     expect(source).toContain('private canRunInitialDealStep(): boolean');
     expect(source).toContain(
-      'return this.sys.isActive() && this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;'
+      'return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;'
     );
+    expect(source).toContain('return this.canRunSceneSetup();');
     expect(source).toContain('private scheduleInitialDealDelayedCall(delayMs: number, callback: () => void): void');
     expect(source).toContain('this.pendingInitialDealTimer?.remove(false);');
     expect(source).toContain('if (!this.canRunInitialDealStep()) {\n        return;\n      }\n\n      callback();');
@@ -1052,7 +1060,7 @@ describe('GameScene visual layout contracts', () => {
     expect(restoreBlock).toContain('this.activeInitialDealCards.delete(card);');
     expect(restoreBlock).toContain('card.destroy();');
     expect(restoreBlock).toContain('this.animatedRestoreCount += 1;');
-    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.isGameplayReady = true;\n        this.render(state);');
+    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.markInitialDealComplete();\n        this.render(state);');
     expect(restoreBlock).toContain('this.activeInitialDealTweens.add(dealTween);');
   });
 
