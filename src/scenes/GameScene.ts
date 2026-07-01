@@ -211,6 +211,7 @@ export class GameScene extends Phaser.Scene {
   private isMatchEffectInProgress = false;
   private isAttackAnimationInProgress = false;
   private isRestoreAnimationInProgress = false;
+  private isGameplayReady = false;
   private isNavigationAwayInProgress = false;
   private isSceneShutDown = false;
   private isMatchFinishedModalOpen = false;
@@ -247,6 +248,7 @@ export class GameScene extends Phaser.Scene {
     this.isMatchEffectInProgress = false;
     this.isAttackAnimationInProgress = false;
     this.isRestoreAnimationInProgress = false;
+    this.isGameplayReady = false;
     this.isNavigationAwayInProgress = false;
     this.isSceneShutDown = false;
     this.isMatchFinishedModalOpen = false;
@@ -327,9 +329,19 @@ export class GameScene extends Phaser.Scene {
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
     const centerX = MATCH_FIELD_CENTER_X;
     const interactive = options.interactive !== false;
-    const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false);
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
     const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);
+
+    if (interactive && pendingRestores.length > 0) {
+      this.isGameplayReady = false;
+    } else if (interactive && !this.isRestoreAnimationInProgress) {
+      this.isGameplayReady = true;
+    }
+
+    const gameInteractive =
+      interactive &&
+      this.canAcceptGameplayInput() &&
+      !(this.aiTurnController?.isAiTurn(state) ?? false);
 
     if (options.hideActiveTurnBall === true) {
       clearDeckTurnBallMarker(this);
@@ -419,6 +431,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawAttackCard(): void {
+    if (!this.canAcceptGameplayInput()) {
+      return;
+    }
+
     const engine = this.requireEngine();
     const drawAction = this.createTutorialDrawAction(engine.getState());
 
@@ -443,6 +459,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private commitMidfielder(positionId: MidfielderPositionId): void {
+    if (!this.canAcceptGameplayInput()) {
+      return;
+    }
+
     const engine = this.requireEngine();
     const midfielderAction = this.createTutorialCommitMidfielderAction(engine.getState(), positionId);
 
@@ -479,6 +499,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private useMidfieldGap(positionId: MidfielderPositionId): void {
+    if (!this.canAcceptGameplayInput()) {
+      return;
+    }
+
     const engine = this.requireEngine();
     const gapAction = this.createTutorialMidfieldGapAction(positionId);
 
@@ -509,6 +533,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private selectTarget(positionId: FieldPositionId): void {
+    if (!this.canAcceptGameplayInput()) {
+      return;
+    }
+
     const engine = this.requireEngine();
     const targetAction = this.createTutorialTargetAction(engine.getState(), positionId);
 
@@ -2079,6 +2107,7 @@ export class GameScene extends Phaser.Scene {
 
     if (entry === undefined) {
       this.isRestoreAnimationInProgress = false;
+      this.isGameplayReady = true;
       this.render(state);
       return;
     }
@@ -2146,6 +2175,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.isRestoreAnimationInProgress = false;
+        this.isGameplayReady = true;
         this.render(state);
       }
     });
@@ -2155,6 +2185,7 @@ export class GameScene extends Phaser.Scene {
   private isSceneStableForAi(): boolean {
     return (
       this.input.enabled &&
+      this.isGameplayReady &&
       !this.isNavigationAwayInProgress &&
       !this.isSceneShutDown &&
       this.exitConfirmModal === null &&
@@ -2163,6 +2194,23 @@ export class GameScene extends Phaser.Scene {
       this.matchFinishedModal === null &&
       !this.isMatchFinishedModalOpen &&
       (this.tutorialController === null || this.tutorialController.isComplete()) &&
+      !this.isAttackAnimationInProgress &&
+      !this.isRestoreAnimationInProgress &&
+      !this.isMatchEffectInProgress
+    );
+  }
+
+  private canAcceptGameplayInput(): boolean {
+    return (
+      this.input.enabled &&
+      this.isGameplayReady &&
+      !this.isNavigationAwayInProgress &&
+      !this.isSceneShutDown &&
+      this.exitConfirmModal === null &&
+      this.pauseModal === null &&
+      this.infoModal === null &&
+      this.matchFinishedModal === null &&
+      !this.isMatchFinishedModalOpen &&
       !this.isAttackAnimationInProgress &&
       !this.isRestoreAnimationInProgress &&
       !this.isMatchEffectInProgress

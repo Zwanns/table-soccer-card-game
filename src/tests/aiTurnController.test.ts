@@ -340,11 +340,15 @@ describe('AiTurnController', () => {
   it('integrates with GameScene only after stable renders and disables field input during AI turns', () => {
     const source = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
 
-    expect(source).toContain('const gameInteractive = interactive && !(this.aiTurnController?.isAiTurn(state) ?? false)');
+    expect(source).toContain(
+      'const gameInteractive =\n      interactive &&\n      this.canAcceptGameplayInput() &&\n      !(this.aiTurnController?.isAiTurn(state) ?? false)'
+    );
     expect(source).toContain('canAct: () => this.isSceneStableForAi()');
     expect(source).toContain('if (interactive && this.isSceneStableForAi())');
     expect(source).toContain('this.aiTurnController?.requestTurnCheck(options.aiCheckReason)');
     expect(source).toContain('private isSceneStableForAi(): boolean');
+    expect(source).toContain('private canAcceptGameplayInput(): boolean');
+    expect(source).toContain('this.isGameplayReady');
     expect(source).toContain('this.exitConfirmModal === null');
     expect(source).toContain('this.pauseModal === null');
     expect(source).toContain('!this.isAttackAnimationInProgress');

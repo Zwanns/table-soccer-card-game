@@ -866,6 +866,12 @@ describe('GameScene visual layout contracts', () => {
 
     expect(source).toContain('const pendingRestores = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('const hiddenRestoredCards = options.hiddenRestoredCards ?? (interactive ? pendingRestores : undefined);');
+    expect(source).toContain(
+      'if (interactive && pendingRestores.length > 0) {\n      this.isGameplayReady = false;\n    } else if (interactive && !this.isRestoreAnimationInProgress) {\n      this.isGameplayReady = true;\n    }'
+    );
+    expect(source).toContain(
+      'const gameInteractive =\n      interactive &&\n      this.canAcceptGameplayInput() &&\n      !(this.aiTurnController?.isAiTurn(state) ?? false);'
+    );
     expect(source).toContain('hiddenCards: hiddenRestoredCards');
     expect(source).toContain(
       'if (interactive && pendingRestores.length > 0) {\n      this.isRestoreAnimationInProgress = true;\n      this.animateRestoredCards(state, pendingRestores);\n      return;\n    }'
@@ -873,6 +879,88 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('this.render(state, { hiddenRestoredCards, interactive: false });');
     expect(source).not.toContain('this.render(state, {\n        hiddenRestoredCards: pendingRestores,\n        interactive: false\n      });');
+  });
+
+  it('starts the initial deal automatically from match creation without waiting for a deck click', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const createBlock = source.slice(source.indexOf('public create(): void'), source.indexOf('private startTurn(): void'));
+    const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
+
+    expect(createBlock).toContain('this.engine.startNewGame({');
+    expect(createBlock).toContain('setupPreset: this.matchMode === \'tutorial\' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined');
+    expect(createBlock).toContain('this.startTurn();');
+    expect(createBlock).not.toContain('this.drawAttackCard();');
+    expect(renderBlock).toContain('this.animateRestoredCards(state, pendingRestores);');
+    expect(renderBlock.indexOf('this.animateRestoredCards(state, pendingRestores);')).toBeLessThan(
+      renderBlock.indexOf('this.aiTurnController?.requestTurnCheck(options.aiCheckReason);')
+    );
+  });
+
+  it('blocks deck and card gameplay input while the initial deal is pending or running', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
+
+    expect(source).toContain('private isGameplayReady = false');
+    expect(renderBlock).toContain('this.isGameplayReady = false;');
+    expect(renderBlock).toContain('this.canAcceptGameplayInput()');
+    expect(renderBlock).toContain('interactive: gameInteractive');
+    expect(renderBlock).toContain(
+      'this.player1CoverTextureKey,\n        gameInteractive,\n        () => this.drawAttackCard(),'
+    );
+    expect(renderBlock).toContain(
+      'this.player2CoverTextureKey,\n        gameInteractive,\n        () => this.drawAttackCard(),'
+    );
+    expect(source).toContain('private canAcceptGameplayInput(): boolean');
+    expect(source).toContain('!this.isRestoreAnimationInProgress');
+  });
+
+  it('ignores stale gameplay callbacks until setup is complete and then re-enables input', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const drawBlock = source.slice(source.indexOf('private drawAttackCard(): void'), source.indexOf('private commitMidfielder'));
+    const commitBlock = source.slice(source.indexOf('private commitMidfielder'), source.indexOf('private useMidfieldGap'));
+    const gapBlock = source.slice(source.indexOf('private useMidfieldGap'), source.indexOf('private selectTarget'));
+    const targetBlock = source.slice(source.indexOf('private selectTarget'), source.indexOf('private handleSelectedTargetState'));
+    const restoreBlock = source.slice(
+      source.indexOf('private animateRestoredCards('),
+      source.indexOf('private isSceneStableForAi(): boolean')
+    );
+
+    expect(drawBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
+    expect(commitBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
+    expect(gapBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
+    expect(targetBlock).toContain('if (!this.canAcceptGameplayInput()) {\n      return;\n    }');
+    expect(restoreBlock).toContain('this.isGameplayReady = true;\n      this.render(state);');
+    expect(restoreBlock).toContain('this.isGameplayReady = true;\n        this.render(state);');
+  });
+
+  it('keeps Quick Match, Tournament Match and Tutorial Match startup on the guarded automatic deal path', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const createBlock = source.slice(source.indexOf('public create(): void'), source.indexOf('private startTurn(): void'));
+
+    expect(source).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
+    expect(source).toContain('this.matchMode = data.matchMode ?? \'quick\';');
+    expect(createBlock).toContain('player1ControllerType: this.player1ControllerType');
+    expect(createBlock).toContain('player2ControllerType: this.player2ControllerType');
+    expect(createBlock).toContain('setupPreset: this.matchMode === \'tutorial\' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined');
+    expect(createBlock).toContain('this.startTurn();');
+  });
+
+  it('leaves pause/menu controls and match-finished modal outside the gameplay input guard', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
+    const modalBlock = source.slice(
+      source.indexOf('private showMatchFinishedModal('),
+      source.indexOf('private createMatchFinishedRefereeVisual()')
+    );
+
+    expect(renderBlock).toContain('const matchControls = createMatchControlButtons({');
+    expect(renderBlock).toContain('onPause: () => this.openPauseModal(state)');
+    expect(renderBlock).toContain('onRules: () => this.openMatchInfoModal(\'rules\')');
+    expect(modalBlock).toContain('this.cleanupInitialDealFlow();');
+    expect(modalBlock).toContain('this.input.enabled = true;');
+    expect(modalBlock).toContain('const okButton = new Button(');
+    expect(modalBlock).toContain('MATCH_FINISHED_MODAL.buttonY');
+    expect(modalBlock).toContain('\'OK\'');
   });
 
   it('cancels initial deal timers and tweens before leaving the match scene', () => {
@@ -938,7 +1026,7 @@ describe('GameScene visual layout contracts', () => {
     expect(restoreBlock).toContain('this.activeInitialDealCards.delete(card);');
     expect(restoreBlock).toContain('card.destroy();');
     expect(restoreBlock).toContain('this.animatedRestoreCount += 1;');
-    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.render(state);');
+    expect(restoreBlock).toContain('this.isRestoreAnimationInProgress = false;\n        this.isGameplayReady = true;\n        this.render(state);');
     expect(restoreBlock).toContain('this.activeInitialDealTweens.add(dealTween);');
   });
 
