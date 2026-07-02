@@ -1393,6 +1393,10 @@ describe('GameScene visual layout contracts', () => {
     expect(helperSource).toContain('startScale: 0.82');
     expect(helperSource).toContain('targetScale: 1.08');
     expect(helperSource).toContain('fontSize: \'88px\'');
+    expect(helperSource).toContain("export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals'");
+    expect(helperSource).toContain('scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
+    expect(helperSource).toContain('targets: notification');
+    expect(helperSource).toContain('notification.destroy()');
     expect(helperSource).toContain("ease: 'Back.easeOut'");
     expect(source).toContain('delay: fadeDelay,');
     expect(source).toContain('duration: fadeDuration,');

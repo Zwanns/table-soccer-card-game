@@ -438,6 +438,7 @@ describe('project scaffold', () => {
     const requiredAssets = [
       join('public', 'cards', 'ball.webp'),
       join('public', 'menu', 'arbitr-end.webp'),
+      join('public', 'menu', 'gk-goals.webp'),
       join('public', 'sounds', 'referees-whistle-start.mp3'),
       join('public', 'sounds', 'referees-whistle-finish.mp3'),
       join('public', 'sounds', 'bolely-net.mp3'),

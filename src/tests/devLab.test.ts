@@ -125,6 +125,14 @@ describe('Dev Lab scene previews', () => {
     expect(gameSource).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete)');
     expect(devLabSource).not.toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!'");
+    expect(helperSource).toContain("export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals'");
+    expect(helperSource).toContain('): Phaser.GameObjects.Container');
+    expect(helperSource).toContain('const notification = scene.add');
+    expect(helperSource).toContain('scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
+    expect(helperSource).toContain('.image(0, 0, GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
+    expect(helperSource).toContain('notification.add(image)');
+    expect(helperSource).toContain('notification.add(text)');
+    expect(helperSource).toContain('notification.destroy()');
   });
 
   it('keeps the Goal notification real scale and tween timing contract in one helper', () => {
@@ -140,6 +148,27 @@ describe('Dev Lab scene previews', () => {
     expect(helperSource).toContain('targetScale: 1.08');
     expect(helperSource).toContain("ease: 'Back.easeOut'");
     expect(helperSource).toContain("ease: 'Sine.easeOut'");
+  });
+
+  it('layers the Goal notification goalkeeper image behind readable text with safe fallback', () => {
+    const helperSource = readSource('src/ui/goalNotification.ts');
+
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_DEPTH = 0');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_TEXT_DEPTH = 1');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_SCALE_RATIO = 1.16');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_ALPHA = 0.94');
+    expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH)');
+    expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_TEXT_DEPTH)');
+    expect(helperSource).toContain('scene.textures.get(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY).getSourceImage()');
+    expect(helperSource).toContain('const imageScale = Math.max(');
+    expect(helperSource).toContain('text.displayWidth * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
+    expect(helperSource).toContain('text.displayHeight * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
+    expect(helperSource).toContain('imageSource.width * imageScale');
+    expect(helperSource).toContain('imageSource.height * imageScale');
+    expect(helperSource.indexOf('notification.add(image)')).toBeLessThan(helperSource.indexOf('notification.add(text)'));
+    expect(helperSource.indexOf('if (scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY))')).toBeLessThan(
+      helperSource.indexOf('notification.add(text)')
+    );
   });
 
   it('uses the shared real-game final whistle modal renderer in GameScene and Dev Lab', () => {
@@ -261,6 +290,8 @@ describe('Dev Lab side-panel layout', () => {
     expect(source).toContain('new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, y, scenario.label');
     expect(source).toContain("new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, layout.backButton.y, 'Back'");
     expect(source).toContain('this.previewLayer = this.add.container(0, 0).setDepth(GOAL_NOTIFICATION_DEPTH)');
+    expect(source).toContain('const notification = showGoalNotification(');
+    expect(source).toContain('this.previewLayer?.add(notification)');
     expect(source).toContain('layout.preview.centerX,');
     expect(source).toContain('layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y');
     expect(source).toContain('overlayWidth: layout.preview.width');

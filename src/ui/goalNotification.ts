@@ -5,6 +5,11 @@ export type GoalNotificationTone = 'goal';
 export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!';
 export const GOAL_NOTIFICATION_DEPTH = 3000;
 export const GOAL_NOTIFICATION_OFFSET_Y = -40;
+export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals';
+export const GOAL_NOTIFICATION_IMAGE_DEPTH = 0;
+export const GOAL_NOTIFICATION_TEXT_DEPTH = 1;
+export const GOAL_NOTIFICATION_IMAGE_SCALE_RATIO = 1.16;
+export const GOAL_NOTIFICATION_IMAGE_ALPHA = 0.94;
 export const GOAL_NOTIFICATION_STYLE = {
   color: '#f0c95a',
   fadeDelay: 520,
@@ -28,9 +33,15 @@ export function showGoalNotification(
   y: number,
   message = GOAL_NOTIFICATION_MESSAGE,
   onComplete?: () => void
-): Phaser.GameObjects.Text {
+): Phaser.GameObjects.Container {
+  const notification = scene.add
+    .container(x, y)
+    .setDepth(GOAL_NOTIFICATION_DEPTH)
+    .setAlpha(0)
+    .setScale(GOAL_NOTIFICATION_STYLE.startScale);
+
   const text = scene.add
-    .text(x, y, message, {
+    .text(0, 0, message, {
       color: GOAL_NOTIFICATION_STYLE.color,
       fontFamily: GOAL_NOTIFICATION_STYLE.fontFamily,
       fontSize: GOAL_NOTIFICATION_STYLE.fontSize,
@@ -45,31 +56,52 @@ export function showGoalNotification(
       GOAL_NOTIFICATION_STYLE.paddingY
     )
     .setOrigin(0.5)
-    .setDepth(GOAL_NOTIFICATION_DEPTH)
-    .setAlpha(0)
-    .setScale(GOAL_NOTIFICATION_STYLE.startScale);
+    .setDepth(GOAL_NOTIFICATION_TEXT_DEPTH);
+
+  if (scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)) {
+    const image = scene.add
+      .image(0, 0, GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)
+      .setAlpha(GOAL_NOTIFICATION_IMAGE_ALPHA)
+      .setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH);
+    const imageSource = scene.textures.get(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY).getSourceImage() as {
+      width: number;
+      height: number;
+    };
+    const imageScale = Math.max(
+      (text.displayWidth * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.width,
+      (text.displayHeight * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.height
+    );
+
+    image.setDisplaySize(
+      imageSource.width * imageScale,
+      imageSource.height * imageScale
+    );
+    notification.add(image);
+  }
+
+  notification.add(text);
 
   scene.tweens.add({
-    targets: text,
+    targets: notification,
     alpha: 1,
     scale: GOAL_NOTIFICATION_STYLE.targetScale,
     duration: GOAL_NOTIFICATION_STYLE.popDuration,
     ease: 'Back.easeOut',
     onComplete: () => {
       scene.tweens.add({
-        targets: text,
-        y: text.y - GOAL_NOTIFICATION_STYLE.fadeDistanceY,
+        targets: notification,
+        y: notification.y - GOAL_NOTIFICATION_STYLE.fadeDistanceY,
         alpha: 0,
         delay: GOAL_NOTIFICATION_STYLE.fadeDelay,
         duration: GOAL_NOTIFICATION_STYLE.fadeDuration,
         ease: 'Sine.easeOut',
         onComplete: () => {
-          text.destroy();
+          notification.destroy();
           onComplete?.();
         }
       });
     }
   });
 
-  return text;
+  return notification;
 }

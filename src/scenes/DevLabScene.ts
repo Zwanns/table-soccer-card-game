@@ -155,12 +155,12 @@ export class DevLabScene extends Phaser.Scene {
 
     playSoundSafe(this, 'sound-goal', { volume: 0.72 });
 
-    const text = showGoalNotification(
+    const notification = showGoalNotification(
       this,
       layout.preview.centerX,
       layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y
     );
-    this.previewLayer?.add(text);
+    this.previewLayer?.add(notification);
   }
 
   private showFinalWhistleModalPreview(): void {
