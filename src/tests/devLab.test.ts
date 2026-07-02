@@ -78,6 +78,7 @@ describe('Dev Lab scene previews', () => {
 
     expect(modalBlock).toContain('createMatchFinishedModal(this');
     expect(modalBlock).toContain('FINAL_WHISTLE_PREVIEW_TEXT');
+    expect(modalBlock).toContain("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });");
     expect(modalBlock).toContain('onOk: () => this.closePreviewModal()');
     expect(modalBlock).not.toContain('layout:');
     expect(modalBlock).not.toContain("this.scene.start('ResultScene'");
@@ -98,6 +99,9 @@ describe('Dev Lab scene previews', () => {
 
     expect(source).not.toContain('DEV_LAB_FINAL_WHISTLE_MODAL_LAYOUT');
     expect(previewBlock).toContain('createMatchFinishedModal(this');
+    expect(previewBlock.indexOf('const modal = createMatchFinishedModal(this')).toBeLessThan(
+      previewBlock.indexOf("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });")
+    );
     expect(previewBlock).not.toContain('layout:');
     expect(gameModalBlock).not.toContain('layout:');
     expect(helperSource).toContain('imageWidth: 372');

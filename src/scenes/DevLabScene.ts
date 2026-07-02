@@ -177,6 +177,7 @@ export class DevLabScene extends Phaser.Scene {
       bodyText: FINAL_WHISTLE_PREVIEW_TEXT,
       onOk: () => this.closePreviewModal()
     });
+    playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });
     this.previewLayer?.add(modal);
     this.previewModal = modal;
   }

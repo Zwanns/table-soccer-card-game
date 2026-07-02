@@ -363,6 +363,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("this.playSound('sound-whistle-finish', 0.68);");
     expect(source).toContain('this.openResultScene(state, true);');
     expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+    expect(source.indexOf('this.matchFinishedModal = createMatchFinishedModal(this')).toBeLessThan(
+      source.indexOf('this.playMatchFinishedWhistleOnce();')
+    );
   });
 
   it('waits for OK before opening results and guards against duplicate OK transitions', () => {
@@ -456,6 +459,8 @@ describe('GameScene visual layout contracts', () => {
     expect(simulateBlock).not.toContain('this.openResult(state);');
     expect(simulateBlock).not.toContain('this.shouldShowMatchFinishedModal');
     expect(simulateBlock).not.toContain('this.showMatchFinishedModal');
+    expect(simulateBlock).not.toContain('playMatchFinishedWhistleOnce');
+    expect(simulateBlock).not.toContain("'sound-whistle-finish'");
     expect(simulateBlock).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
     expect(simulateBlock).toContain('saveTournament(updatedTournament)');
   });

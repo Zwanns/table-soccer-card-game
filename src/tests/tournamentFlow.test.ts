@@ -117,12 +117,16 @@ describe('tournament hub scene integration', () => {
     expect(simulateBlock).not.toContain("this.scene.start('GameScene'");
     expect(simulateBlock).not.toContain('showMatchFinishedModal');
     expect(simulateBlock).not.toContain('createMatchFinishedModal');
+    expect(simulateBlock).not.toContain('playMatchFinishedWhistleOnce');
+    expect(simulateBlock).not.toContain("'sound-whistle-finish'");
     expect(finishBlock).toContain('const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch)');
     expect(finishBlock).toContain("this.scene.start('TournamentCompleteScene')");
     expect(finishBlock).not.toContain("this.scene.start('ResultScene'");
     expect(finishBlock).not.toContain("this.scene.start('GameScene'");
     expect(finishBlock).not.toContain('showMatchFinishedModal');
     expect(finishBlock).not.toContain('createMatchFinishedModal');
+    expect(finishBlock).not.toContain('playMatchFinishedWhistleOnce');
+    expect(finishBlock).not.toContain("'sound-whistle-finish'");
   });
 
   it('splits tournament footer progression into advance and play actions', () => {

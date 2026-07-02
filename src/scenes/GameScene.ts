@@ -2389,7 +2389,6 @@ export class GameScene extends Phaser.Scene {
     this.infoModal = null;
     this.activeInfoModal = null;
     this.input.enabled = true;
-    this.playMatchFinishedWhistleOnce();
 
     this.matchFinishedModal = createMatchFinishedModal(this, {
       centerX: SCENE_WIDTH / 2,
@@ -2399,6 +2398,7 @@ export class GameScene extends Phaser.Scene {
       bodyText: this.getMatchFinishedBodyText(state),
       onOk: () => this.confirmMatchFinishedModal(state)
     });
+    this.playMatchFinishedWhistleOnce();
   }
 
   private getMatchFinishedBodyText(state: Readonly<GameState>): string {
