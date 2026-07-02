@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { appendDevLabScene, isDevLabEnabled } from '../devLab';
+import { DEV_LAB_PANEL_GAP, createDevLabLayout } from '../devLabLayout';
+import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 
 function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');
@@ -123,5 +125,69 @@ describe('Dev Lab scene previews', () => {
     expect(completeSource).toContain('this.devMockTournament ?? (this.registry.get');
     expect(completeSource).toContain("new Button(this, SCENE_WIDTH / 2, layout.actions.y, 'Back'");
     expect(completeSource).toContain('return;');
+  });
+});
+
+describe('Dev Lab side-panel layout', () => {
+  it('keeps controls in a right-side panel outside the central preview area', () => {
+    const layout = createDevLabLayout(false);
+    const sidePanelCenterX = layout.sidePanel.x + layout.sidePanel.width / 2;
+    const previewRight = layout.preview.x + layout.preview.width;
+
+    expect(layout.sidePanel.x).toBeGreaterThan(SCENE_WIDTH / 2);
+    expect(previewRight + DEV_LAB_PANEL_GAP).toBe(layout.sidePanel.x);
+    expect(sidePanelCenterX).toBeGreaterThan(previewRight);
+    expect(layout.preview.centerX).toBeLessThan(sidePanelCenterX);
+    expect(layout.preview.x).toBeGreaterThanOrEqual(0);
+    expect(layout.preview.y).toBeGreaterThanOrEqual(0);
+    expect(layout.preview.width).toBeGreaterThan(1000);
+    expect(layout.preview.height).toBe(SCENE_HEIGHT - 48);
+  });
+
+  it('keeps every scenario button and the Back button inside the side panel', () => {
+    const scenarioCount = 7;
+
+    for (const mobileLandscape of [false, true]) {
+      const layout = createDevLabLayout(mobileLandscape);
+      const panelCenterX = layout.sidePanel.x + layout.sidePanel.width / 2;
+      const buttonLeft = panelCenterX - layout.buttons.width / 2;
+      const buttonRight = panelCenterX + layout.buttons.width / 2;
+      const firstButtonTop = layout.buttons.startY - layout.buttons.height / 2;
+      const lastButtonBottom =
+        layout.buttons.startY + (scenarioCount - 1) * layout.buttons.gap + layout.buttons.height / 2;
+      const backTop = layout.backButton.y - layout.backButton.height / 2;
+      const backBottom = layout.backButton.y + layout.backButton.height / 2;
+
+      expect(buttonLeft).toBeGreaterThanOrEqual(layout.sidePanel.x + layout.sidePanel.paddingX - 8);
+      expect(buttonRight).toBeLessThanOrEqual(layout.sidePanel.x + layout.sidePanel.width - layout.sidePanel.paddingX + 8);
+      expect(firstButtonTop).toBeGreaterThan(layout.subtitle.y);
+      expect(lastButtonBottom).toBeLessThan(backTop);
+      expect(backBottom).toBeLessThanOrEqual(layout.sidePanel.y + layout.sidePanel.height);
+    }
+  });
+
+  it('keeps desktop and mobile landscape preview areas unobstructed by controls', () => {
+    const desktop = createDevLabLayout(false);
+    const mobile = createDevLabLayout(true);
+
+    expect(desktop.sidePanel.width).toBeLessThan(420);
+    expect(mobile.sidePanel.width).toBeGreaterThan(desktop.sidePanel.width);
+    expect(mobile.preview.width).toBeGreaterThan(1000);
+    expect(desktop.preview.centerX).toBeLessThan(desktop.sidePanel.x);
+    expect(mobile.preview.centerX).toBeLessThan(mobile.sidePanel.x);
+    expect(desktop.preview.centerY).toBe(SCENE_HEIGHT / 2);
+    expect(mobile.preview.centerY).toBe(SCENE_HEIGHT / 2);
+  });
+
+  it('renders preview effects from preview coordinates instead of the side-panel controls', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+
+    expect(source).toContain('new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, y, scenario.label');
+    expect(source).toContain("new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, layout.backButton.y, 'Back'");
+    expect(source).toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
+    expect(source).toContain('const centerX = layout.preview.centerX;');
+    expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, layout.preview.width, layout.preview.height');
+    expect(source).not.toContain('DEV_LAB_LAYOUT.centerX');
+    expect(source).not.toContain('DEV_LAB_LAYOUT.buttonsStartY');
   });
 });

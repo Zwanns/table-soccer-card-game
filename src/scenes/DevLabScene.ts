@@ -11,19 +11,10 @@ import {
   SCOREBOARD_BORDER_COLOR
 } from '../ui/scoreboardStyle';
 import { SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
+import { createDevLabLayout, type DevLabLayout } from '../devLabLayout';
 
-const DEV_LAB_LAYOUT = {
-  centerX: SCENE_WIDTH / 2,
-  titleY: 86,
-  subtitleY: 130,
-  buttonsStartY: 190,
-  buttonsGap: 56,
-  buttonWidth: 440,
-  buttonHeight: 48,
-  backY: 652,
-  panelWidth: 1040,
-  panelHeight: 560
-} as const;
+const DEV_LAB_SIDE_PANEL_RADIUS = 8;
+const DEV_LAB_PREVIEW_RADIUS = 8;
 
 const FINAL_WHISTLE_PREVIEW_TEXT = 'The match is over because Spain has no cards left to attack.';
 
@@ -53,13 +44,15 @@ export class DevLabScene extends Phaser.Scene {
   }
 
   public create(): void {
-    this.createBackground();
-    this.createHeader();
-    this.createScenarioButtons();
-    this.createFooter();
+    const layout = createDevLabLayout();
+
+    this.createBackground(layout);
+    this.createHeader(layout);
+    this.createScenarioButtons(layout);
+    this.createFooter(layout);
   }
 
-  private createBackground(): void {
+  private createBackground(layout: DevLabLayout): void {
     if (this.textures.exists(MENU_ASSETS.background)) {
       const background = this.add.image(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, MENU_ASSETS.background);
       background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT);
@@ -68,42 +61,60 @@ export class DevLabScene extends Phaser.Scene {
     }
 
     this.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.52);
-    const panel = this.add.rectangle(
-      DEV_LAB_LAYOUT.centerX,
-      SCENE_HEIGHT / 2 + 8,
-      DEV_LAB_LAYOUT.panelWidth,
-      DEV_LAB_LAYOUT.panelHeight,
-      SCOREBOARD_BACKGROUND_COLOR,
-      SCOREBOARD_BACKGROUND_ALPHA
-    );
-    panel.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
+    const preview = this.add.graphics();
+    preview
+      .fillStyle(SCOREBOARD_BACKGROUND_COLOR, 0.14)
+      .fillRoundedRect(layout.preview.x, layout.preview.y, layout.preview.width, layout.preview.height, DEV_LAB_PREVIEW_RADIUS)
+      .lineStyle(2, SCOREBOARD_BORDER_COLOR, 0.16)
+      .strokeRoundedRect(layout.preview.x, layout.preview.y, layout.preview.width, layout.preview.height, DEV_LAB_PREVIEW_RADIUS);
+
+    const sidePanel = this.add.graphics();
+    sidePanel
+      .fillStyle(SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)
+      .fillRoundedRect(
+        layout.sidePanel.x,
+        layout.sidePanel.y,
+        layout.sidePanel.width,
+        layout.sidePanel.height,
+        DEV_LAB_SIDE_PANEL_RADIUS
+      )
+      .lineStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)
+      .strokeRoundedRect(
+        layout.sidePanel.x,
+        layout.sidePanel.y,
+        layout.sidePanel.width,
+        layout.sidePanel.height,
+        DEV_LAB_SIDE_PANEL_RADIUS
+      );
   }
 
-  private createHeader(): void {
+  private createHeader(layout: DevLabLayout): void {
+    const panelCenterX = layout.sidePanel.x + layout.sidePanel.width / 2;
+
     this.add
-      .text(DEV_LAB_LAYOUT.centerX, DEV_LAB_LAYOUT.titleY, 'Dev Lab', {
+      .text(panelCenterX, layout.title.y, 'Dev Lab', {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '48px',
+        fontSize: layout.title.fontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
     this.add
-      .text(DEV_LAB_LAYOUT.centerX, DEV_LAB_LAYOUT.subtitleY, 'Local gameplay preview sandbox', {
+      .text(panelCenterX, layout.subtitle.y, 'Local gameplay preview sandbox', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
+        fontSize: layout.subtitle.fontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
   }
 
-  private createScenarioButtons(): void {
+  private createScenarioButtons(layout: DevLabLayout): void {
     const scenarios: Array<{ label: string; onClick: () => void }> = [
       { label: 'Goal notification preview', onClick: () => this.showGoalNotificationPreview() },
       { label: 'Final whistle modal preview', onClick: () => this.showFinalWhistleModalPreview() },
@@ -115,25 +126,25 @@ export class DevLabScene extends Phaser.Scene {
     ];
 
     scenarios.forEach((scenario, index) => {
-      const y = DEV_LAB_LAYOUT.buttonsStartY + index * DEV_LAB_LAYOUT.buttonsGap;
+      const y = layout.buttons.startY + index * layout.buttons.gap;
 
-      new Button(this, DEV_LAB_LAYOUT.centerX, y, scenario.label, scenario.onClick, {
+      new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, y, scenario.label, scenario.onClick, {
         borderRadius: 8,
         borderWidth: 0,
-        fontSize: '20px',
-        height: DEV_LAB_LAYOUT.buttonHeight,
-        width: DEV_LAB_LAYOUT.buttonWidth
+        fontSize: layout.buttons.fontSize,
+        height: layout.buttons.height,
+        width: layout.buttons.width
       });
     });
   }
 
-  private createFooter(): void {
-    new Button(this, DEV_LAB_LAYOUT.centerX, DEV_LAB_LAYOUT.backY, 'Back', () => this.scene.start('MenuScene'), {
+  private createFooter(layout: DevLabLayout): void {
+    new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, layout.backButton.y, 'Back', () => this.scene.start('MenuScene'), {
       borderRadius: 8,
       borderWidth: 0,
-      fontSize: '22px',
-      height: 52,
-      width: 220
+      fontSize: layout.backButton.fontSize,
+      height: layout.backButton.height,
+      width: layout.backButton.width
     });
 
     this.add
@@ -149,10 +160,12 @@ export class DevLabScene extends Phaser.Scene {
   }
 
   private showGoalNotificationPreview(): void {
+    const layout = createDevLabLayout();
+
     playSoundSafe(this, 'sound-goal', { volume: 0.72 });
 
     const text = this.add
-      .text(DEV_LAB_LAYOUT.centerX, SCENE_HEIGHT / 2, 'GOAL!!', {
+      .text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!', {
         align: 'center',
         color: '#f0c95a',
         fontFamily: 'Bangers, Arial, sans-serif',
@@ -189,10 +202,11 @@ export class DevLabScene extends Phaser.Scene {
       return;
     }
 
-    const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
+    const layout = createDevLabLayout();
+    const centerX = layout.preview.centerX;
+    const centerY = layout.preview.centerY;
     const modal = this.add.container(0, 0).setDepth(1400);
-    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);
+    const overlay = this.add.rectangle(centerX, centerY, layout.preview.width, layout.preview.height, 0x06140f, 0.74);
     overlay.setInteractive();
 
     const panel = this.add.container(centerX, centerY);
