@@ -97,7 +97,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['ec', '#FFD100', '#034EA2', '#034EA2', '#FFFFFF'],
   ['eg', '#CE1126', '#000000', '#FFFFFF', '#111111'],
   ['gb-eng', '#FFFFFF', '#1C2C5B', '#1C2C5B', '#FFFFFF'],
-  ['fr', '#002654', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['fr', '#002654', '#FFFFFF', '#FFFFFF', undefined],
   ['ge', '#FFFFFF', '#E30A17', '#E30A17', '#FFFFFF'],
   ['de', '#FFFFFF', '#111111', '#111111', '#FFFFFF'],
   ['gr', '#0D5EAF', '#FFFFFF', '#FFFFFF', '#0D3B73', '#0D5EAF'],
@@ -120,14 +120,14 @@ const TEAM_KIT_STYLE_ROWS = [
   ['py', '#D52B1E', '#FFFFFF', '#0038A8', '#FFFFFF', '#0038A8'],
   ['pe', '#FFFFFF', '#D91023', '#D91023', '#FFFFFF'],
   ['pl', '#FFFFFF', '#DC143C', '#DC143C', '#FFFFFF'],
-  ['pt', '#E42518', '#046A38', '#F7D117', '#111111'],
+  ['pt', '#E42518', '#046A38', '#F7D117', undefined, '#F7D117'],
   ['qa', '#8A1538', '#FFFFFF', '#FFFFFF', '#111111'],
   ['ro', '#FCD116', '#002B7F', '#002B7F', '#FFFFFF'],
   ['sa', '#006C35', '#FFFFFF', '#FFFFFF', '#111111'],
   ['gb-sct', '#003876', '#FFFFFF', '#FFFFFF', '#111111'],
   ['sn', '#FFFFFF', '#00853F', '#00853F', '#FFFFFF'],
-  ['rs', '#C6363C', '#0C4076', '#FFFFFF', '#111111'],
-  ['sk', '#0052B4', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['rs', '#C6363C', '#0C4076', '#FFFFFF', undefined],
+  ['sk', '#0052B4', '#FFFFFF', '#FFFFFF', undefined],
   ['si', '#FFFFFF', '#005DA4', '#005DA4', '#FFFFFF'],
   ['za', '#FFB81C', '#007749', '#007749', '#FFFFFF'],
   ['kr', '#E6002D', '#111111', '#111111', '#FFFFFF'],
@@ -135,13 +135,13 @@ const TEAM_KIT_STYLE_ROWS = [
   ['se', '#FEF605', '#0146DC', '#0146DC', undefined],
   ['ch', '#D52B1E', '#FFFFFF', '#FFFFFF', '#111111'],
   ['tn', '#FFFFFF', '#E70013', '#E70013', '#FFFFFF'],
-  ['tr', '#E30A17', '#FFFFFF', '#FFFFFF', '#111111'],
+  ['tr', '#E30A17', '#FFFFFF', '#FFFFFF', undefined],
   ['ua', '#FFD700', '#0057B8', '#0057B8', undefined],
   ['uy', '#5BC0EB', '#111111', '#111111', '#FFFFFF'],
   ['us', '#FFFFFF', '#002868', '#002868', '#FFFFFF'],
   ['uz', '#FFFFFF', '#0099B5', '#006B8F', '#FFFFFF'],
   ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
-  ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', '#111111']
+  ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', undefined]
 ] as const satisfies readonly (readonly [string, string, string, string, string?, string?])[];
 
 export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
