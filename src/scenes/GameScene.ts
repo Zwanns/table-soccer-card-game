@@ -36,6 +36,8 @@ import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
+import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification';
+import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons } from '../ui/matchControlButtons';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
@@ -94,18 +96,6 @@ const INFO_BACK_BUTTON = {
   width: 190,
   height: 42,
   fontSize: '18px'
-} as const;
-const MATCH_FINISHED_MODAL = {
-  width: 620,
-  height: 430,
-  imageWidth: 300,
-  imageHeight: 250,
-  imageY: -150,
-  titleY: 38,
-  bodyY: 104,
-  buttonY: 174,
-  buttonWidth: 190,
-  buttonHeight: 58
 } as const;
 const TURN_BALL_TEXTURE_KEY = 'turn-ball';
 const GOALKEEPER_SHOT_BALL_SIZE = 42;
@@ -1353,10 +1343,16 @@ export class GameScene extends Phaser.Scene {
   private showFlyingMessage(message: string, tone: 'goal' | 'out' | 'post' | 'save', onComplete?: () => void): void {
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
-    const fontSize = tone === 'goal' ? '88px' : tone === 'post' || tone === 'save' ? '48px' : '38px';
-    const color = tone === 'goal' || tone === 'post' ? '#f0c95a' : '#ffffff';
-    const textPadding = tone === 'goal' || tone === 'save' ? 28 : 14;
-    const isShotOutcomeTone = tone === 'goal' || tone === 'post' || tone === 'save';
+
+    if (tone === 'goal') {
+      showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete);
+      return;
+    }
+
+    const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';
+    const color = tone === 'post' ? '#f0c95a' : '#ffffff';
+    const textPadding = tone === 'save' ? 28 : 14;
+    const isShotOutcomeTone = tone === 'post' || tone === 'save';
     const popDuration = isShotOutcomeTone ? 220 : 0;
     const fadeDelay = isShotOutcomeTone ? 520 : 0;
     const fadeDuration = isShotOutcomeTone ? 1900 : 900;
@@ -1364,7 +1360,7 @@ export class GameScene extends Phaser.Scene {
     const text = this.add
       .text(centerX, centerY - 40, message, {
         color,
-        fontFamily: tone === 'goal' || tone === 'save' ? 'Bangers, Arial, sans-serif' : 'Arial, sans-serif',
+        fontFamily: tone === 'save' ? 'Bangers, Arial, sans-serif' : 'Arial, sans-serif',
         fontSize,
         fontStyle: '700',
         stroke: '#123b2a',
@@ -2395,59 +2391,14 @@ export class GameScene extends Phaser.Scene {
     this.input.enabled = true;
     this.playMatchFinishedWhistleOnce();
 
-    const centerX = SCENE_WIDTH / 2;
-    const centerY = SCENE_HEIGHT / 2;
-    const modal = this.add.container(0, 0).setDepth(1100);
-    const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);
-    overlay.setInteractive();
-
-    const panel = this.add.container(centerX, centerY);
-    const background = this.add.rectangle(
-      0,
-      0,
-      MATCH_FINISHED_MODAL.width,
-      MATCH_FINISHED_MODAL.height,
-      SCOREBOARD_BACKGROUND_COLOR,
-      SCOREBOARD_BACKGROUND_ALPHA
-    );
-
-    const refereeVisual = this.createMatchFinishedRefereeVisual();
-    const title = this.add
-      .text(0, MATCH_FINISHED_MODAL.titleY, 'Final whistle', {
-        align: 'center',
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700'
-      })
-      .setOrigin(0.5);
-    const body = this.add
-      .text(0, MATCH_FINISHED_MODAL.bodyY, this.getMatchFinishedBodyText(state), {
-        align: 'center',
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        wordWrap: { width: MATCH_FINISHED_MODAL.width - 96 }
-      })
-      .setOrigin(0.5);
-    const okButton = new Button(
-      this,
-      0,
-      MATCH_FINISHED_MODAL.buttonY,
-      'OK',
-      () => this.confirmMatchFinishedModal(state),
-      {
-        borderRadius: 8,
-        borderWidth: 0,
-        fontSize: '24px',
-        height: MATCH_FINISHED_MODAL.buttonHeight,
-        width: MATCH_FINISHED_MODAL.buttonWidth
-      }
-    );
-
-    panel.add([background, refereeVisual, title, body, okButton]);
-    modal.add([overlay, panel]);
-    this.matchFinishedModal = modal;
+    this.matchFinishedModal = createMatchFinishedModal(this, {
+      centerX: SCENE_WIDTH / 2,
+      centerY: SCENE_HEIGHT / 2,
+      overlayWidth: SCENE_WIDTH,
+      overlayHeight: SCENE_HEIGHT,
+      bodyText: this.getMatchFinishedBodyText(state),
+      onOk: () => this.confirmMatchFinishedModal(state)
+    });
   }
 
   private getMatchFinishedBodyText(state: Readonly<GameState>): string {
@@ -2459,40 +2410,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     return `The match is over because ${exhaustedTeamName} has no cards left to attack.`;
-  }
-
-  private createMatchFinishedRefereeVisual(): Phaser.GameObjects.GameObject {
-    if (!this.textures.exists('arbitr-end')) {
-      const fallback = this.add.container(0, MATCH_FINISHED_MODAL.imageY);
-      const placeholder = this.add.graphics();
-      placeholder.fillStyle(0x142a21, 1);
-      placeholder.fillRoundedRect(
-        -MATCH_FINISHED_MODAL.imageWidth / 2,
-        -MATCH_FINISHED_MODAL.imageHeight / 2,
-        MATCH_FINISHED_MODAL.imageWidth,
-        MATCH_FINISHED_MODAL.imageHeight,
-        12
-      );
-      placeholder.lineStyle(2, 0x5f9572, 0.8);
-      placeholder.strokeRoundedRect(
-        -MATCH_FINISHED_MODAL.imageWidth / 2,
-        -MATCH_FINISHED_MODAL.imageHeight / 2,
-        MATCH_FINISHED_MODAL.imageWidth,
-        MATCH_FINISHED_MODAL.imageHeight,
-        12
-      );
-      fallback.add(placeholder);
-      return fallback;
-    }
-
-    const image = this.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');
-    const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };
-    const scale = Math.min(
-      MATCH_FINISHED_MODAL.imageWidth / source.width,
-      MATCH_FINISHED_MODAL.imageHeight / source.height
-    );
-    image.setDisplaySize(source.width * scale, source.height * scale);
-    return image;
   }
 
   private playMatchFinishedWhistleOnce(): void {

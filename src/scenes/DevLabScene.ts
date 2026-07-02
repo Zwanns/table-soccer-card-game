@@ -4,6 +4,8 @@ import { GameEngine, type GameState } from '../game';
 import { createTournamentState, QUICK_MATCH_CONTEXT, type TournamentState } from '../tournament';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from '../ui/Button';
+import { GOAL_NOTIFICATION_DEPTH, GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification';
+import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -18,25 +20,13 @@ const DEV_LAB_PREVIEW_RADIUS = 8;
 
 const FINAL_WHISTLE_PREVIEW_TEXT = 'The match is over because Spain has no cards left to attack.';
 
-const MATCH_FINISHED_MODAL = {
-  width: 660,
-  height: 390,
-  imageY: -152,
-  imageWidth: 300,
-  imageHeight: 250,
-  titleY: -46,
-  bodyY: 28,
-  buttonY: 128,
-  buttonWidth: 210,
-  buttonHeight: 54
-} as const;
-
 type DevLabScenario =
   | 'initial-deal'
   | 'post-attack-restore'
   | 'pause-during-restore';
 
 export class DevLabScene extends Phaser.Scene {
+  private previewLayer: Phaser.GameObjects.Container | null = null;
   private previewModal: Phaser.GameObjects.Container | null = null;
 
   public constructor() {
@@ -47,6 +37,7 @@ export class DevLabScene extends Phaser.Scene {
     const layout = createDevLabLayout();
 
     this.createBackground(layout);
+    this.previewLayer = this.add.container(0, 0).setDepth(GOAL_NOTIFICATION_DEPTH);
     this.createHeader(layout);
     this.createScenarioButtons(layout);
     this.createFooter(layout);
@@ -164,37 +155,12 @@ export class DevLabScene extends Phaser.Scene {
 
     playSoundSafe(this, 'sound-goal', { volume: 0.72 });
 
-    const text = this.add
-      .text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!', {
-        align: 'center',
-        color: '#f0c95a',
-        fontFamily: 'Bangers, Arial, sans-serif',
-        fontSize: '88px',
-        resolution: SHARP_TEXT_RESOLUTION,
-        stroke: '#142231',
-        strokeThickness: 8
-      })
-      .setOrigin(0.5)
-      .setDepth(1500)
-      .setScale(0.82);
-
-    this.tweens.add({
-      targets: text,
-      scale: 1.08,
-      duration: 220,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        this.tweens.add({
-          targets: text,
-          alpha: 0,
-          y: text.y - 54,
-          delay: 520,
-          duration: 900,
-          ease: 'Sine.easeIn',
-          onComplete: () => text.destroy()
-        });
-      }
-    });
+    const text = showGoalNotification(
+      this,
+      layout.preview.centerX,
+      layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y
+    );
+    this.previewLayer?.add(text);
   }
 
   private showFinalWhistleModalPreview(): void {
@@ -203,87 +169,16 @@ export class DevLabScene extends Phaser.Scene {
     }
 
     const layout = createDevLabLayout();
-    const centerX = layout.preview.centerX;
-    const centerY = layout.preview.centerY;
-    const modal = this.add.container(0, 0).setDepth(1400);
-    const overlay = this.add.rectangle(centerX, centerY, layout.preview.width, layout.preview.height, 0x06140f, 0.74);
-    overlay.setInteractive();
-
-    const panel = this.add.container(centerX, centerY);
-    const background = this.add.rectangle(
-      0,
-      0,
-      MATCH_FINISHED_MODAL.width,
-      MATCH_FINISHED_MODAL.height,
-      SCOREBOARD_BACKGROUND_COLOR,
-      SCOREBOARD_BACKGROUND_ALPHA
-    );
-    const refereeVisual = this.createMatchFinishedRefereeVisual();
-    const title = this.add
-      .text(0, MATCH_FINISHED_MODAL.titleY, 'Final whistle', {
-        align: 'center',
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: '700',
-        resolution: SHARP_TEXT_RESOLUTION
-      })
-      .setOrigin(0.5);
-    const body = this.add
-      .text(0, MATCH_FINISHED_MODAL.bodyY, FINAL_WHISTLE_PREVIEW_TEXT, {
-        align: 'center',
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '20px',
-        resolution: SHARP_TEXT_RESOLUTION,
-        wordWrap: { width: MATCH_FINISHED_MODAL.width - 96 }
-      })
-      .setOrigin(0.5);
-    const okButton = new Button(this, 0, MATCH_FINISHED_MODAL.buttonY, 'OK', () => this.closePreviewModal(), {
-      borderRadius: 8,
-      borderWidth: 0,
-      fontSize: '24px',
-      height: MATCH_FINISHED_MODAL.buttonHeight,
-      width: MATCH_FINISHED_MODAL.buttonWidth
+    const modal = createMatchFinishedModal(this, {
+      centerX: layout.preview.centerX,
+      centerY: layout.preview.centerY,
+      overlayWidth: layout.preview.width,
+      overlayHeight: layout.preview.height,
+      bodyText: FINAL_WHISTLE_PREVIEW_TEXT,
+      onOk: () => this.closePreviewModal()
     });
-
-    panel.add([background, refereeVisual, title, body, okButton]);
-    modal.add([overlay, panel]);
+    this.previewLayer?.add(modal);
     this.previewModal = modal;
-  }
-
-  private createMatchFinishedRefereeVisual(): Phaser.GameObjects.GameObject {
-    if (!this.textures.exists('arbitr-end')) {
-      const fallback = this.add.container(0, MATCH_FINISHED_MODAL.imageY);
-      const placeholder = this.add.graphics();
-      placeholder.fillStyle(0x142a21, 1);
-      placeholder.fillRoundedRect(
-        -MATCH_FINISHED_MODAL.imageWidth / 2,
-        -MATCH_FINISHED_MODAL.imageHeight / 2,
-        MATCH_FINISHED_MODAL.imageWidth,
-        MATCH_FINISHED_MODAL.imageHeight,
-        12
-      );
-      placeholder.lineStyle(2, 0x5f9572, 0.8);
-      placeholder.strokeRoundedRect(
-        -MATCH_FINISHED_MODAL.imageWidth / 2,
-        -MATCH_FINISHED_MODAL.imageHeight / 2,
-        MATCH_FINISHED_MODAL.imageWidth,
-        MATCH_FINISHED_MODAL.imageHeight,
-        12
-      );
-      fallback.add(placeholder);
-      return fallback;
-    }
-
-    const image = this.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');
-    const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };
-    const scale = Math.min(
-      MATCH_FINISHED_MODAL.imageWidth / source.width,
-      MATCH_FINISHED_MODAL.imageHeight / source.height
-    );
-    image.setDisplaySize(source.width * scale, source.height * scale);
-    return image;
   }
 
   private closePreviewModal(): void {

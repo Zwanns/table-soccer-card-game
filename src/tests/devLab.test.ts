@@ -73,14 +73,58 @@ describe('Dev Lab scene previews', () => {
     const source = readSource('src/scenes/DevLabScene.ts');
     const modalBlock = source.slice(
       source.indexOf('private showFinalWhistleModalPreview()'),
-      source.indexOf('private createMatchFinishedRefereeVisual()')
+      source.indexOf('private closePreviewModal()')
     );
 
+    expect(modalBlock).toContain('createMatchFinishedModal(this');
     expect(modalBlock).toContain('FINAL_WHISTLE_PREVIEW_TEXT');
-    expect(modalBlock).toContain("'Final whistle'");
-    expect(modalBlock).toContain("'OK'");
-    expect(modalBlock).toContain('() => this.closePreviewModal()');
+    expect(modalBlock).toContain('onOk: () => this.closePreviewModal()');
     expect(modalBlock).not.toContain("this.scene.start('ResultScene'");
+  });
+
+  it('uses the shared real-game Goal notification renderer in GameScene and Dev Lab', () => {
+    const devLabSource = readSource('src/scenes/DevLabScene.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/goalNotification.ts');
+
+    expect(devLabSource).toContain("import { GOAL_NOTIFICATION_DEPTH, GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification }");
+    expect(gameSource).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification }");
+    expect(devLabSource).toContain('showGoalNotification(');
+    expect(gameSource).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete)');
+    expect(devLabSource).not.toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
+    expect(helperSource).toContain("export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!'");
+  });
+
+  it('keeps the Goal notification real scale and tween timing contract in one helper', () => {
+    const helperSource = readSource('src/ui/goalNotification.ts');
+
+    expect(helperSource).toContain('fontSize: \'88px\'');
+    expect(helperSource).toContain('paddingX: 28');
+    expect(helperSource).toContain('paddingY: 14');
+    expect(helperSource).toContain('popDuration: 220');
+    expect(helperSource).toContain('fadeDelay: 520');
+    expect(helperSource).toContain('fadeDuration: 1900');
+    expect(helperSource).toContain('startScale: 0.82');
+    expect(helperSource).toContain('targetScale: 1.08');
+    expect(helperSource).toContain("ease: 'Back.easeOut'");
+    expect(helperSource).toContain("ease: 'Sine.easeOut'");
+  });
+
+  it('uses the shared real-game final whistle modal renderer in GameScene and Dev Lab', () => {
+    const devLabSource = readSource('src/scenes/DevLabScene.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/matchFinishedModal.ts');
+
+    expect(devLabSource).toContain("import { createMatchFinishedModal } from '../ui/matchFinishedModal'");
+    expect(gameSource).toContain("import { createMatchFinishedModal } from '../ui/matchFinishedModal'");
+    expect(devLabSource).toContain('const modal = createMatchFinishedModal(this');
+    expect(gameSource).toContain('this.matchFinishedModal = createMatchFinishedModal(this');
+    expect(devLabSource).not.toContain('const MATCH_FINISHED_MODAL =');
+    expect(gameSource).not.toContain('const MATCH_FINISHED_MODAL =');
+    expect(helperSource).toContain('width: 620');
+    expect(helperSource).toContain('height: 430');
+    expect(helperSource).toContain('buttonWidth: 190');
+    expect(helperSource).toContain('buttonHeight: 58');
   });
 
   it('opens result preview with mock quick-match data and no tournament save writes', () => {
@@ -184,9 +228,13 @@ describe('Dev Lab side-panel layout', () => {
 
     expect(source).toContain('new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, y, scenario.label');
     expect(source).toContain("new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, layout.backButton.y, 'Back'");
-    expect(source).toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
-    expect(source).toContain('const centerX = layout.preview.centerX;');
-    expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, layout.preview.width, layout.preview.height');
+    expect(source).toContain('this.previewLayer = this.add.container(0, 0).setDepth(GOAL_NOTIFICATION_DEPTH)');
+    expect(source).toContain('layout.preview.centerX,');
+    expect(source).toContain('layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y');
+    expect(source).toContain('overlayWidth: layout.preview.width');
+    expect(source).toContain('overlayHeight: layout.preview.height');
+    expect(source).not.toContain('setMask(');
+    expect(source).not.toContain('createGeometryMask');
     expect(source).not.toContain('DEV_LAB_LAYOUT.centerX');
     expect(source).not.toContain('DEV_LAB_LAYOUT.buttonsStartY');
   });

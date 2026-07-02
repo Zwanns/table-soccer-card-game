@@ -229,8 +229,10 @@ describe('GameScene visual layout contracts', () => {
 
   it('shows a referee match-finished modal before results for card-depletion game over states', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/matchFinishedModal.ts');
 
-    expect(source).toContain('const MATCH_FINISHED_MODAL = {');
+    expect(source).toContain("import { createMatchFinishedModal } from '../ui/matchFinishedModal'");
+    expect(helperSource).toContain('export const MATCH_FINISHED_MODAL = {');
     expect(source).toContain('private matchFinishedModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private isMatchFinishedModalOpen = false');
     expect(source).toContain('private isMatchFinishedOkHandled = false');
@@ -245,34 +247,40 @@ describe('GameScene visual layout contracts', () => {
 
   it('builds the match-finished modal as a centered overlay with referee art and OK action', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/matchFinishedModal.ts');
     const modalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private createMatchFinishedRefereeVisual()')
+      source.indexOf('private getMatchFinishedBodyText(')
     );
 
     expect(modalBlock).toContain('this.cancelAutomaticCardFlow();');
     expect(modalBlock).toContain('this.aiTurnController?.dispose();');
-    expect(modalBlock).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.74);');
-    expect(modalBlock).toContain('overlay.setInteractive();');
-    expect(modalBlock).toContain('SCOREBOARD_BACKGROUND_COLOR');
-    expect(modalBlock).toContain('SCOREBOARD_BACKGROUND_ALPHA');
+    expect(modalBlock).toContain('this.matchFinishedModal = createMatchFinishedModal(this');
+    expect(modalBlock).toContain('centerX: SCENE_WIDTH / 2');
+    expect(modalBlock).toContain('centerY: SCENE_HEIGHT / 2');
+    expect(modalBlock).toContain('overlayWidth: SCENE_WIDTH');
+    expect(modalBlock).toContain('overlayHeight: SCENE_HEIGHT');
+    expect(modalBlock).toContain('bodyText: this.getMatchFinishedBodyText(state)');
+    expect(modalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
+    expect(helperSource).toContain('const overlay = scene.add.rectangle(');
+    expect(helperSource).toContain('overlay.setInteractive();');
+    expect(helperSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
+    expect(helperSource).toContain('SCOREBOARD_BACKGROUND_ALPHA');
     expect(modalBlock).not.toContain('fillRoundedRect(');
     expect(modalBlock).not.toContain('strokeRoundedRect(');
     expect(modalBlock).not.toContain('0xf0c95a');
-    expect(modalBlock).toContain('const refereeVisual = this.createMatchFinishedRefereeVisual();');
-    expect(modalBlock).toContain("'Final whistle'");
-    expect(modalBlock).toContain('this.getMatchFinishedBodyText(state)');
-    expect(modalBlock).toContain("'OK'");
-    expect(modalBlock).toContain('() => this.confirmMatchFinishedModal(state)');
-    expect(modalBlock).toContain('borderWidth: 0');
-    expect(modalBlock).toContain('borderRadius: 8');
+    expect(helperSource).toContain('const refereeVisual = createMatchFinishedRefereeVisual(scene);');
+    expect(helperSource).toContain("'Final whistle'");
+    expect(helperSource).toContain("'OK'");
+    expect(helperSource).toContain('borderWidth: 0');
+    expect(helperSource).toContain('borderRadius: 8');
   });
 
   it('builds match-finished body text from the team with an empty attack deck', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const bodyBlock = source.slice(
       source.indexOf('private getMatchFinishedBodyText('),
-      source.indexOf('private createMatchFinishedRefereeVisual()')
+      source.indexOf('private playMatchFinishedWhistleOnce()')
     );
 
     expect(bodyBlock).toContain('const exhaustedPlayer = state.players.find((player) => player.deck.cards.length === 0);');
@@ -284,22 +292,18 @@ describe('GameScene visual layout contracts', () => {
   });
 
   it('uses the referee image when loaded and falls back safely when missing', () => {
-    const source = readSource('src/scenes/GameScene.ts');
-    const visualBlock = source.slice(
-      source.indexOf('private createMatchFinishedRefereeVisual()'),
-      source.indexOf('private playMatchFinishedWhistleOnce()')
-    );
+    const visualBlock = readSource('src/ui/matchFinishedModal.ts');
 
-    expect(visualBlock).toContain("if (!this.textures.exists('arbitr-end'))");
+    expect(visualBlock).toContain("if (!scene.textures.exists('arbitr-end'))");
     expect(visualBlock).toContain('placeholder.fillRoundedRect(');
-    expect(visualBlock).toContain("const image = this.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');");
-    expect(visualBlock).toContain("const source = this.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };");
+    expect(visualBlock).toContain("const image = scene.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');");
+    expect(visualBlock).toContain("const source = scene.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };");
     expect(visualBlock).toContain('const scale = Math.min(');
     expect(visualBlock).toContain('image.setDisplaySize(source.width * scale, source.height * scale);');
   });
 
   it('enlarges the match-finished referee image and lets it overflow above the panel safely', () => {
-    const source = readSource('src/scenes/GameScene.ts');
+    const source = readSource('src/ui/matchFinishedModal.ts');
     const modalWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'width');
     const modalHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'height');
     const imageWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageWidth');
@@ -1027,7 +1031,7 @@ describe('GameScene visual layout contracts', () => {
     const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
     const modalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private createMatchFinishedRefereeVisual()')
+      source.indexOf('private getMatchFinishedBodyText(')
     );
 
     expect(renderBlock).toContain('const matchControls = createMatchControlButtons({');
@@ -1035,9 +1039,8 @@ describe('GameScene visual layout contracts', () => {
     expect(renderBlock).toContain('onRules: () => this.openMatchInfoModal(\'rules\')');
     expect(modalBlock).toContain('this.cancelAutomaticCardFlow();');
     expect(modalBlock).toContain('this.input.enabled = true;');
-    expect(modalBlock).toContain('const okButton = new Button(');
-    expect(modalBlock).toContain('MATCH_FINISHED_MODAL.buttonY');
-    expect(modalBlock).toContain('\'OK\'');
+    expect(modalBlock).toContain('createMatchFinishedModal(this');
+    expect(modalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
   });
 
   it('cancels automatic card-flow timers and tweens before leaving the match scene', () => {
@@ -1250,6 +1253,7 @@ describe('GameScene visual layout contracts', () => {
 
   it('shows goalkeeper shot flying messages at the impact tick and enlarges GOAL!! only', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/goalNotification.ts');
     const impactBlock = source.slice(
       source.indexOf('private finishGoalkeeperShotBallImpact('),
       source.indexOf('private animateGoalkeeperShotGoalDisappear(')
@@ -1280,17 +1284,20 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(impactBlock).not.toContain("this.playGoalkeeperImpactSound('goalkeeper', outcome);");
     expect(source).toContain('this.playSceneEffectSound(goalEffect);');
-    expect(source).toContain("const fontSize = tone === 'goal' ? '88px' : tone === 'post' || tone === 'save' ? '48px' : '38px';");
-    expect(source).toContain("const isShotOutcomeTone = tone === 'goal' || tone === 'post' || tone === 'save';");
+    expect(source).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification'");
+    expect(source).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete);');
+    expect(source).toContain("const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';");
+    expect(source).toContain("const isShotOutcomeTone = tone === 'post' || tone === 'save';");
     expect(source).toContain('const FLYING_MESSAGE_DEPTH = 3000;');
     expect(source).toContain('.setDepth(FLYING_MESSAGE_DEPTH);');
     expect(source).toContain('const popDuration = isShotOutcomeTone ? 220 : 0;');
     expect(source).toContain('const fadeDelay = isShotOutcomeTone ? 520 : 0;');
     expect(source).toContain('const fadeDuration = isShotOutcomeTone ? 1900 : 900;');
     expect(source).toContain('const startFadeTween = (): void => {');
-    expect(source).toContain('text.setScale(0.82);');
-    expect(source).toContain('scale: 1.08,');
-    expect(source).toContain("ease: 'Back.easeOut'");
+    expect(helperSource).toContain('startScale: 0.82');
+    expect(helperSource).toContain('targetScale: 1.08');
+    expect(helperSource).toContain('fontSize: \'88px\'');
+    expect(helperSource).toContain("ease: 'Back.easeOut'");
     expect(source).toContain('delay: fadeDelay,');
     expect(source).toContain('duration: fadeDuration,');
     expect(source).toContain('private playSceneEffectSound(effect: GoalkeeperShotSceneEffect | GoalScoredSceneEffect): boolean');
