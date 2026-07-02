@@ -39,6 +39,11 @@ type LeaderCardDefinition = {
   player: TournamentPlayerStats | undefined;
 };
 
+interface TournamentCompleteSceneData {
+  devMockTournament?: TournamentState;
+  devMockReturnScene?: string;
+}
+
 interface TournamentCompleteLayout {
   mobileLandscape: boolean;
   header: {
@@ -99,12 +104,20 @@ interface TournamentCompleteLayout {
 }
 
 export class TournamentCompleteScene extends Phaser.Scene {
+  private devMockTournament: TournamentState | null = null;
+  private devMockReturnScene: string | null = null;
+
   public constructor() {
     super('TournamentCompleteScene');
   }
 
+  public init(data: TournamentCompleteSceneData = {}): void {
+    this.devMockTournament = data.devMockTournament ?? null;
+    this.devMockReturnScene = data.devMockReturnScene ?? null;
+  }
+
   public create(): void {
-    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+    const tournament = this.devMockTournament ?? (this.registry.get('currentTournament') as TournamentState | undefined);
 
     createTournamentBackground(this, TOURNAMENT_ASSETS.winnerBackground);
 
@@ -542,6 +555,17 @@ export class TournamentCompleteScene extends Phaser.Scene {
   }
 
   private createActions(layout: TournamentCompleteLayout): void {
+    if (this.devMockReturnScene !== null) {
+      new Button(this, SCENE_WIDTH / 2, layout.actions.y, 'Back', () => this.scene.start(this.devMockReturnScene!), {
+        borderRadius: RESULT_ACTION_BUTTON_RADIUS,
+        borderWidth: 0,
+        fontSize: layout.actions.fontSize,
+        height: layout.actions.height,
+        width: 360
+      });
+      return;
+    }
+
     const actions = [
       { label: 'Menu', onClick: () => this.scene.start('MenuScene') },
       {

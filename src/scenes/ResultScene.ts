@@ -53,12 +53,14 @@ interface ResultSceneData {
   state?: Readonly<GameState>;
   launchContext?: MatchLaunchContext;
   suppressFinalWhistle?: boolean;
+  devMockReturnScene?: string;
 }
 
 export class ResultScene extends Phaser.Scene {
   private state: Readonly<GameState> | null = null;
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
   private suppressFinalWhistle = false;
+  private devMockReturnScene: string | null = null;
   private message: Phaser.GameObjects.Text | null = null;
 
   public constructor() {
@@ -69,6 +71,7 @@ export class ResultScene extends Phaser.Scene {
     this.state = data.state ?? null;
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
     this.suppressFinalWhistle = data.suppressFinalWhistle === true;
+    this.devMockReturnScene = data.devMockReturnScene ?? null;
   }
 
   public create(): void {
@@ -99,6 +102,14 @@ export class ResultScene extends Phaser.Scene {
         { label: 'Play Again', onClick: () => this.startReplayMatch() },
         { label: 'Continue', onClick: () => this.returnToTournament() }
       ], { attachedToPanel: true });
+      return;
+    }
+
+    if (this.devMockReturnScene !== null) {
+      createResultActionButtons(this, centerX, [
+        { label: 'Back', onClick: () => this.scene.start(this.devMockReturnScene!) },
+        { label: 'Play Again', onClick: () => this.startReplayMatch() }
+      ]);
       return;
     }
 

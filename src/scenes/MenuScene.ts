@@ -10,6 +10,7 @@ import {
 import { TUTORIAL_MATCH_V2_TEAMS } from '../tutorial/tutorialScenario';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
+import { DEV_LAB_SCENE_KEY, isDevLabEnabled } from '../devLab';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
@@ -585,6 +586,20 @@ export class MenuScene extends Phaser.Scene {
       )
     );
     buttonIndex += 1;
+
+    if (import.meta.env.DEV && isDevLabEnabled()) {
+      buttons.push(
+        new Button(
+          this,
+          MENU_LAYOUT.centerX,
+          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+          'Dev Lab',
+          () => this.scene.start(DEV_LAB_SCENE_KEY),
+          buttonOptions
+        )
+      );
+      buttonIndex += 1;
+    }
 
     buttons.push(
       new Button(
