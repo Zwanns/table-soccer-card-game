@@ -269,7 +269,7 @@ describe('GameScene visual layout contracts', () => {
     expect(modalBlock).not.toContain('fillRoundedRect(');
     expect(modalBlock).not.toContain('strokeRoundedRect(');
     expect(modalBlock).not.toContain('0xf0c95a');
-    expect(helperSource).toContain('const refereeVisual = createMatchFinishedRefereeVisual(scene);');
+    expect(helperSource).toContain('const refereeVisual = createMatchFinishedRefereeVisual(scene, layout);');
     expect(helperSource).toContain("'Final whistle'");
     expect(helperSource).toContain("'OK'");
     expect(helperSource).toContain('borderWidth: 0');
@@ -296,13 +296,38 @@ describe('GameScene visual layout contracts', () => {
 
     expect(visualBlock).toContain("if (!scene.textures.exists('arbitr-end'))");
     expect(visualBlock).toContain('placeholder.fillRoundedRect(');
-    expect(visualBlock).toContain("const image = scene.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');");
+    expect(visualBlock).toContain("const image = scene.add.image(0, layout.refereeY, 'arbitr-end');");
     expect(visualBlock).toContain("const source = scene.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };");
     expect(visualBlock).toContain('const scale = Math.min(');
     expect(visualBlock).toContain('image.setDisplaySize(source.width * scale, source.height * scale);');
   });
 
-  it('enlarges the match-finished referee image and lets it overflow above the panel safely', () => {
+  it('keeps GameScene on the approved real-game final-whistle modal layout', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const helperSource = readSource('src/ui/matchFinishedModal.ts');
+    const modalBlock = source.slice(
+      source.indexOf('private showMatchFinishedModal('),
+      source.indexOf('private getMatchFinishedBodyText(')
+    );
+    const layoutBlock = helperSource.slice(
+      helperSource.indexOf('function resolveMatchFinishedModalLayout('),
+      helperSource.length
+    );
+
+    expect(modalBlock).toContain('this.matchFinishedModal = createMatchFinishedModal(this');
+    expect(modalBlock).not.toContain('layout:');
+    expect(helperSource).toContain('imageWidth: 372');
+    expect(helperSource).toContain('imageHeight: 310');
+    expect(helperSource).toContain('imageY: -114');
+    expect(helperSource).toContain('buttonWidth: 524');
+    expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? MATCH_FINISHED_MODAL.imageHeight');
+    expect(layoutBlock).toContain('refereeWidth: overrides.refereeWidth ?? MATCH_FINISHED_MODAL.imageWidth');
+    expect(layoutBlock).toContain('refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0)');
+    expect(layoutBlock).toContain('overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth');
+    expect(layoutBlock).toContain('titleAboveReferee: overrides.titleAboveReferee ?? true');
+  });
+
+  it('uses the approved referee/title/OK geometry for the match-finished modal', () => {
     const source = readSource('src/ui/matchFinishedModal.ts');
     const modalWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'width');
     const modalHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'height');
@@ -312,18 +337,22 @@ describe('GameScene visual layout contracts', () => {
     const titleY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'titleY');
     const bodyY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'bodyY');
     const buttonY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonY');
+    const buttonWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonWidth');
     const buttonHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonHeight');
 
-    expect(imageWidth).toBe(300);
-    expect(imageHeight).toBe(250);
-    expect(imageWidth).toBeGreaterThan(180);
-    expect(imageHeight).toBeGreaterThan(150);
+    expect(imageWidth).toBe(372);
+    expect(imageHeight).toBe(310);
+    expect(imageY).toBe(-114);
+    expect(buttonWidth).toBe(modalWidth - 96);
     expect(imageY - imageHeight / 2).toBeLessThan(-modalHeight / 2);
-    expect(imageY + imageHeight / 2).toBeLessThan(titleY);
+    expect(titleY).toBeGreaterThan(imageY - imageHeight / 2);
+    expect(titleY).toBeLessThan(imageY + imageHeight / 2);
+    expect(source).toContain('? [background, refereeVisual, title, body, okButton]');
     expect(titleY).toBeLessThan(bodyY);
     expect(bodyY).toBeLessThan(buttonY);
     expect(buttonY + buttonHeight / 2).toBeLessThanOrEqual(modalHeight / 2);
     expect(imageWidth).toBeLessThan(modalWidth);
+    expect(buttonWidth).toBeLessThan(modalWidth);
   });
 
   it('plays the final whistle once on modal appearance and suppresses the ResultScene duplicate', () => {
@@ -351,6 +380,71 @@ describe('GameScene visual layout contracts', () => {
     expect(source.indexOf('private showMatchFinishedModal(')).toBeLessThan(source.indexOf('private confirmMatchFinishedModal('));
   });
 
+  it('keeps Quick Match card-depletion results behind the final-whistle OK action', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const openResultBlock = source.slice(
+      source.indexOf('private openResult('),
+      source.indexOf('private openResultScene(')
+    );
+    const showModalBlock = source.slice(
+      source.indexOf('private showMatchFinishedModal('),
+      source.indexOf('private getMatchFinishedBodyText(')
+    );
+    const confirmBlock = source.slice(
+      source.indexOf('private confirmMatchFinishedModal('),
+      source.indexOf('private prepareToLeaveMatchScene()')
+    );
+    const openResultSceneBlock = source.slice(
+      source.indexOf('private openResultScene('),
+      source.indexOf('private simulatePausedMatch(')
+    );
+
+    expect(openResultBlock).toContain('if (this.shouldShowMatchFinishedModal(state))');
+    expect(openResultBlock).toContain('this.showMatchFinishedModal(state);\n      return;');
+    expect(openResultBlock.indexOf('this.showMatchFinishedModal(state);')).toBeLessThan(
+      openResultBlock.indexOf('this.openResultScene(state);')
+    );
+    expect(showModalBlock).toContain('bodyText: this.getMatchFinishedBodyText(state)');
+    expect(showModalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
+    expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
+    expect(confirmBlock).toContain('this.openResultScene(state, true);');
+    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+  });
+
+  it('keeps Tournament Match card-depletion results behind OK while preserving tournament launch context', () => {
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const resultSource = readSource('src/scenes/ResultScene.ts');
+    const initBlock = gameSource.slice(
+      gameSource.indexOf('public init(data: GameSceneInitData): void'),
+      gameSource.indexOf('public preload(): void')
+    );
+    const openResultSceneBlock = gameSource.slice(
+      gameSource.indexOf('private openResultScene('),
+      gameSource.indexOf('private simulatePausedMatch(')
+    );
+    const resultInitBlock = resultSource.slice(
+      resultSource.indexOf('public init(data: ResultSceneData): void'),
+      resultSource.indexOf('public create(): void')
+    );
+    const tournamentReturnBlock = resultSource.slice(
+      resultSource.indexOf('private returnToTournament(): void'),
+      resultSource.indexOf('private startPenaltyShootout(')
+    );
+
+    expect(initBlock).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
+    expect(openResultSceneBlock).toContain('this.prepareToLeaveMatchScene();');
+    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+    expect(resultInitBlock).toContain('this.state = data.state ?? null;');
+    expect(resultInitBlock).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
+    expect(resultInitBlock).toContain('this.suppressFinalWhistle = data.suppressFinalWhistle === true;');
+    expect(tournamentReturnBlock).toContain("if (launchContext.mode !== 'tournament' || this.state === null)");
+    expect(tournamentReturnBlock).toContain("const tournament = this.registry.get('currentTournament') as TournamentState | undefined;");
+    expect(tournamentReturnBlock).toContain('const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);');
+    expect(tournamentReturnBlock).toContain('createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId)');
+    expect(tournamentReturnBlock).toContain('submitTournamentMatchResultObject(tournament, result)');
+    expect(tournamentReturnBlock).toContain('saveTournament(updatedTournament)');
+  });
+
   it('keeps pause-menu Sim on the direct result path without the referee modal', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const simulateBlock = source.slice(
@@ -360,8 +454,10 @@ describe('GameScene visual layout contracts', () => {
 
     expect(simulateBlock).toContain('this.openResultScene(state);');
     expect(simulateBlock).not.toContain('this.openResult(state);');
+    expect(simulateBlock).not.toContain('this.shouldShowMatchFinishedModal');
     expect(simulateBlock).not.toContain('this.showMatchFinishedModal');
     expect(simulateBlock).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
+    expect(simulateBlock).toContain('saveTournament(updatedTournament)');
   });
 
   it('uses the result screen button row for Pause actions', () => {

@@ -37,6 +37,25 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });");
   });
 
+  it('uses the same match state and tournament context when final-whistle sound is suppressed', () => {
+    const source = readResultSceneSource();
+    const createBlock = source.slice(
+      source.indexOf('public create(): void'),
+      source.indexOf('private createActions(')
+    );
+    const returnBlock = source.slice(
+      source.indexOf('private returnToTournament(): void'),
+      source.indexOf('private startPenaltyShootout(')
+    );
+
+    expect(createBlock).toContain("if (this.state?.phase === 'GAME_OVER' && !this.suppressFinalWhistle)");
+    expect(createBlock).toContain('this.createMatchStatsPanel(centerX, RESULT_SCOREBOARD_CENTER_Y, this.state, this.getPostMatchPenaltyAttempts())');
+    expect(returnBlock).toContain('const launchContext = this.launchContext;');
+    expect(returnBlock).toContain('createTournamentMatchResultFromGameState(match.id, this.state, match.homeTeamId, match.awayTeamId)');
+    expect(returnBlock).toContain('submitTournamentMatchResultObject(tournament, result)');
+    expect(returnBlock).not.toContain('suppressFinalWhistle');
+  });
+
   it('renders result text with snapped coordinates and high-resolution text canvases', () => {
     const source = readResultSceneSource();
 

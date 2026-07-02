@@ -5,15 +5,25 @@ import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from './scor
 export const MATCH_FINISHED_MODAL = {
   width: 620,
   height: 430,
-  imageWidth: 300,
-  imageHeight: 250,
-  imageY: -150,
+  imageWidth: 372,
+  imageHeight: 310,
+  imageY: -114,
   titleY: 38,
   bodyY: 104,
   buttonY: 174,
-  buttonWidth: 190,
+  buttonWidth: 524,
   buttonHeight: 58
 } as const;
+
+export interface MatchFinishedModalLayoutOverrides {
+  refereeWidth?: number;
+  refereeHeight?: number;
+  refereeOffsetY?: number;
+  titleAboveReferee?: boolean;
+  okButtonFullWidth?: boolean;
+  okButtonWidth?: number;
+  contentPaddingX?: number;
+}
 
 export interface MatchFinishedModalOptions {
   centerX: number;
@@ -23,12 +33,14 @@ export interface MatchFinishedModalOptions {
   bodyText: string;
   onOk: () => void;
   depth?: number;
+  layout?: MatchFinishedModalLayoutOverrides;
 }
 
 export function createMatchFinishedModal(
   scene: Phaser.Scene,
   options: MatchFinishedModalOptions
 ): Phaser.GameObjects.Container {
+  const layout = resolveMatchFinishedModalLayout(options.layout);
   const modal = scene.add.container(0, 0).setDepth(options.depth ?? 1100);
   const overlay = scene.add.rectangle(
     options.centerX,
@@ -49,7 +61,7 @@ export function createMatchFinishedModal(
     SCOREBOARD_BACKGROUND_COLOR,
     SCOREBOARD_BACKGROUND_ALPHA
   );
-  const refereeVisual = createMatchFinishedRefereeVisual(scene);
+  const refereeVisual = createMatchFinishedRefereeVisual(scene, layout);
   const title = scene.add
     .text(0, MATCH_FINISHED_MODAL.titleY, 'Final whistle', {
       align: 'center',
@@ -65,7 +77,7 @@ export function createMatchFinishedModal(
       color: '#d9eadf',
       fontFamily: 'Arial, sans-serif',
       fontSize: '20px',
-      wordWrap: { width: MATCH_FINISHED_MODAL.width - 96 }
+      wordWrap: { width: layout.contentWidth }
     })
     .setOrigin(0.5);
   const okButton = new Button(scene, 0, MATCH_FINISHED_MODAL.buttonY, 'OK', options.onOk, {
@@ -73,42 +85,77 @@ export function createMatchFinishedModal(
     borderWidth: 0,
     fontSize: '24px',
     height: MATCH_FINISHED_MODAL.buttonHeight,
-    width: MATCH_FINISHED_MODAL.buttonWidth
+    width: layout.okButtonWidth
   });
 
-  panel.add([background, refereeVisual, title, body, okButton]);
+  panel.add(
+    layout.titleAboveReferee
+      ? [background, refereeVisual, title, body, okButton]
+      : [background, title, refereeVisual, body, okButton]
+  );
   modal.add([overlay, panel]);
 
   return modal;
 }
 
-function createMatchFinishedRefereeVisual(scene: Phaser.Scene): Phaser.GameObjects.GameObject {
+function createMatchFinishedRefereeVisual(
+  scene: Phaser.Scene,
+  layout: ResolvedMatchFinishedModalLayout
+): Phaser.GameObjects.GameObject {
   if (!scene.textures.exists('arbitr-end')) {
-    const fallback = scene.add.container(0, MATCH_FINISHED_MODAL.imageY);
+    const fallback = scene.add.container(0, layout.refereeY);
     const placeholder = scene.add.graphics();
     placeholder.fillStyle(0x142a21, 1);
     placeholder.fillRoundedRect(
-      -MATCH_FINISHED_MODAL.imageWidth / 2,
-      -MATCH_FINISHED_MODAL.imageHeight / 2,
-      MATCH_FINISHED_MODAL.imageWidth,
-      MATCH_FINISHED_MODAL.imageHeight,
+      -layout.refereeWidth / 2,
+      -layout.refereeHeight / 2,
+      layout.refereeWidth,
+      layout.refereeHeight,
       12
     );
     placeholder.lineStyle(2, 0x5f9572, 0.8);
     placeholder.strokeRoundedRect(
-      -MATCH_FINISHED_MODAL.imageWidth / 2,
-      -MATCH_FINISHED_MODAL.imageHeight / 2,
-      MATCH_FINISHED_MODAL.imageWidth,
-      MATCH_FINISHED_MODAL.imageHeight,
+      -layout.refereeWidth / 2,
+      -layout.refereeHeight / 2,
+      layout.refereeWidth,
+      layout.refereeHeight,
       12
     );
     fallback.add(placeholder);
     return fallback;
   }
 
-  const image = scene.add.image(0, MATCH_FINISHED_MODAL.imageY, 'arbitr-end');
+  const image = scene.add.image(0, layout.refereeY, 'arbitr-end');
   const source = scene.textures.get('arbitr-end').getSourceImage() as { width: number; height: number };
-  const scale = Math.min(MATCH_FINISHED_MODAL.imageWidth / source.width, MATCH_FINISHED_MODAL.imageHeight / source.height);
+  const scale = Math.min(layout.refereeWidth / source.width, layout.refereeHeight / source.height);
   image.setDisplaySize(source.width * scale, source.height * scale);
   return image;
+}
+
+interface ResolvedMatchFinishedModalLayout {
+  contentWidth: number;
+  okButtonWidth: number;
+  refereeHeight: number;
+  refereeWidth: number;
+  refereeY: number;
+  titleAboveReferee: boolean;
+}
+
+function resolveMatchFinishedModalLayout(
+  overrides: MatchFinishedModalLayoutOverrides = {}
+): ResolvedMatchFinishedModalLayout {
+  const contentPaddingX = overrides.contentPaddingX ?? 48;
+  const contentWidth = MATCH_FINISHED_MODAL.width - contentPaddingX * 2;
+  const okButtonWidth =
+    overrides.okButtonWidth ??
+    (overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth);
+
+  return {
+    contentWidth,
+    okButtonWidth,
+    refereeHeight: overrides.refereeHeight ?? MATCH_FINISHED_MODAL.imageHeight,
+    refereeWidth: overrides.refereeWidth ?? MATCH_FINISHED_MODAL.imageWidth,
+    refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0),
+    titleAboveReferee: overrides.titleAboveReferee ?? true
+  };
 }

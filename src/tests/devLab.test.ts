@@ -79,7 +79,39 @@ describe('Dev Lab scene previews', () => {
     expect(modalBlock).toContain('createMatchFinishedModal(this');
     expect(modalBlock).toContain('FINAL_WHISTLE_PREVIEW_TEXT');
     expect(modalBlock).toContain('onOk: () => this.closePreviewModal()');
+    expect(modalBlock).not.toContain('layout:');
     expect(modalBlock).not.toContain("this.scene.start('ResultScene'");
+  });
+
+  it('uses the shared real-game final whistle modal layout in Dev Lab preview', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+    const helperSource = readSource('src/ui/matchFinishedModal.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const previewBlock = source.slice(
+      source.indexOf('private showFinalWhistleModalPreview()'),
+      source.indexOf('private closePreviewModal()')
+    );
+    const gameModalBlock = gameSource.slice(
+      gameSource.indexOf('private showMatchFinishedModal('),
+      gameSource.indexOf('private getMatchFinishedBodyText(')
+    );
+
+    expect(source).not.toContain('DEV_LAB_FINAL_WHISTLE_MODAL_LAYOUT');
+    expect(previewBlock).toContain('createMatchFinishedModal(this');
+    expect(previewBlock).not.toContain('layout:');
+    expect(gameModalBlock).not.toContain('layout:');
+    expect(helperSource).toContain('imageWidth: 372');
+    expect(helperSource).toContain('imageHeight: 310');
+    expect(helperSource).toContain('imageY: -114');
+    expect(helperSource).toContain('buttonWidth: 524');
+    expect(helperSource).toContain('refereeWidth?: number');
+    expect(helperSource).toContain('refereeHeight?: number');
+    expect(helperSource).toContain('refereeOffsetY?: number');
+    expect(helperSource).toContain('titleAboveReferee?: boolean');
+    expect(helperSource).toContain('okButtonFullWidth?: boolean');
+    expect(helperSource).toContain('overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth');
+    expect(helperSource).toContain('refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0)');
+    expect(helperSource).toContain('[background, refereeVisual, title, body, okButton]');
   });
 
   it('uses the shared real-game Goal notification renderer in GameScene and Dev Lab', () => {
@@ -123,7 +155,7 @@ describe('Dev Lab scene previews', () => {
     expect(gameSource).not.toContain('const MATCH_FINISHED_MODAL =');
     expect(helperSource).toContain('width: 620');
     expect(helperSource).toContain('height: 430');
-    expect(helperSource).toContain('buttonWidth: 190');
+    expect(helperSource).toContain('buttonWidth: 524');
     expect(helperSource).toContain('buttonHeight: 58');
   });
 

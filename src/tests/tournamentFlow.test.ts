@@ -101,6 +101,9 @@ describe('tournament hub scene integration', () => {
     const simulateStart = hubSource.indexOf('private simulateTournamentMatch');
     const simulateEnd = hubSource.indexOf('private showSimulationError');
     const simulateBlock = hubSource.slice(simulateStart, simulateEnd);
+    const finishStart = hubSource.indexOf('private handleFinishTournament');
+    const finishEnd = hubSource.indexOf('private startTournamentMatch');
+    const finishBlock = hubSource.slice(finishStart, finishEnd);
     const simulationSource = readSource('src/scenes/tournamentMatchSimulation.ts');
 
     expect(simulationSource).toContain('createTournamentMatchResultFromGameState');
@@ -112,6 +115,14 @@ describe('tournament hub scene integration', () => {
     expect(hubSource).toContain('this.render()');
     expect(simulateBlock).not.toContain("this.scene.start('ResultScene'");
     expect(simulateBlock).not.toContain("this.scene.start('GameScene'");
+    expect(simulateBlock).not.toContain('showMatchFinishedModal');
+    expect(simulateBlock).not.toContain('createMatchFinishedModal');
+    expect(finishBlock).toContain('const simulatedTournament = this.simulateTournamentMatch(currentTournament, nextMatch)');
+    expect(finishBlock).toContain("this.scene.start('TournamentCompleteScene')");
+    expect(finishBlock).not.toContain("this.scene.start('ResultScene'");
+    expect(finishBlock).not.toContain("this.scene.start('GameScene'");
+    expect(finishBlock).not.toContain('showMatchFinishedModal');
+    expect(finishBlock).not.toContain('createMatchFinishedModal');
   });
 
   it('splits tournament footer progression into advance and play actions', () => {
