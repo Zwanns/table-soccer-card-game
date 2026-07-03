@@ -44,6 +44,12 @@ import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from '../ui/scoreboardStyle';
 import {
+  createGoalScoredEffect,
+  createShotOutcomeEffect,
+  getGoalkeeperShotPostForwardDeflection,
+  getGoalkeeperShotSaveDeflection
+} from '../ui/shotOutcomeEffects';
+import {
   MATCH_SIDE_PANEL_CENTER_Y,
   MATCH_SIDE_PANEL_LEFT_X,
   MATCH_SIDE_PANEL_RIGHT_X
@@ -70,7 +76,6 @@ import {
   getGoalkeeperShotEventIndex,
   getGoalkeeperShotSceneEffect,
   getNextGoalScoredSceneEffect,
-  type GoalkeeperShotSceneEffect,
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
 import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow';
@@ -1850,9 +1855,18 @@ export class GameScene extends Phaser.Scene {
     );
 
     if (shouldStartImpactEffects) {
-      this.playSceneEffectSound(shotEffect);
-      this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);
-      this.showGoalkeeperShotTargetImpact(target, outcome);
+      const shotEffectOptions = {
+        notificationX: SCENE_WIDTH / 2,
+        notificationY: SCENE_HEIGHT / 2,
+        ballFxX: target.x,
+        ballFxY: target.y
+      };
+
+      if (outcome === 'goal') {
+        createGoalScoredEffect(this, shotEffectOptions);
+      } else {
+        createShotOutcomeEffect(this, shotEffect, shotEffectOptions);
+      }
       onEffectStarted?.();
     }
 
@@ -2046,10 +2060,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private showGoalkeeperShotTargetImpact(target: { x: number; y: number }, outcome: GoalkeeperShotAnimationOutcome): void {
-    this.showImpactPulse(target.x, target.y, outcome);
-  }
-
   private getTurnBallStartPosition(state: Readonly<GameState>, playerId: Player['id']): { x: number; y: number } {
     const markerSide = playerId === state.players[0].id ? 'right' : 'left';
 
@@ -2095,7 +2105,7 @@ export class GameScene extends Phaser.Scene {
     playSoundSafe(this, key, { volume });
   }
 
-  private playSceneEffectSound(effect: GoalkeeperShotSceneEffect | GoalScoredSceneEffect): boolean {
+  private playSceneEffectSound(effect: GoalScoredSceneEffect): boolean {
     return playSoundSafe(this, effect.soundKey, { volume: 0.72 });
   }
 
@@ -2791,26 +2801,6 @@ function getGoalkeeperShotBallExit(
   return {
     x: target.x + awayFromCenter.x * 170,
     y: target.y + awayFromCenter.y * 112
-  };
-}
-
-function getGoalkeeperShotSaveDeflection(
-  target: { x: number; y: number },
-  activeOnLeft: boolean
-): { x: number; y: number } {
-  return {
-    x: target.x + (activeOnLeft ? -155 : 155),
-    y: target.y + 104
-  };
-}
-
-function getGoalkeeperShotPostForwardDeflection(
-  target: { x: number; y: number },
-  activeOnLeft: boolean
-): { x: number; y: number } {
-  return {
-    x: target.x + (activeOnLeft ? -190 : 190),
-    y: target.y - 64
   };
 }
 

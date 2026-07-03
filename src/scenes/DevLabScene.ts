@@ -4,7 +4,7 @@ import { GameEngine, type GameState } from '../game';
 import { createTournamentState, QUICK_MATCH_CONTEXT, type TournamentState } from '../tournament';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from '../ui/Button';
-import { GOAL_NOTIFICATION_DEPTH, GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification';
+import { GOAL_NOTIFICATION_DEPTH } from '../ui/goalNotification';
 import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
@@ -12,11 +12,22 @@ import {
   SCOREBOARD_BORDER_ALPHA,
   SCOREBOARD_BORDER_COLOR
 } from '../ui/scoreboardStyle';
+import {
+  createGoalkeeperSaveEffect,
+  createGoalScoredEffect,
+  createPostHitEffect,
+  type ShotOutcomeEffectHandle,
+  type ShotOutcomeEffectOptions
+} from '../ui/shotOutcomeEffects';
 import { SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
 import { createDevLabLayout, type DevLabLayout } from '../devLabLayout';
 
 const DEV_LAB_SIDE_PANEL_RADIUS = 8;
 const DEV_LAB_PREVIEW_RADIUS = 8;
+const DEV_LAB_SHOT_BALL_FX_OFFSET_X = 220;
+const DEV_LAB_SHOT_BALL_FX_OFFSET_Y = 112;
+const DEV_LAB_SHOT_BALL_START_OFFSET_X = -230;
+const DEV_LAB_SHOT_BALL_START_OFFSET_Y = 132;
 
 const FINAL_WHISTLE_PREVIEW_TEXT = 'The match is over because Spain has no cards left to attack.';
 
@@ -28,6 +39,7 @@ type DevLabScenario =
 export class DevLabScene extends Phaser.Scene {
   private previewLayer: Phaser.GameObjects.Container | null = null;
   private previewModal: Phaser.GameObjects.Container | null = null;
+  private previewEffect: ShotOutcomeEffectHandle | null = null;
 
   public constructor() {
     super('DevLabScene');
@@ -107,8 +119,10 @@ export class DevLabScene extends Phaser.Scene {
 
   private createScenarioButtons(layout: DevLabLayout): void {
     const scenarios: Array<{ label: string; onClick: () => void }> = [
-      { label: 'Goal notification preview', onClick: () => this.showGoalNotificationPreview() },
+      { label: 'Goal preview', onClick: () => this.showGoalPreview() },
       { label: 'Final whistle modal preview', onClick: () => this.showFinalWhistleModalPreview() },
+      { label: 'Goalkeeper save preview', onClick: () => this.showGoalkeeperSavePreview() },
+      { label: 'Post hit preview', onClick: () => this.showPostHitPreview() },
       { label: 'Initial deal preview', onClick: () => this.startGamePreview('initial-deal') },
       { label: 'Post-attack restore preview', onClick: () => this.startGamePreview('post-attack-restore') },
       { label: 'Pause during restore test', onClick: () => this.startGamePreview('pause-during-restore') },
@@ -150,23 +164,15 @@ export class DevLabScene extends Phaser.Scene {
       .setOrigin(1, 1);
   }
 
-  private showGoalNotificationPreview(): void {
+  private showGoalPreview(): void {
+    this.clearPreviewArea();
+
     const layout = createDevLabLayout();
-
-    playSoundSafe(this, 'sound-goal', { volume: 0.72 });
-
-    const notification = showGoalNotification(
-      this,
-      layout.preview.centerX,
-      layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y
-    );
-    this.previewLayer?.add(notification);
+    this.previewEffect = createGoalScoredEffect(this, this.createShotOutcomePreviewOptions(layout));
   }
 
   private showFinalWhistleModalPreview(): void {
-    if (this.previewModal !== null) {
-      return;
-    }
+    this.clearPreviewArea();
 
     const layout = createDevLabLayout();
     const modal = createMatchFinishedModal(this, {
@@ -182,9 +188,47 @@ export class DevLabScene extends Phaser.Scene {
     this.previewModal = modal;
   }
 
+  private showGoalkeeperSavePreview(): void {
+    this.clearPreviewArea();
+
+    const layout = createDevLabLayout();
+    this.previewEffect = createGoalkeeperSaveEffect(this, this.createShotOutcomePreviewOptions(layout));
+  }
+
+  private showPostHitPreview(): void {
+    this.clearPreviewArea();
+
+    const layout = createDevLabLayout();
+    this.previewEffect = createPostHitEffect(this, this.createShotOutcomePreviewOptions(layout));
+  }
+
+  private clearPreviewArea(): void {
+    this.previewEffect?.destroy();
+    this.previewEffect = null;
+    this.previewModal = null;
+    this.previewLayer?.removeAll(true);
+  }
+
   private closePreviewModal(): void {
     this.previewModal?.destroy();
     this.previewModal = null;
+  }
+
+  private createShotOutcomePreviewOptions(layout: DevLabLayout): ShotOutcomeEffectOptions {
+    const ballFxX = layout.preview.centerX + DEV_LAB_SHOT_BALL_FX_OFFSET_X;
+    const ballFxY = layout.preview.centerY + DEV_LAB_SHOT_BALL_FX_OFFSET_Y;
+
+    return {
+      notificationX: layout.preview.centerX,
+      notificationY: layout.preview.centerY,
+      ballFxX,
+      ballFxY,
+      ballStartX: ballFxX + DEV_LAB_SHOT_BALL_START_OFFSET_X,
+      ballStartY: ballFxY + DEV_LAB_SHOT_BALL_START_OFFSET_Y,
+      showBallPreview: true,
+      activeOnLeft: true,
+      parent: this.previewLayer ?? undefined
+    };
   }
 
   private startGamePreview(scenario: DevLabScenario): void {

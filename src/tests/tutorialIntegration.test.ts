@@ -115,10 +115,7 @@ describe('Tutorial Match launch and GameScene integration', () => {
     expect(selectTargetBlock).toContain('if (!deferTutorialGoalEvent)');
     expect(selectTargetBlock).toContain('this.recordTutorialEvents(state, previousLogLength);');
     expect(selectTargetBlock).toContain('this.refreshTutorialOverlay(state);');
-    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
-      impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')
-    );
-    expect(impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')).toBeLessThan(
+    expect(impactBlock.indexOf('createGoalScoredEffect(this, shotEffectOptions);')).toBeLessThan(
       impactBlock.indexOf('onEffectStarted?.();')
     );
   });
@@ -131,7 +128,7 @@ describe('Tutorial Match launch and GameScene integration', () => {
     );
 
     expect(impactBlock).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
-    expect(impactBlock).toContain('this.playSceneEffectSound(shotEffect);');
+    expect(impactBlock).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
     expect(impactBlock).toContain('const shotEventIndex = getGoalkeeperShotEventIndex(this.requireEngine().getState().log, outcome);');
     expect(impactBlock).toContain('claimGoalkeeperShotImpactEvent(');
     expect(impactBlock).toContain('this.handledGoalkeeperShotEventIndexes');

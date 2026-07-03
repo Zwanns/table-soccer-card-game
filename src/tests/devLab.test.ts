@@ -59,8 +59,11 @@ describe('Dev Lab scene previews', () => {
     const source = readSource('src/scenes/DevLabScene.ts');
 
     expect(source).toContain("super('DevLabScene')");
-    expect(source).toContain("'Goal notification preview'");
+    expect(source).toContain("'Goal preview'");
+    expect(source).not.toContain("'Goal notification preview'");
     expect(source).toContain("'Final whistle modal preview'");
+    expect(source).toContain("'Goalkeeper save preview'");
+    expect(source).toContain("'Post hit preview'");
     expect(source).toContain("'Initial deal preview'");
     expect(source).toContain("'Post-attack restore preview'");
     expect(source).toContain("'Pause during restore test'");
@@ -77,11 +80,91 @@ describe('Dev Lab scene previews', () => {
     );
 
     expect(modalBlock).toContain('createMatchFinishedModal(this');
+    expect(modalBlock).toContain('this.clearPreviewArea();');
     expect(modalBlock).toContain('FINAL_WHISTLE_PREVIEW_TEXT');
     expect(modalBlock).toContain("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });");
     expect(modalBlock).toContain('onOk: () => this.closePreviewModal()');
     expect(modalBlock).not.toContain('layout:');
     expect(modalBlock).not.toContain("this.scene.start('ResultScene'");
+  });
+
+  it('wires goal, goalkeeper save and post hit previews to the shared shot outcome helpers', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(source).toContain("} from '../ui/shotOutcomeEffects'");
+    expect(source).toContain("private previewEffect: ShotOutcomeEffectHandle | null = null");
+    expect(source).toContain("{ label: 'Goal preview', onClick: () => this.showGoalPreview() }");
+    expect(source).toContain("{ label: 'Goalkeeper save preview', onClick: () => this.showGoalkeeperSavePreview() }");
+    expect(source).toContain("{ label: 'Post hit preview', onClick: () => this.showPostHitPreview() }");
+    expect(source).toContain('private showGoalPreview(): void');
+    expect(source).toContain('this.previewEffect = createGoalScoredEffect(this, this.createShotOutcomePreviewOptions(layout));');
+    expect(source).toContain('private showGoalkeeperSavePreview(): void');
+    expect(source).toContain('this.previewEffect = createGoalkeeperSaveEffect(this, this.createShotOutcomePreviewOptions(layout));');
+    expect(source).toContain('private showPostHitPreview(): void');
+    expect(source).toContain('this.previewEffect = createPostHitEffect(this, this.createShotOutcomePreviewOptions(layout));');
+    expect(source).toContain('parent: this.previewLayer ?? undefined');
+    expect(source).toContain('showBallPreview: true');
+    expect(helperSource).toContain('export function createGoalScoredEffect(');
+    expect(helperSource).toContain('return createShotOutcomeEffect(scene, GOAL_SHOT_OUTCOME_EFFECT, options);');
+    expect(helperSource).toContain('export function createGoalkeeperSaveEffect(');
+    expect(helperSource).toContain('return createShotOutcomeEffect(scene, GOALKEEPER_SAVE_SHOT_OUTCOME_EFFECT, options);');
+    expect(helperSource).toContain('export function createPostHitEffect(');
+    expect(helperSource).toContain('return createShotOutcomeEffect(scene, POST_HIT_SHOT_OUTCOME_EFFECT, options);');
+  });
+
+  it('cleans previous Dev Lab preview effects before starting goal, save or post previews', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+    const goalBlock = source.slice(
+      source.indexOf('private showGoalPreview()'),
+      source.indexOf('private showFinalWhistleModalPreview()')
+    );
+    const saveBlock = source.slice(
+      source.indexOf('private showGoalkeeperSavePreview()'),
+      source.indexOf('private showPostHitPreview()')
+    );
+    const postBlock = source.slice(
+      source.indexOf('private showPostHitPreview()'),
+      source.indexOf('private clearPreviewArea()')
+    );
+    const cleanupBlock = source.slice(
+      source.indexOf('private clearPreviewArea()'),
+      source.indexOf('private closePreviewModal()')
+    );
+
+    expect(goalBlock).toContain('this.clearPreviewArea();');
+    expect(saveBlock).toContain('this.clearPreviewArea();');
+    expect(postBlock).toContain('this.clearPreviewArea();');
+    expect(cleanupBlock).toContain('this.previewEffect?.destroy();');
+    expect(cleanupBlock).toContain('this.previewEffect = null;');
+    expect(cleanupBlock).toContain('this.previewModal = null;');
+    expect(cleanupBlock).toContain('this.previewLayer?.removeAll(true);');
+  });
+
+  it('keeps goal, save and post previews sandboxed from match state and ResultScene navigation', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+    const goalBlock = source.slice(
+      source.indexOf('private showGoalPreview()'),
+      source.indexOf('private showFinalWhistleModalPreview()')
+    );
+    const saveBlock = source.slice(
+      source.indexOf('private showGoalkeeperSavePreview()'),
+      source.indexOf('private showPostHitPreview()')
+    );
+    const postBlock = source.slice(
+      source.indexOf('private showPostHitPreview()'),
+      source.indexOf('private clearPreviewArea()')
+    );
+
+    expect(goalBlock).not.toContain('new GameEngine');
+    expect(goalBlock).not.toContain("this.scene.start('ResultScene'");
+    expect(goalBlock).not.toContain("this.scene.start('GameScene'");
+    expect(saveBlock).not.toContain('new GameEngine');
+    expect(saveBlock).not.toContain("this.scene.start('ResultScene'");
+    expect(saveBlock).not.toContain("this.scene.start('GameScene'");
+    expect(postBlock).not.toContain('new GameEngine');
+    expect(postBlock).not.toContain("this.scene.start('ResultScene'");
+    expect(postBlock).not.toContain("this.scene.start('GameScene'");
   });
 
   it('uses the shared real-game final whistle modal layout in Dev Lab preview', () => {
@@ -122,12 +205,14 @@ describe('Dev Lab scene previews', () => {
     const devLabSource = readSource('src/scenes/DevLabScene.ts');
     const gameSource = readSource('src/scenes/GameScene.ts');
     const helperSource = readSource('src/ui/goalNotification.ts');
+    const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
 
-    expect(devLabSource).toContain("import { GOAL_NOTIFICATION_DEPTH, GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification }");
+    expect(devLabSource).toContain("import { GOAL_NOTIFICATION_DEPTH } from '../ui/goalNotification'");
     expect(gameSource).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification }");
-    expect(devLabSource).toContain('showGoalNotification(');
+    expect(shotOutcomeSource).toContain('showGoalNotification(');
     expect(gameSource).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete)');
     expect(devLabSource).not.toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
+    expect(devLabSource).not.toContain('showGoalNotification(');
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!'");
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals'");
     expect(helperSource).toContain('): Phaser.GameObjects.Container');
@@ -254,7 +339,7 @@ describe('Dev Lab side-panel layout', () => {
   });
 
   it('keeps every scenario button and the Back button inside the side panel', () => {
-    const scenarioCount = 7;
+    const scenarioCount = 9;
 
     for (const mobileLandscape of [false, true]) {
       const layout = createDevLabLayout(mobileLandscape);
@@ -294,10 +379,16 @@ describe('Dev Lab side-panel layout', () => {
     expect(source).toContain('new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, y, scenario.label');
     expect(source).toContain("new Button(this, layout.sidePanel.x + layout.sidePanel.width / 2, layout.backButton.y, 'Back'");
     expect(source).toContain('this.previewLayer = this.add.container(0, 0).setDepth(GOAL_NOTIFICATION_DEPTH)');
-    expect(source).toContain('const notification = showGoalNotification(');
-    expect(source).toContain('this.previewLayer?.add(notification)');
-    expect(source).toContain('layout.preview.centerX,');
-    expect(source).toContain('layout.preview.centerY + GOAL_NOTIFICATION_OFFSET_Y');
+    expect(source).toContain('parent: this.previewLayer ?? undefined');
+    expect(source).toContain('notificationX: layout.preview.centerX');
+    expect(source).toContain('notificationY: layout.preview.centerY');
+    expect(source).toContain('ballFxX = layout.preview.centerX + DEV_LAB_SHOT_BALL_FX_OFFSET_X');
+    expect(source).toContain('ballFxY = layout.preview.centerY + DEV_LAB_SHOT_BALL_FX_OFFSET_Y');
+    expect(source).toContain('ballFxX,');
+    expect(source).toContain('ballFxY,');
+    expect(source).toContain('ballStartX: ballFxX + DEV_LAB_SHOT_BALL_START_OFFSET_X');
+    expect(source).toContain('ballStartY: ballFxY + DEV_LAB_SHOT_BALL_START_OFFSET_Y');
+    expect(source).toContain('showBallPreview: true');
     expect(source).toContain('overlayWidth: layout.preview.width');
     expect(source).toContain('overlayHeight: layout.preview.height');
     expect(source).not.toContain('setMask(');

@@ -741,7 +741,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.showImpactPulse(target.x, target.y, outcome);');
     expect(source).not.toContain('this.playGoalkeeperImpactSound(context.positionId, outcome);');
     expect(source).not.toContain('private playGoalkeeperImpactSound(');
-    expect(source).toContain('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);');
+    expect(source).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
     expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
@@ -820,7 +820,7 @@ describe('GameScene visual layout contracts', () => {
     expect(gameSceneSource).toContain('ball.setAngle(rotationSign * 720 * progress)');
     expect(gameSceneSource).toContain('ball.setScale(baseScaleX * scale, baseScaleY * scale)');
     expect(gameSceneSource).toContain('private finishGoalkeeperShotBallImpact(');
-    expect(gameSceneSource).toContain('this.showGoalkeeperShotTargetImpact(target, outcome)');
+    expect(gameSceneSource).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
     expect(gameSceneSource).toContain('const exit = getGoalkeeperShotBallExit(target, outcome, activeOnLeft)');
     expect(gameSceneSource).toContain('ball.destroy();\n        onComplete();');
     expect(gameSceneSource).toContain('return getDeckTurnBallWorldPosition(getPlayerDeckX(state, playerId), DECK_Y, markerSide)');
@@ -1034,7 +1034,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("return context.positionId === 'goalkeeper' && (outcome === 'goal' || outcome === 'save' || outcome === 'post')");
     expect(source).toContain("state.log.slice(-4).some((event) => event.type === 'ATTACK_MISSED') ? 'miss' : 'defeat'");
     expect(source).toContain("if (outcome === 'post' || outcome === 'save' || outcome === 'miss') {");
-    expect(source).toContain('this.playSceneEffectSound(shotEffect);');
+    expect(source).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
   });
 
   it('defers restored field cards until goalkeeper shot and outcome visuals complete', () => {
@@ -1284,6 +1284,7 @@ describe('GameScene visual layout contracts', () => {
 
   it('animates goalkeeper save as a catch pulse and side deflection', () => {
     const source = readSource('src/scenes/GameScene.ts');
+    const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
 
     expect(source).toContain("if (outcome === 'save') {\n      this.tweens.add({");
     expect(source).toContain('scale: MATCH_CARD_SCALE * 1.1');
@@ -1297,8 +1298,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain('GOALKEEPER_SAVE_HAND_FX_TEXTURE_KEY');
     expect(source).not.toContain('image.setDisplaySize(GOALKEEPER_SAVE_HAND_FX_SIZE, GOALKEEPER_SAVE_HAND_FX_SIZE);');
     expect(source).not.toContain('handFx?.image.destroy();');
-    expect(source).toContain('x: target.x + (activeOnLeft ? -155 : 155)');
-    expect(source).toContain('y: target.y + 104');
+    expect(shotOutcomeSource).toContain('export function getGoalkeeperShotSaveDeflection(');
+    expect(shotOutcomeSource).toContain('x: target.x + (activeOnLeft ? -155 : 155)');
+    expect(shotOutcomeSource).toContain('y: target.y + 104');
     expect(source).toContain('angle: ball.angle + rotationSign * 420');
     expect(source).not.toContain("if (outcome === 'save') {\n    return {\n      x: activeOnLeft ? 1485 : 115,\n      y: DECK_Y\n    };\n  }");
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALKEEPER_SAVE'))");
@@ -1334,18 +1336,20 @@ describe('GameScene visual layout contracts', () => {
   it('animates post outcome as a forward goalkeeper deflection with goalpost sound', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const eventEffectsSource = readSource('src/scenes/gameSceneEventEffects.ts');
+    const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
 
     expect(source).toContain("if (outcome === 'post') {\n      this.animateGoalkeeperShotPostForwardDeflection(ball, target, activeOnLeft, baseScaleX, baseScaleY, onComplete);");
     expect(source).toContain('private animateGoalkeeperShotPostForwardDeflection(');
     expect(source).toContain('const deflection = getGoalkeeperShotPostForwardDeflection(target, activeOnLeft)');
-    expect(source).toContain('x: target.x + (activeOnLeft ? -190 : 190)');
-    expect(source).toContain('y: target.y - 64');
+    expect(shotOutcomeSource).toContain('export function getGoalkeeperShotPostForwardDeflection(');
+    expect(shotOutcomeSource).toContain('x: target.x + (activeOnLeft ? -190 : 190)');
+    expect(shotOutcomeSource).toContain('y: target.y - 64');
     expect(source).toContain('x: deflection.x + (activeOnLeft ? -88 : 88)');
     expect(source).not.toContain("if (outcome !== 'goal' && outcome !== 'post' && outcome !== 'save') {");
     expect(source).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
-    expect(source).toContain('this.playSceneEffectSound(shotEffect);');
-    expect(eventEffectsSource).toContain("flyingMessage: 'Post!'");
-    expect(eventEffectsSource).toContain("soundKey: 'sound-goalpost'");
+    expect(source).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
+    expect(eventEffectsSource).toContain('POST_HIT_SHOT_OUTCOME_EFFECT');
+    expect(shotOutcomeSource).toContain("soundKey: 'sound-goalpost'");
     expect(source).not.toContain('private animateGoalkeeperShotPostReturn(');
     expect(source).not.toContain("const returnTarget = getGoalkeeperShotBallExit(target, 'post', activeOnLeft)");
     expect(source).not.toContain('x: activeOnLeft ? 115 : 1485');
@@ -1355,32 +1359,30 @@ describe('GameScene visual layout contracts', () => {
   it('shows goalkeeper shot flying messages at the impact tick and enlarges GOAL!! only', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const helperSource = readSource('src/ui/goalNotification.ts');
+    const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
     const impactBlock = source.slice(
       source.indexOf('private finishGoalkeeperShotBallImpact('),
       source.indexOf('private animateGoalkeeperShotGoalDisappear(')
     );
 
+    expect(source).toContain("} from '../ui/shotOutcomeEffects'");
     expect(source).toContain('getGoalkeeperShotSceneEffect,');
     expect(source).toContain('getNextGoalScoredSceneEffect,');
-    expect(source).toContain('type GoalkeeperShotSceneEffect,');
     expect(source).toContain('type GoalScoredSceneEffect');
     expect(impactBlock).toContain('const shotEffect = getGoalkeeperShotSceneEffect(outcome);');
     expect(impactBlock).toContain('const shotEventIndex = getGoalkeeperShotEventIndex(this.requireEngine().getState().log, outcome);');
     expect(impactBlock).toContain('const shouldStartImpactEffects = claimGoalkeeperShotImpactEvent(');
     expect(impactBlock).toContain('this.handledGoalkeeperShotEventIndexes,\n      shotEventIndex');
     expect(impactBlock).toContain('if (shouldStartImpactEffects) {');
-    expect(impactBlock).toContain('this.playSceneEffectSound(shotEffect);');
-    expect(impactBlock).toContain('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);');
-    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
-      impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')
-    );
-    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
-      impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')
-    );
-    expect(impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')).toBeLessThan(
-      impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')
-    );
-    expect(impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')).toBeLessThan(
+    expect(impactBlock).toContain('const shotEffectOptions = {');
+    expect(impactBlock).toContain('notificationX: SCENE_WIDTH / 2');
+    expect(impactBlock).toContain('notificationY: SCENE_HEIGHT / 2');
+    expect(impactBlock).toContain('ballFxX: target.x');
+    expect(impactBlock).toContain('ballFxY: target.y');
+    expect(impactBlock).toContain("if (outcome === 'goal') {");
+    expect(impactBlock).toContain('createGoalScoredEffect(this, shotEffectOptions);');
+    expect(impactBlock).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
+    expect(impactBlock.indexOf('createGoalScoredEffect(this, shotEffectOptions);')).toBeLessThan(
       impactBlock.indexOf('onEffectStarted?.();')
     );
     expect(impactBlock).not.toContain("this.playGoalkeeperImpactSound('goalkeeper', outcome);");
@@ -1389,12 +1391,12 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete);');
     expect(source).toContain("const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';");
     expect(source).toContain("const isShotOutcomeTone = tone === 'post' || tone === 'save';");
-    expect(source).toContain('const FLYING_MESSAGE_DEPTH = 3000;');
-    expect(source).toContain('.setDepth(FLYING_MESSAGE_DEPTH);');
-    expect(source).toContain('const popDuration = isShotOutcomeTone ? 220 : 0;');
-    expect(source).toContain('const fadeDelay = isShotOutcomeTone ? 520 : 0;');
-    expect(source).toContain('const fadeDuration = isShotOutcomeTone ? 1900 : 900;');
-    expect(source).toContain('const startFadeTween = (): void => {');
+    expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_EFFECT_DEPTH = 3000');
+    expect(shotOutcomeSource).toContain('.setDepth(SHOT_OUTCOME_EFFECT_DEPTH)');
+    expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_MESSAGE_POP_DURATION = 220');
+    expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_MESSAGE_FADE_DELAY = 520');
+    expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_MESSAGE_FADE_DURATION = 1900');
+    expect(shotOutcomeSource).toContain('const startFadeTween = (): void => {');
     expect(helperSource).toContain('startScale: 0.82');
     expect(helperSource).toContain('targetScale: 1.08');
     expect(helperSource).toContain('fontSize: \'88px\'');
@@ -1403,9 +1405,9 @@ describe('GameScene visual layout contracts', () => {
     expect(helperSource).toContain('targets: notification');
     expect(helperSource).toContain('notification.destroy()');
     expect(helperSource).toContain("ease: 'Back.easeOut'");
-    expect(source).toContain('delay: fadeDelay,');
-    expect(source).toContain('duration: fadeDuration,');
-    expect(source).toContain('private playSceneEffectSound(effect: GoalkeeperShotSceneEffect | GoalScoredSceneEffect): boolean');
+    expect(shotOutcomeSource).toContain('delay: SHOT_OUTCOME_MESSAGE_FADE_DELAY,');
+    expect(shotOutcomeSource).toContain('duration: SHOT_OUTCOME_MESSAGE_FADE_DURATION,');
+    expect(source).toContain('private playSceneEffectSound(effect: GoalScoredSceneEffect): boolean');
     expect(source).toContain('return playSoundSafe(this, effect.soundKey, { volume: 0.72 });');
     expect(source).not.toContain('handledGoalScoredEventCursor');
     expect(source).not.toContain('this.requireEngine().getState().log.length');

@@ -504,20 +504,23 @@ describe('project scaffold', () => {
   it('starts goalkeeper outcome sounds at attack-card impact time', () => {
     const gameSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'GameScene.ts'), 'utf8');
     const effectSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'gameSceneEventEffects.ts'), 'utf8');
+    const shotOutcomeSource = readFileSync(join(process.cwd(), 'src', 'ui', 'shotOutcomeEffects.ts'), 'utf8');
     const audioHelperSource = readFileSync(join(process.cwd(), 'src', 'audio', 'playSoundSafe.ts'), 'utf8');
     const impactBlock = gameSceneSource.slice(
       gameSceneSource.indexOf('private finishGoalkeeperShotBallImpact('),
       gameSceneSource.indexOf('private animateGoalkeeperShotGoalDisappear(')
     );
 
-    expect(effectSource).toContain("soundKey: 'sound-goal'");
-    expect(effectSource).toContain("soundKey: 'sound-goalpost'");
-    expect(effectSource).toContain("soundKey: 'sound-goalkeeper-save'");
-    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
-      impactBlock.indexOf('this.showFlyingMessage(shotEffect.flyingMessage, shotEffect.flyingMessageTone);')
-    );
-    expect(impactBlock.indexOf('this.playSceneEffectSound(shotEffect);')).toBeLessThan(
-      impactBlock.indexOf('this.showGoalkeeperShotTargetImpact(target, outcome);')
+    expect(effectSource).toContain('GOAL_SHOT_OUTCOME_EFFECT');
+    expect(effectSource).toContain('POST_HIT_SHOT_OUTCOME_EFFECT');
+    expect(effectSource).toContain('GOALKEEPER_SAVE_SHOT_OUTCOME_EFFECT');
+    expect(shotOutcomeSource).toContain("soundKey: 'sound-goal'");
+    expect(shotOutcomeSource).toContain("soundKey: 'sound-goalpost'");
+    expect(shotOutcomeSource).toContain("soundKey: 'sound-goalkeeper-save'");
+    expect(impactBlock).toContain('createGoalScoredEffect(this, shotEffectOptions);');
+    expect(impactBlock).toContain('createShotOutcomeEffect(this, shotEffect, shotEffectOptions);');
+    expect(impactBlock.indexOf('createGoalScoredEffect(this, shotEffectOptions);')).toBeLessThan(
+      impactBlock.indexOf('onEffectStarted?.();')
     );
     expect(gameSceneSource).toContain('this.playSceneEffectSound(goalEffect);');
     expect(gameSceneSource).toContain('return playSoundSafe(this, effect.soundKey, { volume: 0.72 });');

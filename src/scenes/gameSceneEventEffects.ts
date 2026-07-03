@@ -1,19 +1,16 @@
 import type { GameEvent } from '../game';
+import {
+  GOALKEEPER_SAVE_SHOT_OUTCOME_EFFECT,
+  GOAL_SHOT_OUTCOME_EFFECT,
+  POST_HIT_SHOT_OUTCOME_EFFECT,
+  type ShotOutcomeEffectDefinition
+} from '../ui/shotOutcomeEffects';
 
-export type GoalScoredSceneEffect = {
-  type: 'GOAL_SCORED';
+export type GoalScoredSceneEffect = typeof GOAL_SHOT_OUTCOME_EFFECT & {
   eventIndex: number;
-  flyingMessage: 'GOAL!!';
-  flyingMessageTone: 'goal';
-  soundKey: 'sound-goal';
 };
 
-export type GoalkeeperShotSceneEffect = {
-  type: 'GOAL_SCORED' | 'GOALPOST_HIT' | 'GOALKEEPER_SAVE';
-  flyingMessage: 'GOAL!!' | 'Post!' | 'Goalkeeper!!';
-  flyingMessageTone: 'goal' | 'post' | 'save';
-  soundKey: 'sound-goal' | 'sound-goalpost' | 'sound-goalkeeper-save';
-};
+export type GoalkeeperShotSceneEffect = ShotOutcomeEffectDefinition;
 
 const GOALKEEPER_SHOT_EVENT_TYPES = {
   goal: 'GOAL_SCORED',
@@ -26,26 +23,11 @@ export function getGoalkeeperShotSceneEffect(
 ): GoalkeeperShotSceneEffect {
   switch (outcome) {
     case 'goal':
-      return {
-        type: 'GOAL_SCORED',
-        flyingMessage: 'GOAL!!',
-        flyingMessageTone: 'goal',
-        soundKey: 'sound-goal'
-      };
+      return { ...GOAL_SHOT_OUTCOME_EFFECT };
     case 'post':
-      return {
-        type: 'GOALPOST_HIT',
-        flyingMessage: 'Post!',
-        flyingMessageTone: 'post',
-        soundKey: 'sound-goalpost'
-      };
+      return { ...POST_HIT_SHOT_OUTCOME_EFFECT };
     case 'save':
-      return {
-        type: 'GOALKEEPER_SAVE',
-        flyingMessage: 'Goalkeeper!!',
-        flyingMessageTone: 'save',
-        soundKey: 'sound-goalkeeper-save'
-      };
+      return { ...GOALKEEPER_SAVE_SHOT_OUTCOME_EFFECT };
   }
 }
 
@@ -89,11 +71,9 @@ export function getNextGoalScoredSceneEffect(
 
     if (event?.type === 'GOAL_SCORED' && !handledEventIndexes.has(eventIndex)) {
       return {
+        ...GOAL_SHOT_OUTCOME_EFFECT,
         type: 'GOAL_SCORED',
-        eventIndex,
-        flyingMessage: 'GOAL!!',
-        flyingMessageTone: 'goal',
-        soundKey: 'sound-goal'
+        eventIndex
       };
     }
   }
