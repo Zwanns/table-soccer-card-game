@@ -144,6 +144,13 @@ describe('BootScene kit asset loading', () => {
     expect(bootSceneSource).toContain("this.load.image('gk-goals', ASSET_PATHS.goalNotificationGoalkeeper)");
   });
 
+  it('preloads the goalkeeper save notification illustration from public assets', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    expect(bootSceneSource).toContain("goalkeeperSaveNotification: '/menu/gk-save.webp'");
+    expect(bootSceneSource).toContain("this.load.image('gk-save', ASSET_PATHS.goalkeeperSaveNotification)");
+  });
+
   it('does not preload reverted goalkeeper shot outcome FX assets', () => {
     const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
 

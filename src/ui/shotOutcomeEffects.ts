@@ -49,6 +49,17 @@ export const SHOT_OUTCOME_MESSAGE_START_SCALE = 0.82;
 export const SHOT_OUTCOME_MESSAGE_TARGET_SCALE = 1.08;
 export const SHOT_OUTCOME_IMPACT_RADIUS = 20;
 export const SHOT_OUTCOME_IMPACT_DURATION = 320;
+export const GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY = 'gk-save';
+export const GOALKEEPER_SAVE_NOTIFICATION_LINE_1 = 'Goalkeeper';
+export const GOALKEEPER_SAVE_NOTIFICATION_LINE_2 = 'SAVE';
+export const GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE = 44;
+export const GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE = 76;
+export const GOALKEEPER_SAVE_NOTIFICATION_MAX_SAVE_FONT_SIZE = 96;
+export const GOALKEEPER_SAVE_NOTIFICATION_LINE_GAP = 0;
+export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO = 1.2;
+export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_ALPHA = 0.94;
+export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH = 0;
+export const GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH = 1;
 export const SHOT_OUTCOME_BALL_TEXTURE_KEY = 'turn-ball';
 export const SHOT_OUTCOME_BALL_SIZE = 42;
 export const SHOT_OUTCOME_BALL_FLIGHT_MS = 320;
@@ -144,6 +155,12 @@ export function createShotOutcomeEffect(
     });
     ownedObjects.add(notification);
     root.add(notification);
+  } else if (effect.flyingMessageTone === 'save') {
+    createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, () => {
+      if (!destroyed) {
+        options.onComplete?.();
+      }
+    });
   } else {
     createShotOutcomeMessage(scene, root, ownedObjects, ownedTweens, effect, notificationX, notificationY, () => {
       if (!destroyed) {
@@ -182,6 +199,17 @@ export function getGoalkeeperShotPostForwardDeflection(
     x: target.x + (activeOnLeft ? -190 : 190),
     y: target.y - 64
   };
+}
+
+export function getGoalkeeperSaveMatchedFontSize(goalkeeperWidth: number, saveWidth: number): number {
+  if (goalkeeperWidth <= 0 || saveWidth <= 0) {
+    return GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE;
+  }
+
+  return Math.min(
+    GOALKEEPER_SAVE_NOTIFICATION_MAX_SAVE_FONT_SIZE,
+    Math.round(GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE * (goalkeeperWidth / saveWidth))
+  );
 }
 
 function createShotOutcomeMessage(
@@ -244,6 +272,147 @@ function createShotOutcomeMessage(
     }
   });
   ownedTweens.add(popTween);
+}
+
+function createGoalkeeperSaveNotification(
+  scene: Phaser.Scene,
+  root: Phaser.GameObjects.Container,
+  ownedObjects: Set<Phaser.GameObjects.GameObject>,
+  ownedTweens: Set<Phaser.Tweens.Tween | Phaser.Tweens.TweenChain>,
+  x: number,
+  y: number,
+  onComplete: () => void
+): void {
+  const notification = scene.add.container(x, y + SHOT_OUTCOME_MESSAGE_OFFSET_Y);
+  notification.setDepth(SHOT_OUTCOME_EFFECT_DEPTH);
+  notification.setAlpha(0);
+  notification.setScale(SHOT_OUTCOME_MESSAGE_START_SCALE);
+
+  const goalkeeperText = scene.add
+    .text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_1, {
+      color: '#ffffff',
+      fontFamily: 'Bangers, Arial, sans-serif',
+      fontSize: `${GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE}px`,
+      fontStyle: '700',
+      stroke: '#123b2a',
+      strokeThickness: 5
+    })
+    .setPadding(18, 8, 18, 8)
+    .setOrigin(0.5)
+    .setDepth(GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH);
+
+  const saveText = scene.add
+    .text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_2, {
+      color: '#ffffff',
+      fontFamily: 'Bangers, Arial, sans-serif',
+      fontSize: `${GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE}px`,
+      fontStyle: '700',
+      stroke: '#123b2a',
+      strokeThickness: 6
+    })
+    .setPadding(18, 8, 18, 8)
+    .setOrigin(0.5)
+    .setDepth(GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH);
+
+  matchGoalkeeperSaveTextWidths(goalkeeperText, saveText);
+  layoutGoalkeeperSaveText(goalkeeperText, saveText);
+
+  const image = createGoalkeeperSaveNotificationImage(scene, goalkeeperText, saveText);
+
+  if (image !== null) {
+    notification.add(image);
+  }
+
+  notification.add([goalkeeperText, saveText]);
+  ownedObjects.add(notification);
+  root.add(notification);
+
+  const startFadeTween = (): void => {
+    const fadeTween = scene.tweens.add({
+      targets: notification,
+      y: notification.y - 82,
+      alpha: 0,
+      delay: SHOT_OUTCOME_MESSAGE_FADE_DELAY,
+      duration: SHOT_OUTCOME_MESSAGE_FADE_DURATION,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        ownedTweens.delete(fadeTween);
+        notification.destroy();
+        ownedObjects.delete(notification);
+        onComplete();
+      }
+    });
+    ownedTweens.add(fadeTween);
+  };
+
+  const popTween = scene.tweens.add({
+    targets: notification,
+    alpha: 1,
+    scale: SHOT_OUTCOME_MESSAGE_TARGET_SCALE,
+    duration: SHOT_OUTCOME_MESSAGE_POP_DURATION,
+    ease: 'Back.easeOut',
+    onComplete: () => {
+      ownedTweens.delete(popTween);
+      startFadeTween();
+    }
+  });
+  ownedTweens.add(popTween);
+}
+
+function matchGoalkeeperSaveTextWidths(
+  goalkeeperText: Phaser.GameObjects.Text,
+  saveText: Phaser.GameObjects.Text
+): void {
+  const goalkeeperWidth = goalkeeperText.displayWidth;
+  const saveWidth = saveText.displayWidth;
+
+  if (goalkeeperWidth <= 0 || saveWidth <= 0) {
+    return;
+  }
+
+  const matchedFontSize = getGoalkeeperSaveMatchedFontSize(goalkeeperWidth, saveWidth);
+
+  saveText.setFontSize(matchedFontSize);
+}
+
+function layoutGoalkeeperSaveText(
+  goalkeeperText: Phaser.GameObjects.Text,
+  saveText: Phaser.GameObjects.Text
+): void {
+  const totalTextHeight =
+    goalkeeperText.displayHeight + GOALKEEPER_SAVE_NOTIFICATION_LINE_GAP + saveText.displayHeight;
+
+  goalkeeperText.setY(-totalTextHeight / 2 + goalkeeperText.displayHeight / 2);
+  saveText.setY(totalTextHeight / 2 - saveText.displayHeight / 2);
+}
+
+function createGoalkeeperSaveNotificationImage(
+  scene: Phaser.Scene,
+  goalkeeperText: Phaser.GameObjects.Text,
+  saveText: Phaser.GameObjects.Text
+): Phaser.GameObjects.Image | null {
+  if (!scene.textures.exists(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY)) {
+    return null;
+  }
+
+  const image = scene.add.image(0, 0, GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY);
+  const imageSource = scene.textures.get(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY).getSourceImage() as {
+    width: number;
+    height: number;
+  };
+  const textWidth = Math.max(goalkeeperText.displayWidth, saveText.displayWidth);
+  const textHeight =
+    goalkeeperText.displayHeight + GOALKEEPER_SAVE_NOTIFICATION_LINE_GAP + saveText.displayHeight;
+  const imageScale = Math.max(
+    (textWidth * GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.width,
+    (textHeight * GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.height
+  );
+
+  image.setDisplaySize(imageSource.width * imageScale, imageSource.height * imageScale);
+  image.setAlpha(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_ALPHA);
+  image.setDepth(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH);
+
+  return image;
 }
 
 function createShotOutcomeImpactPulse(

@@ -5,6 +5,13 @@ import {
   GOALKEEPER_SAVE_SHOT_OUTCOME_EFFECT,
   GOAL_SHOT_OUTCOME_EFFECT,
   POST_HIT_SHOT_OUTCOME_EFFECT,
+  GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE,
+  GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH,
+  GOALKEEPER_SAVE_NOTIFICATION_LINE_1,
+  GOALKEEPER_SAVE_NOTIFICATION_LINE_2,
+  GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE,
+  GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH,
+  getGoalkeeperSaveMatchedFontSize,
   getGoalkeeperShotPostForwardDeflection,
   getGoalkeeperShotSaveDeflection
 } from '../ui/shotOutcomeEffects';
@@ -49,6 +56,50 @@ describe('shared shot outcome effects', () => {
     expect(helperSource).toContain('destroy: () => void;');
     expect(helperSource).toContain('ownedTweens.forEach((tween) => tween.stop());');
     expect(helperSource).toContain('ownedObjects.forEach((object) => {');
+  });
+
+  it('builds the updated two-line goalkeeper save notification with image fallback', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(GOALKEEPER_SAVE_NOTIFICATION_LINE_1).toBe('Goalkeeper');
+    expect(GOALKEEPER_SAVE_NOTIFICATION_LINE_2).toBe('SAVE');
+    expect(helperSource).toContain('function createGoalkeeperSaveNotification(');
+    expect(helperSource).toContain('createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY');
+    expect(helperSource).toContain('text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_1');
+    expect(helperSource).toContain('text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_2');
+    expect(helperSource).toContain('saveText.setY(totalTextHeight / 2 - saveText.displayHeight / 2);');
+    expect(helperSource).toContain('if (!scene.textures.exists(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY)) {');
+    expect(helperSource).toContain('return null;');
+    expect(helperSource).toContain('notification.add([goalkeeperText, saveText]);');
+  });
+
+  it('matches SAVE width to Goalkeeper width by font size instead of horizontal scale', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+    const goalkeeperWidth = 152;
+    const saveBaseWidth = 124;
+    const saveFontSize = getGoalkeeperSaveMatchedFontSize(goalkeeperWidth, saveBaseWidth);
+    const projectedSaveWidth = saveBaseWidth * (saveFontSize / GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE);
+    const widthDeltaRatio = Math.abs(projectedSaveWidth - goalkeeperWidth) / goalkeeperWidth;
+
+    expect(GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE).toBeGreaterThan(0);
+    expect(saveFontSize).toBeGreaterThan(GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE);
+    expect(widthDeltaRatio).toBeLessThanOrEqual(0.1);
+    expect(helperSource).toContain('saveText.setFontSize(matchedFontSize);');
+    expect(helperSource).not.toContain('saveText.setScaleX');
+  });
+
+  it('layers the save image behind both text lines and cleans the whole container', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH).toBeLessThan(GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH);
+    expect(helperSource).toContain('image.setDepth(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH);');
+    expect(helperSource).toContain('.setDepth(GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH)');
+    expect(helperSource.indexOf('notification.add(image)')).toBeLessThan(
+      helperSource.indexOf('notification.add([goalkeeperText, saveText])')
+    );
+    expect(helperSource).toContain('targets: notification');
+    expect(helperSource).toContain('notification.destroy();');
+    expect(helperSource).toContain('ownedObjects.delete(notification);');
   });
 
   it('uses safe texture fallback through the shared goal notification for goal outcomes', () => {
