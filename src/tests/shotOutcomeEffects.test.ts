@@ -62,7 +62,7 @@ describe('shared shot outcome effects', () => {
     const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
 
     expect(GOALKEEPER_SAVE_NOTIFICATION_LINE_1).toBe('Goalkeeper');
-    expect(GOALKEEPER_SAVE_NOTIFICATION_LINE_2).toBe('SAVE');
+    expect(GOALKEEPER_SAVE_NOTIFICATION_LINE_2).toBe('SAVE!!');
     expect(helperSource).toContain('function createGoalkeeperSaveNotification(');
     expect(helperSource).toContain('createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY');
     expect(helperSource).toContain('text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_1');
@@ -73,17 +73,16 @@ describe('shared shot outcome effects', () => {
     expect(helperSource).toContain('notification.add([goalkeeperText, saveText]);');
   });
 
-  it('matches SAVE width to Goalkeeper width by font size instead of horizontal scale', () => {
+  it('keeps SAVE!! compact by font size instead of horizontal scale', () => {
     const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
     const goalkeeperWidth = 152;
-    const saveBaseWidth = 124;
+    const saveBaseWidth = 168;
     const saveFontSize = getGoalkeeperSaveMatchedFontSize(goalkeeperWidth, saveBaseWidth);
     const projectedSaveWidth = saveBaseWidth * (saveFontSize / GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE);
-    const widthDeltaRatio = Math.abs(projectedSaveWidth - goalkeeperWidth) / goalkeeperWidth;
 
     expect(GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE).toBeGreaterThan(0);
-    expect(saveFontSize).toBeGreaterThan(GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE);
-    expect(widthDeltaRatio).toBeLessThanOrEqual(0.1);
+    expect(saveFontSize).toBeLessThanOrEqual(GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE);
+    expect(projectedSaveWidth).toBeLessThan(goalkeeperWidth);
     expect(helperSource).toContain('saveText.setFontSize(matchedFontSize);');
     expect(helperSource).not.toContain('saveText.setScaleX');
   });
