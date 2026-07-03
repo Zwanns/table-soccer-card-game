@@ -237,12 +237,12 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private isMatchFinishedModalOpen = false');
     expect(source).toContain('private isMatchFinishedOkHandled = false');
     expect(source).toContain('private matchFinishedWhistlePlayed = false');
-    expect(source).toContain('private shouldShowMatchFinishedModal(state: Readonly<GameState>): boolean');
-    expect(source).toContain(
-      "state.phase === 'GAME_OVER' &&\n      state.players.some((player) => player.deck.cards.length === 0 || player.goalkeeperDeck.getSize() === 0)"
-    );
-    expect(source).toContain('if (this.shouldShowMatchFinishedModal(state)) {\n      this.showMatchFinishedModal(state);\n      return;\n    }');
-    expect(source).toContain('private showMatchFinishedModal(state: Readonly<GameState>): void');
+    expect(source).toContain("import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow'");
+    expect(source).toContain('private handlePlayableMatchFinished(state: Readonly<GameState>): void');
+    expect(source).toContain('private getPlayableCardDepletionFinish(state: Readonly<GameState>): CardDepletionMatchFinish | null');
+    expect(source).toContain('return resolveCardDepletionMatchFinish(state);');
+    expect(source).toContain('if (cardDepletionFinish !== null) {\n      this.showMatchFinishedModal(state, cardDepletionFinish);\n      return;\n    }');
+    expect(source).toContain('private showMatchFinishedModal(state: Readonly<GameState>, finish: CardDepletionMatchFinish): void');
   });
 
   it('builds the match-finished modal as a centered overlay with referee art and OK action', () => {
@@ -250,7 +250,7 @@ describe('GameScene visual layout contracts', () => {
     const helperSource = readSource('src/ui/matchFinishedModal.ts');
     const modalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private getMatchFinishedBodyText(')
+      source.indexOf('private playMatchFinishedWhistleOnce()')
     );
 
     expect(modalBlock).toContain('this.cancelAutomaticCardFlow();');
@@ -260,7 +260,7 @@ describe('GameScene visual layout contracts', () => {
     expect(modalBlock).toContain('centerY: SCENE_HEIGHT / 2');
     expect(modalBlock).toContain('overlayWidth: SCENE_WIDTH');
     expect(modalBlock).toContain('overlayHeight: SCENE_HEIGHT');
-    expect(modalBlock).toContain('bodyText: this.getMatchFinishedBodyText(state)');
+    expect(modalBlock).toContain('bodyText: finish.bodyText');
     expect(modalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
     expect(helperSource).toContain('const overlay = scene.add.rectangle(');
     expect(helperSource).toContain('overlay.setInteractive();');
@@ -277,18 +277,17 @@ describe('GameScene visual layout contracts', () => {
   });
 
   it('builds match-finished body text from the team with an empty attack deck', () => {
-    const source = readSource('src/scenes/GameScene.ts');
-    const bodyBlock = source.slice(
-      source.indexOf('private getMatchFinishedBodyText('),
-      source.indexOf('private playMatchFinishedWhistleOnce()')
-    );
+    const bodySource = readSource('src/scenes/matchFinishFlow.ts');
 
-    expect(bodyBlock).toContain('const exhaustedPlayer = state.players.find((player) => player.deck.cards.length === 0);');
-    expect(bodyBlock).toContain('const exhaustedTeamName = exhaustedPlayer?.name.trim();');
-    expect(bodyBlock).toContain("'The match is over because one side has no cards left to attack.'");
-    expect(bodyBlock).toContain('return `The match is over because ${exhaustedTeamName} has no cards left to attack.`;');
-    expect(bodyBlock).not.toContain('flagCode');
-    expect(bodyBlock).not.toContain('getTeamScoreboardCode');
+    expect(bodySource).toContain('export const CARD_DEPLETION_FALLBACK_BODY');
+    expect(bodySource).toContain('function resolveDepletedAttackPlayer(state: Readonly<GameState>): Player | null');
+    expect(bodySource).toContain('activePlayer.deck.cards.length === 0');
+    expect(bodySource).toContain('state.players.find((player) => player.deck.cards.length === 0) ?? null');
+    expect(bodySource).toContain('const teamName = player.name.trim();');
+    expect(bodySource).toContain('return `The match is over because ${teamName} has no cards left to attack.`;');
+    expect(bodySource).not.toContain('flagCode');
+    expect(bodySource).not.toContain('getTeamScoreboardCode');
+    expect(bodySource).not.toContain('goalkeeperDeck.getSize()');
   });
 
   it('uses the referee image when loaded and falls back safely when missing', () => {
@@ -307,7 +306,7 @@ describe('GameScene visual layout contracts', () => {
     const helperSource = readSource('src/ui/matchFinishedModal.ts');
     const modalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private getMatchFinishedBodyText(')
+      source.indexOf('private playMatchFinishedWhistleOnce()')
     );
     const layoutBlock = helperSource.slice(
       helperSource.indexOf('function resolveMatchFinishedModalLayout('),
@@ -361,7 +360,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private playMatchFinishedWhistleOnce(): void');
     expect(source).toContain('if (this.matchFinishedWhistlePlayed) {\n      return;\n    }');
     expect(source).toContain("this.playSound('sound-whistle-finish', 0.68);");
-    expect(source).toContain('this.openResultScene(state, true);');
+    expect(source).toContain('this.continueToResultScene(state, true);');
     expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
     expect(source.indexOf('this.matchFinishedModal = createMatchFinishedModal(this')).toBeLessThan(
       source.indexOf('this.playMatchFinishedWhistleOnce();')
@@ -379,19 +378,19 @@ describe('GameScene visual layout contracts', () => {
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
     expect(confirmBlock).toContain('this.isMatchFinishedModalOpen = false;');
     expect(confirmBlock).toContain('this.matchFinishedModal?.destroy();');
-    expect(confirmBlock).toContain('this.openResultScene(state, true);');
+    expect(confirmBlock).toContain('this.continueToResultScene(state, true);');
     expect(source.indexOf('private showMatchFinishedModal(')).toBeLessThan(source.indexOf('private confirmMatchFinishedModal('));
   });
 
   it('keeps Quick Match card-depletion results behind the final-whistle OK action', () => {
     const source = readSource('src/scenes/GameScene.ts');
-    const openResultBlock = source.slice(
-      source.indexOf('private openResult('),
+    const finishFlowBlock = source.slice(
+      source.indexOf('private handlePlayableMatchFinished('),
       source.indexOf('private openResultScene(')
     );
     const showModalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private getMatchFinishedBodyText(')
+      source.indexOf('private playMatchFinishedWhistleOnce()')
     );
     const confirmBlock = source.slice(
       source.indexOf('private confirmMatchFinishedModal('),
@@ -402,15 +401,16 @@ describe('GameScene visual layout contracts', () => {
       source.indexOf('private simulatePausedMatch(')
     );
 
-    expect(openResultBlock).toContain('if (this.shouldShowMatchFinishedModal(state))');
-    expect(openResultBlock).toContain('this.showMatchFinishedModal(state);\n      return;');
-    expect(openResultBlock.indexOf('this.showMatchFinishedModal(state);')).toBeLessThan(
-      openResultBlock.indexOf('this.openResultScene(state);')
+    expect(finishFlowBlock).toContain('const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);');
+    expect(finishFlowBlock).toContain('if (cardDepletionFinish !== null)');
+    expect(finishFlowBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n      return;');
+    expect(finishFlowBlock.indexOf('this.showMatchFinishedModal(state, cardDepletionFinish);')).toBeLessThan(
+      finishFlowBlock.indexOf('this.continueToResultScene(state);')
     );
-    expect(showModalBlock).toContain('bodyText: this.getMatchFinishedBodyText(state)');
+    expect(showModalBlock).toContain('bodyText: finish.bodyText');
     expect(showModalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
-    expect(confirmBlock).toContain('this.openResultScene(state, true);');
+    expect(confirmBlock).toContain('this.continueToResultScene(state, true);');
     expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
   });
 
@@ -1132,7 +1132,7 @@ describe('GameScene visual layout contracts', () => {
     const renderBlock = source.slice(source.indexOf('private render('), source.indexOf('private drawAttackCard(): void'));
     const modalBlock = source.slice(
       source.indexOf('private showMatchFinishedModal('),
-      source.indexOf('private getMatchFinishedBodyText(')
+      source.indexOf('private playMatchFinishedWhistleOnce()')
     );
 
     expect(renderBlock).toContain('const matchControls = createMatchControlButtons({');

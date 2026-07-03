@@ -162,7 +162,7 @@ describe('Tutorial Match launch and GameScene integration', () => {
     const gameSource = readSource('src/scenes/GameScene.ts');
     const guard = gameSource.slice(
       gameSource.indexOf('private isTutorialBlockingSystemUi(): boolean'),
-      gameSource.indexOf('private openResult(')
+      gameSource.indexOf('private getPlayableCardDepletionFinish(')
     );
 
     expect(guard).toContain("this.matchMode === 'tutorial'");

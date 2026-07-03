@@ -73,6 +73,7 @@ import {
   type GoalkeeperShotSceneEffect,
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
+import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow';
 import { submitSimulatedTournamentMatch } from './tournamentMatchSimulation';
 
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
@@ -308,7 +309,7 @@ export class GameScene extends Phaser.Scene {
     const state = engine.startNextTurn();
 
     if (state.phase === 'GAME_OVER') {
-      this.openResult(state);
+      this.handlePlayableMatchFinished(state);
       return;
     }
 
@@ -448,7 +449,7 @@ export class GameScene extends Phaser.Scene {
     const state = engine.drawAttackCard();
 
     if (state.phase === 'GAME_OVER') {
-      this.openResult(state);
+      this.handlePlayableMatchFinished(state);
       return;
     }
 
@@ -590,7 +591,7 @@ export class GameScene extends Phaser.Scene {
 
   private handleSelectedTargetState(state: GameState): void {
     if (state.phase === 'GAME_OVER') {
-      this.openResult(state);
+      this.handlePlayableMatchFinished(state);
       return;
     }
 
@@ -2367,14 +2368,19 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private shouldShowMatchFinishedModal(state: Readonly<GameState>): boolean {
-    return (
-      state.phase === 'GAME_OVER' &&
-      state.players.some((player) => player.deck.cards.length === 0 || player.goalkeeperDeck.getSize() === 0)
-    );
+  private getPlayableCardDepletionFinish(state: Readonly<GameState>): CardDepletionMatchFinish | null {
+    if (!this.isRealPlayableMatch()) {
+      return null;
+    }
+
+    return resolveCardDepletionMatchFinish(state);
   }
 
-  private showMatchFinishedModal(state: Readonly<GameState>): void {
+  private isRealPlayableMatch(): boolean {
+    return this.matchMode === 'quick';
+  }
+
+  private showMatchFinishedModal(state: Readonly<GameState>, finish: CardDepletionMatchFinish): void {
     if (this.isNavigationAwayInProgress || this.isSceneShutDown || this.matchFinishedModal !== null) {
       return;
     }
@@ -2395,21 +2401,10 @@ export class GameScene extends Phaser.Scene {
       centerY: SCENE_HEIGHT / 2,
       overlayWidth: SCENE_WIDTH,
       overlayHeight: SCENE_HEIGHT,
-      bodyText: this.getMatchFinishedBodyText(state),
+      bodyText: finish.bodyText,
       onOk: () => this.confirmMatchFinishedModal(state)
     });
     this.playMatchFinishedWhistleOnce();
-  }
-
-  private getMatchFinishedBodyText(state: Readonly<GameState>): string {
-    const exhaustedPlayer = state.players.find((player) => player.deck.cards.length === 0);
-    const exhaustedTeamName = exhaustedPlayer?.name.trim();
-
-    if (exhaustedTeamName === undefined || exhaustedTeamName.length === 0) {
-      return 'The match is over because one side has no cards left to attack.';
-    }
-
-    return `The match is over because ${exhaustedTeamName} has no cards left to attack.`;
   }
 
   private playMatchFinishedWhistleOnce(): void {
@@ -2430,7 +2425,7 @@ export class GameScene extends Phaser.Scene {
     this.isMatchFinishedModalOpen = false;
     this.matchFinishedModal?.destroy();
     this.matchFinishedModal = null;
-    this.openResultScene(state, true);
+    this.continueToResultScene(state, true);
   }
 
   private prepareToLeaveMatchScene(): void {
@@ -2464,13 +2459,19 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('MenuScene');
   }
 
-  private openResult(state: Readonly<GameState>): void {
-    if (this.shouldShowMatchFinishedModal(state)) {
-      this.showMatchFinishedModal(state);
+  private handlePlayableMatchFinished(state: Readonly<GameState>): void {
+    const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);
+
+    if (cardDepletionFinish !== null) {
+      this.showMatchFinishedModal(state, cardDepletionFinish);
       return;
     }
 
-    this.openResultScene(state);
+    this.continueToResultScene(state);
+  }
+
+  private continueToResultScene(state: Readonly<GameState>, suppressFinalWhistle = false): void {
+    this.openResultScene(state, suppressFinalWhistle);
   }
 
   private openResultScene(state: Readonly<GameState>, suppressFinalWhistle = false): void {

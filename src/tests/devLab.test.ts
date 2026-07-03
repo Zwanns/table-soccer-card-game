@@ -94,7 +94,7 @@ describe('Dev Lab scene previews', () => {
     );
     const gameModalBlock = gameSource.slice(
       gameSource.indexOf('private showMatchFinishedModal('),
-      gameSource.indexOf('private getMatchFinishedBodyText(')
+      gameSource.indexOf('private playMatchFinishedWhistleOnce()')
     );
 
     expect(source).not.toContain('DEV_LAB_FINAL_WHISTLE_MODAL_LAYOUT');
