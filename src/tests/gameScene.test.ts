@@ -246,6 +246,8 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private matchFinishedModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private isMatchFinishedModalOpen = false');
     expect(source).toContain('private isMatchFinishedOkHandled = false');
+    expect(source).toContain('private isMatchFinishedResultPending = false');
+    expect(source).toContain('private matchFinishedPendingResultState: Readonly<GameState> | null = null');
     expect(source).toContain('private matchFinishedWhistlePlayed = false');
     expect(source).toContain("import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow'");
     expect(source).toContain('private handlePlayableMatchFinished(state: Readonly<GameState>): void');
@@ -480,7 +482,10 @@ describe('GameScene visual layout contracts', () => {
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
     expect(confirmBlock).toContain('this.isMatchFinishedModalOpen = false;');
     expect(confirmBlock).toContain('this.matchFinishedModal?.destroy();');
-    expect(confirmBlock).toContain('this.continueToResultScene(state, {');
+    expect(confirmBlock).toContain('const pendingState = this.matchFinishedPendingResultState ?? state;');
+    expect(confirmBlock).toContain('this.isMatchFinishedResultPending = false;');
+    expect(confirmBlock).toContain('this.matchFinishedPendingResultState = null;');
+    expect(confirmBlock).toContain('this.continueToResultScene(pendingState, {');
     expect(confirmBlock).toContain('bypassFinalWhistleModal: true');
     expect(confirmBlock).toContain("source: 'final-whistle-ok'");
     expect(confirmBlock).toContain('suppressFinalWhistle: true');
@@ -516,11 +521,57 @@ describe('GameScene visual layout contracts', () => {
     expect(showModalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
     expect(confirmBlock).toContain('bypassFinalWhistleModal: true');
+    expect(openResultSceneBlock).toContain("const isFinalWhistleOk = options.source === 'final-whistle-ok';");
+    expect(openResultSceneBlock).toContain('if (this.isMatchFinishedResultPending && !isFinalWhistleOk) {\n      return;\n    }');
     expect(openResultSceneBlock).toContain('if (options.bypassFinalWhistleModal !== true)');
+    expect(openResultSceneBlock.indexOf('if (this.isMatchFinishedResultPending && !isFinalWhistleOk)')).toBeLessThan(
+      openResultSceneBlock.indexOf('if (options.bypassFinalWhistleModal !== true)')
+    );
     expect(openResultSceneBlock).toContain('const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);');
     expect(openResultSceneBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n        return;');
     expect(openResultSceneBlock).toContain('const suppressFinalWhistle = options.suppressFinalWhistle === true;');
     expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+  });
+
+  it('keeps the final-whistle modal exclusive against delayed mobile ResultScene attempts', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const showModalBlock = source.slice(
+      source.indexOf('private showMatchFinishedModal('),
+      source.indexOf('private playMatchFinishedWhistleOnce()')
+    );
+    const confirmBlock = source.slice(
+      source.indexOf('private confirmMatchFinishedModal('),
+      source.indexOf('private prepareToLeaveMatchScene()')
+    );
+    const openResultSceneBlock = source.slice(
+      source.indexOf('private openResultScene('),
+      source.indexOf('private simulatePausedMatch(')
+    );
+    const cleanupBlock = source.slice(
+      source.indexOf('private prepareToLeaveMatchScene(): void'),
+      source.indexOf('private exitToMainMenu(): void')
+    );
+    const shutdownBlock = source.slice(
+      source.indexOf('private handleSceneShutdown(): void'),
+      source.indexOf('private getPendingRestoreAnimationEntries(')
+    );
+
+    expect(showModalBlock).toContain('this.isMatchFinishedResultPending = true;');
+    expect(showModalBlock).toContain('this.matchFinishedPendingResultState = state;');
+    expect(showModalBlock.indexOf('if (this.matchFinishedModal !== null)')).toBeLessThan(
+      showModalBlock.indexOf('this.playMatchFinishedWhistleOnce();')
+    );
+    expect(openResultSceneBlock).toContain('if (this.isMatchFinishedResultPending && !isFinalWhistleOk) {\n      return;\n    }');
+    expect(openResultSceneBlock.indexOf('if (this.isMatchFinishedResultPending && !isFinalWhistleOk)')).toBeLessThan(
+      openResultSceneBlock.indexOf('this.prepareToLeaveMatchScene();')
+    );
+    expect(confirmBlock).toContain('const pendingState = this.matchFinishedPendingResultState ?? state;');
+    expect(confirmBlock).toContain('this.continueToResultScene(pendingState, {');
+    expect(confirmBlock).toContain("source: 'final-whistle-ok'");
+    expect(cleanupBlock).toContain('this.isMatchFinishedResultPending = false;');
+    expect(cleanupBlock).toContain('this.matchFinishedPendingResultState = null;');
+    expect(shutdownBlock).toContain('this.isMatchFinishedResultPending = false;');
+    expect(shutdownBlock).toContain('this.matchFinishedPendingResultState = null;');
   });
 
   it('keeps Tournament Match card-depletion results behind OK while preserving tournament launch context', () => {

@@ -221,6 +221,8 @@ export class GameScene extends Phaser.Scene {
   private isSceneShutDown = false;
   private isMatchFinishedModalOpen = false;
   private isMatchFinishedOkHandled = false;
+  private isMatchFinishedResultPending = false;
+  private matchFinishedPendingResultState: Readonly<GameState> | null = null;
   private matchFinishedWhistlePlayed = false;
   private isInitialDealStarted = false;
   private isInitialDealComplete = false;
@@ -263,6 +265,8 @@ export class GameScene extends Phaser.Scene {
     this.isSceneShutDown = false;
     this.isMatchFinishedModalOpen = false;
     this.isMatchFinishedOkHandled = false;
+    this.isMatchFinishedResultPending = false;
+    this.matchFinishedPendingResultState = null;
     this.matchFinishedWhistlePlayed = false;
     this.isInitialDealStarted = false;
     this.isInitialDealComplete = false;
@@ -2399,7 +2403,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showMatchFinishedModal(state: Readonly<GameState>, finish: CardDepletionMatchFinish): void {
-    if (this.isNavigationAwayInProgress || this.isSceneShutDown || this.matchFinishedModal !== null) {
+    if (this.isNavigationAwayInProgress || this.isSceneShutDown) {
+      return;
+    }
+
+    this.isMatchFinishedResultPending = true;
+    this.matchFinishedPendingResultState = state;
+
+    if (this.matchFinishedModal !== null) {
       return;
     }
 
@@ -2443,7 +2454,10 @@ export class GameScene extends Phaser.Scene {
     this.isMatchFinishedModalOpen = false;
     this.matchFinishedModal?.destroy();
     this.matchFinishedModal = null;
-    this.continueToResultScene(state, {
+    const pendingState = this.matchFinishedPendingResultState ?? state;
+    this.isMatchFinishedResultPending = false;
+    this.matchFinishedPendingResultState = null;
+    this.continueToResultScene(pendingState, {
       bypassFinalWhistleModal: true,
       source: 'final-whistle-ok',
       suppressFinalWhistle: true
@@ -2466,6 +2480,8 @@ export class GameScene extends Phaser.Scene {
     this.matchFinishedModal?.destroy();
     this.matchFinishedModal = null;
     this.isMatchFinishedModalOpen = false;
+    this.isMatchFinishedResultPending = false;
+    this.matchFinishedPendingResultState = null;
     this.activeInfoModal = null;
     this.message?.destroy();
     this.message = null;
@@ -2498,6 +2514,11 @@ export class GameScene extends Phaser.Scene {
 
   private openResultScene(state: Readonly<GameState>, options: ResultSceneTransitionOptions = {}): void {
     const suppressFinalWhistle = options.suppressFinalWhistle === true;
+    const isFinalWhistleOk = options.source === 'final-whistle-ok';
+
+    if (this.isMatchFinishedResultPending && !isFinalWhistleOk) {
+      return;
+    }
 
     if (options.bypassFinalWhistleModal !== true) {
       const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);
@@ -2592,6 +2613,8 @@ export class GameScene extends Phaser.Scene {
     this.matchFinishedModal?.destroy();
     this.matchFinishedModal = null;
     this.isMatchFinishedModalOpen = false;
+    this.isMatchFinishedResultPending = false;
+    this.matchFinishedPendingResultState = null;
     this.activeInfoModal = null;
     this.tutorialOverlay?.destroy();
     this.tutorialOverlay = null;
