@@ -191,13 +191,14 @@ describe('Dev Lab scene previews', () => {
     expect(helperSource).toContain('imageHeight: 310');
     expect(helperSource).toContain('imageY: -114');
     expect(helperSource).toContain('buttonWidth: 524');
+    expect(helperSource).toContain('export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {');
     expect(helperSource).toContain('refereeWidth?: number');
     expect(helperSource).toContain('refereeHeight?: number');
     expect(helperSource).toContain('refereeOffsetY?: number');
     expect(helperSource).toContain('titleAboveReferee?: boolean');
     expect(helperSource).toContain('okButtonFullWidth?: boolean');
-    expect(helperSource).toContain('overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth');
-    expect(helperSource).toContain('refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0)');
+    expect(helperSource).toContain('overrides.okButtonFullWidth === true ? contentWidth : baseLayout.buttonWidth');
+    expect(helperSource).toContain('refereeY: baseLayout.imageY + (overrides.refereeOffsetY ?? 0)');
     expect(helperSource).toContain('[background, refereeVisual, title, body, okButton]');
   });
 

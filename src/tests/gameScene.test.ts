@@ -20,6 +20,16 @@ function readConstNumber(source: string, constName: string, key: string): number
   return Number(valueMatch![1]);
 }
 
+function readConstString(source: string, constName: string, key: string): string {
+  const blockMatch = source.match(new RegExp(`const ${constName} = \\{([\\s\\S]*?)\\} as const;`));
+  expect(blockMatch).not.toBeNull();
+
+  const valueMatch = blockMatch![1].match(new RegExp(`${key}: '([^']+)'`));
+  expect(valueMatch).not.toBeNull();
+
+  return valueMatch![1];
+}
+
 describe('GameScene visual layout contracts', () => {
   it('uses a bounce chain for the active deck ball instead of yoyo levitation', () => {
     const source = readSource('src/ui/DeckView.ts');
@@ -301,7 +311,7 @@ describe('GameScene visual layout contracts', () => {
     expect(visualBlock).toContain('image.setDisplaySize(source.width * scale, source.height * scale);');
   });
 
-  it('keeps GameScene on the approved real-game final-whistle modal layout', () => {
+  it('keeps GameScene on the shared real-game final-whistle modal layout', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const helperSource = readSource('src/ui/matchFinishedModal.ts');
     const modalBlock = source.slice(
@@ -319,10 +329,16 @@ describe('GameScene visual layout contracts', () => {
     expect(helperSource).toContain('imageHeight: 310');
     expect(helperSource).toContain('imageY: -114');
     expect(helperSource).toContain('buttonWidth: 524');
-    expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? MATCH_FINISHED_MODAL.imageHeight');
-    expect(layoutBlock).toContain('refereeWidth: overrides.refereeWidth ?? MATCH_FINISHED_MODAL.imageWidth');
-    expect(layoutBlock).toContain('refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0)');
-    expect(layoutBlock).toContain('overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth');
+    expect(layoutBlock).toContain('const baseLayout = shouldUseMobileLandscapeMatchFinishedLayout(scene)');
+    expect(layoutBlock).toContain('? MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL');
+    expect(layoutBlock).toContain("titleFontSize: '30px'");
+    expect(layoutBlock).toContain("bodyFontSize: '20px'");
+    expect(layoutBlock).toContain("buttonFontSize: '24px'");
+    expect(layoutBlock).toContain('contentPaddingX: 48');
+    expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight');
+    expect(layoutBlock).toContain('refereeWidth: overrides.refereeWidth ?? baseLayout.imageWidth');
+    expect(layoutBlock).toContain('refereeY: baseLayout.imageY + (overrides.refereeOffsetY ?? 0)');
+    expect(layoutBlock).toContain('overrides.okButtonFullWidth === true ? contentWidth : baseLayout.buttonWidth');
     expect(layoutBlock).toContain('titleAboveReferee: overrides.titleAboveReferee ?? true');
   });
 
@@ -352,6 +368,66 @@ describe('GameScene visual layout contracts', () => {
     expect(buttonY + buttonHeight / 2).toBeLessThanOrEqual(modalHeight / 2);
     expect(imageWidth).toBeLessThan(modalWidth);
     expect(buttonWidth).toBeLessThan(modalWidth);
+  });
+
+  it('uses a larger mobile landscape final-whistle layout that stays inside the panel', () => {
+    const source = readSource('src/ui/matchFinishedModal.ts');
+    const desktopWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'width');
+    const desktopHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'height');
+    const desktopImageWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageWidth');
+    const desktopImageHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'imageHeight');
+    const desktopButtonHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonHeight');
+    const mobileWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'width');
+    const mobileHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'height');
+    const mobileImageWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageWidth');
+    const mobileImageHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageHeight');
+    const mobileImageY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageY');
+    const mobileBodyY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'bodyY');
+    const mobileButtonY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonY');
+    const mobileButtonWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonWidth');
+    const mobileButtonHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonHeight');
+    const mobileContentPaddingX = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'contentPaddingX');
+    const mobileTitleFontSize = Number(
+      readConstString(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'titleFontSize').replace('px', '')
+    );
+    const mobileBodyFontSize = Number(
+      readConstString(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'bodyFontSize').replace('px', '')
+    );
+    const mobileButtonFontSize = Number(
+      readConstString(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonFontSize').replace('px', '')
+    );
+    const mobileWrapWidth = mobileWidth - mobileContentPaddingX * 2;
+
+    expect(mobileWidth).toBeGreaterThan(desktopWidth);
+    expect(mobileHeight).toBeGreaterThan(desktopHeight);
+    expect(mobileWidth).toBeLessThan(1600);
+    expect(mobileHeight).toBeLessThan(720);
+    expect(mobileImageWidth).toBeGreaterThanOrEqual(Math.round(desktopImageWidth * 1.15));
+    expect(mobileImageWidth).toBeLessThanOrEqual(Math.round(desktopImageWidth * 1.3));
+    expect(mobileImageHeight).toBeGreaterThanOrEqual(Math.round(desktopImageHeight * 1.15));
+    expect(mobileImageY - mobileImageHeight / 2).toBeGreaterThanOrEqual(-mobileHeight / 2);
+    expect(mobileImageY + mobileImageHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
+    expect(mobileTitleFontSize).toBeGreaterThan(30);
+    expect(mobileBodyFontSize).toBeGreaterThan(20);
+    expect(mobileButtonFontSize).toBeGreaterThan(24);
+    expect(mobileWrapWidth).toBe(620);
+    expect(mobileWrapWidth).toBeLessThan(mobileWidth);
+    expect(mobileWrapWidth).toBeLessThanOrEqual(mobileButtonWidth);
+    expect(mobileBodyY + mobileBodyFontSize * 2).toBeLessThan(mobileButtonY - mobileButtonHeight / 2);
+    expect(mobileButtonHeight).toBeGreaterThan(desktopButtonHeight);
+    expect(mobileButtonWidth).toBeLessThan(mobileWidth);
+    expect(mobileButtonY + mobileButtonHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
+  });
+
+  it('detects mobile landscape from scale dimensions and touch capabilities without user agent checks', () => {
+    const source = readSource('src/ui/matchFinishedModal.ts');
+
+    expect(source).toContain("import { isMobileLandscapeLayout } from './mobileLayout'");
+    expect(source).toContain('function shouldUseMobileLandscapeMatchFinishedLayout(scene: Phaser.Scene): boolean');
+    expect(source).toContain('scale.displaySize?.width ?? scale.parentSize?.width ?? browserGlobal.innerWidth');
+    expect(source).toContain('scale.displaySize?.height ?? scale.parentSize?.height ?? browserGlobal.innerHeight');
+    expect(source).toContain('maxTouchPoints: browserGlobal.navigator?.maxTouchPoints');
+    expect(source).not.toContain('userAgent');
   });
 
   it('plays the final whistle once on modal appearance and suppresses the ResultScene duplicate', () => {

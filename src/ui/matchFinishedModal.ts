@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Button } from './Button';
+import { isMobileLandscapeLayout } from './mobileLayout';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from './scoreboardStyle';
 
 export const MATCH_FINISHED_MODAL = {
@@ -13,6 +14,23 @@ export const MATCH_FINISHED_MODAL = {
   buttonY: 174,
   buttonWidth: 524,
   buttonHeight: 58
+} as const;
+
+export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
+  width: 760,
+  height: 520,
+  imageWidth: 468,
+  imageHeight: 390,
+  imageY: -58,
+  titleY: 28,
+  bodyY: 120,
+  buttonY: 208,
+  buttonWidth: 664,
+  buttonHeight: 66,
+  titleFontSize: '42px',
+  bodyFontSize: '26px',
+  buttonFontSize: '28px',
+  contentPaddingX: 70
 } as const;
 
 export interface MatchFinishedModalLayoutOverrides {
@@ -40,7 +58,7 @@ export function createMatchFinishedModal(
   scene: Phaser.Scene,
   options: MatchFinishedModalOptions
 ): Phaser.GameObjects.Container {
-  const layout = resolveMatchFinishedModalLayout(options.layout);
+  const layout = resolveMatchFinishedModalLayout(scene, options.layout);
   const modal = scene.add.container(0, 0).setDepth(options.depth ?? 1100);
   const overlay = scene.add.rectangle(
     options.centerX,
@@ -56,35 +74,35 @@ export function createMatchFinishedModal(
   const background = scene.add.rectangle(
     0,
     0,
-    MATCH_FINISHED_MODAL.width,
-    MATCH_FINISHED_MODAL.height,
+    layout.width,
+    layout.height,
     SCOREBOARD_BACKGROUND_COLOR,
     SCOREBOARD_BACKGROUND_ALPHA
   );
   const refereeVisual = createMatchFinishedRefereeVisual(scene, layout);
   const title = scene.add
-    .text(0, MATCH_FINISHED_MODAL.titleY, 'Final whistle', {
+    .text(0, layout.titleY, 'Final whistle', {
       align: 'center',
       color: '#ffffff',
       fontFamily: 'Arial, sans-serif',
-      fontSize: '30px',
+      fontSize: layout.titleFontSize,
       fontStyle: '700'
     })
     .setOrigin(0.5);
   const body = scene.add
-    .text(0, MATCH_FINISHED_MODAL.bodyY, options.bodyText, {
+    .text(0, layout.bodyY, options.bodyText, {
       align: 'center',
       color: '#d9eadf',
       fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
+      fontSize: layout.bodyFontSize,
       wordWrap: { width: layout.contentWidth }
     })
     .setOrigin(0.5);
-  const okButton = new Button(scene, 0, MATCH_FINISHED_MODAL.buttonY, 'OK', options.onOk, {
+  const okButton = new Button(scene, 0, layout.buttonY, 'OK', options.onOk, {
     borderRadius: 8,
     borderWidth: 0,
-    fontSize: '24px',
-    height: MATCH_FINISHED_MODAL.buttonHeight,
+    fontSize: layout.buttonFontSize,
+    height: layout.buttonHeight,
     width: layout.okButtonWidth
   });
 
@@ -133,29 +151,81 @@ function createMatchFinishedRefereeVisual(
 }
 
 interface ResolvedMatchFinishedModalLayout {
+  bodyFontSize: string;
+  bodyY: number;
+  buttonFontSize: string;
+  buttonHeight: number;
+  buttonY: number;
   contentWidth: number;
+  height: number;
   okButtonWidth: number;
   refereeHeight: number;
   refereeWidth: number;
   refereeY: number;
+  titleFontSize: string;
   titleAboveReferee: boolean;
+  titleY: number;
+  width: number;
 }
 
 function resolveMatchFinishedModalLayout(
+  scene: Phaser.Scene,
   overrides: MatchFinishedModalLayoutOverrides = {}
 ): ResolvedMatchFinishedModalLayout {
-  const contentPaddingX = overrides.contentPaddingX ?? 48;
-  const contentWidth = MATCH_FINISHED_MODAL.width - contentPaddingX * 2;
+  const baseLayout = shouldUseMobileLandscapeMatchFinishedLayout(scene)
+    ? MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL
+    : {
+        ...MATCH_FINISHED_MODAL,
+        titleFontSize: '30px',
+        bodyFontSize: '20px',
+        buttonFontSize: '24px',
+        contentPaddingX: 48
+      };
+  const contentPaddingX = overrides.contentPaddingX ?? baseLayout.contentPaddingX;
+  const contentWidth = baseLayout.width - contentPaddingX * 2;
   const okButtonWidth =
     overrides.okButtonWidth ??
-    (overrides.okButtonFullWidth === true ? contentWidth : MATCH_FINISHED_MODAL.buttonWidth);
+    (overrides.okButtonFullWidth === true ? contentWidth : baseLayout.buttonWidth);
 
   return {
+    bodyFontSize: baseLayout.bodyFontSize,
+    bodyY: baseLayout.bodyY,
+    buttonFontSize: baseLayout.buttonFontSize,
+    buttonHeight: baseLayout.buttonHeight,
+    buttonY: baseLayout.buttonY,
     contentWidth,
+    height: baseLayout.height,
     okButtonWidth,
-    refereeHeight: overrides.refereeHeight ?? MATCH_FINISHED_MODAL.imageHeight,
-    refereeWidth: overrides.refereeWidth ?? MATCH_FINISHED_MODAL.imageWidth,
-    refereeY: MATCH_FINISHED_MODAL.imageY + (overrides.refereeOffsetY ?? 0),
-    titleAboveReferee: overrides.titleAboveReferee ?? true
+    refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight,
+    refereeWidth: overrides.refereeWidth ?? baseLayout.imageWidth,
+    refereeY: baseLayout.imageY + (overrides.refereeOffsetY ?? 0),
+    titleAboveReferee: overrides.titleAboveReferee ?? true,
+    titleFontSize: baseLayout.titleFontSize,
+    titleY: baseLayout.titleY,
+    width: baseLayout.width
   };
+}
+
+function shouldUseMobileLandscapeMatchFinishedLayout(scene: Phaser.Scene): boolean {
+  const scale = scene.scale as Phaser.Scale.ScaleManager & {
+    displaySize?: { width?: number; height?: number };
+    parentSize?: { width?: number; height?: number };
+  };
+  const browserGlobal = globalThis as typeof globalThis & {
+    innerWidth?: number;
+    innerHeight?: number;
+    matchMedia?: (query: string) => { matches: boolean };
+    navigator?: { maxTouchPoints?: number };
+    ontouchstart?: unknown;
+  };
+  const innerWidth = scale.displaySize?.width ?? scale.parentSize?.width ?? browserGlobal.innerWidth;
+  const innerHeight = scale.displaySize?.height ?? scale.parentSize?.height ?? browserGlobal.innerHeight;
+
+  return isMobileLandscapeLayout({
+    innerWidth,
+    innerHeight,
+    matchMedia: browserGlobal.matchMedia?.bind(browserGlobal),
+    maxTouchPoints: browserGlobal.navigator?.maxTouchPoints,
+    ...('ontouchstart' in browserGlobal ? { ontouchstart: browserGlobal.ontouchstart } : {})
+  });
 }
