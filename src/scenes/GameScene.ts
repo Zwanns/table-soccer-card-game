@@ -178,6 +178,14 @@ type GameSceneInitData = Partial<TeamSelectionData> & {
   matchMode?: MatchMode;
 };
 
+type ResultSceneTransitionSource = 'playable' | 'final-whistle-ok' | 'pause-sim';
+
+interface ResultSceneTransitionOptions {
+  bypassFinalWhistleModal?: boolean;
+  source?: ResultSceneTransitionSource;
+  suppressFinalWhistle?: boolean;
+}
+
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
   private aiTurnController: AiTurnController | null = null;
@@ -2435,7 +2443,11 @@ export class GameScene extends Phaser.Scene {
     this.isMatchFinishedModalOpen = false;
     this.matchFinishedModal?.destroy();
     this.matchFinishedModal = null;
-    this.continueToResultScene(state, true);
+    this.continueToResultScene(state, {
+      bypassFinalWhistleModal: true,
+      source: 'final-whistle-ok',
+      suppressFinalWhistle: true
+    });
   }
 
   private prepareToLeaveMatchScene(): void {
@@ -2477,21 +2489,32 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.continueToResultScene(state);
+    this.continueToResultScene(state, { source: 'playable' });
   }
 
-  private continueToResultScene(state: Readonly<GameState>, suppressFinalWhistle = false): void {
-    this.openResultScene(state, suppressFinalWhistle);
+  private continueToResultScene(state: Readonly<GameState>, options: ResultSceneTransitionOptions = {}): void {
+    this.openResultScene(state, options);
   }
 
-  private openResultScene(state: Readonly<GameState>, suppressFinalWhistle = false): void {
+  private openResultScene(state: Readonly<GameState>, options: ResultSceneTransitionOptions = {}): void {
+    const suppressFinalWhistle = options.suppressFinalWhistle === true;
+
+    if (options.bypassFinalWhistleModal !== true) {
+      const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);
+
+      if (cardDepletionFinish !== null) {
+        this.showMatchFinishedModal(state, cardDepletionFinish);
+        return;
+      }
+    }
+
     this.prepareToLeaveMatchScene();
     this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });
   }
 
   private simulatePausedMatch(state: Readonly<GameState>): void {
     if (this.launchContext.mode !== 'tournament') {
-      this.openResultScene(state);
+      this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });
       return;
     }
 
@@ -2500,14 +2523,14 @@ export class GameScene extends Phaser.Scene {
     const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
 
     if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
-      this.openResultScene(state);
+      this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });
       return;
     }
 
     const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
 
     if (match === undefined || match.homeTeamId === undefined || match.awayTeamId === undefined) {
-      this.openResultScene(state);
+      this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });
       return;
     }
 
@@ -2515,7 +2538,7 @@ export class GameScene extends Phaser.Scene {
     const awayTeam = findNationalTeam(match.awayTeamId);
 
     if (homeTeam === undefined || awayTeam === undefined) {
-      this.openResultScene(state);
+      this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });
       return;
     }
 
@@ -2524,7 +2547,7 @@ export class GameScene extends Phaser.Scene {
     try {
       updatedTournament = submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam);
     } catch {
-      this.openResultScene(state);
+      this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });
       return;
     }
 

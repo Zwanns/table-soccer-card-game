@@ -62,6 +62,19 @@ describe('match finish flow', () => {
     });
   });
 
+  it('uses current attack decks when the GAME_OVER event does not include a card-depletion reason', () => {
+    const state = gameOverState({
+      players: [player('PLAYER_1', 'Ukraine', ['Q']), player('PLAYER_2', 'France', [])],
+      activePlayerId: 'PLAYER_2',
+      log: [{ type: 'GAME_OVER', winnerId: 'PLAYER_1' }]
+    });
+
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      depletedPlayerId: 'PLAYER_2',
+      bodyText: 'The match is over because France has no cards left to attack.'
+    });
+  });
+
   it('does not treat goalkeeper deck depletion as an attacking-card finish', () => {
     const state = gameOverState({
       players: [

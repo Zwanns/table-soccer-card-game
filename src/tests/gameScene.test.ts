@@ -448,7 +448,9 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private playMatchFinishedWhistleOnce(): void');
     expect(source).toContain('if (this.matchFinishedWhistlePlayed) {\n      return;\n    }');
     expect(source).toContain("this.playSound('sound-whistle-finish', 0.68);");
-    expect(source).toContain('this.continueToResultScene(state, true);');
+    expect(source).toContain("source: 'final-whistle-ok'");
+    expect(source).toContain('suppressFinalWhistle: true');
+    expect(source).toContain('bypassFinalWhistleModal: true');
     expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
     expect(source.indexOf('this.matchFinishedModal = createMatchFinishedModal(this')).toBeLessThan(
       source.indexOf('this.playMatchFinishedWhistleOnce();')
@@ -466,11 +468,14 @@ describe('GameScene visual layout contracts', () => {
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
     expect(confirmBlock).toContain('this.isMatchFinishedModalOpen = false;');
     expect(confirmBlock).toContain('this.matchFinishedModal?.destroy();');
-    expect(confirmBlock).toContain('this.continueToResultScene(state, true);');
+    expect(confirmBlock).toContain('this.continueToResultScene(state, {');
+    expect(confirmBlock).toContain('bypassFinalWhistleModal: true');
+    expect(confirmBlock).toContain("source: 'final-whistle-ok'");
+    expect(confirmBlock).toContain('suppressFinalWhistle: true');
     expect(source.indexOf('private showMatchFinishedModal(')).toBeLessThan(source.indexOf('private confirmMatchFinishedModal('));
   });
 
-  it('keeps Quick Match card-depletion results behind the final-whistle OK action', () => {
+  it('guards every playable Quick Match ResultScene attempt behind the final-whistle OK action', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const finishFlowBlock = source.slice(
       source.indexOf('private handlePlayableMatchFinished('),
@@ -493,12 +498,16 @@ describe('GameScene visual layout contracts', () => {
     expect(finishFlowBlock).toContain('if (cardDepletionFinish !== null)');
     expect(finishFlowBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n      return;');
     expect(finishFlowBlock.indexOf('this.showMatchFinishedModal(state, cardDepletionFinish);')).toBeLessThan(
-      finishFlowBlock.indexOf('this.continueToResultScene(state);')
+      finishFlowBlock.indexOf("this.continueToResultScene(state, { source: 'playable' });")
     );
     expect(showModalBlock).toContain('bodyText: finish.bodyText');
     expect(showModalBlock).toContain('onOk: () => this.confirmMatchFinishedModal(state)');
     expect(confirmBlock).toContain('this.isMatchFinishedOkHandled = true;');
-    expect(confirmBlock).toContain('this.continueToResultScene(state, true);');
+    expect(confirmBlock).toContain('bypassFinalWhistleModal: true');
+    expect(openResultSceneBlock).toContain('if (options.bypassFinalWhistleModal !== true)');
+    expect(openResultSceneBlock).toContain('const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);');
+    expect(openResultSceneBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n        return;');
+    expect(openResultSceneBlock).toContain('const suppressFinalWhistle = options.suppressFinalWhistle === true;');
     expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
   });
 
@@ -523,6 +532,7 @@ describe('GameScene visual layout contracts', () => {
     );
 
     expect(initBlock).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
+    expect(gameSource).toContain("type ResultSceneTransitionSource = 'playable' | 'final-whistle-ok' | 'pause-sim'");
     expect(openResultSceneBlock).toContain('this.prepareToLeaveMatchScene();');
     expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
     expect(resultInitBlock).toContain('this.state = data.state ?? null;');
@@ -543,7 +553,7 @@ describe('GameScene visual layout contracts', () => {
       source.indexOf('private executeAiAction(')
     );
 
-    expect(simulateBlock).toContain('this.openResultScene(state);');
+    expect(simulateBlock).toContain("this.openResultScene(state, { bypassFinalWhistleModal: true, source: 'pause-sim' });");
     expect(simulateBlock).not.toContain('this.openResult(state);');
     expect(simulateBlock).not.toContain('this.shouldShowMatchFinishedModal');
     expect(simulateBlock).not.toContain('this.showMatchFinishedModal');
