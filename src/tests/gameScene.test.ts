@@ -334,6 +334,7 @@ describe('GameScene visual layout contracts', () => {
     expect(layoutBlock).toContain("titleFontSize: '30px'");
     expect(layoutBlock).toContain("bodyFontSize: '20px'");
     expect(layoutBlock).toContain("buttonFontSize: '24px'");
+    expect(layoutBlock).toContain('panelOffsetY: 0');
     expect(layoutBlock).toContain('contentPaddingX: 48');
     expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight');
     expect(layoutBlock).toContain('refereeWidth: overrides.refereeWidth ?? baseLayout.imageWidth');
@@ -386,6 +387,7 @@ describe('GameScene visual layout contracts', () => {
     const mobileButtonY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonY');
     const mobileButtonWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonWidth');
     const mobileButtonHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonHeight');
+    const mobilePanelOffsetY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'panelOffsetY');
     const mobileContentPaddingX = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'contentPaddingX');
     const mobileTitleFontSize = Number(
       readConstString(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'titleFontSize').replace('px', '')
@@ -407,16 +409,26 @@ describe('GameScene visual layout contracts', () => {
     expect(mobileImageHeight).toBeGreaterThanOrEqual(Math.round(desktopImageHeight * 1.15));
     expect(mobileImageY - mobileImageHeight / 2).toBeGreaterThanOrEqual(-mobileHeight / 2);
     expect(mobileImageY + mobileImageHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
+    expect(mobileImageY).toBeGreaterThan(-58);
     expect(mobileTitleFontSize).toBeGreaterThan(30);
-    expect(mobileBodyFontSize).toBeGreaterThan(20);
-    expect(mobileButtonFontSize).toBeGreaterThan(24);
+    expect(mobileBodyFontSize).toBe(32);
+    expect(mobileBodyFontSize).toBeGreaterThan(26);
+    expect(mobileButtonFontSize).toBe(34);
+    expect(mobileButtonFontSize).toBeGreaterThan(28);
+    expect(mobilePanelOffsetY).toBe(52);
+    expect(mobilePanelOffsetY).toBeGreaterThan(0);
     expect(mobileWrapWidth).toBe(620);
     expect(mobileWrapWidth).toBeLessThan(mobileWidth);
     expect(mobileWrapWidth).toBeLessThanOrEqual(mobileButtonWidth);
-    expect(mobileBodyY + mobileBodyFontSize * 2).toBeLessThan(mobileButtonY - mobileButtonHeight / 2);
+    expect(mobileBodyY + mobileBodyFontSize).toBeLessThan(mobileButtonY - mobileButtonHeight / 2);
+    expect(mobileButtonHeight).toBe(86);
+    expect(mobileButtonHeight).toBeGreaterThanOrEqual(Math.round(66 * 1.3));
     expect(mobileButtonHeight).toBeGreaterThan(desktopButtonHeight);
     expect(mobileButtonWidth).toBeLessThan(mobileWidth);
     expect(mobileButtonY + mobileButtonHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
+    expect(360 + mobilePanelOffsetY + mobileHeight / 2).toBeLessThanOrEqual(720);
+    expect(source).toContain('const panel = scene.add.container(options.centerX, options.centerY + layout.panelOffsetY);');
+    expect(source).toContain('? [background, refereeVisual, title, body, okButton]');
   });
 
   it('detects mobile landscape from scale dimensions and touch capabilities without user agent checks', () => {

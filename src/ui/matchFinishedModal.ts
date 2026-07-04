@@ -21,15 +21,16 @@ export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
   height: 520,
   imageWidth: 468,
   imageHeight: 390,
-  imageY: -58,
+  imageY: -18,
   titleY: 28,
-  bodyY: 120,
-  buttonY: 208,
+  bodyY: 112,
+  buttonY: 198,
   buttonWidth: 664,
-  buttonHeight: 66,
+  buttonHeight: 86,
   titleFontSize: '42px',
-  bodyFontSize: '26px',
-  buttonFontSize: '28px',
+  bodyFontSize: '32px',
+  buttonFontSize: '34px',
+  panelOffsetY: 52,
   contentPaddingX: 70
 } as const;
 
@@ -70,7 +71,7 @@ export function createMatchFinishedModal(
   );
   overlay.setInteractive();
 
-  const panel = scene.add.container(options.centerX, options.centerY);
+  const panel = scene.add.container(options.centerX, options.centerY + layout.panelOffsetY);
   const background = scene.add.rectangle(
     0,
     0,
@@ -159,6 +160,7 @@ interface ResolvedMatchFinishedModalLayout {
   contentWidth: number;
   height: number;
   okButtonWidth: number;
+  panelOffsetY: number;
   refereeHeight: number;
   refereeWidth: number;
   refereeY: number;
@@ -179,6 +181,7 @@ function resolveMatchFinishedModalLayout(
         titleFontSize: '30px',
         bodyFontSize: '20px',
         buttonFontSize: '24px',
+        panelOffsetY: 0,
         contentPaddingX: 48
       };
   const contentPaddingX = overrides.contentPaddingX ?? baseLayout.contentPaddingX;
@@ -196,6 +199,7 @@ function resolveMatchFinishedModalLayout(
     contentWidth,
     height: baseLayout.height,
     okButtonWidth,
+    panelOffsetY: baseLayout.panelOffsetY,
     refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight,
     refereeWidth: overrides.refereeWidth ?? baseLayout.imageWidth,
     refereeY: baseLayout.imageY + (overrides.refereeOffsetY ?? 0),
