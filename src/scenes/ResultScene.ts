@@ -17,6 +17,7 @@ import {
   SCOREBOARD_FONT_FAMILY
 } from '../ui/scoreboardStyle';
 import { TEAM_CARD_STYLE } from '../ui/teamCardStyle';
+import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import { formatPenaltyAttempt, getPenaltyAttemptsForTeam, getPenaltyAttemptSummaries } from '../ui/penaltyAttempts';
@@ -48,6 +49,26 @@ const RESULT_MOBILE_AI_BADGE_RADIUS = 4;
 const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10;
 const RESULT_MOBILE_AI_BADGE_TOP_Y = 12;
 const RESULT_VERSION_MARGIN = 18;
+interface ResultStatsTypography {
+  labelFontSize: string;
+  valueFontSize: string;
+  sectionTitleFontSize: string;
+}
+
+const RESULT_DESKTOP_STATS_TYPOGRAPHY = {
+  labelFontSize: '20px',
+  valueFontSize: '24px',
+  sectionTitleFontSize: '20px'
+} as const satisfies ResultStatsTypography;
+const RESULT_MOBILE_STATS_TYPOGRAPHY = {
+  labelFontSize: '26px',
+  valueFontSize: '30px',
+  sectionTitleFontSize: '26px'
+} as const satisfies ResultStatsTypography;
+
+function getResultStatsTypography(): ResultStatsTypography {
+  return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_TYPOGRAPHY : RESULT_DESKTOP_STATS_TYPOGRAPHY;
+}
 
 interface ResultSceneData {
   state?: Readonly<GameState>;
@@ -276,6 +297,7 @@ export class ResultScene extends Phaser.Scene {
     const [playerOneStats, playerTwoStats] = getMatchStats(state);
     const width = RESULT_SCOREBOARD_WIDTH;
     const height = RESULT_SCOREBOARD_HEIGHT;
+    const typography = getResultStatsTypography();
     const panelX = px(x);
     const panelY = px(y);
     const panel = this.add.container(panelX, panelY);
@@ -314,7 +336,8 @@ export class ResultScene extends Phaser.Scene {
       playerTwoStats,
       playerOne.flagCode,
       playerTwo.flagCode,
-      penaltyAttempts
+      penaltyAttempts,
+      typography
     );
   }
 
@@ -328,7 +351,8 @@ export class ResultScene extends Phaser.Scene {
     playerTwoStats: PlayerMatchStats,
     playerOneTeamId: string,
     playerTwoTeamId: string,
-    penaltyAttempts: readonly PenaltyAttemptSummary[]
+    penaltyAttempts: readonly PenaltyAttemptSummary[],
+    typography: ResultStatsTypography
   ): void {
     const rows: Array<[string, string, string]> = [
       ['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)],
@@ -360,12 +384,12 @@ export class ResultScene extends Phaser.Scene {
 
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
       const rowY = statsStartY + index * statsRowGap;
-      content.add(this.createStatsValue(-285, rowY, playerOneValue));
-      content.add(this.createStatsLabel(rowY, label));
-      content.add(this.createStatsValue(285, rowY, playerTwoValue));
+      content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize));
+      content.add(this.createStatsLabel(rowY, label, typography.labelFontSize));
+      content.add(this.createStatsValue(285, rowY, playerTwoValue, typography.valueFontSize));
     });
 
-    content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers'));
+    content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize));
     timelineRows.forEach((row, index) => {
       const rowY = scorersStartY + index * rowHeight;
       content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth));
@@ -384,7 +408,7 @@ export class ResultScene extends Phaser.Scene {
             align: 'center',
             color: '#ffffff',
             fontFamily: RESULT_STATS_FONT_FAMILY,
-            fontSize: '20px',
+            fontSize: typography.sectionTitleFontSize,
             fontStyle: '700',
             resolution: SHARP_TEXT_RESOLUTION
           })
@@ -542,26 +566,26 @@ export class ResultScene extends Phaser.Scene {
     );
   }
 
-  private createStatsLabel(y: number, text: string): Phaser.GameObjects.Text {
+  private createStatsLabel(y: number, text: string, fontSize: string): Phaser.GameObjects.Text {
     return this.add
       .text(0, px(y), text, {
         align: 'center',
         color: '#ffffff',
         fontFamily: RESULT_STATS_FONT_FAMILY,
-        fontSize: '20px',
+        fontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
       .setOrigin(0.5);
   }
 
-  private createStatsValue(x: number, y: number, text: string): Phaser.GameObjects.Text {
+  private createStatsValue(x: number, y: number, text: string, fontSize: string): Phaser.GameObjects.Text {
     return this.add
       .text(px(x), px(y), text, {
         align: 'center',
         color: '#f0c95a',
         fontFamily: RESULT_STATS_FONT_FAMILY,
-        fontSize: '24px',
+        fontSize,
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })

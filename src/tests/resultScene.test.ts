@@ -14,6 +14,16 @@ function readResultSceneSource(): string {
   return readSource('src/scenes/ResultScene.ts');
 }
 
+function readTypographyFontSize(source: string, constName: string, key: string): number {
+  const blockMatch = source.match(new RegExp(`const ${constName} = \\{([\\s\\S]*?)\\} as const`));
+  expect(blockMatch).not.toBeNull();
+
+  const valueMatch = blockMatch![1].match(new RegExp(`${key}: '(\\d+)px'`));
+  expect(valueMatch).not.toBeNull();
+
+  return Number(valueMatch![1]);
+}
+
 describe('result scene mobile statistics card', () => {
   it('uses post-match background images based on the result winner', () => {
     const source = readResultSceneSource();
@@ -97,9 +107,45 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain("fontSize: '58px'");
     expect(source).toContain('fontFamily: RESULT_STATS_FONT_FAMILY');
     expect(source).toContain('fontSize: RESULT_TEAM_CODE_FONT_SIZE');
-    expect(source).toContain("fontSize: '24px'");
-    expect(source).toContain("fontSize: '20px'");
+    expect(source).toContain("valueFontSize: '24px'");
+    expect(source).toContain("labelFontSize: '20px'");
     expect(source).toContain("fontSize: '17px'");
+  });
+
+  it('enlarges only mobile post-match statistic typography inside the existing stats card', () => {
+    const source = readResultSceneSource();
+    const desktopLabel = readTypographyFontSize(source, 'RESULT_DESKTOP_STATS_TYPOGRAPHY', 'labelFontSize');
+    const desktopValue = readTypographyFontSize(source, 'RESULT_DESKTOP_STATS_TYPOGRAPHY', 'valueFontSize');
+    const desktopSection = readTypographyFontSize(source, 'RESULT_DESKTOP_STATS_TYPOGRAPHY', 'sectionTitleFontSize');
+    const mobileLabel = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'labelFontSize');
+    const mobileValue = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'valueFontSize');
+    const mobileSection = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'sectionTitleFontSize');
+
+    expect(source).toContain("import { isMobileLandscapeLayout } from '../ui/mobileLayout'");
+    expect(source).toContain(
+      'return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_TYPOGRAPHY : RESULT_DESKTOP_STATS_TYPOGRAPHY;'
+    );
+    expect(source).toContain('const typography = getResultStatsTypography();');
+    expect(source).toContain('fontSize: typography.sectionTitleFontSize');
+    expect(source).toContain('fontSize,');
+    expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize))');
+    expect(source).toContain('content.add(this.createStatsLabel(rowY, label, typography.labelFontSize))');
+    expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize))");
+    expect(source).toContain('const viewportHeight = 392');
+    expect(source).toContain('const statsRowGap = 32');
+
+    expect(desktopLabel).toBe(20);
+    expect(desktopValue).toBe(24);
+    expect(desktopSection).toBe(20);
+    expect(mobileLabel).toBe(26);
+    expect(mobileValue).toBe(30);
+    expect(mobileSection).toBe(26);
+    expect(mobileLabel / desktopLabel).toBeGreaterThanOrEqual(1.2);
+    expect(mobileLabel / desktopLabel).toBeLessThanOrEqual(1.35);
+    expect(mobileValue / desktopValue).toBeGreaterThanOrEqual(1.2);
+    expect(mobileValue / desktopValue).toBeLessThanOrEqual(1.35);
+    expect(mobileSection / desktopSection).toBeGreaterThanOrEqual(1.2);
+    expect(mobileSection / desktopSection).toBeLessThanOrEqual(1.35);
   });
 
   it('reduces the gap under the Match statistics heading before the stats rows', () => {
@@ -127,8 +173,8 @@ describe('result scene mobile statistics card', () => {
 
     expect(source).toContain('private addStatsScrollContent');
     expect(source).toContain('const content = this.add.container(0, viewportTop)');
-    expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue))');
-    expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers'))");
+    expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize))');
+    expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize))");
     expect(source).toContain('content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth))');
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');

@@ -341,7 +341,8 @@ describe('GameScene visual layout contracts', () => {
     expect(layoutBlock).toContain("titleFontSize: '30px'");
     expect(layoutBlock).toContain("bodyFontSize: '20px'");
     expect(layoutBlock).toContain("buttonFontSize: '24px'");
-    expect(layoutBlock).toContain('panelFadeHeight: 0');
+    expect(helperSource).toContain('panelFadeHeight: 144');
+    expect(layoutBlock).not.toContain('panelFadeHeight: 0');
     expect(layoutBlock).toContain('panelOffsetY: 0');
     expect(layoutBlock).toContain('contentPaddingX: 48');
     expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight');
@@ -363,11 +364,16 @@ describe('GameScene visual layout contracts', () => {
     const buttonY = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonY');
     const buttonWidth = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonWidth');
     const buttonHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'buttonHeight');
+    const panelFadeHeight = readConstNumber(source, 'MATCH_FINISHED_MODAL', 'panelFadeHeight');
 
     expect(imageWidth).toBe(372);
     expect(imageHeight).toBe(310);
     expect(imageY).toBe(-114);
     expect(buttonWidth).toBe(modalWidth - 96);
+    expect(panelFadeHeight).toBe(144);
+    expect(panelFadeHeight).toBeGreaterThan(0);
+    expect(panelFadeHeight).toBeGreaterThanOrEqual(Math.floor(modalHeight / 3));
+    expect(panelFadeHeight).toBeLessThanOrEqual(Math.ceil(modalHeight / 3));
     expect(imageY - imageHeight / 2).toBeLessThan(-modalHeight / 2);
     expect(titleY).toBeGreaterThan(imageY - imageHeight / 2);
     expect(titleY).toBeLessThan(imageY + imageHeight / 2);

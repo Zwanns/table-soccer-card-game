@@ -13,7 +13,8 @@ export const MATCH_FINISHED_MODAL = {
   bodyY: 104,
   buttonY: 174,
   buttonWidth: 524,
-  buttonHeight: 58
+  buttonHeight: 58,
+  panelFadeHeight: 144
 } as const;
 
 export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
@@ -208,7 +209,6 @@ function resolveMatchFinishedModalLayout(
         titleFontSize: '30px',
         bodyFontSize: '20px',
         buttonFontSize: '24px',
-        panelFadeHeight: 0,
         panelOffsetY: 0,
         contentPaddingX: 48
       };
