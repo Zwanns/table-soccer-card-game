@@ -22,7 +22,7 @@ export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
   height: 520,
   imageWidth: 468,
   imageHeight: 390,
-  imageY: -72,
+  imageY: -167,
   titleY: 28,
   bodyY: 112,
   buttonY: 198,

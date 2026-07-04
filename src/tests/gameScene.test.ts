@@ -397,6 +397,7 @@ describe('GameScene visual layout contracts', () => {
     const mobileImageWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageWidth');
     const mobileImageHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageHeight');
     const mobileImageY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'imageY');
+    const mobileTitleY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'titleY');
     const mobileBodyY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'bodyY');
     const mobileButtonY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonY');
     const mobileButtonWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonWidth');
@@ -424,7 +425,8 @@ describe('GameScene visual layout contracts', () => {
     expect(mobileImageHeight).toBeGreaterThanOrEqual(Math.round(desktopImageHeight * 1.15));
     expect(mobileImageY - mobileImageHeight / 2).toBeLessThan(-mobileHeight / 2);
     expect(mobileImageY + mobileImageHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
-    expect(mobileImageY).toBe(-72);
+    expect(mobileImageY).toBe(-167);
+    expect(mobileImageY + mobileImageHeight / 2).toBe(mobileTitleY);
     expect(mobileImageY).toBeLessThan(-18);
     expect(mobileTitleFontSize).toBeGreaterThan(30);
     expect(mobileBodyFontSize).toBe(32);
