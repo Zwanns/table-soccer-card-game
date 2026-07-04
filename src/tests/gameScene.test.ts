@@ -276,6 +276,8 @@ describe('GameScene visual layout contracts', () => {
     expect(helperSource).toContain('overlay.setInteractive();');
     expect(helperSource).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(helperSource).toContain('SCOREBOARD_BACKGROUND_ALPHA');
+    expect(helperSource).toContain('function createMatchFinishedPanelBackground(');
+    expect(helperSource).toContain('background.fillGradientStyle(');
     expect(modalBlock).not.toContain('fillRoundedRect(');
     expect(modalBlock).not.toContain('strokeRoundedRect(');
     expect(modalBlock).not.toContain('0xf0c95a');
@@ -334,6 +336,7 @@ describe('GameScene visual layout contracts', () => {
     expect(layoutBlock).toContain("titleFontSize: '30px'");
     expect(layoutBlock).toContain("bodyFontSize: '20px'");
     expect(layoutBlock).toContain("buttonFontSize: '24px'");
+    expect(layoutBlock).toContain('panelFadeHeight: 0');
     expect(layoutBlock).toContain('panelOffsetY: 0');
     expect(layoutBlock).toContain('contentPaddingX: 48');
     expect(layoutBlock).toContain('refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight');
@@ -387,6 +390,7 @@ describe('GameScene visual layout contracts', () => {
     const mobileButtonY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonY');
     const mobileButtonWidth = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonWidth');
     const mobileButtonHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'buttonHeight');
+    const mobilePanelFadeHeight = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'panelFadeHeight');
     const mobilePanelOffsetY = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'panelOffsetY');
     const mobileContentPaddingX = readConstNumber(source, 'MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL', 'contentPaddingX');
     const mobileTitleFontSize = Number(
@@ -407,9 +411,10 @@ describe('GameScene visual layout contracts', () => {
     expect(mobileImageWidth).toBeGreaterThanOrEqual(Math.round(desktopImageWidth * 1.15));
     expect(mobileImageWidth).toBeLessThanOrEqual(Math.round(desktopImageWidth * 1.3));
     expect(mobileImageHeight).toBeGreaterThanOrEqual(Math.round(desktopImageHeight * 1.15));
-    expect(mobileImageY - mobileImageHeight / 2).toBeGreaterThanOrEqual(-mobileHeight / 2);
+    expect(mobileImageY - mobileImageHeight / 2).toBeLessThan(-mobileHeight / 2);
     expect(mobileImageY + mobileImageHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
-    expect(mobileImageY).toBeGreaterThan(-58);
+    expect(mobileImageY).toBe(-72);
+    expect(mobileImageY).toBeLessThan(-18);
     expect(mobileTitleFontSize).toBeGreaterThan(30);
     expect(mobileBodyFontSize).toBe(32);
     expect(mobileBodyFontSize).toBeGreaterThan(26);
@@ -417,6 +422,9 @@ describe('GameScene visual layout contracts', () => {
     expect(mobileButtonFontSize).toBeGreaterThan(28);
     expect(mobilePanelOffsetY).toBe(52);
     expect(mobilePanelOffsetY).toBeGreaterThan(0);
+    expect(mobilePanelFadeHeight).toBe(174);
+    expect(mobilePanelFadeHeight).toBeGreaterThanOrEqual(Math.floor(mobileHeight / 3));
+    expect(mobilePanelFadeHeight).toBeLessThanOrEqual(Math.ceil(mobileHeight / 3) + 1);
     expect(mobileWrapWidth).toBe(620);
     expect(mobileWrapWidth).toBeLessThan(mobileWidth);
     expect(mobileWrapWidth).toBeLessThanOrEqual(mobileButtonWidth);
@@ -428,6 +436,10 @@ describe('GameScene visual layout contracts', () => {
     expect(mobileButtonY + mobileButtonHeight / 2).toBeLessThanOrEqual(mobileHeight / 2);
     expect(360 + mobilePanelOffsetY + mobileHeight / 2).toBeLessThanOrEqual(720);
     expect(source).toContain('const panel = scene.add.container(options.centerX, options.centerY + layout.panelOffsetY);');
+    expect(source).toContain('const background = createMatchFinishedPanelBackground(scene, layout);');
+    expect(source).toContain('if (layout.panelFadeHeight <= 0)');
+    expect(source).toContain('background.fillStyle(SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);');
+    expect(source).toContain('background.fillGradientStyle(');
     expect(source).toContain('? [background, refereeVisual, title, body, okButton]');
   });
 

@@ -21,7 +21,7 @@ export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
   height: 520,
   imageWidth: 468,
   imageHeight: 390,
-  imageY: -18,
+  imageY: -72,
   titleY: 28,
   bodyY: 112,
   buttonY: 198,
@@ -31,6 +31,7 @@ export const MATCH_FINISHED_MOBILE_LANDSCAPE_MODAL = {
   bodyFontSize: '32px',
   buttonFontSize: '34px',
   panelOffsetY: 52,
+  panelFadeHeight: 174,
   contentPaddingX: 70
 } as const;
 
@@ -72,14 +73,7 @@ export function createMatchFinishedModal(
   overlay.setInteractive();
 
   const panel = scene.add.container(options.centerX, options.centerY + layout.panelOffsetY);
-  const background = scene.add.rectangle(
-    0,
-    0,
-    layout.width,
-    layout.height,
-    SCOREBOARD_BACKGROUND_COLOR,
-    SCOREBOARD_BACKGROUND_ALPHA
-  );
+  const background = createMatchFinishedPanelBackground(scene, layout);
   const refereeVisual = createMatchFinishedRefereeVisual(scene, layout);
   const title = scene.add
     .text(0, layout.titleY, 'Final whistle', {
@@ -115,6 +109,38 @@ export function createMatchFinishedModal(
   modal.add([overlay, panel]);
 
   return modal;
+}
+
+function createMatchFinishedPanelBackground(
+  scene: Phaser.Scene,
+  layout: ResolvedMatchFinishedModalLayout
+): Phaser.GameObjects.Graphics {
+  const background = scene.add.graphics();
+  const left = -layout.width / 2;
+  const top = -layout.height / 2;
+
+  if (layout.panelFadeHeight <= 0) {
+    background.fillStyle(SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+    background.fillRect(left, top, layout.width, layout.height);
+    return background;
+  }
+
+  const fadeHeight = layout.panelFadeHeight;
+  background.fillGradientStyle(
+    SCOREBOARD_BACKGROUND_COLOR,
+    SCOREBOARD_BACKGROUND_COLOR,
+    SCOREBOARD_BACKGROUND_COLOR,
+    SCOREBOARD_BACKGROUND_COLOR,
+    0,
+    0,
+    SCOREBOARD_BACKGROUND_ALPHA,
+    SCOREBOARD_BACKGROUND_ALPHA
+  );
+  background.fillRect(left, top, layout.width, fadeHeight);
+  background.fillStyle(SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+  background.fillRect(left, top + fadeHeight, layout.width, layout.height - fadeHeight);
+
+  return background;
 }
 
 function createMatchFinishedRefereeVisual(
@@ -160,6 +186,7 @@ interface ResolvedMatchFinishedModalLayout {
   contentWidth: number;
   height: number;
   okButtonWidth: number;
+  panelFadeHeight: number;
   panelOffsetY: number;
   refereeHeight: number;
   refereeWidth: number;
@@ -181,6 +208,7 @@ function resolveMatchFinishedModalLayout(
         titleFontSize: '30px',
         bodyFontSize: '20px',
         buttonFontSize: '24px',
+        panelFadeHeight: 0,
         panelOffsetY: 0,
         contentPaddingX: 48
       };
@@ -199,6 +227,7 @@ function resolveMatchFinishedModalLayout(
     contentWidth,
     height: baseLayout.height,
     okButtonWidth,
+    panelFadeHeight: baseLayout.panelFadeHeight,
     panelOffsetY: baseLayout.panelOffsetY,
     refereeHeight: overrides.refereeHeight ?? baseLayout.imageHeight,
     refereeWidth: overrides.refereeWidth ?? baseLayout.imageWidth,
