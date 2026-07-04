@@ -78,7 +78,11 @@ import {
   getNextGoalScoredSceneEffect,
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
-import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow';
+import {
+  CARD_DEPLETION_FALLBACK_BODY,
+  resolveCardDepletionMatchFinish,
+  type CardDepletionMatchFinish
+} from './matchFinishFlow';
 import { submitSimulatedTournamentMatch } from './tournamentMatchSimulation';
 
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
@@ -2395,7 +2399,17 @@ export class GameScene extends Phaser.Scene {
       return null;
     }
 
-    return resolveCardDepletionMatchFinish(state);
+    const cardDepletionFinish = resolveCardDepletionMatchFinish(state);
+
+    if (cardDepletionFinish !== null) {
+      return cardDepletionFinish;
+    }
+
+    if (state.phase === 'GAME_OVER') {
+      return { bodyText: CARD_DEPLETION_FALLBACK_BODY };
+    }
+
+    return null;
   }
 
   private isRealPlayableMatch(): boolean {

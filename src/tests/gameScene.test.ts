@@ -249,10 +249,13 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('private isMatchFinishedResultPending = false');
     expect(source).toContain('private matchFinishedPendingResultState: Readonly<GameState> | null = null');
     expect(source).toContain('private matchFinishedWhistlePlayed = false');
-    expect(source).toContain("import { resolveCardDepletionMatchFinish, type CardDepletionMatchFinish } from './matchFinishFlow'");
+    expect(source).toContain('CARD_DEPLETION_FALLBACK_BODY');
+    expect(source).toContain("resolveCardDepletionMatchFinish,\n  type CardDepletionMatchFinish");
     expect(source).toContain('private handlePlayableMatchFinished(state: Readonly<GameState>): void');
     expect(source).toContain('private getPlayableCardDepletionFinish(state: Readonly<GameState>): CardDepletionMatchFinish | null');
-    expect(source).toContain('return resolveCardDepletionMatchFinish(state);');
+    expect(source).toContain('const cardDepletionFinish = resolveCardDepletionMatchFinish(state);');
+    expect(source).toContain('if (cardDepletionFinish !== null) {\n      return cardDepletionFinish;\n    }');
+    expect(source).toContain("if (state.phase === 'GAME_OVER') {\n      return { bodyText: CARD_DEPLETION_FALLBACK_BODY };\n    }");
     expect(source).toContain('if (cardDepletionFinish !== null) {\n      this.showMatchFinishedModal(state, cardDepletionFinish);\n      return;\n    }');
     expect(source).toContain('private showMatchFinishedModal(state: Readonly<GameState>, finish: CardDepletionMatchFinish): void');
   });
@@ -572,6 +575,27 @@ describe('GameScene visual layout contracts', () => {
     expect(cleanupBlock).toContain('this.matchFinishedPendingResultState = null;');
     expect(shutdownBlock).toContain('this.isMatchFinishedResultPending = false;');
     expect(shutdownBlock).toContain('this.matchFinishedPendingResultState = null;');
+  });
+
+  it('shows the final-whistle modal for playable GAME_OVER even without an attack-deck-empty event', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const finishResolverBlock = source.slice(
+      source.indexOf('private getPlayableCardDepletionFinish('),
+      source.indexOf('private isRealPlayableMatch()')
+    );
+    const openResultSceneBlock = source.slice(
+      source.indexOf('private openResultScene('),
+      source.indexOf('private simulatePausedMatch(')
+    );
+
+    expect(finishResolverBlock).toContain('const cardDepletionFinish = resolveCardDepletionMatchFinish(state);');
+    expect(finishResolverBlock).toContain("if (state.phase === 'GAME_OVER') {\n      return { bodyText: CARD_DEPLETION_FALLBACK_BODY };\n    }");
+    expect(finishResolverBlock).toContain('return null;');
+    expect(openResultSceneBlock).toContain('const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);');
+    expect(openResultSceneBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n        return;');
+    expect(openResultSceneBlock.indexOf('this.showMatchFinishedModal(state, cardDepletionFinish);')).toBeLessThan(
+      openResultSceneBlock.indexOf("this.scene.start('ResultScene'")
+    );
   });
 
   it('keeps Tournament Match card-depletion results behind OK while preserving tournament launch context', () => {
