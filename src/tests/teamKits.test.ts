@@ -34,12 +34,15 @@ const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
   ['am', '#FFFFFF'],
   ['ar', '#111111'],
   ['by', '#FFFFFF'],
+  ['cz', '#FFFFFF'],
   ['gr', '#0D5EAF'],
+  ['hr', '#0033A0'],
   ['ma', '#FFFFFF'],
   ['ng', '#000000'],
   ['no', '#FFFFFF'],
   ['pt', '#F7D117'],
-  ['py', '#0038A8']
+  ['py', '#0038A8'],
+  ['tr', '#E30A17']
 ]);
 
 describe('team kit data contract', () => {
@@ -176,8 +179,7 @@ describe('team kit data contract', () => {
       path: 'kits/images/nir.webp',
       primaryColor: '#006A3A',
       secondaryColor: '#FFFFFF',
-      shirtNumberColor: '#FFFFFF',
-      shirtNumberStrokeColor: '#111111'
+      shirtNumberColor: '#FFFFFF'
     });
     expect(getTeamKitStyle('ng')).toMatchObject({
       flagCode: 'ng',
