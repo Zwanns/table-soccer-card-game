@@ -70,7 +70,7 @@ export const DEFAULT_SHIRT_NUMBER_STYLE = {
 // shirtNumberColor — цвет номера (необязательный, по умолчанию используется secondaryColor).
 // Чтобы задать shirtNumberColor без обводки, укажите undefined на месте shirtNumberStrokeColor.
 const TEAM_KIT_STYLE_ROWS = [
-  ['al', '#D71920', '#111111', '#FFFFFF', '#111111'],
+  ['al', '#D71920', '#111111', '#FFFFFF', undefined],
   ['dz', '#00843D', '#FFFFFF', '#00843D', undefined],
   [
     'ar',
@@ -81,12 +81,12 @@ const TEAM_KIT_STYLE_ROWS = [
     '#111111' // shirtNumberColor: основной цвет номера
   ],
   ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111', '#FFFFFF'],
-  ['au', '#FFCD00', '#00843D', '#006747', '#FFFFFF'],
+  ['au', '#FFCD00', '#05573D', '#006747', '#FFFFFF'],
   ['at', '#ED2939', '#FFFFFF', '#FFFFFF', '#111111'],
-  ['by', '#D22730', '#007C4C', '#FFFFFF', '#111111', '#FFFFFF'],
+  ['by', '#D22730', '#007C4C', '#FFFFFF', undefined, '#FFFFFF'],
   ['be', '#E30613', '#FFCD00', '#FFCD00', '#111111'],
   ['br', '#FFDF00', '#049C42', '#003CB1', undefined],
-  ['cm', '#007A5E', '#FCD116', '#FCD116', '#111111'],
+  ['cm', '#007A5E', '#FCD116', '#FCD116', undefined],
   ['ca', '#D80621', '#FFFFFF', '#FFFFFF', undefined],
   ['cl', '#D52B1E', '#0039A6', '#FFFFFF', '#FFFFFF', '#0039A6'],
   ['co', '#FCD116', '#003893', '#003893', '#FFFFFF'],

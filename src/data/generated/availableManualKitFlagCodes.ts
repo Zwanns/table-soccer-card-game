@@ -13,6 +13,7 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'ch',
   'ci',
   'cl',
+  'cm',
   'de',
   'dz',
   'es',
