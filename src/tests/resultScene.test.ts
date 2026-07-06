@@ -47,6 +47,132 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain("playSoundSafe(this, 'sound-whistle-finish', { volume: 0.68 });");
   });
 
+  it('starts confetti only for explicit tournament final result celebrations', () => {
+    const source = readResultSceneSource();
+    const createBlock = source.slice(
+      source.indexOf('public create(): void'),
+      source.indexOf('private createActions(')
+    );
+    const confettiBlock = source.slice(
+      source.indexOf('private createTournamentFinalConfetti(): void'),
+      source.indexOf('private needsPenaltyShootout(): boolean')
+    );
+
+    expect(source).toContain("import {\n  CONFETTI_EFFECT_MODE,\n  CONFETTI_REPEAT_INTERVAL_MS,\n  DEFAULT_CONFETTI_COLORS,\n  FULL_SCENE_CONFETTI_VIEWPORT,\n  createConfettiEffect,\n  normalizeConfettiColors,\n  type ConfettiEffectHandle\n} from '../ui/confettiEffect'");
+    expect(source).toContain('isTournamentFinal?: boolean');
+    expect(source).toContain("resultCelebration?: 'tournament-final'");
+    expect(source).toContain('private isTournamentFinal = false');
+    expect(source).toContain("this.isTournamentFinal = data.isTournamentFinal === true;");
+    expect(source).toContain('this.resultCelebration = data.resultCelebration ?? null;');
+    expect(createBlock.indexOf('this.createResultBackground')).toBeLessThan(
+      createBlock.indexOf('this.createTournamentFinalConfetti();')
+    );
+    expect(createBlock.indexOf('this.createTournamentFinalConfetti();')).toBeLessThan(
+      createBlock.indexOf('this.createMatchStatsPanel')
+    );
+    expect(confettiBlock).toContain('if (!this.shouldStartTournamentFinalConfetti())');
+    expect(confettiBlock).toContain('this.confettiEffect = createConfettiEffect(this, {');
+    expect(confettiBlock).toContain('colors: resolveResultConfettiColors(this.state)');
+    expect(confettiBlock).toContain('depth: RESULT_CONFETTI_DEPTH');
+    expect(confettiBlock).toContain('mode: CONFETTI_EFFECT_MODE');
+    expect(confettiBlock).toContain('repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS');
+    expect(confettiBlock).toContain('viewport: FULL_SCENE_CONFETTI_VIEWPORT');
+    expect(confettiBlock).toContain("return this.launchContext.mode === 'tournament' &&");
+    expect(confettiBlock).toContain("(this.isTournamentFinal || this.resultCelebration === 'tournament-final')");
+  });
+
+  it('creates final celebration confetti as repeating side cannons instead of falling-only confetti', () => {
+    const source = readResultSceneSource();
+    const helperSource = readSource('src/ui/confettiEffect.ts');
+    const confettiBlock = source.slice(
+      source.indexOf('private createTournamentFinalConfetti(): void'),
+      source.indexOf('private shouldStartTournamentFinalConfetti(): boolean')
+    );
+
+    expect(helperSource).toContain('export const FULL_SCENE_CONFETTI_VIEWPORT = {');
+    expect(helperSource).toContain('width: SCENE_WIDTH');
+    expect(helperSource).toContain('height: SCENE_HEIGHT');
+    expect(helperSource).toContain("export const CONFETTI_EFFECT_MODE = 'side-cannons';");
+    expect(helperSource).toContain('export const CONFETTI_REPEAT_INTERVAL_MS = 2000;');
+    expect(helperSource).toContain('export const DESKTOP_CONFETTI_PIECES_PER_SIDE = 52;');
+    expect(helperSource).toContain('export const MOBILE_CONFETTI_PIECES_PER_SIDE = 28;');
+    expect(helperSource).toContain('export function createSideCannonBurstPieceConfigs');
+    expect(helperSource).toContain("...createCannonSidePieceConfigs('left'");
+    expect(helperSource).toContain("...createCannonSidePieceConfigs('right'");
+    expect(helperSource).toContain('repeatTimer = scene.time.addEvent({');
+    expect(helperSource).toContain('createBurst();');
+    expect(helperSource).not.toContain('createConfettiPieceConfigs');
+    expect(confettiBlock).toContain('viewport: FULL_SCENE_CONFETTI_VIEWPORT');
+    expect(confettiBlock).toContain('mode: CONFETTI_EFFECT_MODE');
+    expect(confettiBlock).toContain('repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS');
+    expect(confettiBlock).not.toContain('RESULT_SCOREBOARD_WIDTH');
+    expect(confettiBlock).not.toContain('RESULT_SCOREBOARD_HEIGHT');
+    expect(confettiBlock).not.toContain('RESULT_SCOREBOARD_CENTER_Y');
+  });
+
+  it('layers final confetti behind the result card and keeps it non-interactive', () => {
+    const source = readResultSceneSource();
+    const helperSource = readSource('src/ui/confettiEffect.ts');
+
+    expect(source).toContain('const RESULT_BACKGROUND_DEPTH = 0');
+    expect(source).toContain('const RESULT_CONFETTI_DEPTH = 1');
+    expect(source).toContain('const RESULT_CONTENT_DEPTH = 2');
+    expect(source).toContain('.setDepth(RESULT_BACKGROUND_DEPTH)');
+    expect(source).toContain('.setDepth(RESULT_CONTENT_DEPTH)');
+    expect(source).toContain('const panel = this.add.container(panelX, panelY).setDepth(RESULT_CONTENT_DEPTH)');
+    expect(source).toContain(').forEach((button) => button.setDepth(RESULT_CONTENT_DEPTH));');
+    expect(helperSource).toContain('const container = scene.add.container(0, 0);');
+    expect(helperSource).toContain('container.setDepth(options.depth)');
+    expect(helperSource).toContain('scene.add.rectangle(');
+    expect(helperSource).not.toContain('setInteractive');
+  });
+
+  it('cleans final confetti when ResultScene shuts down or is destroyed', () => {
+    const source = readResultSceneSource();
+    const confettiBlock = source.slice(
+      source.indexOf('private createTournamentFinalConfetti(): void'),
+      source.indexOf('private needsPenaltyShootout(): boolean')
+    );
+    const helperSource = readSource('src/ui/confettiEffect.ts');
+
+    expect(source).toContain('private confettiEffect: ConfettiEffectHandle | null = null');
+    expect(confettiBlock).toContain('this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyConfettiEffect, this);');
+    expect(confettiBlock).toContain('this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyConfettiEffect, this);');
+    expect(confettiBlock).toContain('this.confettiEffect?.destroy();');
+    expect(confettiBlock).toContain('this.confettiEffect = null;');
+    expect(helperSource).toContain('export interface ConfettiEffectHandle');
+    expect(helperSource).toContain('scene.events.once(SCENE_SHUTDOWN_EVENT, destroy);');
+    expect(helperSource).toContain('scene.events.once(SCENE_DESTROY_EVENT, destroy);');
+    expect(helperSource).toContain('repeatTimer.remove(false);');
+    expect(helperSource).toContain('for (const piece of activePieces)');
+    expect(helperSource).toContain('container.destroy(true);');
+  });
+
+  it('resolves final confetti colors from the winner team kit with a neutral fallback', () => {
+    const source = readResultSceneSource();
+    const colorBlock = source.slice(
+      source.indexOf('export function resolveResultConfettiColors'),
+      source.length
+    );
+
+    expect(source).toContain("import { getTeamKitStyle } from '../data/teamKits'");
+    expect(colorBlock).toContain('const winner = state?.players.find((player) => player.id === state.winnerId);');
+    expect(colorBlock).toContain('getTeamKitStyle(winner.flagCode)');
+    expect(colorBlock).toContain('return [...DEFAULT_CONFETTI_COLORS];');
+    expect(colorBlock).toContain('kitStyle.primaryColor');
+    expect(colorBlock).toContain('kitStyle.secondaryColor');
+    expect(colorBlock).toContain('kitStyle.accentColor');
+    expect(colorBlock).toContain('normalizeConfettiColors([');
+  });
+
+  it('does not add this confetti effect to TournamentCompleteScene yet', () => {
+    const completeSource = readSource('src/scenes/TournamentCompleteScene.ts');
+
+    expect(completeSource).not.toContain('createConfettiEffect');
+    expect(completeSource).not.toContain('confettiEffect');
+    expect(completeSource).not.toContain('isTournamentFinal');
+  });
+
   it('uses the same match state and tournament context when final-whistle sound is suppressed', () => {
     const source = readResultSceneSource();
     const createBlock = source.slice(
@@ -229,9 +355,10 @@ describe('result scene mobile statistics card', () => {
 
   it('orders tournament result actions as Play Again on the left and Continue on the right', () => {
     const source = readResultSceneSource();
+    const tournamentActionsStart = source.indexOf("{ label: 'Play Again', onClick: () => this.startReplayMatch() },\n        { label: 'Continue'");
     const tournamentActions = source.slice(
-      source.indexOf("if (this.launchContext.mode === 'tournament')"),
-      source.indexOf('return;\n    }')
+      tournamentActionsStart,
+      source.indexOf("], { attachedToPanel: true }).forEach", tournamentActionsStart)
     );
 
     expect(tournamentActions.indexOf("{ label: 'Play Again', onClick: () => this.startReplayMatch() }")).toBeLessThan(
