@@ -18,6 +18,13 @@ import {
   RESULT_ACTION_BUTTON_RADIUS
 } from '../ui/resultActionButtons';
 import {
+  CONFETTI_EFFECT_MODE,
+  CONFETTI_REPEAT_INTERVAL_MS,
+  FULL_SCENE_CONFETTI_VIEWPORT,
+  createConfettiEffect,
+  type ConfettiEffectHandle
+} from '../ui/confettiEffect';
+import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
   SCOREBOARD_BORDER_ALPHA,
@@ -32,6 +39,9 @@ const COMPLETE_PANEL_RADIUS = 8;
 const COMPLETE_ROW_RADIUS = 6;
 const COMPLETE_SCROLLBAR_WIDTH = 6;
 const COMPLETE_SCROLLBAR_MIN_THUMB_HEIGHT = 34;
+const COMPLETE_CONFETTI_DEPTH = 1;
+const COMPLETE_CONTENT_DEPTH = 2;
+export const TOURNAMENT_COMPLETE_CONFETTI_COLORS = ['#F7D56A', '#F0B93A', '#FFF2A6', '#D69A24', '#FFFFFF'] as const;
 
 type LeaderCardDefinition = {
   title: string;
@@ -106,6 +116,7 @@ interface TournamentCompleteLayout {
 export class TournamentCompleteScene extends Phaser.Scene {
   private devMockTournament: TournamentState | null = null;
   private devMockReturnScene: string | null = null;
+  private confettiEffect: ConfettiEffectHandle | null = null;
 
   public constructor() {
     super('TournamentCompleteScene');
@@ -136,9 +147,29 @@ export class TournamentCompleteScene extends Phaser.Scene {
 
     const layout = createTournamentCompleteLayout();
 
+    this.createChampionConfetti();
     this.createHeader(championTeamId, layout);
     this.createSummaryPanel(tournament, championTeamId, layout);
     this.createActions(layout);
+  }
+
+  private createChampionConfetti(): void {
+    this.confettiEffect = createConfettiEffect(this, {
+      colors: TOURNAMENT_COMPLETE_CONFETTI_COLORS,
+      depth: COMPLETE_CONFETTI_DEPTH,
+      mode: CONFETTI_EFFECT_MODE,
+      repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS,
+      viewport: FULL_SCENE_CONFETTI_VIEWPORT
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyChampionConfetti, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyChampionConfetti, this);
+  }
+
+  private destroyChampionConfetti(): void {
+    this.confettiEffect?.destroy();
+    this.confettiEffect = null;
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.destroyChampionConfetti, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.destroyChampionConfetti, this);
   }
 
   private renderMissingTournament(): void {
@@ -149,7 +180,8 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontSize: '42px',
         fontStyle: '700'
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(COMPLETE_CONTENT_DEPTH);
     this.add
       .text(SCENE_WIDTH / 2, 320, 'Completed tournament was not found', {
         color: '#f0c95a',
@@ -157,11 +189,12 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontSize: '28px',
         fontStyle: '700'
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(COMPLETE_CONTENT_DEPTH);
 
     new Button(this, SCENE_WIDTH / 2, 430, 'Menu', () => this.scene.start('MenuScene'), {
       width: 260
-    });
+    }).setDepth(COMPLETE_CONTENT_DEPTH);
   }
 
   private createHeader(championTeamId: TournamentTeamId, layout: TournamentCompleteLayout): void {
@@ -175,9 +208,10 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontSize: layout.header.titleFontSize,
         fontStyle: '700'
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(COMPLETE_CONTENT_DEPTH);
 
-    const championRow = this.add.container(SCENE_WIDTH / 2, layout.header.championY);
+    const championRow = this.add.container(SCENE_WIDTH / 2, layout.header.championY).setDepth(COMPLETE_CONTENT_DEPTH);
     const championName = champion?.name ?? championTeamId;
     const championLabel = this.add
       .text(0, 0, championName, {
@@ -208,7 +242,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
     championTeamId: TournamentTeamId,
     layout: TournamentCompleteLayout
   ): void {
-    const panel = this.add.container(layout.panel.x, layout.panel.y);
+    const panel = this.add.container(layout.panel.x, layout.panel.y).setDepth(COMPLETE_CONTENT_DEPTH);
     const background = this.add.graphics();
 
     background
@@ -562,7 +596,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontSize: layout.actions.fontSize,
         height: layout.actions.height,
         width: 360
-      });
+      }).setDepth(COMPLETE_CONTENT_DEPTH);
       return;
     }
 
@@ -587,7 +621,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         fontSize: layout.actions.fontSize,
         height: layout.actions.height,
         width: buttonWidth
-      });
+      }).setDepth(COMPLETE_CONTENT_DEPTH);
     });
   }
 

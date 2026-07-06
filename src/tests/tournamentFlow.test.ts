@@ -480,6 +480,22 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).toContain("super('TournamentCompleteScene')");
     expect(completeSource).toContain("import { createTournamentBackground } from '../ui/tournamentBackground'");
     expect(completeSource).toContain('createTournamentBackground(this, TOURNAMENT_ASSETS.winnerBackground)');
+    expect(completeSource).toContain("} from '../ui/confettiEffect'");
+    expect(completeSource).toContain("export const TOURNAMENT_COMPLETE_CONFETTI_COLORS = ['#F7D56A', '#F0B93A', '#FFF2A6', '#D69A24', '#FFFFFF'] as const");
+    expect(completeSource).toContain('private confettiEffect: ConfettiEffectHandle | null = null');
+    expect(completeSource).toContain('this.createChampionConfetti()');
+    expect(completeSource).toContain('private createChampionConfetti(): void');
+    expect(completeSource).toContain('this.confettiEffect = createConfettiEffect(this, {');
+    expect(completeSource).toContain('colors: TOURNAMENT_COMPLETE_CONFETTI_COLORS');
+    expect(completeSource).toContain('depth: COMPLETE_CONFETTI_DEPTH');
+    expect(completeSource).toContain('mode: CONFETTI_EFFECT_MODE');
+    expect(completeSource).toContain('repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS');
+    expect(completeSource).toContain('viewport: FULL_SCENE_CONFETTI_VIEWPORT');
+    expect(completeSource).toContain('this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyChampionConfetti, this)');
+    expect(completeSource).toContain('this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyChampionConfetti, this)');
+    expect(completeSource).toContain('this.confettiEffect?.destroy()');
+    expect(completeSource).toContain('const COMPLETE_CONFETTI_DEPTH = 1');
+    expect(completeSource).toContain('const COMPLETE_CONTENT_DEPTH = 2');
     expect(completeSource).toContain("import { isMobileLandscapeLayout } from '../ui/mobileLayout'");
     expect(completeSource).toContain("import {\n  RESULT_ACTION_BUTTON_FONT_SIZE,\n  RESULT_ACTION_BUTTON_HEIGHT,\n  RESULT_ACTION_BUTTON_RADIUS\n} from '../ui/resultActionButtons'");
     expect(completeSource).toContain('SCOREBOARD_BACKGROUND_COLOR,');
@@ -487,6 +503,9 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).toContain('SCOREBOARD_BORDER_COLOR,');
     expect(completeSource).toContain('SCOREBOARD_BORDER_ALPHA');
     expect(completeSource).toContain("this.createHeader(championTeamId, layout)");
+    expect(completeSource.indexOf('this.createChampionConfetti()')).toBeLessThan(
+      completeSource.indexOf('this.createHeader(championTeamId, layout)')
+    );
     expect(completeSource).toContain("'Congratulations to the champion!'");
     expect(completeSource).not.toContain("'Tournament complete'");
     expect(completeSource).not.toContain('Champion:');
@@ -505,6 +524,9 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).toContain('const panelHeight = COMPLETE_PANEL_BOTTOM_Y - panelTop');
     expect(completeSource).toContain('fillRoundedRect(');
     expect(completeSource).toContain('strokeRoundedRect(');
+    expect(completeSource).toContain('const panel = this.add.container(layout.panel.x, layout.panel.y).setDepth(COMPLETE_CONTENT_DEPTH)');
+    expect(completeSource).toContain('championRow = this.add.container(SCENE_WIDTH / 2, layout.header.championY).setDepth(COMPLETE_CONTENT_DEPTH)');
+    expect(completeSource).toContain(').setDepth(COMPLETE_CONTENT_DEPTH)');
     expect(completeSource).toContain('this.createPathRow(match, 0, layout.path.rowHeight / 2 + index * layout.path.rowGap, layout)');
     expect(completeSource).not.toContain('private createFinalLine');
     expect(completeSource).not.toContain("this.createSectionTitle(-488, -168, 'Final')");

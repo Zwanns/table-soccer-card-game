@@ -322,6 +322,7 @@ describe('Dev Lab scene previews', () => {
 
   it('opens tournament complete preview with mock scene data and no real tournament overwrite', () => {
     const source = readSource('src/scenes/DevLabScene.ts');
+    const completeSource = readSource('src/scenes/TournamentCompleteScene.ts');
     const completeBlock = source.slice(
       source.indexOf('private openTournamentCompletePreview()'),
       source.indexOf('function createDevLabResultState()')
@@ -333,6 +334,9 @@ describe('Dev Lab scene previews', () => {
     expect(source).not.toContain("this.registry.set('currentTournament'");
     expect(source).not.toContain('saveTournament(');
     expect(source).not.toContain('deleteStoredTournament(');
+    expect(completeSource).toContain('private createChampionConfetti(): void');
+    expect(completeSource).toContain('colors: TOURNAMENT_COMPLETE_CONFETTI_COLORS');
+    expect(completeSource).toContain('repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS');
   });
 
   it('keeps dev mock ResultScene and TournamentCompleteScene exits sandboxed', () => {

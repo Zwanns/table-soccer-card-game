@@ -63,6 +63,19 @@ describe('side-cannon confetti effect helper', () => {
     });
   });
 
+  it('accepts a golden champion palette for shared side-cannon bursts', () => {
+    const goldenPalette = ['#F7D56A', '#F0B93A', '#FFF2A6', '#D69A24', '#FFFFFF'];
+    const pieces = createSideCannonBurstPieceConfigs({
+      colors: goldenPalette,
+      piecesPerSide: 5,
+      random: () => 0.5
+    });
+
+    pieces.forEach((piece) => {
+      expect(goldenPalette).toContain(piece.color);
+    });
+  });
+
   it('uses lower mobile intensity than desktop within the requested ranges', () => {
     expect(getConfettiPiecesPerSide(false)).toBe(DESKTOP_CONFETTI_PIECES_PER_SIDE);
     expect(getConfettiPiecesPerSide(true)).toBe(MOBILE_CONFETTI_PIECES_PER_SIDE);

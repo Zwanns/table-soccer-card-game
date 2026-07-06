@@ -165,11 +165,14 @@ describe('result scene mobile statistics card', () => {
     expect(colorBlock).toContain('normalizeConfettiColors([');
   });
 
-  it('does not add this confetti effect to TournamentCompleteScene yet', () => {
+  it('keeps ResultScene final confetti on winner team colors while TournamentCompleteScene uses its own palette', () => {
     const completeSource = readSource('src/scenes/TournamentCompleteScene.ts');
+    const resultSource = readResultSceneSource();
 
-    expect(completeSource).not.toContain('createConfettiEffect');
-    expect(completeSource).not.toContain('confettiEffect');
+    expect(resultSource).toContain('colors: resolveResultConfettiColors(this.state)');
+    expect(resultSource).toContain('getTeamKitStyle(winner.flagCode)');
+    expect(completeSource).toContain('TOURNAMENT_COMPLETE_CONFETTI_COLORS');
+    expect(completeSource).toContain('colors: TOURNAMENT_COMPLETE_CONFETTI_COLORS');
     expect(completeSource).not.toContain('isTournamentFinal');
   });
 
