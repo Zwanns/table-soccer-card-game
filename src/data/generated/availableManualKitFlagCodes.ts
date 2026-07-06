@@ -15,9 +15,12 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'cl',
   'cm',
   'co',
+  'cr',
   'cz',
   'de',
+  'dk',
   'dz',
+  'ec',
   'es',
   'fr',
   'gb-eng',
@@ -39,8 +42,10 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'pt',
   'py',
   'se',
+  'si',
   'sk',
   'tr',
   'ua',
+  'us',
   'uy'
 ] as const;

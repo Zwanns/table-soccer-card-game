@@ -35,6 +35,7 @@ const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
   ['ar', '#111111'],
   ['by', '#FFFFFF'],
   ['cz', '#FFFFFF'],
+  ['ec', '#FFFFFF'],
   ['gr', '#0D5EAF'],
   ['hr', '#0033A0'],
   ['ma', '#FFFFFF'],
