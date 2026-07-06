@@ -4,11 +4,21 @@ import type { PlayerControllerType } from '../ai';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
+import { getTeamKitStyle } from '../data/teamKits';
 import {
   RESULT_ACTION_BUTTON_HEIGHT,
   RESULT_ACTION_BUTTON_Y,
   createResultActionButtons
 } from '../ui/resultActionButtons';
+import {
+  CONFETTI_EFFECT_MODE,
+  CONFETTI_REPEAT_INTERVAL_MS,
+  DEFAULT_CONFETTI_COLORS,
+  FULL_SCENE_CONFETTI_VIEWPORT,
+  createConfettiEffect,
+  normalizeConfettiColors,
+  type ConfettiEffectHandle
+} from '../ui/confettiEffect';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -49,6 +59,9 @@ const RESULT_MOBILE_AI_BADGE_RADIUS = 4;
 const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10;
 const RESULT_MOBILE_AI_BADGE_TOP_Y = 12;
 const RESULT_VERSION_MARGIN = 18;
+const RESULT_BACKGROUND_DEPTH = 0;
+const RESULT_CONFETTI_DEPTH = 1;
+const RESULT_CONTENT_DEPTH = 2;
 interface ResultStatsTypography {
   labelFontSize: string;
   valueFontSize: string;
@@ -74,6 +87,8 @@ interface ResultSceneData {
   state?: Readonly<GameState>;
   launchContext?: MatchLaunchContext;
   suppressFinalWhistle?: boolean;
+  isTournamentFinal?: boolean;
+  resultCelebration?: 'tournament-final';
   devMockReturnScene?: string;
 }
 
@@ -81,6 +96,9 @@ export class ResultScene extends Phaser.Scene {
   private state: Readonly<GameState> | null = null;
   private launchContext: MatchLaunchContext = QUICK_MATCH_CONTEXT;
   private suppressFinalWhistle = false;
+  private isTournamentFinal = false;
+  private resultCelebration: ResultSceneData['resultCelebration'] | null = null;
+  private confettiEffect: ConfettiEffectHandle | null = null;
   private devMockReturnScene: string | null = null;
   private message: Phaser.GameObjects.Text | null = null;
 
@@ -92,6 +110,8 @@ export class ResultScene extends Phaser.Scene {
     this.state = data.state ?? null;
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
     this.suppressFinalWhistle = data.suppressFinalWhistle === true;
+    this.isTournamentFinal = data.isTournamentFinal === true;
+    this.resultCelebration = data.resultCelebration ?? null;
     this.devMockReturnScene = data.devMockReturnScene ?? null;
   }
 
@@ -108,6 +128,7 @@ export class ResultScene extends Phaser.Scene {
     }
 
     this.createResultBackground(centerX, centerY, playerOneGoals, playerTwoGoals);
+    this.createTournamentFinalConfetti();
 
     if (this.state !== null) {
       this.createMatchStatsPanel(centerX, RESULT_SCOREBOARD_CENTER_Y, this.state, this.getPostMatchPenaltyAttempts());
@@ -119,10 +140,18 @@ export class ResultScene extends Phaser.Scene {
 
   private createActions(centerX: number): void {
     if (this.launchContext.mode === 'tournament') {
+      if (this.devMockReturnScene !== null) {
+        createResultActionButtons(this, centerX, [
+          { label: 'Back', onClick: () => this.scene.start(this.devMockReturnScene!) },
+          { label: 'Play Again', onClick: () => this.startReplayMatch() }
+        ]).forEach((button) => button.setDepth(RESULT_CONTENT_DEPTH));
+        return;
+      }
+
       createResultActionButtons(this, centerX, [
         { label: 'Play Again', onClick: () => this.startReplayMatch() },
         { label: 'Continue', onClick: () => this.returnToTournament() }
-      ], { attachedToPanel: true });
+      ], { attachedToPanel: true }).forEach((button) => button.setDepth(RESULT_CONTENT_DEPTH));
       return;
     }
 
@@ -130,14 +159,14 @@ export class ResultScene extends Phaser.Scene {
       createResultActionButtons(this, centerX, [
         { label: 'Back', onClick: () => this.scene.start(this.devMockReturnScene!) },
         { label: 'Play Again', onClick: () => this.startReplayMatch() }
-      ]);
+      ]).forEach((button) => button.setDepth(RESULT_CONTENT_DEPTH));
       return;
     }
 
     createResultActionButtons(this, centerX, [
       { label: 'Play Again', onClick: () => this.startReplayMatch() },
       { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'match' }) }
-    ], { attachedToPanel: true });
+    ], { attachedToPanel: true }).forEach((button) => button.setDepth(RESULT_CONTENT_DEPTH));
   }
 
   private createVersionLabel(): void {
@@ -150,7 +179,8 @@ export class ResultScene extends Phaser.Scene {
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION
       })
-      .setOrigin(1, 1);
+      .setOrigin(1, 1)
+      .setDepth(RESULT_CONTENT_DEPTH);
   }
 
   private createResultBackground(centerX: number, centerY: number, playerOneGoals: number, playerTwoGoals: number): void {
@@ -158,16 +188,45 @@ export class ResultScene extends Phaser.Scene {
       playerOneGoals === playerTwoGoals ? MENU_ASSETS.resultDrawBackground : MENU_ASSETS.resultWinBackground;
 
     if (!this.textures.exists(textureKey)) {
-      this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231);
+      this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x142231).setDepth(RESULT_BACKGROUND_DEPTH);
       return;
     }
 
     const background = this.add.image(centerX, centerY, textureKey);
     background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT);
+    background.setDepth(RESULT_BACKGROUND_DEPTH);
 
     if (playerOneGoals > playerTwoGoals) {
       background.setFlipX(true);
     }
+  }
+
+  private createTournamentFinalConfetti(): void {
+    if (!this.shouldStartTournamentFinalConfetti()) {
+      return;
+    }
+
+    this.confettiEffect = createConfettiEffect(this, {
+      colors: resolveResultConfettiColors(this.state),
+      depth: RESULT_CONFETTI_DEPTH,
+      mode: CONFETTI_EFFECT_MODE,
+      repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS,
+      viewport: FULL_SCENE_CONFETTI_VIEWPORT
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyConfettiEffect, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyConfettiEffect, this);
+  }
+
+  private shouldStartTournamentFinalConfetti(): boolean {
+    return this.launchContext.mode === 'tournament' &&
+      (this.isTournamentFinal || this.resultCelebration === 'tournament-final');
+  }
+
+  private destroyConfettiEffect(): void {
+    this.confettiEffect?.destroy();
+    this.confettiEffect = null;
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.destroyConfettiEffect, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.destroyConfettiEffect, this);
   }
 
   private needsPenaltyShootout(): boolean {
@@ -300,7 +359,7 @@ export class ResultScene extends Phaser.Scene {
     const typography = getResultStatsTypography();
     const panelX = px(x);
     const panelY = px(y);
-    const panel = this.add.container(panelX, panelY);
+    const panel = this.add.container(panelX, panelY).setDepth(RESULT_CONTENT_DEPTH);
     const background = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
     background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA);
 
@@ -677,4 +736,19 @@ function createPenaltyTimeline(
     playerOneText: playerOneAttempts[index] === undefined ? '' : formatPenaltyAttempt(playerOneAttempts[index]),
     playerTwoText: playerTwoAttempts[index] === undefined ? '' : formatPenaltyAttempt(playerTwoAttempts[index])
   }));
+}
+
+export function resolveResultConfettiColors(state: Readonly<GameState> | null): string[] {
+  const winner = state?.players.find((player) => player.id === state.winnerId);
+  const kitStyle = winner === undefined ? undefined : getTeamKitStyle(winner.flagCode);
+
+  if (kitStyle === undefined) {
+    return [...DEFAULT_CONFETTI_COLORS];
+  }
+
+  return normalizeConfettiColors([
+    kitStyle.primaryColor,
+    kitStyle.secondaryColor,
+    ...(kitStyle.accentColor === undefined ? [] : [kitStyle.accentColor])
+  ]);
 }

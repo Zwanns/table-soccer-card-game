@@ -68,6 +68,7 @@ describe('Dev Lab scene previews', () => {
     expect(source).toContain("'Post-attack restore preview'");
     expect(source).toContain("'Pause during restore test'");
     expect(source).toContain("'Result screen preview'");
+    expect(source).toContain("'Final result confetti preview'");
     expect(source).toContain("'Tournament complete preview'");
     expect(source).toContain("'Back', () => this.scene.start('MenuScene')");
   });
@@ -282,16 +283,41 @@ describe('Dev Lab scene previews', () => {
     const source = readSource('src/scenes/DevLabScene.ts');
     const resultBlock = source.slice(
       source.indexOf('private openResultPreview()'),
-      source.indexOf('private openTournamentCompletePreview()')
+      source.indexOf('private openFinalResultConfettiPreview()')
     );
 
     expect(resultBlock).toContain("this.scene.start('ResultScene'");
     expect(resultBlock).toContain('state: createDevLabResultState()');
     expect(resultBlock).toContain('launchContext: QUICK_MATCH_CONTEXT');
     expect(resultBlock).toContain('devMockReturnScene: \'DevLabScene\'');
+    expect(resultBlock).not.toContain('isTournamentFinal: true');
     expect(source).not.toContain('saveTournament(');
     expect(source).not.toContain('deleteStoredTournament(');
     expect(source).not.toContain('localStorage');
+  });
+
+  it('opens final result confetti preview with the real final flag and no tournament state mutation', () => {
+    const source = readSource('src/scenes/DevLabScene.ts');
+    const resultSource = readSource('src/scenes/ResultScene.ts');
+    const finalResultBlock = source.slice(
+      source.indexOf('private openFinalResultConfettiPreview()'),
+      source.indexOf('private openTournamentCompletePreview()')
+    );
+
+    expect(finalResultBlock).toContain("this.scene.start('ResultScene'");
+    expect(finalResultBlock).toContain('state: createDevLabResultState()');
+    expect(finalResultBlock).toContain("mode: 'tournament'");
+    expect(finalResultBlock).toContain("tournamentMatchId: 'final-1'");
+    expect(finalResultBlock).toContain('isTournamentFinal: true');
+    expect(finalResultBlock).toContain('devMockReturnScene: \'DevLabScene\'');
+    expect(finalResultBlock).not.toContain("this.registry.set('currentTournament'");
+    expect(finalResultBlock).not.toContain('saveTournament(');
+    expect(finalResultBlock).not.toContain('deleteStoredTournament(');
+    expect(resultSource).toContain('private createTournamentFinalConfetti(): void');
+    expect(resultSource).toContain("(this.isTournamentFinal || this.resultCelebration === 'tournament-final')");
+    expect(resultSource).toContain('mode: CONFETTI_EFFECT_MODE');
+    expect(resultSource).toContain('repeatIntervalMs: CONFETTI_REPEAT_INTERVAL_MS');
+    expect(resultSource).toContain('viewport: FULL_SCENE_CONFETTI_VIEWPORT');
   });
 
   it('opens tournament complete preview with mock scene data and no real tournament overwrite', () => {
@@ -340,7 +366,7 @@ describe('Dev Lab side-panel layout', () => {
   });
 
   it('keeps every scenario button and the Back button inside the side panel', () => {
-    const scenarioCount = 9;
+    const scenarioCount = 10;
 
     for (const mobileLandscape of [false, true]) {
       const layout = createDevLabLayout(mobileLandscape);

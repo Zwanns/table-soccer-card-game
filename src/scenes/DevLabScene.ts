@@ -127,6 +127,7 @@ export class DevLabScene extends Phaser.Scene {
       { label: 'Post-attack restore preview', onClick: () => this.startGamePreview('post-attack-restore') },
       { label: 'Pause during restore test', onClick: () => this.startGamePreview('pause-during-restore') },
       { label: 'Result screen preview', onClick: () => this.openResultPreview() },
+      { label: 'Final result confetti preview', onClick: () => this.openFinalResultConfettiPreview() },
       { label: 'Tournament complete preview', onClick: () => this.openTournamentCompletePreview() }
     ];
 
@@ -249,6 +250,20 @@ export class DevLabScene extends Phaser.Scene {
       state: createDevLabResultState(),
       launchContext: QUICK_MATCH_CONTEXT,
       suppressFinalWhistle: true,
+      devMockReturnScene: 'DevLabScene'
+    });
+  }
+
+  private openFinalResultConfettiPreview(): void {
+    this.scene.start('ResultScene', {
+      state: createDevLabResultState(),
+      launchContext: {
+        mode: 'tournament',
+        tournamentId: 'dev-lab-tournament-final',
+        tournamentMatchId: 'final-1'
+      },
+      suppressFinalWhistle: true,
+      isTournamentFinal: true,
       devMockReturnScene: 'DevLabScene'
     });
   }

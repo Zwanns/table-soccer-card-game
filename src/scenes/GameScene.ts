@@ -2529,6 +2529,7 @@ export class GameScene extends Phaser.Scene {
   private openResultScene(state: Readonly<GameState>, options: ResultSceneTransitionOptions = {}): void {
     const suppressFinalWhistle = options.suppressFinalWhistle === true;
     const isFinalWhistleOk = options.source === 'final-whistle-ok';
+    const isTournamentFinal = this.isTournamentFinalLaunchContext();
 
     if (this.isMatchFinishedResultPending && !isFinalWhistleOk) {
       return;
@@ -2544,7 +2545,25 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.prepareToLeaveMatchScene();
-    this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });
+    this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle, isTournamentFinal });
+  }
+
+  private isTournamentFinalLaunchContext(): boolean {
+    const launchContext = this.launchContext;
+
+    if (launchContext.mode !== 'tournament') {
+      return false;
+    }
+
+    const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
+
+    if (tournament === undefined || tournament.id !== launchContext.tournamentId) {
+      return false;
+    }
+
+    const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);
+
+    return match?.stage === 'final';
   }
 
   private simulatePausedMatch(state: Readonly<GameState>): void {

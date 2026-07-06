@@ -476,7 +476,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("source: 'final-whistle-ok'");
     expect(source).toContain('suppressFinalWhistle: true');
     expect(source).toContain('bypassFinalWhistleModal: true');
-    expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+    expect(source).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle, isTournamentFinal });");
     expect(source.indexOf('this.matchFinishedModal = createMatchFinishedModal(this')).toBeLessThan(
       source.indexOf('this.playMatchFinishedWhistleOnce();')
     );
@@ -541,7 +541,23 @@ describe('GameScene visual layout contracts', () => {
     expect(openResultSceneBlock).toContain('const cardDepletionFinish = this.getPlayableCardDepletionFinish(state);');
     expect(openResultSceneBlock).toContain('this.showMatchFinishedModal(state, cardDepletionFinish);\n        return;');
     expect(openResultSceneBlock).toContain('const suppressFinalWhistle = options.suppressFinalWhistle === true;');
-    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+    expect(openResultSceneBlock).toContain('const isTournamentFinal = this.isTournamentFinalLaunchContext();');
+    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle, isTournamentFinal });");
+  });
+
+  it('passes the final ResultScene celebration flag only for tournament final matches', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const detectorBlock = source.slice(
+      source.indexOf('private isTournamentFinalLaunchContext(): boolean'),
+      source.indexOf('private simulatePausedMatch(')
+    );
+
+    expect(detectorBlock).toContain("if (launchContext.mode !== 'tournament')");
+    expect(detectorBlock).toContain('return false;');
+    expect(detectorBlock).toContain("const tournament = this.registry.get('currentTournament') as TournamentState | undefined;");
+    expect(detectorBlock).toContain('tournament.id !== launchContext.tournamentId');
+    expect(detectorBlock).toContain('const match = tournament.matches.find((candidate) => candidate.id === launchContext.tournamentMatchId);');
+    expect(detectorBlock).toContain("return match?.stage === 'final';");
   });
 
   it('keeps the final-whistle modal exclusive against delayed mobile ResultScene attempts', () => {
@@ -629,7 +645,7 @@ describe('GameScene visual layout contracts', () => {
     expect(initBlock).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
     expect(gameSource).toContain("type ResultSceneTransitionSource = 'playable' | 'final-whistle-ok' | 'pause-sim'");
     expect(openResultSceneBlock).toContain('this.prepareToLeaveMatchScene();');
-    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle });");
+    expect(openResultSceneBlock).toContain("this.scene.start('ResultScene', { state, launchContext: this.launchContext, suppressFinalWhistle, isTournamentFinal });");
     expect(resultInitBlock).toContain('this.state = data.state ?? null;');
     expect(resultInitBlock).toContain('this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;');
     expect(resultInitBlock).toContain('this.suppressFinalWhistle = data.suppressFinalWhistle === true;');

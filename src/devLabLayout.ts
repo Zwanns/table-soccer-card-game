@@ -81,7 +81,7 @@ export function createDevLabLayout(mobileLandscape = isMobileLandscapeLayout()):
     },
     buttons: {
       startY: sidePanelY + (mobileLandscape ? 140 : 154),
-      gap: mobileLandscape ? 52 : 50,
+      gap: 44,
       width: sidePanelWidth - (mobileLandscape ? 56 : 60),
       height: mobileLandscape ? 44 : 46,
       fontSize: mobileLandscape ? '17px' : '18px'
