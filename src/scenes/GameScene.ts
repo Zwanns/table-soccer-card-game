@@ -36,7 +36,6 @@ import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
-import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification';
 import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons } from '../ui/matchControlButtons';
@@ -45,6 +44,8 @@ import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from '../ui/scoreboardStyle';
 import {
   createGoalScoredEffect,
+  createGoalkeeperSaveEffect,
+  createPostHitEffect,
   createShotOutcomeEffect,
   getGoalkeeperShotPostForwardDeflection,
   getGoalkeeperShotSaveDeflection
@@ -1367,22 +1368,45 @@ export class GameScene extends Phaser.Scene {
     const centerY = SCENE_HEIGHT / 2;
 
     if (tone === 'goal') {
-      showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete);
+      createGoalScoredEffect(this, {
+        notificationX: centerX,
+        notificationY: centerY,
+        soundEnabled: false,
+        onComplete
+      });
       return;
     }
 
-    const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';
-    const color = tone === 'post' ? '#f0c95a' : '#ffffff';
-    const textPadding = tone === 'save' ? 28 : 14;
-    const isShotOutcomeTone = tone === 'post' || tone === 'save';
-    const popDuration = isShotOutcomeTone ? 220 : 0;
-    const fadeDelay = isShotOutcomeTone ? 520 : 0;
-    const fadeDuration = isShotOutcomeTone ? 1900 : 900;
+    if (tone === 'save') {
+      createGoalkeeperSaveEffect(this, {
+        notificationX: centerX,
+        notificationY: centerY,
+        soundEnabled: false,
+        onComplete
+      });
+      return;
+    }
+
+    if (tone === 'post') {
+      createPostHitEffect(this, {
+        notificationX: centerX,
+        notificationY: centerY,
+        soundEnabled: false,
+        onComplete
+      });
+      return;
+    }
+
+    const fontSize = '38px';
+    const color = '#ffffff';
+    const textPadding = 14;
+    const fadeDelay = 0;
+    const fadeDuration = 900;
 
     const text = this.add
       .text(centerX, centerY - 40, message, {
         color,
-        fontFamily: tone === 'save' ? 'Bangers, Arial, sans-serif' : 'Arial, sans-serif',
+        fontFamily: 'Arial, sans-serif',
         fontSize,
         fontStyle: '700',
         stroke: '#123b2a',
@@ -1406,20 +1430,6 @@ export class GameScene extends Phaser.Scene {
         }
       });
     };
-
-    if (isShotOutcomeTone) {
-      text.setAlpha(0);
-      text.setScale(0.82);
-      this.tweens.add({
-        targets: text,
-        alpha: 1,
-        scale: 1.08,
-        duration: popDuration,
-        ease: 'Back.easeOut',
-        onComplete: () => startFadeTween()
-      });
-      return;
-    }
 
     startFadeTween();
   }

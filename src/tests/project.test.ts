@@ -448,6 +448,8 @@ describe('project scaffold', () => {
       join('public', 'menu', 'gk-save-3.webp'),
       join('public', 'menu', 'gk-save-4.webp'),
       join('public', 'menu', 'gk-save-5.webp'),
+      join('public', 'menu', 'gk-post-1.webp'),
+      join('public', 'menu', 'gk-post-2.webp'),
       join('public', 'sounds', 'referees-whistle-start.mp3'),
       join('public', 'sounds', 'referees-whistle-finish.mp3'),
       join('public', 'sounds', 'bolely-net.mp3'),

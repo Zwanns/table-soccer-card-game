@@ -26,6 +26,10 @@ const ASSET_PATHS = {
     { textureKey: 'gk-save-4', path: '/menu/gk-save-4.webp' },
     { textureKey: 'gk-save-5', path: '/menu/gk-save-5.webp' }
   ],
+  postHitNotifications: [
+    { textureKey: 'gk-post-1', path: '/menu/gk-post-1.webp' },
+    { textureKey: 'gk-post-2', path: '/menu/gk-post-2.webp' }
+  ],
   matchFinishedReferee: '/menu/arbitr-end.webp',
   sounds: {
     whistleStart: '/sounds/referees-whistle-start.mp3',
@@ -58,6 +62,9 @@ export class BootScene extends Phaser.Scene {
       this.load.image(asset.textureKey, asset.path);
     }
     for (const asset of ASSET_PATHS.goalkeeperSaveNotifications) {
+      this.load.image(asset.textureKey, asset.path);
+    }
+    for (const asset of ASSET_PATHS.postHitNotifications) {
       this.load.image(asset.textureKey, asset.path);
     }
     this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee);

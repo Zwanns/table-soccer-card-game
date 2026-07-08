@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import {
+  applyEventArtworkDisplaySize,
+  EVENT_ARTWORK_IMAGE_ALPHA,
+  EVENT_ARTWORK_IMAGE_DEPTH,
+  EVENT_ARTWORK_TEXT_DEPTH
+} from './eventArtwork';
 import { getGoalkeeperGoalAnimation } from './goalkeeperGoalAnimation';
 import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from './goalNotification';
 import { selectRandomAvailableTextureKey, type RandomSource } from './textureSelection';
@@ -66,10 +72,17 @@ export const GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE = 64;
 export const GOALKEEPER_SAVE_NOTIFICATION_MAX_SAVE_FONT_SIZE = 78;
 export const GOALKEEPER_SAVE_NOTIFICATION_SAVE_WIDTH_RATIO = 0.84;
 export const GOALKEEPER_SAVE_NOTIFICATION_LINE_GAP = -22;
-export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO = 1.2;
-export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_ALPHA = 0.94;
-export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH = 0;
-export const GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH = 1;
+export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_ALPHA = EVENT_ARTWORK_IMAGE_ALPHA;
+export const GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH = EVENT_ARTWORK_IMAGE_DEPTH;
+export const GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH = EVENT_ARTWORK_TEXT_DEPTH;
+export const POST_HIT_NOTIFICATION_TEXTURE_KEY = 'gk-post-1';
+export const POST_HIT_NOTIFICATION_TEXTURE_KEYS = [
+  POST_HIT_NOTIFICATION_TEXTURE_KEY,
+  'gk-post-2'
+] as const;
+export const POST_HIT_NOTIFICATION_FONT_SIZE = 64;
+export const POST_HIT_NOTIFICATION_TEXT = 'Post!';
+export const POST_HIT_NOTIFICATION_COLOR = '#f0c95a';
 export const SHOT_OUTCOME_BALL_TEXTURE_KEY = 'turn-ball';
 export const SHOT_OUTCOME_BALL_SIZE = 42;
 export const SHOT_OUTCOME_BALL_FLIGHT_MS = 320;
@@ -174,6 +187,12 @@ export function createShotOutcomeEffect(
     root.add(notification);
   } else if (effect.flyingMessageTone === 'save') {
     createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, options.random, () => {
+      if (!destroyed) {
+        options.onComplete?.();
+      }
+    });
+  } else if (effect.flyingMessageTone === 'post') {
+    createPostHitNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, options.random, () => {
       if (!destroyed) {
         options.onComplete?.();
       }
@@ -335,7 +354,7 @@ function createGoalkeeperSaveNotification(
   matchGoalkeeperSaveTextWidths(goalkeeperText, saveText);
   layoutGoalkeeperSaveText(goalkeeperText, saveText);
 
-  const image = createGoalkeeperSaveNotificationImage(scene, goalkeeperText, saveText, random);
+  const image = createGoalkeeperSaveNotificationImage(scene, random);
 
   if (image !== null) {
     notification.add(image);
@@ -404,12 +423,7 @@ function layoutGoalkeeperSaveText(
   saveText.setY(totalTextHeight / 2 - saveText.displayHeight / 2);
 }
 
-function createGoalkeeperSaveNotificationImage(
-  scene: Phaser.Scene,
-  goalkeeperText: Phaser.GameObjects.Text,
-  saveText: Phaser.GameObjects.Text,
-  random?: RandomSource
-): Phaser.GameObjects.Image | null {
+function createGoalkeeperSaveNotificationImage(scene: Phaser.Scene, random?: RandomSource): Phaser.GameObjects.Image | null {
   const goalkeeperTextureKey = selectRandomAvailableTextureKey(
     scene,
     GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS,
@@ -425,17 +439,100 @@ function createGoalkeeperSaveNotificationImage(
     width: number;
     height: number;
   };
-  const textWidth = Math.max(goalkeeperText.displayWidth, saveText.displayWidth);
-  const textHeight =
-    goalkeeperText.displayHeight + GOALKEEPER_SAVE_NOTIFICATION_LINE_GAP + saveText.displayHeight;
-  const imageScale = Math.max(
-    (textWidth * GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.width,
-    (textHeight * GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.height
-  );
 
-  image.setDisplaySize(imageSource.width * imageScale, imageSource.height * imageScale);
+  applyEventArtworkDisplaySize(image, imageSource);
   image.setAlpha(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_ALPHA);
   image.setDepth(GOALKEEPER_SAVE_NOTIFICATION_IMAGE_DEPTH);
+
+  return image;
+}
+
+function createPostHitNotification(
+  scene: Phaser.Scene,
+  root: Phaser.GameObjects.Container,
+  ownedObjects: Set<Phaser.GameObjects.GameObject>,
+  ownedTweens: Set<Phaser.Tweens.Tween | Phaser.Tweens.TweenChain>,
+  x: number,
+  y: number,
+  random: RandomSource | undefined,
+  onComplete: () => void
+): void {
+  const notification = scene.add.container(x, y + SHOT_OUTCOME_MESSAGE_OFFSET_Y);
+  notification.setDepth(SHOT_OUTCOME_EFFECT_DEPTH);
+  notification.setAlpha(0);
+  notification.setScale(SHOT_OUTCOME_MESSAGE_START_SCALE);
+
+  const image = createPostHitNotificationImage(scene, random);
+
+  if (image !== null) {
+    notification.add(image);
+  }
+
+  const text = scene.add
+    .text(0, 0, POST_HIT_NOTIFICATION_TEXT, {
+      color: POST_HIT_NOTIFICATION_COLOR,
+      fontFamily: 'Bangers, Arial, sans-serif',
+      fontSize: `${POST_HIT_NOTIFICATION_FONT_SIZE}px`,
+      fontStyle: '700',
+      stroke: '#123b2a',
+      strokeThickness: 6
+    })
+    .setPadding(18, 8, 18, 8)
+    .setOrigin(0.5)
+    .setDepth(EVENT_ARTWORK_TEXT_DEPTH);
+
+  notification.add(text);
+  ownedObjects.add(notification);
+  root.add(notification);
+
+  const startFadeTween = (): void => {
+    const fadeTween = scene.tweens.add({
+      targets: notification,
+      y: notification.y - 82,
+      alpha: 0,
+      delay: SHOT_OUTCOME_MESSAGE_FADE_DELAY,
+      duration: SHOT_OUTCOME_MESSAGE_FADE_DURATION,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        ownedTweens.delete(fadeTween);
+        notification.destroy();
+        ownedObjects.delete(notification);
+        onComplete();
+      }
+    });
+    ownedTweens.add(fadeTween);
+  };
+
+  const popTween = scene.tweens.add({
+    targets: notification,
+    alpha: 1,
+    scale: SHOT_OUTCOME_MESSAGE_TARGET_SCALE,
+    duration: SHOT_OUTCOME_MESSAGE_POP_DURATION,
+    ease: 'Back.easeOut',
+    onComplete: () => {
+      ownedTweens.delete(popTween);
+      startFadeTween();
+    }
+  });
+  ownedTweens.add(popTween);
+}
+
+function createPostHitNotificationImage(scene: Phaser.Scene, random?: RandomSource): Phaser.GameObjects.Image | null {
+  const textureKey = selectRandomAvailableTextureKey(scene, POST_HIT_NOTIFICATION_TEXTURE_KEYS, random);
+
+  if (textureKey === null) {
+    return null;
+  }
+
+  const image = scene.add.image(0, 0, textureKey);
+  const imageSource = scene.textures.get(textureKey).getSourceImage() as {
+    width: number;
+    height: number;
+  };
+
+  applyEventArtworkDisplaySize(image, imageSource);
+  image.setAlpha(EVENT_ARTWORK_IMAGE_ALPHA);
+  image.setDepth(EVENT_ARTWORK_IMAGE_DEPTH);
 
   return image;
 }

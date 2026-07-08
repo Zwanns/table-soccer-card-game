@@ -12,10 +12,19 @@ import {
   GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE,
   GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH,
   GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS,
+  POST_HIT_NOTIFICATION_FONT_SIZE,
+  POST_HIT_NOTIFICATION_TEXT,
+  POST_HIT_NOTIFICATION_TEXTURE_KEYS,
+  SHOT_OUTCOME_MESSAGE_FONT_SIZE,
   getGoalkeeperSaveMatchedFontSize,
   getGoalkeeperShotPostForwardDeflection,
   getGoalkeeperShotSaveDeflection
 } from '../ui/shotOutcomeEffects';
+import {
+  EVENT_ARTWORK_SOURCE_SIZE,
+  EVENT_ARTWORK_TARGET_SIZE,
+  getEventArtworkScale
+} from '../ui/eventArtwork';
 
 function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');
@@ -93,6 +102,45 @@ describe('shared shot outcome effects', () => {
     expect(helperSource).toContain('const image = scene.add.image(0, 0, goalkeeperTextureKey);');
   });
 
+  it('selects post hit artwork from the two-key pool through the shared helper', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(POST_HIT_NOTIFICATION_TEXTURE_KEYS).toEqual(['gk-post-1', 'gk-post-2']);
+    expect(helperSource).toContain('function createPostHitNotification(');
+    expect(helperSource).toContain('function createPostHitNotificationImage(');
+    expect(helperSource).toContain('selectRandomAvailableTextureKey(scene, POST_HIT_NOTIFICATION_TEXTURE_KEYS, random)');
+    expect(helperSource).toContain('if (textureKey === null) {');
+    expect(helperSource).toContain('return null;');
+    expect(helperSource).toContain('createPostHitNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, options.random');
+  });
+
+  it('layers the post artwork behind the text and cleans the whole container', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+    const postBlock = helperSource.slice(
+      helperSource.indexOf('function createPostHitNotification('),
+      helperSource.indexOf('function createPostHitNotificationImage(')
+    );
+
+    expect(postBlock.indexOf('notification.add(image)')).toBeLessThan(postBlock.indexOf('notification.add(text)'));
+    expect(postBlock).toContain('targets: notification');
+    expect(postBlock).toContain('notification.destroy();');
+    expect(postBlock).toContain('ownedObjects.delete(notification);');
+  });
+
+  it('uses the save notification style family for the larger Post text', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+    const postBlock = helperSource.slice(
+      helperSource.indexOf('function createPostHitNotification('),
+      helperSource.indexOf('function createPostHitNotificationImage(')
+    );
+
+    expect(POST_HIT_NOTIFICATION_TEXT).toBe('Post!');
+    expect(POST_HIT_NOTIFICATION_FONT_SIZE).toBeGreaterThan(Number.parseInt(SHOT_OUTCOME_MESSAGE_FONT_SIZE, 10));
+    expect(postBlock).toContain("fontFamily: 'Bangers, Arial, sans-serif'");
+    expect(postBlock).toContain('strokeThickness: 6');
+    expect(postBlock).toContain('POST_HIT_NOTIFICATION_FONT_SIZE');
+  });
+
   it('keeps SAVE!! compact by font size instead of horizontal scale', () => {
     const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
     const goalkeeperWidth = 152;
@@ -105,6 +153,21 @@ describe('shared shot outcome effects', () => {
     expect(projectedSaveWidth).toBeLessThan(goalkeeperWidth);
     expect(helperSource).toContain('saveText.setFontSize(matchedFontSize);');
     expect(helperSource).not.toContain('saveText.setScaleX');
+  });
+
+  it('uses one source-size based artwork scale contract for goal, save, and post notifications', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+    const notificationSource = readSource('src/ui/goalNotification.ts');
+    const artworkSource = readSource('src/ui/eventArtwork.ts');
+    const expectedScale = EVENT_ARTWORK_TARGET_SIZE / EVENT_ARTWORK_SOURCE_SIZE;
+
+    expect(getEventArtworkScale({ width: EVENT_ARTWORK_SOURCE_SIZE, height: EVENT_ARTWORK_SOURCE_SIZE })).toBe(expectedScale);
+    expect(artworkSource).toContain('export const EVENT_ARTWORK_SOURCE_SIZE = 1254');
+    expect(artworkSource).toContain('export const EVENT_ARTWORK_TARGET_SIZE = 292');
+    expect(notificationSource).toContain('applyEventArtworkDisplaySize(image, imageSource);');
+    expect(helperSource.match(/applyEventArtworkDisplaySize\(image, imageSource\);/g)).toHaveLength(2);
+    expect(notificationSource).not.toContain('GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
+    expect(helperSource).not.toContain('GOALKEEPER_SAVE_NOTIFICATION_IMAGE_SCALE_RATIO');
   });
 
   it('layers the save image behind both text lines and cleans the whole container', () => {

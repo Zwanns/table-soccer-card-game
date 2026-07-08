@@ -1,4 +1,10 @@
 import Phaser from 'phaser';
+import {
+  applyEventArtworkDisplaySize,
+  EVENT_ARTWORK_IMAGE_ALPHA,
+  EVENT_ARTWORK_IMAGE_DEPTH,
+  EVENT_ARTWORK_TEXT_DEPTH
+} from './eventArtwork';
 import { selectRandomAvailableTextureKey, type RandomSource } from './textureSelection';
 
 export type GoalNotificationTone = 'goal';
@@ -17,10 +23,9 @@ export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS = [
   'gk-goals-4',
   'gk-goals-5'
 ] as const;
-export const GOAL_NOTIFICATION_IMAGE_DEPTH = 0;
-export const GOAL_NOTIFICATION_TEXT_DEPTH = 1;
-export const GOAL_NOTIFICATION_IMAGE_SCALE_RATIO = 1.16;
-export const GOAL_NOTIFICATION_IMAGE_ALPHA = 0.94;
+export const GOAL_NOTIFICATION_IMAGE_DEPTH = EVENT_ARTWORK_IMAGE_DEPTH;
+export const GOAL_NOTIFICATION_TEXT_DEPTH = EVENT_ARTWORK_TEXT_DEPTH;
+export const GOAL_NOTIFICATION_IMAGE_ALPHA = EVENT_ARTWORK_IMAGE_ALPHA;
 export const GOAL_NOTIFICATION_STYLE = {
   color: '#f0c95a',
   fadeDelay: 520,
@@ -85,15 +90,8 @@ export function showGoalNotification(
       width: number;
       height: number;
     };
-    const imageScale = Math.max(
-      (text.displayWidth * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.width,
-      (text.displayHeight * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO) / imageSource.height
-    );
 
-    image.setDisplaySize(
-      imageSource.width * imageScale,
-      imageSource.height * imageScale
-    );
+    applyEventArtworkDisplaySize(image, imageSource);
     notification.add(image);
   }
 

@@ -159,6 +159,17 @@ describe('BootScene kit asset loading', () => {
     expect(bootSceneSource).toContain('this.load.image(asset.textureKey, asset.path);');
   });
 
+  it('preloads every post hit notification illustration from public assets', () => {
+    const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
+
+    for (const textureKey of ['gk-post-1', 'gk-post-2']) {
+      expect(bootSceneSource).toContain(`{ textureKey: '${textureKey}', path: '/menu/${textureKey}.webp' }`);
+    }
+
+    expect(bootSceneSource).toContain('for (const asset of ASSET_PATHS.postHitNotifications)');
+    expect(bootSceneSource).toContain('this.load.image(asset.textureKey, asset.path);');
+  });
+
   it('does not preload reverted goalkeeper shot outcome FX assets', () => {
     const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
 

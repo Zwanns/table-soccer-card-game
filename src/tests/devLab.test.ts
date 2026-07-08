@@ -210,9 +210,9 @@ describe('Dev Lab scene previews', () => {
     const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
 
     expect(devLabSource).toContain("import { GOAL_NOTIFICATION_DEPTH } from '../ui/goalNotification'");
-    expect(gameSource).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification }");
+    expect(gameSource).toContain('createGoalScoredEffect(this, {');
+    expect(gameSource).toContain('soundEnabled: false');
     expect(shotOutcomeSource).toContain('showGoalNotification(');
-    expect(gameSource).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete)');
     expect(devLabSource).not.toContain(".text(layout.preview.centerX, layout.preview.centerY, 'GOAL!!'");
     expect(devLabSource).not.toContain('showGoalNotification(');
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!'");
@@ -246,22 +246,31 @@ describe('Dev Lab scene previews', () => {
   it('layers the Goal notification goalkeeper image behind readable text with safe fallback', () => {
     const helperSource = readSource('src/ui/goalNotification.ts');
 
-    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_DEPTH = 0');
-    expect(helperSource).toContain('export const GOAL_NOTIFICATION_TEXT_DEPTH = 1');
-    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_SCALE_RATIO = 1.16');
-    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_ALPHA = 0.94');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_DEPTH = EVENT_ARTWORK_IMAGE_DEPTH');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_TEXT_DEPTH = EVENT_ARTWORK_TEXT_DEPTH');
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_ALPHA = EVENT_ARTWORK_IMAGE_ALPHA');
     expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH)');
     expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_TEXT_DEPTH)');
     expect(helperSource).toContain('scene.textures.get(goalkeeperTextureKey).getSourceImage()');
-    expect(helperSource).toContain('const imageScale = Math.max(');
-    expect(helperSource).toContain('text.displayWidth * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
-    expect(helperSource).toContain('text.displayHeight * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
-    expect(helperSource).toContain('imageSource.width * imageScale');
-    expect(helperSource).toContain('imageSource.height * imageScale');
+    expect(helperSource).toContain('applyEventArtworkDisplaySize(image, imageSource);');
     expect(helperSource.indexOf('notification.add(image)')).toBeLessThan(helperSource.indexOf('notification.add(text)'));
     expect(helperSource.indexOf('if (goalkeeperTextureKey !== null)')).toBeLessThan(
       helperSource.indexOf('notification.add(text)')
     );
+  });
+
+  it('uses the shared real-game Post notification renderer in GameScene and Dev Lab', () => {
+    const devLabSource = readSource('src/scenes/DevLabScene.ts');
+    const gameSource = readSource('src/scenes/GameScene.ts');
+    const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(devLabSource).toContain('this.previewEffect = createPostHitEffect(this, this.createShotOutcomePreviewOptions(layout));');
+    expect(gameSource).toContain('createPostHitEffect(this, {');
+    expect(gameSource).toContain('soundEnabled: false');
+    expect(shotOutcomeSource).toContain('function createPostHitNotification(');
+    expect(shotOutcomeSource).toContain('POST_HIT_NOTIFICATION_TEXTURE_KEYS');
+    expect(shotOutcomeSource).toContain('applyEventArtworkDisplaySize(image, imageSource);');
+    expect(devLabSource).not.toContain(".text(layout.preview.centerX, layout.preview.centerY, 'Post!'");
   });
 
   it('uses the shared real-game final whistle modal renderer in GameScene and Dev Lab', () => {

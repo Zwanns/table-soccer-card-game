@@ -8,6 +8,11 @@ import {
   GOAL_NOTIFICATION_MESSAGE,
   GOAL_NOTIFICATION_TEXT_DEPTH
 } from '../ui/goalNotification';
+import {
+  EVENT_ARTWORK_IMAGE_DEPTH,
+  EVENT_ARTWORK_TARGET_SIZE,
+  EVENT_ARTWORK_TEXT_DEPTH
+} from '../ui/eventArtwork';
 
 function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');
@@ -47,6 +52,8 @@ describe('shared goal notification artwork', () => {
     const source = readSource('src/ui/goalNotification.ts');
 
     expect(GOAL_NOTIFICATION_IMAGE_DEPTH).toBeLessThan(GOAL_NOTIFICATION_TEXT_DEPTH);
+    expect(GOAL_NOTIFICATION_IMAGE_DEPTH).toBe(EVENT_ARTWORK_IMAGE_DEPTH);
+    expect(GOAL_NOTIFICATION_TEXT_DEPTH).toBe(EVENT_ARTWORK_TEXT_DEPTH);
     expect(source).toContain('.setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH)');
     expect(source).toContain('.setDepth(GOAL_NOTIFICATION_TEXT_DEPTH)');
     expect(source.indexOf('notification.add(image)')).toBeLessThan(source.indexOf('notification.add(text)'));
@@ -59,9 +66,19 @@ describe('shared goal notification artwork', () => {
     const gameSceneSource = readSource('src/scenes/GameScene.ts');
     const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
 
-    expect(gameSceneSource).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete)');
+    expect(gameSceneSource).toContain('createGoalScoredEffect(this, {');
+    expect(gameSceneSource).toContain('soundEnabled: false');
     expect(devLabSource).toContain('this.previewEffect = createGoalScoredEffect(this, this.createShotOutcomePreviewOptions(layout));');
     expect(devLabSource).not.toContain('showGoalNotification(');
     expect(shotOutcomeSource).toContain('showGoalNotification(');
+  });
+
+  it('uses the shared event artwork display contract for the selected image', () => {
+    const source = readSource('src/ui/goalNotification.ts');
+
+    expect(EVENT_ARTWORK_TARGET_SIZE).toBe(292);
+    expect(source).toContain("from './eventArtwork'");
+    expect(source).toContain('applyEventArtworkDisplaySize(image, imageSource);');
+    expect(source).not.toContain('GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
   });
 });

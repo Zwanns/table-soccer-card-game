@@ -1569,7 +1569,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain("if (recentEvents.some((event) => event.type === 'GOALPOST_HIT'))");
   });
 
-  it('shows goalkeeper shot flying messages at the impact tick and enlarges GOAL!! only', () => {
+  it('shows goalkeeper shot outcome notifications through shared effect helpers at the impact tick', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const helperSource = readSource('src/ui/goalNotification.ts');
     const shotOutcomeSource = readSource('src/ui/shotOutcomeEffects.ts');
@@ -1600,10 +1600,13 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(impactBlock).not.toContain("this.playGoalkeeperImpactSound('goalkeeper', outcome);");
     expect(source).toContain('this.playSceneEffectSound(goalEffect);');
-    expect(source).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from '../ui/goalNotification'");
-    expect(source).toContain('showGoalNotification(this, centerX, centerY + GOAL_NOTIFICATION_OFFSET_Y, message, onComplete);');
-    expect(source).toContain("const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';");
-    expect(source).toContain("const isShotOutcomeTone = tone === 'post' || tone === 'save';");
+    expect(source).toContain('createGoalScoredEffect(this, {');
+    expect(source).toContain('createGoalkeeperSaveEffect(this, {');
+    expect(source).toContain('createPostHitEffect(this, {');
+    expect(source).toContain('soundEnabled: false');
+    expect(source).toContain("const fontSize = '38px';");
+    expect(source).not.toContain("const fontSize = tone === 'post' || tone === 'save' ? '48px' : '38px';");
+    expect(source).not.toContain("const isShotOutcomeTone = tone === 'post' || tone === 'save';");
     expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_EFFECT_DEPTH = 3000');
     expect(shotOutcomeSource).toContain('.setDepth(SHOT_OUTCOME_EFFECT_DEPTH)');
     expect(shotOutcomeSource).toContain('export const SHOT_OUTCOME_MESSAGE_POP_DURATION = 220');
