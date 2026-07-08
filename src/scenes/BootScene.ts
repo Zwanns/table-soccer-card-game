@@ -12,8 +12,20 @@ import { getRegisteredKitAssetsToLoad } from './bootKitAssets';
 
 const ASSET_PATHS = {
   ball: '/cards/ball.webp',
-  goalNotificationGoalkeeper: '/menu/gk-goals.webp',
-  goalkeeperSaveNotification: '/menu/gk-save.webp',
+  goalNotificationGoalkeepers: [
+    { textureKey: 'gk-goals', path: '/menu/gk-goals.webp' },
+    { textureKey: 'gk-goals-2', path: '/menu/gk-goals-2.webp' },
+    { textureKey: 'gk-goals-3', path: '/menu/gk-goals-3.webp' },
+    { textureKey: 'gk-goals-4', path: '/menu/gk-goals-4.webp' },
+    { textureKey: 'gk-goals-5', path: '/menu/gk-goals-5.webp' }
+  ],
+  goalkeeperSaveNotifications: [
+    { textureKey: 'gk-save', path: '/menu/gk-save.webp' },
+    { textureKey: 'gk-save-2', path: '/menu/gk-save-2.webp' },
+    { textureKey: 'gk-save-3', path: '/menu/gk-save-3.webp' },
+    { textureKey: 'gk-save-4', path: '/menu/gk-save-4.webp' },
+    { textureKey: 'gk-save-5', path: '/menu/gk-save-5.webp' }
+  ],
   matchFinishedReferee: '/menu/arbitr-end.webp',
   sounds: {
     whistleStart: '/sounds/referees-whistle-start.mp3',
@@ -42,8 +54,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image(MENU_ASSETS.logoOn, MENU_ASSET_PATHS.logoOn);
     this.load.image(MENU_ASSETS.logoOff, MENU_ASSET_PATHS.logoOff);
     this.load.image('turn-ball', ASSET_PATHS.ball);
-    this.load.image('gk-goals', ASSET_PATHS.goalNotificationGoalkeeper);
-    this.load.image('gk-save', ASSET_PATHS.goalkeeperSaveNotification);
+    for (const asset of ASSET_PATHS.goalNotificationGoalkeepers) {
+      this.load.image(asset.textureKey, asset.path);
+    }
+    for (const asset of ASSET_PATHS.goalkeeperSaveNotifications) {
+      this.load.image(asset.textureKey, asset.path);
+    }
     this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee);
     this.load.image(getFallbackCoverTextureKey(), getFallbackCoverPath());
     for (const flagCode of AVAILABLE_TEAM_COVER_FLAG_CODES) {

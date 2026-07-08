@@ -137,18 +137,26 @@ describe('BootScene kit asset loading', () => {
     expect(bootSceneSource).toContain("this.load.image('arbitr-end', ASSET_PATHS.matchFinishedReferee)");
   });
 
-  it('preloads the goalkeeper goal notification illustration from public assets', () => {
+  it('preloads every goalkeeper goal notification illustration from public assets', () => {
     const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
 
-    expect(bootSceneSource).toContain("goalNotificationGoalkeeper: '/menu/gk-goals.webp'");
-    expect(bootSceneSource).toContain("this.load.image('gk-goals', ASSET_PATHS.goalNotificationGoalkeeper)");
+    for (const textureKey of ['gk-goals', 'gk-goals-2', 'gk-goals-3', 'gk-goals-4', 'gk-goals-5']) {
+      expect(bootSceneSource).toContain(`{ textureKey: '${textureKey}', path: '/menu/${textureKey}.webp' }`);
+    }
+
+    expect(bootSceneSource).toContain('for (const asset of ASSET_PATHS.goalNotificationGoalkeepers)');
+    expect(bootSceneSource).toContain('this.load.image(asset.textureKey, asset.path);');
   });
 
-  it('preloads the goalkeeper save notification illustration from public assets', () => {
+  it('preloads every goalkeeper save notification illustration from public assets', () => {
     const bootSceneSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'BootScene.ts'), 'utf8');
 
-    expect(bootSceneSource).toContain("goalkeeperSaveNotification: '/menu/gk-save.webp'");
-    expect(bootSceneSource).toContain("this.load.image('gk-save', ASSET_PATHS.goalkeeperSaveNotification)");
+    for (const textureKey of ['gk-save', 'gk-save-2', 'gk-save-3', 'gk-save-4', 'gk-save-5']) {
+      expect(bootSceneSource).toContain(`{ textureKey: '${textureKey}', path: '/menu/${textureKey}.webp' }`);
+    }
+
+    expect(bootSceneSource).toContain('for (const asset of ASSET_PATHS.goalkeeperSaveNotifications)');
+    expect(bootSceneSource).toContain('this.load.image(asset.textureKey, asset.path);');
   });
 
   it('does not preload reverted goalkeeper shot outcome FX assets', () => {

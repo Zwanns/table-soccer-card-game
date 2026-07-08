@@ -1,11 +1,22 @@
 import Phaser from 'phaser';
+import { selectRandomAvailableTextureKey, type RandomSource } from './textureSelection';
 
 export type GoalNotificationTone = 'goal';
+export interface GoalNotificationOptions {
+  random?: RandomSource;
+}
 
 export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!';
 export const GOAL_NOTIFICATION_DEPTH = 3000;
 export const GOAL_NOTIFICATION_OFFSET_Y = -40;
 export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals';
+export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS = [
+  GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY,
+  'gk-goals-2',
+  'gk-goals-3',
+  'gk-goals-4',
+  'gk-goals-5'
+] as const;
 export const GOAL_NOTIFICATION_IMAGE_DEPTH = 0;
 export const GOAL_NOTIFICATION_TEXT_DEPTH = 1;
 export const GOAL_NOTIFICATION_IMAGE_SCALE_RATIO = 1.16;
@@ -32,7 +43,8 @@ export function showGoalNotification(
   x: number,
   y: number,
   message = GOAL_NOTIFICATION_MESSAGE,
-  onComplete?: () => void
+  onComplete?: () => void,
+  options: GoalNotificationOptions = {}
 ): Phaser.GameObjects.Container {
   const notification = scene.add
     .container(x, y)
@@ -58,12 +70,18 @@ export function showGoalNotification(
     .setOrigin(0.5)
     .setDepth(GOAL_NOTIFICATION_TEXT_DEPTH);
 
-  if (scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)) {
+  const goalkeeperTextureKey = selectRandomAvailableTextureKey(
+    scene,
+    GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS,
+    options.random
+  );
+
+  if (goalkeeperTextureKey !== null) {
     const image = scene.add
-      .image(0, 0, GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)
+      .image(0, 0, goalkeeperTextureKey)
       .setAlpha(GOAL_NOTIFICATION_IMAGE_ALPHA)
       .setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH);
-    const imageSource = scene.textures.get(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY).getSourceImage() as {
+    const imageSource = scene.textures.get(goalkeeperTextureKey).getSourceImage() as {
       width: number;
       height: number;
     };

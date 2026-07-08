@@ -11,6 +11,7 @@ import {
   GOALKEEPER_SAVE_NOTIFICATION_LINE_2,
   GOALKEEPER_SAVE_NOTIFICATION_SAVE_BASE_FONT_SIZE,
   GOALKEEPER_SAVE_NOTIFICATION_TEXT_DEPTH,
+  GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS,
   getGoalkeeperSaveMatchedFontSize,
   getGoalkeeperShotPostForwardDeflection,
   getGoalkeeperShotSaveDeflection
@@ -68,9 +69,28 @@ describe('shared shot outcome effects', () => {
     expect(helperSource).toContain('text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_1');
     expect(helperSource).toContain('text(0, 0, GOALKEEPER_SAVE_NOTIFICATION_LINE_2');
     expect(helperSource).toContain('saveText.setY(totalTextHeight / 2 - saveText.displayHeight / 2);');
-    expect(helperSource).toContain('if (!scene.textures.exists(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY)) {');
+    expect(helperSource).toContain('selectRandomAvailableTextureKey(');
+    expect(helperSource).toContain('GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS');
+    expect(helperSource).toContain('if (goalkeeperTextureKey === null) {');
     expect(helperSource).toContain('return null;');
     expect(helperSource).toContain('notification.add([goalkeeperText, saveText]);');
+  });
+
+  it('selects goalkeeper save artwork from the five-key pool through the shared helper', () => {
+    const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
+
+    expect(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS).toEqual([
+      'gk-save',
+      'gk-save-2',
+      'gk-save-3',
+      'gk-save-4',
+      'gk-save-5'
+    ]);
+    expect(helperSource).toContain("import { selectRandomAvailableTextureKey, type RandomSource } from './textureSelection'");
+    expect(helperSource).toContain('random?: RandomSource;');
+    expect(helperSource).toContain('GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS');
+    expect(helperSource).toContain('random');
+    expect(helperSource).toContain('const image = scene.add.image(0, 0, goalkeeperTextureKey);');
   });
 
   it('keeps SAVE!! compact by font size instead of horizontal scale', () => {
@@ -106,10 +126,12 @@ describe('shared shot outcome effects', () => {
     const notificationSource = readSource('src/ui/goalNotification.ts');
 
     expect(helperSource).toContain("import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from './goalNotification'");
-    expect(helperSource).toContain(
-      'showGoalNotification(scene, notificationX, notificationY + GOAL_NOTIFICATION_OFFSET_Y, effect.flyingMessage'
-    );
-    expect(notificationSource).toContain('scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
+    expect(helperSource).toContain('const notification = showGoalNotification(');
+    expect(helperSource).toContain('notificationY + GOAL_NOTIFICATION_OFFSET_Y');
+    expect(helperSource).toContain('effect.flyingMessage');
+    expect(helperSource).toContain('{ random: options.random }');
+    expect(notificationSource).toContain('selectRandomAvailableTextureKey(');
+    expect(notificationSource).toContain('GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS');
   });
 
   it('supports separate notification and ball FX anchors', () => {

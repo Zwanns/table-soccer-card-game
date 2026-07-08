@@ -217,10 +217,12 @@ describe('Dev Lab scene previews', () => {
     expect(devLabSource).not.toContain('showGoalNotification(');
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_MESSAGE = 'GOAL!!'");
     expect(helperSource).toContain("export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY = 'gk-goals'");
+    expect(helperSource).toContain('export const GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS = [');
     expect(helperSource).toContain('): Phaser.GameObjects.Container');
     expect(helperSource).toContain('const notification = scene.add');
-    expect(helperSource).toContain('scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
-    expect(helperSource).toContain('.image(0, 0, GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY)');
+    expect(helperSource).toContain('selectRandomAvailableTextureKey(');
+    expect(helperSource).toContain('GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEYS');
+    expect(helperSource).toContain('.image(0, 0, goalkeeperTextureKey)');
     expect(helperSource).toContain('notification.add(image)');
     expect(helperSource).toContain('notification.add(text)');
     expect(helperSource).toContain('notification.destroy()');
@@ -250,14 +252,14 @@ describe('Dev Lab scene previews', () => {
     expect(helperSource).toContain('export const GOAL_NOTIFICATION_IMAGE_ALPHA = 0.94');
     expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_IMAGE_DEPTH)');
     expect(helperSource).toContain('.setDepth(GOAL_NOTIFICATION_TEXT_DEPTH)');
-    expect(helperSource).toContain('scene.textures.get(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY).getSourceImage()');
+    expect(helperSource).toContain('scene.textures.get(goalkeeperTextureKey).getSourceImage()');
     expect(helperSource).toContain('const imageScale = Math.max(');
     expect(helperSource).toContain('text.displayWidth * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
     expect(helperSource).toContain('text.displayHeight * GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
     expect(helperSource).toContain('imageSource.width * imageScale');
     expect(helperSource).toContain('imageSource.height * imageScale');
     expect(helperSource.indexOf('notification.add(image)')).toBeLessThan(helperSource.indexOf('notification.add(text)'));
-    expect(helperSource.indexOf('if (scene.textures.exists(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY))')).toBeLessThan(
+    expect(helperSource.indexOf('if (goalkeeperTextureKey !== null)')).toBeLessThan(
       helperSource.indexOf('notification.add(text)')
     );
   });

@@ -3,6 +3,7 @@ import { playSoundSafe } from '../audio/playSoundSafe';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getGoalkeeperGoalAnimation } from './goalkeeperGoalAnimation';
 import { GOAL_NOTIFICATION_OFFSET_Y, showGoalNotification } from './goalNotification';
+import { selectRandomAvailableTextureKey, type RandomSource } from './textureSelection';
 
 export type ShotOutcomeTone = 'goal' | 'post' | 'save';
 export type ShotOutcomeEventType = 'GOAL_SCORED' | 'GOALPOST_HIT' | 'GOALKEEPER_SAVE';
@@ -36,6 +37,7 @@ export type ShotOutcomeEffectOptions = {
   ballStartY?: number;
   ballSize?: number;
   ballTextureKey?: string;
+  random?: RandomSource;
   onComplete?: () => void;
 };
 
@@ -50,6 +52,13 @@ export const SHOT_OUTCOME_MESSAGE_TARGET_SCALE = 1.08;
 export const SHOT_OUTCOME_IMPACT_RADIUS = 20;
 export const SHOT_OUTCOME_IMPACT_DURATION = 320;
 export const GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY = 'gk-save';
+export const GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS = [
+  GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY,
+  'gk-save-2',
+  'gk-save-3',
+  'gk-save-4',
+  'gk-save-5'
+] as const;
 export const GOALKEEPER_SAVE_NOTIFICATION_LINE_1 = 'Goalkeeper';
 export const GOALKEEPER_SAVE_NOTIFICATION_LINE_2 = 'SAVE!!';
 export const GOALKEEPER_SAVE_NOTIFICATION_GOALKEEPER_FONT_SIZE = 44;
@@ -149,15 +158,22 @@ export function createShotOutcomeEffect(
   const ballFxY = options.ballFxY ?? options.impactY;
 
   if (effect.flyingMessageTone === 'goal') {
-    const notification = showGoalNotification(scene, notificationX, notificationY + GOAL_NOTIFICATION_OFFSET_Y, effect.flyingMessage, () => {
-      if (!destroyed) {
-        options.onComplete?.();
-      }
-    });
+    const notification = showGoalNotification(
+      scene,
+      notificationX,
+      notificationY + GOAL_NOTIFICATION_OFFSET_Y,
+      effect.flyingMessage,
+      () => {
+        if (!destroyed) {
+          options.onComplete?.();
+        }
+      },
+      { random: options.random }
+    );
     ownedObjects.add(notification);
     root.add(notification);
   } else if (effect.flyingMessageTone === 'save') {
-    createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, () => {
+    createGoalkeeperSaveNotification(scene, root, ownedObjects, ownedTweens, notificationX, notificationY, options.random, () => {
       if (!destroyed) {
         options.onComplete?.();
       }
@@ -282,6 +298,7 @@ function createGoalkeeperSaveNotification(
   ownedTweens: Set<Phaser.Tweens.Tween | Phaser.Tweens.TweenChain>,
   x: number,
   y: number,
+  random: RandomSource | undefined,
   onComplete: () => void
 ): void {
   const notification = scene.add.container(x, y + SHOT_OUTCOME_MESSAGE_OFFSET_Y);
@@ -318,7 +335,7 @@ function createGoalkeeperSaveNotification(
   matchGoalkeeperSaveTextWidths(goalkeeperText, saveText);
   layoutGoalkeeperSaveText(goalkeeperText, saveText);
 
-  const image = createGoalkeeperSaveNotificationImage(scene, goalkeeperText, saveText);
+  const image = createGoalkeeperSaveNotificationImage(scene, goalkeeperText, saveText, random);
 
   if (image !== null) {
     notification.add(image);
@@ -390,14 +407,21 @@ function layoutGoalkeeperSaveText(
 function createGoalkeeperSaveNotificationImage(
   scene: Phaser.Scene,
   goalkeeperText: Phaser.GameObjects.Text,
-  saveText: Phaser.GameObjects.Text
+  saveText: Phaser.GameObjects.Text,
+  random?: RandomSource
 ): Phaser.GameObjects.Image | null {
-  if (!scene.textures.exists(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY)) {
+  const goalkeeperTextureKey = selectRandomAvailableTextureKey(
+    scene,
+    GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEYS,
+    random
+  );
+
+  if (goalkeeperTextureKey === null) {
     return null;
   }
 
-  const image = scene.add.image(0, 0, GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY);
-  const imageSource = scene.textures.get(GOALKEEPER_SAVE_NOTIFICATION_TEXTURE_KEY).getSourceImage() as {
+  const image = scene.add.image(0, 0, goalkeeperTextureKey);
+  const imageSource = scene.textures.get(goalkeeperTextureKey).getSourceImage() as {
     width: number;
     height: number;
   };
