@@ -62,6 +62,57 @@ describe('match finish flow', () => {
     });
   });
 
+  it('uses an explicit GAME_OVER depleted player payload before inspecting fallback state', () => {
+    const state = gameOverState({
+      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      activePlayerId: 'PLAYER_2',
+      log: [{ type: 'GAME_OVER', winnerId: 'PLAYER_1', reason: 'NO_ATTACK_CARD', depletedPlayerId: 'PLAYER_1' }]
+    });
+
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      depletedPlayerId: 'PLAYER_1',
+      bodyText: 'The match is over because Portugal has no cards left to attack.'
+    });
+  });
+
+  it('resolves NO_ATTACK_CARD to the current attacker when the payload has only the reason', () => {
+    const state = gameOverState({
+      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      activePlayerId: 'PLAYER_2',
+      log: [{ type: 'GAME_OVER', winnerId: 'PLAYER_1', reason: 'NO_ATTACK_CARD' }]
+    });
+
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      depletedPlayerId: 'PLAYER_2',
+      bodyText: 'The match is over because England has no cards left to attack.'
+    });
+  });
+
+  it('resolves CANNOT_RESTORE_FIELD to the active team when outfield cards are clearly short', () => {
+    const portugal = player('PLAYER_1', 'Portugal', ['2', '3', '4'], undefined, 'pt');
+    const england = player('PLAYER_2', 'England', ['A', 'K', 'Q', 'J', '10'], undefined, 'gb-eng');
+
+    portugal.field.goalkeeper = { id: 'pt_gk', kind: 'goalkeeper', rank: '6' };
+    portugal.field['defender-1'] = {
+      id: 'pt_defender',
+      rank: 'K',
+      color: 'RED',
+      suit: 'HEARTS'
+    };
+    fillOutfield(england);
+
+    const state = gameOverState({
+      players: [portugal, england],
+      activePlayerId: 'PLAYER_1',
+      log: [{ type: 'GAME_OVER', winnerId: null, reason: 'CANNOT_RESTORE_FIELD' }]
+    });
+
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      depletedPlayerId: 'PLAYER_1',
+      bodyText: 'The match is over because Portugal has no cards left to attack.'
+    });
+  });
+
   it('uses current attack decks when the GAME_OVER event does not include a card-depletion reason', () => {
     const state = gameOverState({
       players: [player('PLAYER_1', 'Ukraine', ['Q']), player('PLAYER_2', 'France', [])],
@@ -75,16 +126,33 @@ describe('match finish flow', () => {
     });
   });
 
+  it('falls back when both teams appear unable to provide attack cards', () => {
+    const state = gameOverState({
+      players: [player('PLAYER_1', 'Portugal', [], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      activePlayerId: 'PLAYER_1',
+      log: [{ type: 'GAME_OVER', winnerId: null }]
+    });
+
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      bodyText: CARD_DEPLETION_FALLBACK_BODY
+    });
+  });
+
   it('does not treat goalkeeper deck depletion as an attacking-card finish', () => {
+    const portugal = player('PLAYER_1', 'Ukraine', ['Q'], new GoalkeeperDeck([]));
+    fillOutfield(portugal);
+
     const state = gameOverState({
       players: [
-        player('PLAYER_1', 'Ukraine', ['Q'], new GoalkeeperDeck([])),
+        portugal,
         player('PLAYER_2', 'Poland', ['A'])
       ],
       activePlayerId: 'PLAYER_1'
     });
 
-    expect(resolveCardDepletionMatchFinish(state)).toBeNull();
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      bodyText: CARD_DEPLETION_FALLBACK_BODY
+    });
   });
 
   it('does not show the modal for non-game-over states', () => {
@@ -129,17 +197,51 @@ function player(
   id: Player['id'],
   name: string,
   ranks: Card['rank'][],
-  goalkeeperDeck = new GoalkeeperDeck([{ id: `${id}_gk`, rank: '6', kind: 'goalkeeper' }])
+  goalkeeperDeck = new GoalkeeperDeck([{ id: `${id}_gk`, rank: '6', kind: 'goalkeeper' }]),
+  flagCode = id === 'PLAYER_1' ? 'ua' : 'pl'
 ): Player {
   return {
     id,
     name,
-    flagCode: id === 'PLAYER_1' ? 'ua' : 'pl',
+    flagCode,
     teamColor: id === 'PLAYER_1' ? 'RED' : 'BLACK',
     goals: 0,
     deck: deck(ranks),
     goalkeeperDeck,
     field: createEmptyField()
+  };
+}
+
+function fillOutfield(target: Player): void {
+  target.field['defender-1'] = {
+    id: `${target.id}_defender_1`,
+    rank: 'K',
+    color: target.teamColor,
+    suit: 'HEARTS'
+  };
+  target.field['defender-2'] = {
+    id: `${target.id}_defender_2`,
+    rank: 'Q',
+    color: target.teamColor,
+    suit: 'HEARTS'
+  };
+  target.field['midfielder-1'] = {
+    id: `${target.id}_midfielder_1`,
+    rank: 'J',
+    color: target.teamColor,
+    suit: 'HEARTS'
+  };
+  target.field['midfielder-2'] = {
+    id: `${target.id}_midfielder_2`,
+    rank: '10',
+    color: target.teamColor,
+    suit: 'HEARTS'
+  };
+  target.field['midfielder-3'] = {
+    id: `${target.id}_midfielder_3`,
+    rank: '9',
+    color: target.teamColor,
+    suit: 'HEARTS'
   };
 }
 

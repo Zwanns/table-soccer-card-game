@@ -24,6 +24,16 @@ function readTypographyFontSize(source: string, constName: string, key: string):
   return Number(valueMatch![1]);
 }
 
+function readLayoutNumber(source: string, constName: string, key: string): number {
+  const blockMatch = source.match(new RegExp(`const ${constName} = \\{([\\s\\S]*?)\\} as const`));
+  expect(blockMatch).not.toBeNull();
+
+  const valueMatch = blockMatch![1].match(new RegExp(`${key}: (\\d+)`));
+  expect(valueMatch).not.toBeNull();
+
+  return Number(valueMatch![1]);
+}
+
 describe('result scene mobile statistics card', () => {
   it('uses post-match background images based on the result winner', () => {
     const source = readResultSceneSource();
@@ -261,7 +271,7 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('content.add(this.createStatsLabel(rowY, label, typography.labelFontSize))');
     expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize))");
     expect(source).toContain('const viewportHeight = 392');
-    expect(source).toContain('const statsRowGap = 32');
+    expect(source).toContain('const statsRowGap = layout.statsRowGap');
 
     expect(desktopLabel).toBe(20);
     expect(desktopValue).toBe(24);
@@ -277,22 +287,40 @@ describe('result scene mobile statistics card', () => {
     expect(mobileSection / desktopSection).toBeLessThanOrEqual(1.35);
   });
 
-  it('reduces the gap under the Match statistics heading before the stats rows', () => {
+  it('keeps the desktop gap under Match statistics unchanged before the stats rows', () => {
     const source = readResultSceneSource();
+    const desktopStatsStartY = readLayoutNumber(source, 'RESULT_DESKTOP_STATS_LAYOUT', 'statsStartY');
+    const desktopStatsRowGap = readLayoutNumber(source, 'RESULT_DESKTOP_STATS_LAYOUT', 'statsRowGap');
 
     expect(source).toContain(".text(0, px(-height / 2 + 122), 'Match statistics'");
     expect(source).toContain('const viewportTop = -132');
-    expect(source).toContain('const statsStartY = 8');
-    expect(source).toContain('const statsRowGap = 32');
+    expect(source).toContain('const statsStartY = layout.statsStartY');
+    expect(source).toContain('const statsRowGap = layout.statsRowGap');
     expect(source).toContain('const rowY = statsStartY + index * statsRowGap');
+    expect(desktopStatsStartY).toBe(8);
+    expect(desktopStatsRowGap).toBe(32);
   });
 
-  it('adds breathing room above Match statistics while pulling stat rows closer below it', () => {
+  it('adds mobile-only breathing room below Match statistics without reducing mobile font sizes', () => {
     const source = readResultSceneSource();
+    const desktopStatsStartY = readLayoutNumber(source, 'RESULT_DESKTOP_STATS_LAYOUT', 'statsStartY');
+    const mobileStatsStartY = readLayoutNumber(source, 'RESULT_MOBILE_STATS_LAYOUT', 'statsStartY');
+    const mobileStatsRowGap = readLayoutNumber(source, 'RESULT_MOBILE_STATS_LAYOUT', 'statsRowGap');
+    const mobileLabel = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'labelFontSize');
+    const mobileValue = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'valueFontSize');
+    const mobileSection = readTypographyFontSize(source, 'RESULT_MOBILE_STATS_TYPOGRAPHY', 'sectionTitleFontSize');
 
     expect(source).toContain("-height / 2 + 72,\n      playerOne.flagCode");
     expect(source).toContain(".text(0, px(-height / 2 + 122), 'Match statistics'");
-    expect(source).toContain('const statsStartY = 8');
+    expect(source).toContain('function getResultStatsLayout(): ResultStatsLayout');
+    expect(source).toContain('return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_LAYOUT : RESULT_DESKTOP_STATS_LAYOUT;');
+    expect(source).toContain('const layout = getResultStatsLayout();');
+    expect(mobileStatsStartY - desktopStatsStartY).toBe(12);
+    expect(mobileStatsStartY).toBe(20);
+    expect(mobileStatsRowGap).toBe(32);
+    expect(mobileLabel).toBe(26);
+    expect(mobileValue).toBe(30);
+    expect(mobileSection).toBe(26);
     expect(source).not.toContain(".text(0, px(-height / 2 + 112), 'Match statistics'");
     expect(source).not.toContain('const statsStartY = 18');
   });

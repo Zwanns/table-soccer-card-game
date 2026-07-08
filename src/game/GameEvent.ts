@@ -23,6 +23,8 @@ export type AttackDeckEmptyEvent = {
   turnNumber: number;
 };
 
+export type GameOverReason = 'CANNOT_RESTORE_FIELD' | 'NO_ATTACK_CARD' | 'NO_FIRST_PLAYER_CARD';
+
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
@@ -82,4 +84,9 @@ export type GameEvent =
     }
   | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; attackerCard: Card; scorer: ScorerSnapshot }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
-  | { type: 'GAME_OVER'; winnerId: Player['id'] | null };
+  | {
+      type: 'GAME_OVER';
+      winnerId: Player['id'] | null;
+      reason?: GameOverReason;
+      depletedPlayerId?: Player['id'];
+    };

@@ -293,13 +293,17 @@ describe('GameScene visual layout contracts', () => {
     expect(helperSource).toContain('borderRadius: 8');
   });
 
-  it('builds match-finished body text from the team with an empty attack deck', () => {
+  it('builds match-finished body text from the resolvable depleted attacking team', () => {
     const bodySource = readSource('src/scenes/matchFinishFlow.ts');
 
     expect(bodySource).toContain('export const CARD_DEPLETION_FALLBACK_BODY');
+    expect(bodySource).toContain('function resolveExplicitGameOverDepletedPlayer(state: Readonly<GameState>): Player | null');
+    expect(bodySource).toContain("gameOverEvent?.reason === 'NO_ATTACK_CARD'");
+    expect(bodySource).toContain("gameOverEvent?.reason === 'CANNOT_RESTORE_FIELD'");
+    expect(bodySource).toContain('function resolveCannotRestoreFieldPlayer(state: Readonly<GameState>): Player | null');
     expect(bodySource).toContain('function resolveDepletedAttackPlayer(state: Readonly<GameState>): Player | null');
-    expect(bodySource).toContain('activePlayer.deck.cards.length === 0');
-    expect(bodySource).toContain('state.players.find((player) => player.deck.cards.length === 0) ?? null');
+    expect(bodySource).toContain('const attackDepletedPlayers = state.players.filter((player) => !hasAvailableAttackSource(state, player));');
+    expect(bodySource).toContain('player.deck.cards.length > 0 || getCommittableMidfielderPositionIds(state, player).length > 0');
     expect(bodySource).toContain('const teamName = player.name.trim();');
     expect(bodySource).toContain('return `The match is over because ${teamName} has no cards left to attack.`;');
     expect(bodySource).not.toContain('flagCode');

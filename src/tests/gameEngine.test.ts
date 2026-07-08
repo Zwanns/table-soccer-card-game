@@ -964,7 +964,12 @@ describe('game engine attacks', () => {
 
     expect(result.phase).toBe('GAME_OVER');
     expect(result.isDraw).toBe(true);
-    expect(result.log.at(-1)).toEqual({ type: 'GAME_OVER', winnerId: null });
+    expect(result.log.at(-1)).toEqual({
+      type: 'GAME_OVER',
+      winnerId: null,
+      reason: 'CANNOT_RESTORE_FIELD',
+      depletedPlayerId: 'PLAYER_1'
+    });
   });
 
   it('logs every card restored from the deck to the field', () => {

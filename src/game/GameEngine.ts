@@ -17,7 +17,7 @@ import {
 import type { PlayerControllerType } from '../ai';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
-import type { GameEvent, ScorerSnapshot } from './GameEvent';
+import type { GameEvent, GameOverReason, ScorerSnapshot } from './GameEvent';
 import type { GameState } from './GameState';
 import { createGoalkeeperKitPair, createMatchTeamSetup, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
@@ -60,7 +60,7 @@ export interface GameSetupPreset {
 }
 
 type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS';
-type FinishGameReason = 'CANNOT_RESTORE_FIELD' | 'NO_ATTACK_CARD' | 'NO_FIRST_PLAYER_CARD';
+type FinishGameReason = GameOverReason;
 
 export class GameEngine {
   private state: GameState;
@@ -821,8 +821,9 @@ export class GameEngine {
     this.state.activePlayerId = this.state.players.find((player) => player.id !== activePlayer.id)?.id ?? null;
   }
 
-  private finishGame(_reason: FinishGameReason): void {
+  private finishGame(reason: FinishGameReason): void {
     const [playerOne, playerTwo] = this.state.players;
+    const depletedPlayerId = this.resolveFinishGameDepletedPlayerId(reason);
 
     this.state.phase = 'GAME_OVER';
     this.state.attackCard = null;
@@ -845,7 +846,32 @@ export class GameEngine {
       this.state.isDraw = true;
     }
 
-    this.appendLog({ type: 'GAME_OVER', winnerId: this.state.winnerId });
+    this.appendLog({
+      type: 'GAME_OVER',
+      winnerId: this.state.winnerId,
+      reason,
+      ...(depletedPlayerId === undefined ? {} : { depletedPlayerId })
+    });
+  }
+
+  private resolveFinishGameDepletedPlayerId(reason: FinishGameReason): Player['id'] | undefined {
+    if (this.state.activePlayerId === null) {
+      return undefined;
+    }
+
+    if (reason === 'NO_ATTACK_CARD') {
+      return this.state.activePlayerId;
+    }
+
+    if (reason !== 'CANNOT_RESTORE_FIELD') {
+      return undefined;
+    }
+
+    const activePlayer = this.getActivePlayer();
+
+    return activePlayer.deck.cards.length < getMissingOutfieldCardCount(activePlayer.field)
+      ? activePlayer.id
+      : undefined;
   }
 
   private appendLog(entry: GameEvent): void {
@@ -1016,6 +1042,10 @@ function assignCardsToPlayer(cards: readonly Card[], player: Player): void {
 
 function recycleGoalkeeperCard(player: Player, card: GoalkeeperCard): void {
   player.goalkeeperDeck.returnToBottom(card);
+}
+
+function getMissingOutfieldCardCount(field: PlayerField): number {
+  return RESTORE_ORDER.filter((positionId) => isOutfieldPosition(positionId) && field[positionId] === null).length;
 }
 
 function createScorerSnapshot(state: Readonly<GameState>, player: Player, card: Card): ScorerSnapshot {

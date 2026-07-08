@@ -68,6 +68,11 @@ interface ResultStatsTypography {
   sectionTitleFontSize: string;
 }
 
+interface ResultStatsLayout {
+  statsStartY: number;
+  statsRowGap: number;
+}
+
 const RESULT_DESKTOP_STATS_TYPOGRAPHY = {
   labelFontSize: '20px',
   valueFontSize: '24px',
@@ -78,9 +83,21 @@ const RESULT_MOBILE_STATS_TYPOGRAPHY = {
   valueFontSize: '30px',
   sectionTitleFontSize: '26px'
 } as const satisfies ResultStatsTypography;
+const RESULT_DESKTOP_STATS_LAYOUT = {
+  statsStartY: 8,
+  statsRowGap: 32
+} as const satisfies ResultStatsLayout;
+const RESULT_MOBILE_STATS_LAYOUT = {
+  statsStartY: 20,
+  statsRowGap: 32
+} as const satisfies ResultStatsLayout;
 
 function getResultStatsTypography(): ResultStatsTypography {
   return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_TYPOGRAPHY : RESULT_DESKTOP_STATS_TYPOGRAPHY;
+}
+
+function getResultStatsLayout(): ResultStatsLayout {
+  return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_LAYOUT : RESULT_DESKTOP_STATS_LAYOUT;
 }
 
 interface ResultSceneData {
@@ -418,6 +435,7 @@ export class ResultScene extends Phaser.Scene {
       ['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)],
       ['Possession', formatPercent(playerOneStats.possession), formatPercent(playerTwoStats.possession)]
     ];
+    const layout = getResultStatsLayout();
     const timelineRows = createScorerTimeline(playerOneStats, playerTwoStats);
     const penaltyRows = createPenaltyTimeline(penaltyAttempts, playerOneTeamId, playerTwoTeamId);
     const viewportTop = -132;
@@ -425,8 +443,8 @@ export class ResultScene extends Phaser.Scene {
     const viewportLeft = -panelWidth / 2 + 56;
     const viewportWidth = panelWidth - 112;
     const content = this.add.container(0, viewportTop);
-    const statsStartY = 8;
-    const statsRowGap = 32;
+    const statsStartY = layout.statsStartY;
+    const statsRowGap = layout.statsRowGap;
     const scorersTitleY = statsStartY + rows.length * statsRowGap + 18;
     const scorersStartY = scorersTitleY + 34;
     const rowHeight = 24;
