@@ -23,6 +23,8 @@ function readSource(relativePath: string): string {
 }
 
 describe('shared goal notification artwork', () => {
+  const previousEventArtworkTargetSize = 292;
+
   it('keeps the legacy goal texture key first in the five-key random pool', () => {
     expect(GOAL_NOTIFICATION_MESSAGE).toBe('GOAL!!');
     expect(GOAL_NOTIFICATION_GOALKEEPER_TEXTURE_KEY).toBe('gk-goals');
@@ -76,7 +78,7 @@ describe('shared goal notification artwork', () => {
   it('uses the shared event artwork display contract for the selected image', () => {
     const source = readSource('src/ui/goalNotification.ts');
 
-    expect(EVENT_ARTWORK_TARGET_SIZE).toBe(292);
+    expect(EVENT_ARTWORK_TARGET_SIZE).toBe(previousEventArtworkTargetSize * 1.25);
     expect(source).toContain("from './eventArtwork'");
     expect(source).toContain('applyEventArtworkDisplaySize(image, imageSource);');
     expect(source).not.toContain('GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');

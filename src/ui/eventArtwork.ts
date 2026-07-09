@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 export const EVENT_ARTWORK_SOURCE_SIZE = 1254;
-export const EVENT_ARTWORK_TARGET_SIZE = 292;
+export const EVENT_ARTWORK_TARGET_SIZE = 365;
 export const EVENT_ARTWORK_IMAGE_ALPHA = 0.94;
 export const EVENT_ARTWORK_IMAGE_DEPTH = 0;
 export const EVENT_ARTWORK_TEXT_DEPTH = 1;

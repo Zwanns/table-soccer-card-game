@@ -35,6 +35,9 @@ function readSource(relativePath: string): string {
 }
 
 describe('shared shot outcome effects', () => {
+  const previousEventArtworkTargetSize = 292;
+  const enlargedEventArtworkTargetSize = previousEventArtworkTargetSize * 1.25;
+
   it('keeps goal, save and post effect definitions aligned with real match sounds', () => {
     expect(GOAL_SHOT_OUTCOME_EFFECT).toEqual({
       type: 'GOAL_SCORED',
@@ -155,15 +158,22 @@ describe('shared shot outcome effects', () => {
     expect(helperSource).not.toContain('saveText.setScaleX');
   });
 
-  it('uses one source-size based artwork scale contract for goal, save, and post notifications', () => {
+  it('uses one source-size based enlarged artwork scale contract for goal, save, and post notifications', () => {
     const helperSource = readSource('src/ui/shotOutcomeEffects.ts');
     const notificationSource = readSource('src/ui/goalNotification.ts');
     const artworkSource = readSource('src/ui/eventArtwork.ts');
     const expectedScale = EVENT_ARTWORK_TARGET_SIZE / EVENT_ARTWORK_SOURCE_SIZE;
 
+    expect(EVENT_ARTWORK_TARGET_SIZE).toBe(enlargedEventArtworkTargetSize);
     expect(getEventArtworkScale({ width: EVENT_ARTWORK_SOURCE_SIZE, height: EVENT_ARTWORK_SOURCE_SIZE })).toBe(expectedScale);
+    expect(getEventArtworkScale({ width: EVENT_ARTWORK_SOURCE_SIZE, height: 800 }) * EVENT_ARTWORK_SOURCE_SIZE).toBe(
+      EVENT_ARTWORK_TARGET_SIZE
+    );
+    expect(getEventArtworkScale({ width: 800, height: EVENT_ARTWORK_SOURCE_SIZE }) * EVENT_ARTWORK_SOURCE_SIZE).toBe(
+      EVENT_ARTWORK_TARGET_SIZE
+    );
     expect(artworkSource).toContain('export const EVENT_ARTWORK_SOURCE_SIZE = 1254');
-    expect(artworkSource).toContain('export const EVENT_ARTWORK_TARGET_SIZE = 292');
+    expect(artworkSource).toContain('export const EVENT_ARTWORK_TARGET_SIZE = 365');
     expect(notificationSource).toContain('applyEventArtworkDisplaySize(image, imageSource);');
     expect(helperSource.match(/applyEventArtworkDisplaySize\(image, imageSource\);/g)).toHaveLength(2);
     expect(notificationSource).not.toContain('GOAL_NOTIFICATION_IMAGE_SCALE_RATIO');
