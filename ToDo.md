@@ -1,206 +1,122 @@
-Task: Split Tournament Hub Next Match flow into Advance To Next Match and Play Next Match
+Task: Add random artwork to Post notification, unify artwork scaling, and expose Post preview in Dev Lab
 
 Context
 Project: Total Soccer: Mundial.
 Work in main.
 
-Area:
-Tournament mode:
-- Tournament Hub footer
-- match progression flow
-- AI-only auto simulation
-- human-relevant match launch
-- Finish tournament state
+Goal
+Розширити подію "Штанга" так, щоб окрім текстового notification "Post!" за ним показувалось випадкове зображення з двох доступних:
+- public/menu/gk-post-1.webp
+- public/menu/gk-post-2.webp
 
-Important:
-Do not commit.
-Do not edit ToDo.md.
-Report in Ukrainian.
+Також:
+- усі зображення для подій Goal / Save / Post мають масштабуватися однаково
+- для події Post треба зробити типографіку ближчою до Save notification: більший шрифт і той самий стиль побудови напису
+- додати/оновити preview цієї події в Dev Lab
 
-Current behavior
-Tournament Hub has a "Next Match" button.
-It currently:
-- auto-simulates AI-only matches before the next human-relevant match;
-- then immediately launches the next human-relevant match.
+Important visual rules
+- Усі event artworks для Goal / Save / Post мають вихідний розмір 1254x1254 px.
+- Вони повинні рендеритися через єдиний scale contract, щоб візуальний розмір у грі був узгоджений між усіма трьома подіями.
+- Не можна підбирати окремий довільний scale для Post, який ламатиме узгодженість із Goal і Save.
+- Post notification має виглядати візуально “одного сімейства” із Save notification.
 
-New behavior
-Split this into two separate steps/buttons:
+Scope
+- BootScene asset preload
+- shared notification/effect helpers
+- random texture selection reuse
+- Dev Lab preview
+- tests
 
-1. "Advance to next match"
-   - visible/active when there is at least one AI-only unplayed match before the next human-relevant match.
-   - clicking it simulates those AI-only matches only.
-   - after that it stays in Tournament Hub.
-   - after that, this button becomes inactive/hidden because the next scheduled unplayed match is now human-relevant.
+Requirements
 
-2. "Play next match"
-   - renamed from current "Next Match".
-   - active only when the next scheduled unplayed match is human-relevant and there are no AI-only matches before it.
-   - clicking it starts that human-relevant match normally.
+1. Asset preload
+- У BootScene додати preload для:
+  - /menu/gk-post-1.webp
+  - /menu/gk-post-2.webp
+- Texture keys:
+  - gk-post-1
+  - gk-post-2
 
-Terminology / labels
-Use English UI labels unless the project already has localization:
-- Advance to next match
-- Play next match
-- Finish tournament
+2. Random artwork for Post
+- Для події Post щоразу випадково вибирати один доступний texture key з пулу:
+  - gk-post-1
+  - gk-post-2
+- Перевикористати existing helper для випадкового вибору доступної texture, наприклад selectRandomAvailableTextureKey.
+- Не дублювати окрему random-логіку.
 
-Definitions
-- Human-relevant match: an unplayed match where at least one team is not AI-controlled.
-- AI-only match: an unplayed match where both teams are AI-controlled.
-- Next scheduled unplayed match: first unplayed match in tournament schedule order.
+3. Unified artwork scaling for Goal / Save / Post
+- У shared UI/effect layer ввести спільний contract для event artwork size/scale.
+- Goal notification artwork pool, Save artwork pool і новий Post artwork pool повинні використовувати один і той самий visual scale rule.
+- Оскільки всі вихідні файли 1254x1254 px, масштабування має бути однаковим по базовому коефіцієнту або по спільній target-size логіці.
+- Якщо зараз Goal і Save мають різні ad-hoc налаштування, акуратно уніфікувати їх без погіршення вигляду.
+- Після змін Goal / Save / Post мають виглядати як один узгоджений набір notification-artworks.
 
-Detailed requirements
+4. Post typography
+- Для події Post потрібно зробити шрифт як у події Save і трохи збільшити його.
+- Це означає:
+  - використовувати той самий font family / stroke / style family, що у Save
+  - збільшити розмір шрифту відносно поточного Post
+- Текст лишається:
+  - Post!
+- Не потрібно робити дворядковий напис, як у Goalkeeper SAVE, якщо це не потрібно для композиції.
+- Але візуально стиль має бути близьким до Save notification, а сам текст — помітно більшим, ніж зараз.
 
-============================================================
-PART 1 — Footer button state machine
-============================================================
+5. Notification composition
+- Поведінка має бути аналогічна Goal / Save:
+  - image позаду text
+  - text поверх image
+  - shared container
+  - ті самі pop/fade/cleanup principles
+- Якщо відповідні textures недоступні, notification має коректно відпрацювати у text-only mode без crash.
 
-The Tournament Hub footer should choose the correct primary progression action based on schedule state.
+6. Dev Lab
+- Додати або оновити Post preview у Dev Lab так, щоб він використовував той самий shared renderer/effect helper, що й реальний GameScene.
+- Не робити DevLab-only окремий renderer.
+- Preview має показувати:
+  - notification Post!
+  - випадкове одне з двох зображень позаду
+  - існуючу ball animation / outcome effect для Post preview, якщо вона вже є
+- Dev Lab не повинен мутувати match state, score, storage або tournament state.
 
-State A: next scheduled unplayed match is human-relevant
-- Show/enable: Play next match
-- Hide/disable: Advance to next match
-- Hide/disable: Finish tournament
-- Clicking Play next match starts that match.
+7. Do not change
+- Не змінювати match flow, score/stat logic, tournament flow.
+- Не змінювати ToDo.md.
+- Не робити commit.
 
-State B: there are AI-only unplayed matches before the next human-relevant match
-- Show/enable: Advance to next match
-- Hide/disable or disable: Play next match
-- Hide/disable: Finish tournament
-- Clicking Advance to next match simulates only the AI-only matches before the next human-relevant match.
-- It must not start the human-relevant match.
-- It must remain in Tournament Hub after simulation.
-- After the click completes, the footer state should update to State A.
+Implementation guidance
+- Бажано зосередити зміни в shared helpers, де вже живуть Goal / Save / Post outcome notifications/effects.
+- Якщо в коді вже є shared helper для Goal notification і окремий helper для shot outcomes, звести scale contract в одне місце, щоб уникнути розсинхрону.
+- Якщо потрібно, додати невеликий utility/constants block для event artwork sizing.
 
-State C: no future human-relevant matches remain, but tournament has unplayed matches
-- Show/enable: Finish tournament
-- Hide/disable: Advance to next match
-- Hide/disable: Play next match
-- Clicking Finish tournament simulates all remaining matches and opens TournamentCompleteScene.
+Tests
+Оновити/додати тести для:
+- BootScene preload paths для gk-post-1 / gk-post-2
+- random texture selection для Post artwork pool
+- fallback text-only path, якщо textures недоступні
+- shared Post notification container layering / cleanup
+- Post notification typography contract:
+  - використовує same style family as Save
+  - font size збільшений відносно старого Post
+- unified artwork scale contract:
+  - Goal / Save / Post використовують той самий target size / scale rule
+- Dev Lab preview використовує shared Post effect, а не окрему кастомну реалізацію
+- deterministic randomness через injected random/stub, щоб тести не були flaky
 
-State D: tournament complete
-- TournamentCompleteScene behavior remains unchanged.
-
-============================================================
-PART 2 — Advance to next match behavior
-============================================================
-
-When pressing Advance to next match:
-1. Find the next future human-relevant match.
-2. Simulate every unplayed AI-only match before it in schedule order.
-3. Do not simulate the human-relevant match itself.
-4. Stay in Tournament Hub.
-5. Update and save:
-   - match cards
-   - group standings
-   - playoff seeding/bracket if affected
-   - tournament progress counter
-   - tournament stats
-   - footer button state
-6. If the simulation of AI-only matches causes playoff bracket updates that reveal the next human-relevant match, state should refresh correctly.
-
-Important edge cases:
-- If no human-relevant match exists, Advance to next match should not be shown. Use Finish tournament instead.
-- If the next scheduled match is already human-relevant, Advance to next match should not be shown.
-
-============================================================
-PART 3 — Play next match behavior
-============================================================
-
-When pressing Play next match:
-1. Check the next scheduled unplayed match.
-2. It must be human-relevant.
-3. Start/open this match through the normal playable tournament match flow.
-4. Do not auto-simulate anything in this button.
-5. If the next scheduled match is AI-only, Play next match must be disabled/hidden and Advance to next match should be available instead.
-
-============================================================
-PART 4 — Finish tournament behavior
-============================================================
-
-Keep current Finish tournament behavior:
-- shown when no human-relevant future match remains;
-- simulates all remaining matches in order;
-- opens TournamentCompleteScene after final.
-
-Make sure the new split flow does not regress this behavior.
-
-============================================================
-PART 5 — Remove old Next Match label
-============================================================
-
-The old label "Next Match" should no longer appear in Tournament Hub footer.
-Use:
-- Advance to next match
-- Play next match
-- Finish tournament
-
-============================================================
-PART 6 — Preserve existing decisions
-============================================================
-
-Do not restore Sim / Play buttons on match cards.
-Do not change:
-- Matches tab card visuals except if tests need button absence adjusted
-- group-stage calendar order
-- tournament stats aggregation
-- simulated assists/saves consistency
-- TournamentCompleteScene visual layout
-- Tournament Setup
-- Playoff geometry
-- Stats layout
-- save format unless strictly necessary
-- ToDo.md
-
-============================================================
-PART 7 — Tests
-============================================================
-
-Add/update tests for:
-
-1. If AI-only matches exist before the next human-relevant match:
-   - footer shows Advance to next match
-   - footer does not show Play next match as active
-   - old Next Match label is not shown
-
-2. Pressing Advance to next match:
-   - simulates all preceding AI-only matches
-   - does not launch the human-relevant match
-   - does not open GameScene
-   - remains in Tournament Hub
-   - updates match results/cards/progress/stats/save
-   - after completion, footer switches to Play next match
-
-3. If the next scheduled unplayed match is human-relevant:
-   - footer shows Play next match
-   - Advance to next match is not active
-   - pressing Play next match launches the match
-
-4. If no future human-relevant matches remain:
-   - footer shows Finish tournament
-   - Advance to next match is not shown
-   - Play next match is not shown
-
-5. Finish tournament:
-   - still simulates remaining matches
-   - still opens TournamentCompleteScene
-
-6. Regression:
-   - no Sim / Play buttons are rendered on match cards
-   - group-stage calendar order remains matchday-based
-   - simulated AI-only stats still include goals/assists/saves
-   - Cup M / Cup L / Cup XL behave correctly
-
-Validation:
+Validation
 Run:
-npm test
-npm run build
-git diff --check
+- npm test
+- npm run build
+- git diff --check
 
-Final report in Ukrainian:
-1. changed files
-2. how footer state machine works
-3. how Advance to next match works
-4. how Play next match works
-5. how Finish tournament remains unchanged
-6. test/build/diff-check results
-7. confirm no commit was made
+Report
+Звіт українською.
+Вказати:
+- які файли змінені
+- як названі texture keys
+- де зберігається shared artwork scale contract
+- як уніфіковано scale для Goal / Save / Post
+- чи Post typography приведена до стилю Save і збільшена
+- чи Dev Lab і GameScene використовують спільну реалізацію
+- результати npm test / npm run build / git diff --check
+
+Do not commit.
