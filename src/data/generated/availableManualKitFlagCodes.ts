@@ -30,6 +30,7 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'hr',
   'ie',
   'it',
+  'jm',
   'jp',
   'kr',
   'ma',

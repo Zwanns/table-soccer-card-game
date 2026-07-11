@@ -86,15 +86,15 @@ describe('team kit data contract', () => {
     });
   });
 
-  it('defines exactly 65 team kit styles matching national teams', () => {
-    expect(TEAM_KIT_STYLES).toHaveLength(65);
-    expect(NATIONAL_TEAMS).toHaveLength(65);
+  it('defines exactly 66 team kit styles matching national teams', () => {
+    expect(TEAM_KIT_STYLES).toHaveLength(66);
+    expect(NATIONAL_TEAMS).toHaveLength(66);
 
     const styleFlagCodes = TEAM_KIT_STYLES.map((style) => style.flagCode).sort();
     const nationalFlagCodes = NATIONAL_TEAMS.map((team) => team.flagCode).sort();
 
     expect(styleFlagCodes).toEqual(nationalFlagCodes);
-    expect(new Set(styleFlagCodes).size).toBe(65);
+    expect(new Set(styleFlagCodes).size).toBe(66);
   });
 
   it('uses valid team kit colors, keys, and image paths', () => {
@@ -191,6 +191,15 @@ describe('team kit data contract', () => {
       shirtNumberColor: '#000000',
       shirtNumberStrokeColor: '#FFFFFF'
     });
+    expect(getTeamKitStyle('jm')).toMatchObject({
+      flagCode: 'jm',
+      assetKey: 'kit-jm',
+      path: 'kits/images/jm.webp',
+      primaryColor: '#009B3A',
+      secondaryColor: '#FED100',
+      accentColor: '#000000',
+      shirtNumberColor: '#FED100'
+    });
     expect(getTeamKitStyle('no')).toMatchObject({
       flagCode: 'no',
       assetKey: 'kit-no',
@@ -254,6 +263,7 @@ describe('team kit data contract', () => {
       expect.arrayContaining(['al', 'fr', 'es', 'gb-eng', 'gb-sct', 'gb-wls', 'ie', 'nir', 'pt', 'sk', 'tr'])
     );
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).toContain('ie');
+    expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).toContain('jm');
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('none');
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('gk1');
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).not.toContain('gk2');
@@ -265,6 +275,7 @@ describe('team kit data contract', () => {
     expect(hasManualTeamKit('pl')).toBe(true);
     expect(hasManualTeamKit('nir')).toBe(true);
     expect(hasManualTeamKit('fr')).toBe(true);
+    expect(hasManualTeamKit('jm')).toBe(true);
     expect(hasManualTeamKit('es')).toBe(true);
     expect(hasManualTeamKit('gb-eng')).toBe(true);
     expect(hasManualTeamKit('none')).toBe(false);

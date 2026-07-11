@@ -377,11 +377,11 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('Воротарська колода звичайного матчу не використовується в пенальті.');
   });
 
-  it('provides 65 unique national teams for match setup', () => {
+  it('provides 66 unique national teams for match setup', () => {
     const teamNames = NATIONAL_TEAMS.map((team) => team.name);
 
-    expect(NATIONAL_TEAMS).toHaveLength(65);
-    expect(new Set(teamNames).size).toBe(65);
+    expect(NATIONAL_TEAMS).toHaveLength(66);
+    expect(new Set(teamNames).size).toBe(66);
   });
 
   it('keeps Northern Ireland separate from Ireland', () => {

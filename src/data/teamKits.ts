@@ -107,6 +107,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['ie', '#169B62', '#FFFFFF', '#FFFFFF', undefined],
   ['it', '#0066CC', '#FFFFFF', '#FFFFFF', undefined],
   ['ci', '#F77F00', '#009E60', '#006B3F', '#FFFFFF'],
+  ['jm', '#009B3A', '#FED100', '#000000', undefined],
   ['jp', '#003478', '#FFFFFF', '#FFFFFF', undefined],
   ['kz', '#00AFCA', '#FEC50C', '#003B5C', '#FFFFFF'],
   ['ml', '#FCD116', '#14B53A', '#007A33', '#FFFFFF'],
@@ -231,12 +232,12 @@ export function validateTeamKitStylesAgainstNationalTeams(): void {
   const styleFlagCodes = TEAM_KIT_STYLES.map((style) => style.flagCode);
   const goalkeeperKitIds = GOALKEEPER_KIT_STYLES.map((style) => style.id);
 
-  if (TEAM_KIT_STYLES.length !== 65) {
-    errors.push(`TEAM_KIT_STYLES must contain 65 entries, got ${TEAM_KIT_STYLES.length}.`);
+  if (TEAM_KIT_STYLES.length !== 66) {
+    errors.push(`TEAM_KIT_STYLES must contain 66 entries, got ${TEAM_KIT_STYLES.length}.`);
   }
 
-  if (NATIONAL_TEAMS.length !== 65) {
-    errors.push(`NATIONAL_TEAMS must contain 65 entries, got ${NATIONAL_TEAMS.length}.`);
+  if (NATIONAL_TEAMS.length !== 66) {
+    errors.push(`NATIONAL_TEAMS must contain 66 entries, got ${NATIONAL_TEAMS.length}.`);
   }
 
   for (const flagCode of nationalFlagCodes) {

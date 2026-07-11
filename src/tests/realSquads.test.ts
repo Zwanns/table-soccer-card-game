@@ -24,18 +24,18 @@ describe('real static squads', () => {
     const squadFlagCodes = REAL_SQUADS.map((squad) => squad.flagCode);
     const teamFlagCodes = NATIONAL_TEAMS.map((team) => team.flagCode);
 
-    expect(REAL_SQUADS).toHaveLength(65);
+    expect(REAL_SQUADS).toHaveLength(66);
     expect(squadFlagCodes).toHaveLength(new Set(squadFlagCodes).size);
     expect(new Set(squadFlagCodes)).toEqual(new Set(teamFlagCodes));
   });
 
-  it('contains exactly 975 static players across all squads', () => {
+  it('contains exactly 990 static players across all squads', () => {
     const playerCount = REAL_SQUADS.reduce(
       (total, squad) => total + Object.keys(squad.fieldPlayers).length + 1,
       0
     );
 
-    expect(playerCount).toBe(975);
+    expect(playerCount).toBe(990);
   });
 
   it('uses globally unique fictional latin surnames for every player slot', () => {
@@ -44,7 +44,7 @@ describe('real static squads', () => {
       ...FIELD_SQUAD_RANKS.map((rank) => squad.fieldPlayers[rank].name)
     ]);
 
-    expect(playerNames).toHaveLength(975);
+    expect(playerNames).toHaveLength(990);
     expect(new Set(playerNames).size).toBe(playerNames.length);
 
     for (const name of playerNames) {

@@ -562,7 +562,7 @@ describe('tournament setup draft helpers', () => {
 
     expect(draft.slots).toHaveLength(16);
     expect(new Set(draft.slots).size).toBe(16);
-    expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(NATIONAL_TEAMS).toHaveLength(66);
     expect(NATIONAL_TEAMS.some((team) => team.flagCode === 'nir')).toBe(true);
     expect(isTournamentSetupComplete(draft)).toBe(true);
     expect(draft.controllerTypes.every((controllerType) => controllerType === 'AI')).toBe(true);

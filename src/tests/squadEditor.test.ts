@@ -20,7 +20,7 @@ describe('read-only squad scenes', () => {
   it('shows all national teams in the squad selector', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
-    expect(NATIONAL_TEAMS).toHaveLength(65);
+    expect(NATIONAL_TEAMS).toHaveLength(66);
     expect(selectSource).toContain('const CARD_WIDTH = 180');
     expect(selectSource).toContain('const CARD_HEIGHT = 48');
     expect(selectSource).toContain('const GRID_GAP_X = 12');

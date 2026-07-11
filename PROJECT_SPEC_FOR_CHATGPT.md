@@ -68,7 +68,7 @@ src/scenes/
 - `BootScene.ts` - загрузка базовых ассетов, звуков, меню, флагов, экипировок и fallback/team-cover рубашек колод. Для меню загружает `menu-logo1.png` и `menu-logo2.png`, но не старый `menu-logo.png`.
 - `bootKitAssets.ts` - список загружаемых kit-текстур.
 - `MenuScene.ts` - главное меню с фоновым изображением, кнопками режимов, отдельными разделами `Rules`/`About` и мигающим scoreboard-логотипом. Анимированный мяч и желтые декоративные треугольники в меню не используются.
-- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 65 команд отображаются на одной странице компактной сеткой с 8 колонками без пагинации.
+- `TeamSelectScene.ts` - выбор сборных для быстрого матча или standalone-пенальти. В быстром матче и standalone-пенальти у каждой выбранной команды есть AI-checkbox; по умолчанию команды HUMAN. Все 66 команд отображаются на одной странице компактной сеткой с 8 колонками без пагинации.
 - Team selection layout uses `createTeamScreenLayout()` from `src/ui/teamScreenLayout.ts`: selected Team 1 card and Menu button align to `teamGridRect.x`, selected Team 2 card and Start/Start penalties align to the right edge of `teamGridRect`, and `VS` remains centered between selected cards.
 - Team selection selected cards show a 3-card face-down cover fan from `resolveTeamCoverLoadResult()` instead of the team flag. Between each selected card and `VS`, the screen shows a small kit preview using `getTeamKitAssetKey()` with `kit-none` fallback.
 - Team selection background uses the preloaded `public/menu/menu-2-bg.webp` asset, stretched to the scene size, with the muted striped Phaser Graphics football field kept only as a missing-texture fallback. No main.ts, index.html, global CSS scale/input, GameEngine, AI, Penalty AI, or TournamentEngine changes are part of this screen layout contract.
@@ -140,7 +140,7 @@ src/data/
 
 Данные:
 
-- `nationalTeams.ts` - 65 национальных сборных.
+- `nationalTeams.ts` - 66 национальных сборных.
 - `realSquads.ts` - единственный источник статических составов с вымышленными фамилиями игроков.
 - `defaultSquads.ts` - адаптер/фасад для получения состава из `realSquads`.
 - `squadTypes.ts` и `squadValidation.ts` - типы и проверки составов.
@@ -211,7 +211,7 @@ public/menu/menu-flags.png
 
 ## 4. Национальные сборные и составы
 
-В проекте 65 сборных. Список команд находится в:
+В проекте 66 сборных. Список команд находится в:
 
 ```text
 src/data/nationalTeams.ts
