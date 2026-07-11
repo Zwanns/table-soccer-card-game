@@ -55,7 +55,7 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.4.0');
+    expect(GAME_VERSION).toBe('1.4.1');
   });
 
   it('auto-syncs kit registry through the Vite dev and build pipeline', () => {
