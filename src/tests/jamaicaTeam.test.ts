@@ -31,15 +31,15 @@ describe('Jamaica national team integration', () => {
     expect(validateSquad(squad)).toEqual({ ok: true, issues: [] });
   });
 
-  it('uses the manual Jamaica kit and the safe cover fallback', () => {
+  it('uses the manual Jamaica kit and team cover', () => {
     expect(resolveTeamKitAsset('jm')).toMatchObject({
       assetKey: 'kit-jm',
-      numberColor: '#FED100'
+      numberColor: '#000000'
     });
     expect(resolveTeamCoverAsset('jm')).toEqual({
-      textureKey: 'cover-none',
-      path: 'covers/none.webp',
-      usedFallback: true
+      textureKey: 'cover-jm',
+      path: 'covers/jm.webp',
+      usedFallback: false
     });
   });
 });

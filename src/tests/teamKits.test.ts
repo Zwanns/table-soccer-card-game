@@ -38,6 +38,7 @@ const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
   ['ec', '#FFFFFF'],
   ['gr', '#0D5EAF'],
   ['hr', '#0033A0'],
+  ['jm', '#000000'],
   ['ma', '#FFFFFF'],
   ['ng', '#000000'],
   ['no', '#FFFFFF'],
@@ -195,10 +196,10 @@ describe('team kit data contract', () => {
       flagCode: 'jm',
       assetKey: 'kit-jm',
       path: 'kits/images/jm.webp',
-      primaryColor: '#009B3A',
-      secondaryColor: '#FED100',
+      primaryColor: '#FED100',
+      secondaryColor: '#009B3A',
       accentColor: '#000000',
-      shirtNumberColor: '#FED100'
+      shirtNumberColor: '#000000'
     });
     expect(getTeamKitStyle('no')).toMatchObject({
       flagCode: 'no',

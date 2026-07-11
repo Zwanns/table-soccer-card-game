@@ -71,7 +71,7 @@ describe('team cover assets', () => {
     expect(hasManualTeamCover('gb-eng')).toBe(true);
     expect(hasManualTeamCover('none')).toBe(false);
     expect(hasManualTeamCover('unknown')).toBe(false);
-    expect(hasManualTeamCover('jm')).toBe(false);
+    expect(hasManualTeamCover('jm')).toBe(true);
 
     const textures: TextureLookup = {
       exists: (textureKey) => textureKey === 'cover-none'
@@ -97,9 +97,9 @@ describe('team cover assets', () => {
       usedFallback: true
     });
     expect(resolveTeamCoverAsset('jm')).toEqual({
-      textureKey: 'cover-none',
-      path: 'covers/none.webp',
-      usedFallback: true
+      textureKey: 'cover-jm',
+      path: 'covers/jm.webp',
+      usedFallback: false
     });
   });
 

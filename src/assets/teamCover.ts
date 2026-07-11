@@ -42,6 +42,7 @@ export const AVAILABLE_TEAM_COVER_FLAG_CODES: readonly string[] = [
   'iq',
   'ir',
   'it',
+  'jm',
   'jp',
   'kr',
   'kz',
