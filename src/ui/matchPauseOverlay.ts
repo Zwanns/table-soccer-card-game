@@ -8,6 +8,7 @@ import {
   MATCH_STATS_PANEL_WIDTH
 } from './MatchStatsPanel';
 import { createResultActionButtons } from './resultActionButtons';
+import { SCOREBOARD_BORDER_COLOR } from './scoreboardStyle';
 
 export const MATCH_OVERLAY_DEPTH = 1000;
 
@@ -23,7 +24,7 @@ export interface MatchPauseOverlayOptions {
 
 export function createMatchPauseOverlay(
   scene: Phaser.Scene,
-  actions: readonly [MatchPauseAction, MatchPauseAction, MatchPauseAction],
+  actions: readonly MatchPauseAction[],
   options: MatchPauseOverlayOptions = {}
 ): Phaser.GameObjects.Container {
   const centerX = SCENE_WIDTH / 2;
@@ -41,7 +42,11 @@ export function createMatchPauseOverlay(
           width: MATCH_STATS_PANEL_WIDTH,
           height: MATCH_STATS_PANEL_HEIGHT
         }));
-  const buttons = createResultActionButtons(scene, centerX, actions);
+  const buttons = createResultActionButtons(scene, centerX, actions, {
+    attachedToPanel: true,
+    borderColor: SCOREBOARD_BORDER_COLOR,
+    innerBorderColor: 0x000000
+  });
 
   modal.add(statsPanel === null ? [overlay, ...buttons] : [overlay, statsPanel, ...buttons]);
   return modal;

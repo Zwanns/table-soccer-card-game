@@ -16,6 +16,8 @@ export interface ResultActionButtonConfig {
 
 export interface ResultActionButtonsOptions {
   attachedToPanel?: boolean;
+  borderColor?: number;
+  innerBorderColor?: number;
   totalWidth?: number;
 }
 
@@ -37,9 +39,12 @@ export function createResultActionButtons(
       action.label,
       action.onClick,
       {
+        borderColor: options.borderColor,
         borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true),
         fontSize: RESULT_ACTION_BUTTON_FONT_SIZE,
         height: RESULT_ACTION_BUTTON_HEIGHT,
+        leftBorderColor: index > 0 ? options.innerBorderColor : undefined,
+        rightBorderColor: index < actions.length - 1 ? options.innerBorderColor : undefined,
         width: buttonWidth
       }
     )

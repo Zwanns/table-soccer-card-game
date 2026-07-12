@@ -206,23 +206,26 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
 
-  it('opens a Pause overlay with Sim, Continue and Exit to Menu actions', () => {
+  it('opens a Pause overlay with full-width Exit and Continue actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
     expect(source).toContain('private pauseModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private openPauseModal(state: Readonly<GameState>): void');
     expect(source).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
-    expect(source).toContain("{ label: 'Continue', onClick: () => this.closePauseModal() }");
+    expect(source).toContain("{ label: 'Continue the Match', onClick: () => this.closePauseModal() }");
     expect(source).toContain("label: 'Exit to Menu'");
     expect(source).toContain('this.openExitConfirmModal()');
-    expect(source).toContain("label: 'Sim'");
-    expect(source).toContain('this.simulatePausedMatch(state)');
+    const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal('));
+    expect(pauseBlock).not.toContain("label: 'Sim'");
+    expect(pauseBlock.indexOf("label: 'Exit to Menu'")).toBeLessThan(
+      pauseBlock.indexOf("label: 'Continue the Match'")
+    );
+    expect(pauseBlock.match(/label:/g)).toHaveLength(2);
     expect(source).toContain('private simulatePausedMatch(state: Readonly<GameState>): void');
     expect(source).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
     expect(source).toContain("this.scene.start('TournamentCompleteScene')");
     expect(source).toContain("this.scene.start('TournamentHubScene', { initialTab: 'matches' })");
-    const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal('));
     expect(pauseBlock).not.toContain("label: 'About'");
     expect(pauseBlock).not.toContain("this.openMatchInfoModal('about')");
     expect(source).toContain('], { state });');
@@ -234,7 +237,10 @@ describe('GameScene visual layout contracts', () => {
     expect(overlaySource).not.toContain("fontSize: '34px'");
     expect(overlaySource).toContain('MATCH_STATS_PANEL_CENTER_Y');
     expect(overlaySource).toContain("import { createResultActionButtons } from './resultActionButtons'");
-    expect(overlaySource).toContain('const buttons = createResultActionButtons(scene, centerX, actions);');
+    expect(overlaySource).toContain('const buttons = createResultActionButtons(scene, centerX, actions, {');
+    expect(overlaySource).toContain('attachedToPanel: true');
+    expect(overlaySource).toContain('borderColor: SCOREBOARD_BORDER_COLOR');
+    expect(overlaySource).toContain('innerBorderColor: 0x000000');
   });
 
   it('shows a referee match-finished modal before results for card-depletion game over states', () => {
@@ -682,7 +688,9 @@ describe('GameScene visual layout contracts', () => {
     const source = readSource('src/ui/matchPauseOverlay.ts');
     const resultActionsSource = readSource('src/ui/resultActionButtons.ts');
 
-    expect(source).toContain('createResultActionButtons(scene, centerX, actions)');
+    expect(source).toContain('createResultActionButtons(scene, centerX, actions, {');
+    expect(source).toContain('attachedToPanel: true');
+    expect(source).toContain('borderColor: SCOREBOARD_BORDER_COLOR');
     expect(source).not.toContain('PAUSE_BUTTON_WIDTH');
     expect(source).not.toContain('PAUSE_BUTTON_HEIGHT');
     expect(source).not.toContain('PAUSE_BUTTON_GAP');
@@ -709,10 +717,14 @@ describe('GameScene visual layout contracts', () => {
     expect(statsPanelSource).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
     expect(statsPanelSource).toContain("['GK saves', String(playerOneStats.goalkeeperSaves), String(playerTwoStats.goalkeeperSaves)]");
     expect(statsPanelSource).toContain('formatGoalScorerLabel(scorer)');
-    expect(statsPanelSource).toContain('getTeamScoreboardCode(options.playerOneFlagCode)');
-    expect(statsPanelSource).toContain('getTeamScoreboardCode(options.playerTwoFlagCode)');
-    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, -168, 92, playerOneScorers, columnWidth))');
-    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, 168, 92, playerTwoScorers, columnWidth))');
+    expect(statsPanelSource).not.toContain('createScoreLine');
+    expect(statsPanelSource).not.toContain('getTeamScoreboardCode');
+    expect(statsPanelSource).not.toContain('getFlagAssetKey');
+    expect(statsPanelSource).toContain("fontSize: '28px'");
+    expect(statsPanelSource).toContain("fontSize: '22px'");
+    expect(statsPanelSource).toContain("fontSize: '19px'");
+    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, -168, 94, playerOneScorers, columnWidth))');
+    expect(statsPanelSource).toContain('this.add(this.createScorersList(scene, 168, 94, playerTwoScorers, columnWidth))');
     expect(statsPanelSource).toContain("align: 'center'");
     expect(statsPanelSource).toContain('.setOrigin(0.5, 0)');
     expect(statsPanelSource).toContain("return '-'");
@@ -723,12 +735,25 @@ describe('GameScene visual layout contracts', () => {
     const actionsSource = readSource('src/ui/resultActionButtons.ts');
     const buttonSource = readSource('src/ui/Button.ts');
 
-    expect(pauseSource).toContain('createResultActionButtons(scene, centerX, actions)');
+    expect(pauseSource).toContain('createResultActionButtons(scene, centerX, actions, {');
+    expect(pauseSource).toContain('attachedToPanel: true');
+    expect(pauseSource).toContain('borderColor: SCOREBOARD_BORDER_COLOR');
     expect(actionsSource).toContain('fontSize: RESULT_ACTION_BUTTON_FONT_SIZE');
+    expect(actionsSource).toContain('borderColor: options.borderColor');
+    expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
+    expect(actionsSource).toContain('leftBorderColor: index > 0 ? options.innerBorderColor : undefined');
+    expect(actionsSource).toContain('rightBorderColor: index < actions.length - 1 ? options.innerBorderColor : undefined');
+    expect(actionsSource).toContain('topLeft: 0');
+    expect(actionsSource).toContain('topRight: 0');
+    expect(actionsSource).toContain('bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
+    expect(actionsSource).toContain('bottomLeft: isFirst ? RESULT_ACTION_BUTTON_RADIUS : 0');
     expect(actionsSource).toContain('height: RESULT_ACTION_BUTTON_HEIGHT');
     expect(actionsSource).toContain('width: buttonWidth');
     expect(buttonSource).toContain('const width = options.width ?? 220');
     expect(buttonSource).toContain('const height = options.height ?? 54');
+    expect(buttonSource).toContain('const borderColor = options.borderColor ??');
+    expect(buttonSource).toContain('graphics.lineBetween(-width / 2, -height / 2, -width / 2, height / 2)');
+    expect(buttonSource).toContain('graphics.lineBetween(width / 2, -height / 2, width / 2, height / 2)');
     expect(buttonSource).toContain('const background = scene.add.rectangle(0, 0, width, height');
     expect(buttonSource).toContain('this.setSize(width, height)');
     expect(buttonSource).toContain('this.setInteractive({ useHandCursor: true })');

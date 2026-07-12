@@ -8,11 +8,14 @@ export interface ButtonCornerRadius {
 }
 
 export interface ButtonOptions {
+  borderColor?: number;
   borderRadius?: number | ButtonCornerRadius;
   borderWidth?: number;
   disabled?: boolean;
   fontSize?: string;
   height?: number;
+  leftBorderColor?: number;
+  rightBorderColor?: number;
   width?: number;
 }
 
@@ -27,7 +30,7 @@ export class Button extends Phaser.GameObjects.Container {
     const disabled = options.disabled === true;
     const baseColor = disabled ? 0x6d746f : 0xf0c95a;
     const hoverColor = disabled ? 0x6d746f : 0xffd978;
-    const borderColor = disabled ? 0x3c4540 : 0x2d382f;
+    const borderColor = options.borderColor ?? (disabled ? 0x3c4540 : 0x2d382f);
     const background = scene.add.rectangle(0, 0, width, height, baseColor, disabled ? 0.78 : 1);
     const roundedBackground = hasRoundedCorner(borderRadius) ? scene.add.graphics() : null;
     const drawBackground = (color: number): void => {
@@ -50,6 +53,7 @@ export class Button extends Phaser.GameObjects.Container {
     };
 
     drawBackground(baseColor);
+    const sideBorders = createButtonSideBorders(scene, width, height, borderWidth, options);
 
     const label = scene.add
       .text(0, 0, text, {
@@ -60,7 +64,11 @@ export class Button extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add(roundedBackground === null ? [background, label] : [background, roundedBackground, label]);
+    this.add(
+      roundedBackground === null
+        ? [background, ...(sideBorders === null ? [] : [sideBorders]), label]
+        : [background, roundedBackground, ...(sideBorders === null ? [] : [sideBorders]), label]
+    );
     this.setSize(width, height);
 
     if (!disabled) {
@@ -72,6 +80,29 @@ export class Button extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
   }
+}
+
+function createButtonSideBorders(
+  scene: Phaser.Scene,
+  width: number,
+  height: number,
+  borderWidth: number,
+  options: ButtonOptions
+): Phaser.GameObjects.Graphics | null {
+  if (borderWidth <= 0 || (options.leftBorderColor === undefined && options.rightBorderColor === undefined)) {
+    return null;
+  }
+
+  const graphics = scene.add.graphics();
+  if (options.leftBorderColor !== undefined) {
+    graphics.lineStyle(borderWidth, options.leftBorderColor);
+    graphics.lineBetween(-width / 2, -height / 2, -width / 2, height / 2);
+  }
+  if (options.rightBorderColor !== undefined) {
+    graphics.lineStyle(borderWidth, options.rightBorderColor);
+    graphics.lineBetween(width / 2, -height / 2, width / 2, height / 2);
+  }
+  return graphics;
 }
 
 function hasRoundedCorner(radius: number | ButtonCornerRadius): boolean {

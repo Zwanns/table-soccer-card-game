@@ -1061,20 +1061,13 @@ export class GameScene extends Phaser.Scene {
     this.pauseAutomaticCardFlow();
     this.pauseModal = createMatchPauseOverlay(this, [
       {
-        label: 'Sim',
-        onClick: () => {
-          this.closePauseModal({ resumeAutomaticCardFlow: false });
-          this.simulatePausedMatch(state);
-        }
-      },
-      { label: 'Continue', onClick: () => this.closePauseModal() },
-      {
         label: 'Exit to Menu',
         onClick: () => {
           this.closePauseModal({ resumeAutomaticCardFlow: false });
           this.openExitConfirmModal();
         }
-      }
+      },
+      { label: 'Continue the Match', onClick: () => this.closePauseModal() }
     ], { state });
   }
 
