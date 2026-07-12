@@ -5,6 +5,10 @@ import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
 import { getCardTooltipText, getFieldCardPlayerProfile } from '../ui/cardPlayerProfile';
 import { getFallbackKitColors } from '../ui/kitFallback';
 import {
+  CARD_INNER_FRAME,
+  getCardInnerFrameColor,
+  getCardInnerFrameSegments,
+  getCardRankDisplayLabel,
   getKitImageLayout,
   getShirtNumberLayout,
   KIT_CARD_FACE_HEIGHT,
@@ -220,6 +224,7 @@ describe('kit card face rendering contracts', () => {
     expect(KIT_CARD_LAYOUT.shirtNumberScaleY).toBe(0.88);
     expect(prepareKitCardFace({ rank: '9' })).toEqual({
       rank: '9',
+      displayRank: '9',
       shirtNumber: undefined,
       kitAsset: null
     });
@@ -243,8 +248,8 @@ describe('kit card face rendering contracts', () => {
     const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
 
     expect(kitFaceSource).toContain('export interface RankRollOptions');
-    expect(kitFaceSource).toContain('this.rankText.setText(rank)');
-    expect(kitFaceSource).toContain("this.rankText.setFontSize(rank.length > 2 ? '26px' : '42px')");
+    expect(kitFaceSource).toContain('this.rankText.setText(label)');
+    expect(kitFaceSource).toContain("this.rankText.setFontSize(label.length > 2 ? '26px' : '42px')");
     expect(kitFaceSource).not.toContain('this.rankText.setScale');
     expect(kitFaceSource).toContain('steps?: readonly string[]');
     expect(kitFaceSource).toContain('this.scene.tweens.add({');
@@ -254,6 +259,78 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('public animateDisplayRankRoll(targetRank: string');
     expect(cardViewSource).toContain('this.faceView?.animateRankRoll(targetRank, options) ?? Promise.resolve()');
     expect(cardViewSource).toContain('options.faceDown === true');
+  });
+
+  it('maps only visible Jack and Joker labels while preserving internal ranks', () => {
+    expect(getCardRankDisplayLabel('J')).toBe('V');
+    expect(getCardRankDisplayLabel('JOKER')).toBe('J');
+    expect(getCardRankDisplayLabel('Q')).toBe('Q');
+    expect(getCardRankDisplayLabel('10')).toBe('10');
+    expect(prepareKitCardFace({ rank: 'J' })).toMatchObject({ rank: 'J', displayRank: 'V' });
+    expect(prepareKitCardFace({ rank: 'JOKER' })).toMatchObject({ rank: 'JOKER', displayRank: 'J' });
+  });
+
+  it('uses black for every normal frame and gold only for Joker', () => {
+    expect(getCardInnerFrameColor('2')).toBe('#818894');
+    expect(getCardInnerFrameColor('J')).toBe('#818894');
+    expect(getCardInnerFrameColor('A')).toBe('#818894');
+    expect(getCardInnerFrameColor('JOKER')).toBe('#F0C95A');
+  });
+
+  it('defines a balanced inset segmented frame with corrected quarter-circle corners', () => {
+    const segments = getCardInnerFrameSegments();
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
+    const limitX = KIT_CARD_FACE_WIDTH / 2;
+    const limitY = KIT_CARD_FACE_HEIGHT / 2;
+
+    expect(CARD_INNER_FRAME.rankAreaRight).toBe(-10);
+    expect(CARD_INNER_FRAME.rankAreaBottom).toBe(-14);
+    expect(CARD_INNER_FRAME.rankGap).toBe(8);
+    expect(CARD_INNER_FRAME.kitSafeZone).toBe(50);
+    expect(CARD_INNER_FRAME.kitFacingSegmentLength).toBe(14);
+    expect(segments.length).toBeGreaterThan(1);
+    expect(segments.some((segment) => segment.kind === 'arc')).toBe(true);
+    const topRightArc = segments[1];
+    const bottomLeftArc = segments[4];
+    expect(topRightArc).toMatchObject({
+      kind: 'arc',
+      startAngle: -Math.PI / 2,
+      endAngle: 0
+    });
+    expect(bottomLeftArc).toMatchObject({
+      kind: 'arc',
+      startAngle: Math.PI / 2,
+      endAngle: Math.PI
+    });
+    expect(topRightArc.kind === 'arc' && bottomLeftArc.kind === 'arc' && topRightArc.radius).toBe(
+      bottomLeftArc.kind === 'arc' ? bottomLeftArc.radius : undefined
+    );
+    expect(segments[0]).toMatchObject({ kind: 'line', x1: -2, x2: 38 });
+    expect(segments[2]).toMatchObject({ kind: 'line', y1: -58.25, y2: -44.25 });
+    expect(segments[3]).toMatchObject({ kind: 'line', y1: -6, y2: 58.25 });
+    expect(segments[5]).toMatchObject({ kind: 'line', x1: -38, x2: -24 });
+    const rankRightGap = segments[0].kind === 'line'
+      ? segments[0].x1 - CARD_INNER_FRAME.rankAreaRight
+      : Number.NaN;
+    const rankBottomGap = segments[3].kind === 'line'
+      ? segments[3].y1 - CARD_INNER_FRAME.rankAreaBottom
+      : Number.NaN;
+    expect(rankRightGap).toBe(CARD_INNER_FRAME.rankGap);
+    expect(rankBottomGap).toBe(CARD_INNER_FRAME.rankGap);
+    expect(rankRightGap).toBe(rankBottomGap);
+    for (const segment of segments) {
+      const points = segment.kind === 'line'
+        ? [[segment.x1, segment.y1], [segment.x2, segment.y2]]
+        : [[segment.x - segment.radius, segment.y], [segment.x + segment.radius, segment.y], [segment.x, segment.y - segment.radius], [segment.x, segment.y + segment.radius]];
+      for (const [x, y] of points) {
+        expect(Math.abs(x)).toBeLessThan(limitX);
+        expect(Math.abs(y)).toBeLessThan(limitY);
+      }
+    }
+    expect(kitFaceSource.indexOf('createSegmentedInnerFrame')).toBeLessThan(kitFaceSource.indexOf('this.addKit'));
+    expect(cardViewSource.indexOf("options.faceDown === true")).toBeLessThan(cardViewSource.indexOf('new KitCardFaceView'));
+    expect(cardViewSource).not.toContain('createSegmentedInnerFrame');
   });
 
   it('uses resolver number colors and outlines while keeping closed cards unchanged', () => {

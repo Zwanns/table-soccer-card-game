@@ -3,6 +3,10 @@ import { fitImageContain } from '../assets/teamCover';
 import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
 import {
+  CARD_INNER_FRAME,
+  getCardInnerFrameColor,
+  getCardInnerFrameSegments,
+  getCardRankDisplayLabel,
   getKitImageLayout,
   getShirtNumberLayout,
   KIT_CARD_LAYOUT,
@@ -17,6 +21,7 @@ const CARD_HEIGHT = 148.5;
 
 export interface KitCardFaceViewOptions {
   rank: string;
+  cardRank?: string;
   teamColor?: CardColor;
   highlighted?: boolean;
   shirtNumber?: number;
@@ -51,6 +56,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     });
 
     this.add(body);
+    this.add(createSegmentedInnerFrame(scene, options));
     const renderedKitLayout = this.addKit(scene, options);
     this.addShirtNumber(scene, options, renderedKitLayout);
     this.addRank(scene, options);
@@ -63,8 +69,9 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       return;
     }
 
-    this.rankText.setText(rank);
-    this.rankText.setFontSize(rank.length > 2 ? '26px' : '42px');
+    const label = getCardRankDisplayLabel(rank);
+    this.rankText.setText(label);
+    this.rankText.setFontSize(label.length > 2 ? '26px' : '42px');
   }
 
   public animateRankRoll(targetRank: string, options: RankRollOptions = {}): Promise<void> {
@@ -192,6 +199,23 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
     this.add(this.rankText);
   }
+}
+
+function createSegmentedInnerFrame(scene: Phaser.Scene, options: KitCardFaceViewOptions): Phaser.GameObjects.Graphics {
+  const graphics = scene.add.graphics();
+  const color = Phaser.Display.Color.HexStringToColor(getCardInnerFrameColor(options.cardRank ?? options.rank)).color;
+  graphics.lineStyle(CARD_INNER_FRAME.lineWidth, color, CARD_INNER_FRAME.alpha);
+  for (const segment of getCardInnerFrameSegments()) {
+    graphics.beginPath();
+    if (segment.kind === 'line') {
+      graphics.moveTo(segment.x1, segment.y1);
+      graphics.lineTo(segment.x2, segment.y2);
+    } else {
+      graphics.arc(segment.x, segment.y, segment.radius, segment.startAngle, segment.endAngle, false);
+    }
+    graphics.strokePath();
+  }
+  return graphics;
 }
 
 function createRenderedKitLayout(layout: KitImageLayout, sourceWidth: number, sourceHeight: number, scale: number): KitImageLayout {

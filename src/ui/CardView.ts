@@ -44,7 +44,8 @@ export class CardView extends Phaser.GameObjects.Container {
       });
 
       this.faceView = new KitCardFaceView(scene, 0, 0, {
-        rank: face.rank,
+        rank: face.displayRank,
+        cardRank: face.rank,
         teamColor: options.color,
         highlighted: options.highlighted,
         shirtNumber: face.shirtNumber,
