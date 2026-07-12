@@ -720,6 +720,9 @@ describe('GameScene visual layout contracts', () => {
     expect(statsPanelSource).not.toContain('createScoreLine');
     expect(statsPanelSource).not.toContain('getTeamScoreboardCode');
     expect(statsPanelSource).not.toContain('getFlagAssetKey');
+    expect(statsPanelSource).toContain("import { BUTTON_FONT_FAMILY } from './Button'");
+    expect(statsPanelSource.match(/fontFamily: BUTTON_FONT_FAMILY/g)).toHaveLength(4);
+    expect(statsPanelSource).not.toContain('fontFamily: SCOREBOARD_FONT_FAMILY');
     expect(statsPanelSource).toContain("fontSize: '28px'");
     expect(statsPanelSource).toContain("fontSize: '22px'");
     expect(statsPanelSource).toContain("fontSize: '19px'");
@@ -751,6 +754,8 @@ describe('GameScene visual layout contracts', () => {
     expect(actionsSource).toContain('width: buttonWidth');
     expect(buttonSource).toContain('const width = options.width ?? 220');
     expect(buttonSource).toContain('const height = options.height ?? 54');
+    expect(buttonSource).toContain("export const BUTTON_FONT_FAMILY = 'Arial, sans-serif'");
+    expect(buttonSource).toContain('fontFamily: BUTTON_FONT_FAMILY');
     expect(buttonSource).toContain('const borderColor = options.borderColor ??');
     expect(buttonSource).toContain('graphics.lineBetween(-width / 2, -height / 2, -width / 2, height / 2)');
     expect(buttonSource).toContain('graphics.lineBetween(width / 2, -height / 2, width / 2, height / 2)');

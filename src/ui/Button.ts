@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 
+export const BUTTON_FONT_FAMILY = 'Arial, sans-serif';
+
 export interface ButtonCornerRadius {
   topLeft: number;
   topRight: number;
@@ -58,7 +60,7 @@ export class Button extends Phaser.GameObjects.Container {
     const label = scene.add
       .text(0, 0, text, {
         color: disabled ? '#c6d0ca' : '#1f2a2e',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: BUTTON_FONT_FAMILY,
         fontSize: options.fontSize ?? '22px',
         fontStyle: '700'
       })
