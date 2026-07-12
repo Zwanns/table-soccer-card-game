@@ -277,6 +277,18 @@ describe('kit card face rendering contracts', () => {
     expect(getCardInnerFrameColor('JOKER')).toBe('#F0C95A');
   });
 
+  it('uses the same reduced line width for normal and Joker frames', () => {
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const previousLineWidth = 4;
+
+    expect(CARD_INNER_FRAME.lineWidth).toBe(3);
+    expect(CARD_INNER_FRAME.lineWidth).toBeLessThan(previousLineWidth);
+    expect(kitFaceSource).toContain(
+      'graphics.lineStyle(CARD_INNER_FRAME.lineWidth, color, CARD_INNER_FRAME.alpha)'
+    );
+    expect(kitFaceSource.match(/CARD_INNER_FRAME\.lineWidth/g)).toHaveLength(1);
+  });
+
   it('defines a balanced inset segmented frame with corrected quarter-circle corners', () => {
     const segments = getCardInnerFrameSegments();
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');

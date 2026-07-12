@@ -33,7 +33,7 @@ export const CARD_INNER_FRAME = {
   rankAreaBottom: -14,
   rankGap: 8,
   kitFacingSegmentLength: 14,
-  lineWidth: 4,
+  lineWidth: 3,
   alpha: 0.94,
   kitSafeZone: 50,
   normalColor: '#818894',
