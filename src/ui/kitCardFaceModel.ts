@@ -1,9 +1,29 @@
 import { type ResolvedKitAsset, resolveTeamKitAsset } from '../game/kitAssetResolver';
+import { getFlagAssetKey } from '../data/nationalTeams';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { px } from './textRendering';
 
 export const KIT_CARD_FACE_WIDTH = 108;
 export const KIT_CARD_FACE_HEIGHT = 148.5;
+
+export const CARD_FACE_VISUAL_TUNING = {
+  rankScale: 0.8,
+  rankOffsetY: -5,
+  kitScale: 1.2,
+  kitOffsetX: -4,
+  kitOffsetY: -5
+} as const;
+
+export const CARD_FACE_FLAG_LAYOUT = {
+  width: 28,
+  height: 18,
+  offsetRight: 8,
+  offsetTop: 8,
+  originX: 1,
+  originY: 0,
+  outlineColor: 0x000000,
+  outlineWidth: 1
+} as const;
 
 export const KIT_CARD_LAYOUT = {
   kitWidth: 76,
@@ -13,11 +33,14 @@ export const KIT_CARD_LAYOUT = {
   kitOffsetRight: 6,
   kitOffsetBottom: 6,
   shirtNumberX: 0.5,
-  shirtNumberY: 0.33,
+  shirtNumberY: 0.3,
   rankOffsetLeft: 10,
   rankOffsetTop: 8,
   rankColor: '#000000',
   rankFontFamily: 'Anton, Arial, sans-serif',
+  rankFontSize: 42,
+  longRankFontSize: 26,
+  kitRankSafetyGap: 1,
   shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
   shirtNumberFontSize: 16,
   shirtNumberScaleY: 0.88,
@@ -26,72 +49,26 @@ export const KIT_CARD_LAYOUT = {
   deckCornerRadius: 8
 } as const;
 
-export const CARD_INNER_FRAME = {
-  inset: 10,
-  radius: 6,
-  rankAreaRight: -10,
-  rankAreaBottom: -14,
-  rankGap: 8,
-  kitFacingSegmentLength: 14,
-  lineWidth: 3,
-  alpha: 0.94,
-  kitSafeZone: 50,
-  normalColor: '#818894',
-  jokerColor: '#F0C95A'
-} as const;
-
-export type CardInnerFrameSegment =
-  | { kind: 'line'; x1: number; y1: number; x2: number; y2: number }
-  | { kind: 'arc'; x: number; y: number; radius: number; startAngle: number; endAngle: number };
-
 export function getCardRankDisplayLabel(rank: string): string {
   if (rank === 'J') return 'V';
   if (rank.toUpperCase() === 'JOKER') return 'J';
   return rank;
 }
 
-export function getCardInnerFrameColor(rank: string): string {
-  return rank.toUpperCase() === 'JOKER' ? CARD_INNER_FRAME.jokerColor : CARD_INNER_FRAME.normalColor;
+export function getCardRankFontSize(rank: string): number {
+  const baseSize = rank.length > 2 ? KIT_CARD_LAYOUT.longRankFontSize : KIT_CARD_LAYOUT.rankFontSize;
+  return baseSize * CARD_FACE_VISUAL_TUNING.rankScale;
 }
 
-// Corner brackets deliberately leave two 50px+ openings along the perimeter:
-// top/left for the rank and right/bottom for the kit artwork.
-export function getCardInnerFrameSegments(): readonly CardInnerFrameSegment[] {
-  const left = -KIT_CARD_FACE_WIDTH / 2 + CARD_INNER_FRAME.inset;
-  const right = KIT_CARD_FACE_WIDTH / 2 - CARD_INNER_FRAME.inset;
-  const top = -KIT_CARD_FACE_HEIGHT / 2 + CARD_INNER_FRAME.inset;
-  const bottom = KIT_CARD_FACE_HEIGHT / 2 - CARD_INNER_FRAME.inset;
-  const radius = CARD_INNER_FRAME.radius;
-  const rankFacingHorizontalStart = CARD_INNER_FRAME.rankAreaRight + CARD_INNER_FRAME.rankGap;
-  const rankFacingVerticalStart = CARD_INNER_FRAME.rankAreaBottom + CARD_INNER_FRAME.rankGap;
-  const kitFacingLength = CARD_INNER_FRAME.kitFacingSegmentLength;
-  return [
-    { kind: 'line', x1: rankFacingHorizontalStart, y1: top, x2: right - radius, y2: top },
-    { kind: 'arc', x: right - radius, y: top + radius, radius, startAngle: -Math.PI / 2, endAngle: 0 },
-    { kind: 'line', x1: right, y1: top + radius, x2: right, y2: top + radius + kitFacingLength },
-    { kind: 'line', x1: left, y1: rankFacingVerticalStart, x2: left, y2: bottom - radius },
-    { kind: 'arc', x: left + radius, y: bottom - radius, radius, startAngle: Math.PI / 2, endAngle: Math.PI },
-    { kind: 'line', x1: left + radius, y1: bottom, x2: left + radius + kitFacingLength, y2: bottom }
-  ];
+export function getCardRankY(): number {
+  return px(-KIT_CARD_FACE_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop + CARD_FACE_VISUAL_TUNING.rankOffsetY);
 }
-
-export type KitCardFaceLayoutVariant = 'default' | 'teams-preview';
-
-const TEAMS_PREVIEW_KIT_CARD_LAYOUT = {
-  kitWidth: 80,
-  kitHeight: 88,
-  kitAnchorX: 1,
-  kitAnchorY: 1,
-  kitOffsetRight: 10,
-  kitOffsetBottom: 10,
-  shirtNumberX: 0.5,
-  shirtNumberY: 0.3
-} as const;
 
 export type PreparedKitCardFace = {
   rank: string;
   displayRank: string;
   shirtNumber?: number;
+  flagTextureKey?: string;
   kitAsset: ResolvedKitAsset | null;
 };
 
@@ -118,6 +95,8 @@ export function prepareKitCardFace(options: {
     rank: options.rank,
     displayRank: getCardRankDisplayLabel(options.rank),
     shirtNumber: options.playerProfile?.shirtNumber,
+    flagTextureKey:
+      options.playerProfile === undefined ? undefined : getFlagAssetKey(options.playerProfile.teamId),
     kitAsset:
       options.kitAsset ??
       (options.playerProfile === undefined || isGoalkeeperProfile(options.playerProfile)
@@ -126,24 +105,50 @@ export function prepareKitCardFace(options: {
   };
 }
 
-export function getKitImageLayout(layoutVariant: KitCardFaceLayoutVariant = 'default'): KitImageLayout {
-  const layout = getKitLayoutMetrics(layoutVariant);
+export function getKitImageLayout(): KitImageLayout {
+  const layout = KIT_CARD_LAYOUT;
+  const baseWidth = layout.kitWidth;
+  const baseHeight = layout.kitHeight;
+  const width = baseWidth * CARD_FACE_VISUAL_TUNING.kitScale;
+  const height = baseHeight * CARD_FACE_VISUAL_TUNING.kitScale;
+  const baseX = px(KIT_CARD_FACE_WIDTH / 2 - layout.kitOffsetRight);
+  const baseY = px(KIT_CARD_FACE_HEIGHT / 2 - layout.kitOffsetBottom);
+  const centeredY =
+    baseY +
+    (height - baseHeight) * (layout.kitAnchorY - 0.5) +
+    CARD_FACE_VISUAL_TUNING.kitOffsetY;
+  const rankBottom = getCardRankY() + getCardRankFontSize('A');
+  const rankSafeY = rankBottom + height + KIT_CARD_LAYOUT.kitRankSafetyGap;
 
   return {
-    x: px(KIT_CARD_FACE_WIDTH / 2 - layout.kitOffsetRight),
-    y: px(KIT_CARD_FACE_HEIGHT / 2 - layout.kitOffsetBottom),
-    width: px(layout.kitWidth),
-    height: px(layout.kitHeight),
+    // Compensate for scaling around the bottom-right origin, then apply the shared visual offset.
+    x:
+      baseX +
+      (width - baseWidth) * (layout.kitAnchorX - 0.5) +
+      CARD_FACE_VISUAL_TUNING.kitOffsetX,
+    y: Math.min(Math.max(centeredY, rankSafeY), KIT_CARD_FACE_HEIGHT / 2),
+    width,
+    height,
     originX: layout.kitAnchorX,
     originY: layout.kitAnchorY
   };
 }
 
+export function getCardFlagLayout(): KitImageLayout {
+  return {
+    x: px(KIT_CARD_FACE_WIDTH / 2 - CARD_FACE_FLAG_LAYOUT.offsetRight),
+    y: px(-KIT_CARD_FACE_HEIGHT / 2 + CARD_FACE_FLAG_LAYOUT.offsetTop),
+    width: CARD_FACE_FLAG_LAYOUT.width,
+    height: CARD_FACE_FLAG_LAYOUT.height,
+    originX: CARD_FACE_FLAG_LAYOUT.originX,
+    originY: CARD_FACE_FLAG_LAYOUT.originY
+  };
+}
+
 export function getShirtNumberLayout(
-  layoutVariant: KitCardFaceLayoutVariant = 'default',
-  kit = getKitImageLayout(layoutVariant)
+  kit = getKitImageLayout()
 ): ShirtNumberLayout {
-  const layout = getKitLayoutMetrics(layoutVariant);
+  const layout = KIT_CARD_LAYOUT;
 
   return {
     x: px(kit.x + (layout.shirtNumberX - kit.originX) * kit.width),
@@ -153,17 +158,4 @@ export function getShirtNumberLayout(
 
 function isGoalkeeperProfile(profile: CardPlayerProfile): boolean {
   return 'role' in profile && profile.role === 'goalkeeper';
-}
-
-function getKitLayoutMetrics(layoutVariant: KitCardFaceLayoutVariant): {
-  kitWidth: number;
-  kitHeight: number;
-  kitAnchorX: number;
-  kitAnchorY: number;
-  kitOffsetRight: number;
-  kitOffsetBottom: number;
-  shirtNumberX: number;
-  shirtNumberY: number;
-} {
-  return layoutVariant === 'teams-preview' ? TEAMS_PREVIEW_KIT_CARD_LAYOUT : KIT_CARD_LAYOUT;
 }

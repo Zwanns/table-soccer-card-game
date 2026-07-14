@@ -343,7 +343,6 @@ export class SquadSelectScene extends Phaser.Scene {
     const faceCard = new CardView(this, 0, TEAM_PREVIEW_FACE_Y, {
       rank: TEAM_PREVIEW_DISPLAY_RANK,
       kitTextureKey: teamKitAssetKey,
-      kitLayoutVariant: 'teams-preview',
       playerProfile: previewPlayerProfile,
       tooltipEnabled: false
     });

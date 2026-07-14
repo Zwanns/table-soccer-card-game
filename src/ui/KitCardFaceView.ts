@@ -3,14 +3,15 @@ import { fitImageContain } from '../assets/teamCover';
 import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
 import {
-  CARD_INNER_FRAME,
-  getCardInnerFrameColor,
-  getCardInnerFrameSegments,
+  CARD_FACE_FLAG_LAYOUT,
+  CARD_FACE_VISUAL_TUNING,
+  getCardFlagLayout,
   getCardRankDisplayLabel,
+  getCardRankFontSize,
+  getCardRankY,
   getKitImageLayout,
   getShirtNumberLayout,
   KIT_CARD_LAYOUT,
-  type KitCardFaceLayoutVariant,
   type KitImageLayout
 } from './kitCardFaceModel';
 import { getFallbackKitColors } from './kitFallback';
@@ -21,13 +22,12 @@ const CARD_HEIGHT = 148.5;
 
 export interface KitCardFaceViewOptions {
   rank: string;
-  cardRank?: string;
   teamColor?: CardColor;
   highlighted?: boolean;
   shirtNumber?: number;
+  flagTextureKey?: string;
   kitTextureKey?: string;
   kitAsset?: ResolvedKitAsset;
-  kitLayoutVariant?: KitCardFaceLayoutVariant;
 }
 
 export interface RankRollOptions {
@@ -44,7 +44,7 @@ type RenderedKitColorScheme = {
 
 export class KitCardFaceView extends Phaser.GameObjects.Container {
   private rankText: Phaser.GameObjects.Text | null = null;
-  private rankBaseY = px(-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop);
+  private rankBaseY = getCardRankY();
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
     super(scene, px(x), px(y));
@@ -56,9 +56,9 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     });
 
     this.add(body);
-    this.add(createSegmentedInnerFrame(scene, options));
     const renderedKitLayout = this.addKit(scene, options);
     this.addShirtNumber(scene, options, renderedKitLayout);
+    this.addFlag(scene, options.flagTextureKey);
     this.addRank(scene, options);
 
     scene.add.existing(this);
@@ -71,7 +71,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
     const label = getCardRankDisplayLabel(rank);
     this.rankText.setText(label);
-    this.rankText.setFontSize(label.length > 2 ? '26px' : '42px');
+    this.rankText.setFontSize(getCardRankFontSize(label));
   }
 
   public animateRankRoll(targetRank: string, options: RankRollOptions = {}): Promise<void> {
@@ -125,7 +125,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
   }
 
   private addKit(scene: Phaser.Scene, options: KitCardFaceViewOptions): KitImageLayout {
-    const layout = getKitImageLayout(options.kitLayoutVariant);
+    const layout = getKitImageLayout();
 
     if (options.kitAsset !== undefined && scene.textures.exists(options.kitAsset.assetKey)) {
       const image = scene.add.image(layout.x, layout.y, options.kitAsset.assetKey);
@@ -163,7 +163,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       getGoalkeeperNumberColor(options.kitTextureKey) ??
       getFallbackKitColors(options.teamColor).number;
     const stroke = options.kitAsset?.numberStrokeColor;
-    const position = getShirtNumberLayout(options.kitLayoutVariant, kitLayout);
+    const position = getShirtNumberLayout(kitLayout);
     const number = scene.add
       .text(px(position.x), px(position.y), String(options.shirtNumber), {
         align: 'center',
@@ -181,6 +181,26 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     this.add(number);
   }
 
+  private addFlag(scene: Phaser.Scene, flagTextureKey?: string): void {
+    if (flagTextureKey === undefined || !scene.textures.exists(flagTextureKey)) {
+      return;
+    }
+
+    const layout = getCardFlagLayout();
+    const flag = scene.add.image(layout.x, layout.y, flagTextureKey);
+    flag.setOrigin(layout.originX, layout.originY);
+    fitImageContain(flag, { width: layout.width, height: layout.height });
+    const outline = scene.add.graphics();
+    outline.fillStyle(CARD_FACE_FLAG_LAYOUT.outlineColor, 1);
+    outline.fillRect(
+      layout.x - flag.displayWidth * layout.originX - CARD_FACE_FLAG_LAYOUT.outlineWidth,
+      layout.y - flag.displayHeight * layout.originY - CARD_FACE_FLAG_LAYOUT.outlineWidth,
+      flag.displayWidth + CARD_FACE_FLAG_LAYOUT.outlineWidth * 2,
+      flag.displayHeight + CARD_FACE_FLAG_LAYOUT.outlineWidth * 2
+    );
+    this.add([outline, flag]);
+  }
+
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
     this.rankText = scene.add
       .text(
@@ -190,7 +210,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         {
           color: KIT_CARD_LAYOUT.rankColor,
           fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
-          fontSize: options.rank.length > 2 ? '26px' : '42px',
+          fontSize: `${getCardRankFontSize(options.rank)}px`,
           fontStyle: '400',
           resolution: SHARP_TEXT_RESOLUTION
         }
@@ -199,23 +219,6 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
 
     this.add(this.rankText);
   }
-}
-
-function createSegmentedInnerFrame(scene: Phaser.Scene, options: KitCardFaceViewOptions): Phaser.GameObjects.Graphics {
-  const graphics = scene.add.graphics();
-  const color = Phaser.Display.Color.HexStringToColor(getCardInnerFrameColor(options.cardRank ?? options.rank)).color;
-  graphics.lineStyle(CARD_INNER_FRAME.lineWidth, color, CARD_INNER_FRAME.alpha);
-  for (const segment of getCardInnerFrameSegments()) {
-    graphics.beginPath();
-    if (segment.kind === 'line') {
-      graphics.moveTo(segment.x1, segment.y1);
-      graphics.lineTo(segment.x2, segment.y2);
-    } else {
-      graphics.arc(segment.x, segment.y, segment.radius, segment.startAngle, segment.endAngle, false);
-    }
-    graphics.strokePath();
-  }
-  return graphics;
 }
 
 function createRenderedKitLayout(layout: KitImageLayout, sourceWidth: number, sourceHeight: number, scale: number): KitImageLayout {
@@ -255,7 +258,7 @@ function createFallbackKitGraphics(scene: Phaser.Scene, colors: RenderedKitColor
   graphics.strokeRoundedRect(-24, 24, 20, 28, 4);
   graphics.strokeRoundedRect(4, 24, 20, 28, 4);
 
-  graphics.setScale(1.12);
+  graphics.setScale(1.12 * CARD_FACE_VISUAL_TUNING.kitScale);
 
   return graphics;
 }

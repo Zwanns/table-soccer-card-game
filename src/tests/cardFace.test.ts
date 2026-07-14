@@ -5,10 +5,12 @@ import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
 import { getCardTooltipText, getFieldCardPlayerProfile } from '../ui/cardPlayerProfile';
 import { getFallbackKitColors } from '../ui/kitFallback';
 import {
-  CARD_INNER_FRAME,
-  getCardInnerFrameColor,
-  getCardInnerFrameSegments,
+  CARD_FACE_FLAG_LAYOUT,
+  CARD_FACE_VISUAL_TUNING,
+  getCardFlagLayout,
   getCardRankDisplayLabel,
+  getCardRankFontSize,
+  getCardRankY,
   getKitImageLayout,
   getShirtNumberLayout,
   KIT_CARD_FACE_HEIGHT,
@@ -97,20 +99,27 @@ describe('kit card face rendering contracts', () => {
 
     expect(kitFaceSource).toContain('0xffffff');
     expect(kitFaceSource).toContain('px(-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft)');
-    expect(kitFaceSource).toContain('private rankBaseY = px(-CARD_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop)');
+    expect(kitFaceSource).toContain('private rankBaseY = getCardRankY()');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankColor');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.rankFontFamily');
-    expect(kitFaceSource).toContain("fontSize: options.rank.length > 2 ? '26px' : '42px'");
+    expect(kitFaceSource).toContain('fontSize: `${getCardRankFontSize(options.rank)}px`');
     expect(kitFaceSource).toContain('resolution: SHARP_TEXT_RESOLUTION');
     expect(kitFaceSource).toContain('public setDisplayRank(rank: string): void');
     expect(kitFaceSource).toContain('public animateRankRoll(targetRank: string');
-    expect(kitFaceSource).toContain('kitLayoutVariant?: KitCardFaceLayoutVariant');
-    expect(kitFaceSource).toContain('getKitImageLayout(options.kitLayoutVariant)');
-    expect(kitFaceSource).toContain('getShirtNumberLayout(options.kitLayoutVariant, kitLayout)');
+    expect(kitFaceSource).not.toContain('kitLayoutVariant');
+    expect(kitFaceSource).toContain('getKitImageLayout()');
+    expect(kitFaceSource).toContain('getShirtNumberLayout(kitLayout)');
     expect(kitFaceSource).toContain('setOrigin(layout.originX, layout.originY)');
     expect(kitFaceSource).toContain("import { fitImageContain } from '../assets/teamCover'");
     expect(kitFaceSource).toContain('fitImageContain(image, { width: layout.width, height: layout.height })');
     expect(kitFaceSource).toContain('createRenderedKitLayout(layout, image.width, image.height, scale)');
+    expect(kitFaceSource).toContain('1.12 * CARD_FACE_VISUAL_TUNING.kitScale');
+    expect(kitFaceSource).toContain('this.addFlag(scene, options.flagTextureKey)');
+    expect(kitFaceSource).toContain('getCardFlagLayout()');
+    expect(kitFaceSource).toContain('scene.textures.exists(flagTextureKey)');
+    expect(kitFaceSource).toContain('outline.fillStyle(CARD_FACE_FLAG_LAYOUT.outlineColor, 1)');
+    expect(kitFaceSource).toContain('outline.fillRect(');
+    expect(kitFaceSource).toContain('this.add([outline, flag])');
     expect(kitFaceSource).not.toContain('image.setDisplaySize(layout.width, layout.height)');
     expect(kitFaceSource).toContain('createRoundedCardBackground');
     expect(kitFaceSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');
@@ -128,6 +137,7 @@ describe('kit card face rendering contracts', () => {
     expect(prepareKitCardFace({ rank: '9', playerProfile: profile })).toMatchObject({
       rank: '9',
       shirtNumber: 9,
+      flagTextureKey: 'flag-pl',
       kitAsset: {
         assetKey: 'kit-none',
         numberColor: '#DC143C'
@@ -139,6 +149,7 @@ describe('kit card face rendering contracts', () => {
     expect(prepareKitCardFace({ rank: '9', playerProfile: profile })).toMatchObject({
       rank: '9',
       shirtNumber: 9,
+      flagTextureKey: 'flag-pl',
       kitAsset: {
         assetKey: 'kit-pl',
         numberColor: '#DC143C'
@@ -146,7 +157,7 @@ describe('kit card face rendering contracts', () => {
     });
   });
 
-  it('places the compact kit in the padded bottom-right corner', () => {
+  it('uses one shared kit layout for match and Teams preview cards', () => {
     expect(KIT_CARD_LAYOUT).toEqual({
       kitWidth: 76,
       kitHeight: 88,
@@ -155,11 +166,14 @@ describe('kit card face rendering contracts', () => {
       kitOffsetRight: 6,
       kitOffsetBottom: 6,
       shirtNumberX: 0.5,
-      shirtNumberY: 0.33,
+      shirtNumberY: 0.3,
       rankOffsetLeft: 10,
       rankOffsetTop: 8,
       rankColor: '#000000',
       rankFontFamily: 'Anton, Arial, sans-serif',
+      rankFontSize: 42,
+      longRankFontSize: 26,
+      kitRankSafetyGap: 1,
       shirtNumberFontFamily: 'Oswald, Arial, sans-serif',
       shirtNumberFontSize: 16,
       shirtNumberScaleY: 0.88,
@@ -168,54 +182,55 @@ describe('kit card face rendering contracts', () => {
       deckCornerRadius: 8
     });
 
-    expect(getKitImageLayout()).toEqual({
-      x: KIT_CARD_FACE_WIDTH / 2 - 6,
-      y: Math.round(KIT_CARD_FACE_HEIGHT / 2 - 6),
-      width: 76,
-      height: 88,
+    expect(getKitImageLayout()).toMatchObject({
+      width: 76 * CARD_FACE_VISUAL_TUNING.kitScale,
+      height: 88 * CARD_FACE_VISUAL_TUNING.kitScale,
       originX: 1,
       originY: 1
     });
 
-    expect(getKitImageLayout('teams-preview')).toEqual({
-      x: KIT_CARD_FACE_WIDTH / 2 - 10,
-      y: Math.round(KIT_CARD_FACE_HEIGHT / 2 - 10),
-      width: 80,
-      height: 88,
-      originX: 1,
-      originY: 1
-    });
+    const sharedKitLayout = getKitImageLayout();
+    const rankSafeBottom = getCardRankY() + getCardRankFontSize('A');
+    const baseCenter = {
+      x: KIT_CARD_FACE_WIDTH / 2 - 6 - 76 / 2,
+      y: Math.round(KIT_CARD_FACE_HEIGHT / 2 - 6) - 88 / 2
+    };
+    const previousDefaultX = Math.round(KIT_CARD_FACE_WIDTH / 2 - 6) + (76 * 1.15 - 76) / 2;
 
-    const defaultKitLayout = getKitImageLayout();
-    const teamsPreviewKitLayout = getKitImageLayout('teams-preview');
-    const rankSafeBottom = -KIT_CARD_FACE_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop + 42;
-    const teamsPreviewRightPadding = KIT_CARD_FACE_WIDTH / 2 - teamsPreviewKitLayout.x;
-    const teamsPreviewBottomPadding = KIT_CARD_FACE_HEIGHT / 2 - teamsPreviewKitLayout.y;
+    expect(sharedKitLayout.x - sharedKitLayout.width / 2).toBeCloseTo(
+      baseCenter.x + CARD_FACE_VISUAL_TUNING.kitOffsetX,
+      0
+    );
+    expect(sharedKitLayout.y).toBeLessThan(74.25);
+    expect(sharedKitLayout.x).toBeLessThan(previousDefaultX);
+    expect(sharedKitLayout.y - sharedKitLayout.height).toBeGreaterThanOrEqual(rankSafeBottom);
+    expect(sharedKitLayout.y).toBeLessThanOrEqual(KIT_CARD_FACE_HEIGHT / 2);
 
-    expect(teamsPreviewKitLayout.width).toBeGreaterThan(defaultKitLayout.width);
-    expect(teamsPreviewKitLayout.height).toBe(defaultKitLayout.height);
-    expect(teamsPreviewRightPadding).toBeGreaterThan(0);
-    expect(teamsPreviewRightPadding).toBe(10);
-    expect(teamsPreviewBottomPadding).toBeGreaterThanOrEqual(10);
-    expect(teamsPreviewKitLayout.y - teamsPreviewKitLayout.height).toBeGreaterThan(rankSafeBottom);
+    const squadPreviewSource = readFileSync(join(process.cwd(), 'src', 'scenes', 'SquadSelectScene.ts'), 'utf8');
+    expect(squadPreviewSource).not.toContain('kitLayoutVariant');
   });
 
   it('positions the shirt number in the centered upper third of the kit and omits missing numbers', () => {
     const layout = getShirtNumberLayout();
     const kitLayout = getKitImageLayout();
-    const previewKitLayout = getKitImageLayout('teams-preview');
+    const previewKitLayout = getKitImageLayout();
     const previewRenderedLayout = {
       ...previewKitLayout,
       width: 60,
       height: 88
     };
-    const previewNumberLayout = getShirtNumberLayout('teams-preview', previewRenderedLayout);
+    const previewNumberLayout = getShirtNumberLayout(previewRenderedLayout);
 
-    expect(layout.x).toBeCloseTo(kitLayout.x - kitLayout.width * 0.5);
-    expect(layout.y).toBeCloseTo(Math.round(kitLayout.y - kitLayout.height * 0.67));
+    expect(layout.x).toBeCloseTo(Math.round(kitLayout.x - kitLayout.width * 0.5));
+    expect(layout.y).toBeCloseTo(Math.round(kitLayout.y - kitLayout.height * 0.7));
+    expect(layout.y).toBeLessThan(Math.round(kitLayout.y - kitLayout.height * 0.67));
     expect(layout.y).toBeLessThan(kitLayout.y - kitLayout.height / 2);
-    expect(previewNumberLayout.x).toBeCloseTo(previewRenderedLayout.x - previewRenderedLayout.width * 0.5);
-    expect(previewNumberLayout.y).toBeCloseTo(Math.round(previewRenderedLayout.y - previewRenderedLayout.height * 0.7));
+    expect(previewNumberLayout.x).toBeCloseTo(
+      Math.round(previewRenderedLayout.x - previewRenderedLayout.width * 0.5)
+    );
+    expect(previewNumberLayout.y).toBeCloseTo(
+      Math.round(previewRenderedLayout.y - previewRenderedLayout.height * 0.7)
+    );
     expect(previewNumberLayout.y).toBeLessThan(previewRenderedLayout.y - previewRenderedLayout.height / 2);
     expect(previewNumberLayout.x).toBeGreaterThan(layout.x);
     expect(Number.isInteger(layout.x)).toBe(true);
@@ -226,6 +241,7 @@ describe('kit card face rendering contracts', () => {
       rank: '9',
       displayRank: '9',
       shirtNumber: undefined,
+      flagTextureKey: undefined,
       kitAsset: null
     });
   });
@@ -249,7 +265,7 @@ describe('kit card face rendering contracts', () => {
 
     expect(kitFaceSource).toContain('export interface RankRollOptions');
     expect(kitFaceSource).toContain('this.rankText.setText(label)');
-    expect(kitFaceSource).toContain("this.rankText.setFontSize(label.length > 2 ? '26px' : '42px')");
+    expect(kitFaceSource).toContain('this.rankText.setFontSize(getCardRankFontSize(label))');
     expect(kitFaceSource).not.toContain('this.rankText.setScale');
     expect(kitFaceSource).toContain('steps?: readonly string[]');
     expect(kitFaceSource).toContain('this.scene.tweens.add({');
@@ -270,79 +286,93 @@ describe('kit card face rendering contracts', () => {
     expect(prepareKitCardFace({ rank: 'JOKER' })).toMatchObject({ rank: 'JOKER', displayRank: 'J' });
   });
 
-  it('uses black for every normal frame and gold only for Joker', () => {
-    expect(getCardInnerFrameColor('2')).toBe('#818894');
-    expect(getCardInnerFrameColor('J')).toBe('#818894');
-    expect(getCardInnerFrameColor('A')).toBe('#818894');
-    expect(getCardInnerFrameColor('JOKER')).toBe('#F0C95A');
-  });
+  it('uses one visual scale contract for every normal and Joker rank', () => {
+    const previousRankFontSize = 42;
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', 'JOKER'];
 
-  it('uses the same reduced line width for normal and Joker frames', () => {
-    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
-    const previousLineWidth = 4;
-
-    expect(CARD_INNER_FRAME.lineWidth).toBe(3);
-    expect(CARD_INNER_FRAME.lineWidth).toBeLessThan(previousLineWidth);
-    expect(kitFaceSource).toContain(
-      'graphics.lineStyle(CARD_INNER_FRAME.lineWidth, color, CARD_INNER_FRAME.alpha)'
-    );
-    expect(kitFaceSource.match(/CARD_INNER_FRAME\.lineWidth/g)).toHaveLength(1);
-  });
-
-  it('defines a balanced inset segmented frame with corrected quarter-circle corners', () => {
-    const segments = getCardInnerFrameSegments();
-    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
-    const cardViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'CardView.ts'), 'utf8');
-    const limitX = KIT_CARD_FACE_WIDTH / 2;
-    const limitY = KIT_CARD_FACE_HEIGHT / 2;
-
-    expect(CARD_INNER_FRAME.rankAreaRight).toBe(-10);
-    expect(CARD_INNER_FRAME.rankAreaBottom).toBe(-14);
-    expect(CARD_INNER_FRAME.rankGap).toBe(8);
-    expect(CARD_INNER_FRAME.kitSafeZone).toBe(50);
-    expect(CARD_INNER_FRAME.kitFacingSegmentLength).toBe(14);
-    expect(segments.length).toBeGreaterThan(1);
-    expect(segments.some((segment) => segment.kind === 'arc')).toBe(true);
-    const topRightArc = segments[1];
-    const bottomLeftArc = segments[4];
-    expect(topRightArc).toMatchObject({
-      kind: 'arc',
-      startAngle: -Math.PI / 2,
-      endAngle: 0
-    });
-    expect(bottomLeftArc).toMatchObject({
-      kind: 'arc',
-      startAngle: Math.PI / 2,
-      endAngle: Math.PI
-    });
-    expect(topRightArc.kind === 'arc' && bottomLeftArc.kind === 'arc' && topRightArc.radius).toBe(
-      bottomLeftArc.kind === 'arc' ? bottomLeftArc.radius : undefined
-    );
-    expect(segments[0]).toMatchObject({ kind: 'line', x1: -2, x2: 38 });
-    expect(segments[2]).toMatchObject({ kind: 'line', y1: -58.25, y2: -44.25 });
-    expect(segments[3]).toMatchObject({ kind: 'line', y1: -6, y2: 58.25 });
-    expect(segments[5]).toMatchObject({ kind: 'line', x1: -38, x2: -24 });
-    const rankRightGap = segments[0].kind === 'line'
-      ? segments[0].x1 - CARD_INNER_FRAME.rankAreaRight
-      : Number.NaN;
-    const rankBottomGap = segments[3].kind === 'line'
-      ? segments[3].y1 - CARD_INNER_FRAME.rankAreaBottom
-      : Number.NaN;
-    expect(rankRightGap).toBe(CARD_INNER_FRAME.rankGap);
-    expect(rankBottomGap).toBe(CARD_INNER_FRAME.rankGap);
-    expect(rankRightGap).toBe(rankBottomGap);
-    for (const segment of segments) {
-      const points = segment.kind === 'line'
-        ? [[segment.x1, segment.y1], [segment.x2, segment.y2]]
-        : [[segment.x - segment.radius, segment.y], [segment.x + segment.radius, segment.y], [segment.x, segment.y - segment.radius], [segment.x, segment.y + segment.radius]];
-      for (const [x, y] of points) {
-        expect(Math.abs(x)).toBeLessThan(limitX);
-        expect(Math.abs(y)).toBeLessThan(limitY);
-      }
+    expect(CARD_FACE_VISUAL_TUNING.rankScale).toBe(0.8);
+    expect(CARD_FACE_VISUAL_TUNING.rankOffsetY).toBe(-5);
+    expect(CARD_FACE_VISUAL_TUNING.kitScale).toBe(1.2);
+    expect(CARD_FACE_VISUAL_TUNING.kitOffsetX).toBe(-4);
+    expect(CARD_FACE_VISUAL_TUNING.kitOffsetY).toBe(-5);
+    expect(getCardRankFontSize('A')).toBe(previousRankFontSize * 0.8);
+    const previousRankY = Math.round(-KIT_CARD_FACE_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop);
+    expect(getCardRankY()).toBe(previousRankY + CARD_FACE_VISUAL_TUNING.rankOffsetY);
+    expect(getCardRankY()).toBeGreaterThan(-KIT_CARD_FACE_HEIGHT / 2);
+    for (const rank of ranks) {
+      const label = getCardRankDisplayLabel(rank);
+      expect(getCardRankFontSize(label)).toBe(previousRankFontSize * CARD_FACE_VISUAL_TUNING.rankScale);
     }
-    expect(kitFaceSource.indexOf('createSegmentedInnerFrame')).toBeLessThan(kitFaceSource.indexOf('this.addKit'));
-    expect(cardViewSource.indexOf("options.faceDown === true")).toBeLessThan(cardViewSource.indexOf('new KitCardFaceView'));
-    expect(cardViewSource).not.toContain('createSegmentedInnerFrame');
+  });
+
+  it('scales the shared kit layout uniformly without changing its aspect ratio', () => {
+    const base = { width: 76, height: 88, centerX: 10, centerY: 24 };
+    const layout = getKitImageLayout();
+
+    expect(layout.width).toBeCloseTo(base.width * CARD_FACE_VISUAL_TUNING.kitScale, 0);
+    expect(layout.height).toBeCloseTo(base.height * CARD_FACE_VISUAL_TUNING.kitScale, 0);
+    expect(layout.width / layout.height).toBeCloseTo(base.width / base.height, 2);
+    expect(layout.x - layout.width * layout.originX + layout.width / 2).toBeCloseTo(
+      base.centerX + CARD_FACE_VISUAL_TUNING.kitOffsetX,
+      0
+    );
+    expect(layout.y - layout.height * layout.originY + layout.height / 2).toBeLessThan(base.centerY);
+  });
+
+  it('removes the decorative inner frame for normal and Joker face cards', () => {
+    const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
+    const faceModelSource = readFileSync(join(process.cwd(), 'src', 'ui', 'kitCardFaceModel.ts'), 'utf8');
+
+    expect(kitFaceSource).not.toContain('createSegmentedInnerFrame');
+    expect(kitFaceSource).not.toContain('CARD_INNER_FRAME');
+    expect(kitFaceSource).not.toContain('HexStringToColor');
+    expect(faceModelSource).not.toContain('CARD_INNER_FRAME');
+    expect(faceModelSource).not.toContain('#818894');
+    expect(faceModelSource).not.toContain('#F0C95A');
+  });
+
+  it('places the shared team flag inside the top-right safe area without rank or kit overlap', () => {
+    const flag = getCardFlagLayout();
+    const kit = getKitImageLayout();
+    const flagLeft = flag.x - flag.width * flag.originX;
+    const flagRight = flagLeft + flag.width;
+    const flagTop = flag.y - flag.height * flag.originY;
+    const flagBottom = flagTop + flag.height;
+    const outlineExtension = CARD_FACE_FLAG_LAYOUT.outlineWidth;
+    const rankRight = -KIT_CARD_FACE_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft + getCardRankFontSize('10');
+    const kitTop = kit.y - kit.height * kit.originY;
+
+    expect(CARD_FACE_FLAG_LAYOUT).toEqual({
+      width: 28,
+      height: 18,
+      offsetRight: 8,
+      offsetTop: 8,
+      originX: 1,
+      originY: 0,
+      outlineColor: 0x000000,
+      outlineWidth: 1
+    });
+    expect(flagLeft - outlineExtension).toBeGreaterThan(rankRight);
+    expect(flagRight + outlineExtension).toBeLessThanOrEqual(KIT_CARD_FACE_WIDTH / 2);
+    expect(flagTop - outlineExtension).toBeGreaterThanOrEqual(-KIT_CARD_FACE_HEIGHT / 2);
+    expect(flagBottom + outlineExtension).toBeLessThan(kitTop);
+  });
+
+  it('derives the flag texture from field and goalkeeper team profiles', () => {
+    const fieldFace = prepareKitCardFace({ rank: 'JOKER', playerProfile: getFieldCardPlayerProfile('pl', 'JOKER') });
+    const goalkeeperFace = prepareKitCardFace({
+      rank: 'A',
+      playerProfile: {
+        role: 'goalkeeper',
+        teamId: 'ua',
+        goalkeeperRank: 'A',
+        playerName: 'Goalkeeper',
+        shirtNumber: 1
+      }
+    });
+
+    expect(fieldFace.flagTextureKey).toBe('flag-pl');
+    expect(goalkeeperFace.flagTextureKey).toBe('flag-ua');
   });
 
   it('uses resolver number colors and outlines while keeping closed cards unchanged', () => {
@@ -373,8 +403,8 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('options.faceDown === true');
     expect(cardViewSource).toContain('coverTextureKey');
     expect(cardViewSource).toContain('fitImageContain');
-    expect(cardViewSource).toContain('kitLayoutVariant?: KitCardFaceLayoutVariant');
-    expect(cardViewSource).toContain('kitLayoutVariant: options.kitLayoutVariant');
+    expect(cardViewSource).not.toContain('kitLayoutVariant');
+    expect(cardViewSource).toContain('flagTextureKey: face.flagTextureKey');
     expect(cardViewSource).toContain('createRoundedCardBack');
     expect(cardViewSource).toContain('createRoundedCardBorder');
     expect(cardViewSource).toContain('KIT_CARD_LAYOUT.cardCornerRadius');

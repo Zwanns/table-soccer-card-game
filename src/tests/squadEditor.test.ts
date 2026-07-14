@@ -135,7 +135,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_FACE_Y');
     expect(selectSource).toContain('rank: TEAM_PREVIEW_DISPLAY_RANK');
     expect(selectSource).toContain('getTeamKitAssetKey(team.flagCode)');
-    expect(selectSource).toContain("kitLayoutVariant: 'teams-preview'");
+    expect(selectSource).not.toContain('kitLayoutVariant');
     expect(selectSource).toContain('playerProfile: previewPlayerProfile');
     expect(readSource('src/ui/KitCardFaceView.ts')).toContain('.setScale(1, KIT_CARD_LAYOUT.shirtNumberScaleY)');
     expect(selectSource).toContain('new CardView(this, 0, TEAM_PREVIEW_BACK_Y');
