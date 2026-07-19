@@ -1,5 +1,4 @@
 import { type ResolvedKitAsset, resolveTeamKitAsset } from '../game/kitAssetResolver';
-import { getFlagAssetKey } from '../data/nationalTeams';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { px } from './textRendering';
 
@@ -9,20 +8,12 @@ export const KIT_CARD_FACE_HEIGHT = 148.5;
 export const CARD_FACE_VISUAL_TUNING = {
   rankScale: 0.8,
   rankOffsetY: -5,
+  rankSuffixScale: 0.4,
+  rankSuffixGap: 3,
+  rankSuffixOffsetY: 0,
   kitScale: 1.2,
   kitOffsetX: -4,
   kitOffsetY: -5
-} as const;
-
-export const CARD_FACE_FLAG_LAYOUT = {
-  width: 28,
-  height: 18,
-  offsetRight: 8,
-  offsetTop: 8,
-  originX: 1,
-  originY: 0,
-  outlineColor: 0x000000,
-  outlineWidth: 1
 } as const;
 
 export const KIT_CARD_LAYOUT = {
@@ -50,9 +41,21 @@ export const KIT_CARD_LAYOUT = {
 } as const;
 
 export function getCardRankDisplayLabel(rank: string): string {
-  if (rank === 'J') return 'V';
-  if (rank.toUpperCase() === 'JOKER') return 'J';
-  return rank;
+  return getCardRankVisualLabel(rank).main;
+}
+
+export type CardRankVisualLabel = {
+  main: string;
+  suffix: string;
+};
+
+export function getCardRankVisualLabel(rank: string): CardRankVisualLabel {
+  if (rank.toUpperCase() === 'JOKER') return { main: 'J', suffix: 'oker' };
+  if (rank === 'A') return { main: 'A', suffix: 'ce' };
+  if (rank === 'K') return { main: 'K', suffix: 'ing' };
+  if (rank === 'J') return { main: 'V', suffix: 'alet' };
+  if (rank === 'Q') return { main: 'Q', suffix: 'ueen' };
+  return { main: rank, suffix: '' };
 }
 
 export function getCardRankFontSize(rank: string): number {
@@ -64,11 +67,15 @@ export function getCardRankY(): number {
   return px(-KIT_CARD_FACE_HEIGHT / 2 + KIT_CARD_LAYOUT.rankOffsetTop + CARD_FACE_VISUAL_TUNING.rankOffsetY);
 }
 
+export function getCardRankSuffixFontSize(rank: string): number {
+  return getCardRankFontSize(getCardRankVisualLabel(rank).main) * CARD_FACE_VISUAL_TUNING.rankSuffixScale;
+}
+
 export type PreparedKitCardFace = {
   rank: string;
   displayRank: string;
+  rankSuffix: string;
   shirtNumber?: number;
-  flagTextureKey?: string;
   kitAsset: ResolvedKitAsset | null;
 };
 
@@ -91,12 +98,13 @@ export function prepareKitCardFace(options: {
   playerProfile?: CardPlayerProfile;
   kitAsset?: ResolvedKitAsset;
 }): PreparedKitCardFace {
+  const label = getCardRankVisualLabel(options.rank);
+
   return {
     rank: options.rank,
-    displayRank: getCardRankDisplayLabel(options.rank),
+    displayRank: label.main,
+    rankSuffix: label.suffix,
     shirtNumber: options.playerProfile?.shirtNumber,
-    flagTextureKey:
-      options.playerProfile === undefined ? undefined : getFlagAssetKey(options.playerProfile.teamId),
     kitAsset:
       options.kitAsset ??
       (options.playerProfile === undefined || isGoalkeeperProfile(options.playerProfile)
@@ -131,17 +139,6 @@ export function getKitImageLayout(): KitImageLayout {
     height,
     originX: layout.kitAnchorX,
     originY: layout.kitAnchorY
-  };
-}
-
-export function getCardFlagLayout(): KitImageLayout {
-  return {
-    x: px(KIT_CARD_FACE_WIDTH / 2 - CARD_FACE_FLAG_LAYOUT.offsetRight),
-    y: px(-KIT_CARD_FACE_HEIGHT / 2 + CARD_FACE_FLAG_LAYOUT.offsetTop),
-    width: CARD_FACE_FLAG_LAYOUT.width,
-    height: CARD_FACE_FLAG_LAYOUT.height,
-    originX: CARD_FACE_FLAG_LAYOUT.originX,
-    originY: CARD_FACE_FLAG_LAYOUT.originY
   };
 }
 

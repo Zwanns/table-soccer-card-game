@@ -1294,7 +1294,7 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(source).toContain('hiddenCards: hiddenRestoredCards');
     expect(source).toContain(
-      'if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {\n      this.markInitialDealStarted();\n      const flowId = this.startAutomaticCardFlow();\n      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));\n      return;\n    }'
+      'if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {\n      this.markInitialDealStarted();\n      const flowId = this.startAutomaticCardFlow();\n      const restoreSteps = this.isInitialDealComplete\n        ? pendingRestores.map((entry) => [entry])\n        : createInitialDealSteps(pendingRestores, state.players.map((player) => player.id));\n      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, restoreSteps, 0, flowId));\n      return;\n    }'
     );
     expect(source).toContain('const hiddenRestoredCards = this.getPendingRestoreAnimationEntries(state);');
     expect(source).toContain('this.render(state, { hiddenRestoredCards, interactive: false });');
@@ -1310,8 +1310,8 @@ describe('GameScene visual layout contracts', () => {
     expect(createBlock).toContain('setupPreset: this.matchMode === \'tutorial\' ? TUTORIAL_MATCH_V2_SETUP_PRESET : undefined');
     expect(createBlock).toContain('this.startTurn();');
     expect(createBlock).not.toContain('this.drawAttackCard();');
-    expect(renderBlock).toContain('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));');
-    expect(renderBlock.indexOf('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));')).toBeLessThan(
+    expect(renderBlock).toContain('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, restoreSteps, 0, flowId));');
+    expect(renderBlock.indexOf('this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, restoreSteps, 0, flowId));')).toBeLessThan(
       renderBlock.indexOf('this.aiTurnController?.requestTurnCheck(options.aiCheckReason);')
     );
   });
@@ -1420,8 +1420,8 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.pendingCardRestoreCallbacks.delete(timer);');
     expect(source).toContain('if (!this.canRunAutomaticCardFlowStep(flowId)) {\n        return;\n      }\n\n      callback();');
     expect(source).toContain('this.scheduleCardRestoreDelayedCall(45, flowId, () =>');
-    expect(source).toContain('this.animateRestoredCards(state, entries, index + 1, flowId)');
-    expect(source).not.toContain('this.time.delayedCall(45, () => this.animateRestoredCards(state, entries, index + 1));');
+    expect(source).toContain('this.animateRestoredCards(state, steps, index + 1, flowId)');
+    expect(source).not.toContain('this.time.delayedCall(45, () => this.animateRestoredCards(state, steps, index + 1));');
   });
 
   it('keeps pause and exit-confirm modal ownership separate from automatic card-flow cleanup', () => {

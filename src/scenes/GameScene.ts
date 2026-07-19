@@ -36,6 +36,7 @@ import { CARD_HEIGHT, CARD_WIDTH, CardView } from '../ui/CardView';
 import { clearDeckTurnBallMarker, DeckView, getDeckTurnBallWorldPosition } from '../ui/DeckView';
 import { FieldView, getFieldCardPosition } from '../ui/FieldView';
 import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
+import { createInitialDealSteps, INITIAL_DEAL_CARD_DURATION_MS } from '../ui/initialDealFlow';
 import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons } from '../ui/matchControlButtons';
@@ -150,6 +151,8 @@ interface RestoreAnimationEntry {
   positionId: FieldPositionId;
   card: FieldCard;
 }
+
+type RestoreAnimationStep = readonly RestoreAnimationEntry[];
 
 interface RenderOptions {
   hiddenRestoredCards?: readonly RestoreAnimationEntry[];
@@ -445,7 +448,10 @@ export class GameScene extends Phaser.Scene {
     if (interactive && hasPendingRestores && !this.isRestoreAnimationInProgress) {
       this.markInitialDealStarted();
       const flowId = this.startAutomaticCardFlow();
-      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, pendingRestores, 0, flowId));
+      const restoreSteps = this.isInitialDealComplete
+        ? pendingRestores.map((entry) => [entry])
+        : createInitialDealSteps(pendingRestores, state.players.map((player) => player.id));
+      this.scheduleCardRestoreDelayedCall(0, flowId, () => this.animateRestoredCards(state, restoreSteps, 0, flowId));
       return;
     }
 
@@ -2144,7 +2150,7 @@ export class GameScene extends Phaser.Scene {
 
   private animateRestoredCards(
     state: Readonly<GameState>,
-    entries: readonly RestoreAnimationEntry[],
+    steps: readonly RestoreAnimationStep[],
     index = 0,
     flowId = this.cardRestoreFlowId
   ): void {
@@ -2152,15 +2158,52 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const entry = entries[index];
+    const step = steps[index];
 
-    if (entry === undefined) {
+    if (step === undefined) {
       this.completeAutomaticCardFlow(flowId);
       this.markInitialDealComplete();
       this.render(state);
       return;
     }
 
+    let pendingAnimations = step.length;
+
+    for (const entry of step) {
+      this.animateRestoredCard(state, entry, flowId, () => {
+        this.animatedRestoreCount += 1;
+        pendingAnimations -= 1;
+
+        if (pendingAnimations > 0) {
+          return;
+        }
+
+        const hiddenRestoredCards = steps.slice(index + 1).flat();
+
+        if (hiddenRestoredCards.length > 0) {
+          this.render(state, {
+            hiddenRestoredCards,
+            interactive: false
+          });
+          this.scheduleCardRestoreDelayedCall(45, flowId, () =>
+            this.animateRestoredCards(state, steps, index + 1, flowId)
+          );
+          return;
+        }
+
+        this.completeAutomaticCardFlow(flowId);
+        this.markInitialDealComplete();
+        this.render(state);
+      });
+    }
+  }
+
+  private animateRestoredCard(
+    state: Readonly<GameState>,
+    entry: RestoreAnimationEntry,
+    flowId: number,
+    onComplete: () => void
+  ): void {
     const target = getFieldCardPosition(SCENE_WIDTH / 2, FIELD_CENTER_Y, state, entry.playerId, entry.positionId);
     const startX = getPlayerDeckX(state, entry.playerId);
     const player = state.players.find((candidate) => candidate.id === entry.playerId);
@@ -2198,7 +2241,7 @@ export class GameScene extends Phaser.Scene {
       scale: MATCH_CARD_SCALE,
       alpha: 1,
       rotation: 0,
-      duration: 420,
+      duration: INITIAL_DEAL_CARD_DURATION_MS,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
         this.activeCardRestoreTweens.delete(dealTween);
@@ -2209,24 +2252,7 @@ export class GameScene extends Phaser.Scene {
           return;
         }
 
-        this.animatedRestoreCount += 1;
-
-        const hiddenRestoredCards = entries.slice(index + 1);
-
-        if (hiddenRestoredCards.length > 0) {
-          this.render(state, {
-            hiddenRestoredCards,
-            interactive: false
-          });
-          this.scheduleCardRestoreDelayedCall(45, flowId, () =>
-            this.animateRestoredCards(state, entries, index + 1, flowId)
-          );
-          return;
-        }
-
-        this.completeAutomaticCardFlow(flowId);
-        this.markInitialDealComplete();
-        this.render(state);
+        onComplete();
       }
     });
     this.activeCardRestoreTweens.add(dealTween);

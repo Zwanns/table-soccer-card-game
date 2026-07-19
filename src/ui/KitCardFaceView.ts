@@ -3,11 +3,10 @@ import { fitImageContain } from '../assets/teamCover';
 import type { CardColor } from '../cards';
 import type { ResolvedKitAsset } from '../game/kitAssetResolver';
 import {
-  CARD_FACE_FLAG_LAYOUT,
   CARD_FACE_VISUAL_TUNING,
-  getCardFlagLayout,
-  getCardRankDisplayLabel,
   getCardRankFontSize,
+  getCardRankSuffixFontSize,
+  getCardRankVisualLabel,
   getCardRankY,
   getKitImageLayout,
   getShirtNumberLayout,
@@ -25,7 +24,6 @@ export interface KitCardFaceViewOptions {
   teamColor?: CardColor;
   highlighted?: boolean;
   shirtNumber?: number;
-  flagTextureKey?: string;
   kitTextureKey?: string;
   kitAsset?: ResolvedKitAsset;
 }
@@ -43,7 +41,9 @@ type RenderedKitColorScheme = {
 };
 
 export class KitCardFaceView extends Phaser.GameObjects.Container {
+  private rankLabelContainer: Phaser.GameObjects.Container | null = null;
   private rankText: Phaser.GameObjects.Text | null = null;
+  private rankSuffixText: Phaser.GameObjects.Text | null = null;
   private rankBaseY = getCardRankY();
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: KitCardFaceViewOptions) {
@@ -58,7 +58,6 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     this.add(body);
     const renderedKitLayout = this.addKit(scene, options);
     this.addShirtNumber(scene, options, renderedKitLayout);
-    this.addFlag(scene, options.flagTextureKey);
     this.addRank(scene, options);
 
     scene.add.existing(this);
@@ -69,9 +68,11 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       return;
     }
 
-    const label = getCardRankDisplayLabel(rank);
-    this.rankText.setText(label);
-    this.rankText.setFontSize(getCardRankFontSize(label));
+    const label = getCardRankVisualLabel(rank);
+    this.rankText.setText(label.main);
+    this.rankText.setFontSize(getCardRankFontSize(label.main));
+    this.rankSuffixText?.destroy();
+    this.rankSuffixText = this.createRankSuffixText(label.suffix, rank);
   }
 
   public animateRankRoll(targetRank: string, options: RankRollOptions = {}): Promise<void> {
@@ -79,7 +80,10 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
       return Promise.resolve();
     }
 
-    const rankText = this.rankText;
+    const rankLabelContainer = this.rankLabelContainer;
+    if (rankLabelContainer === null) {
+      return Promise.resolve();
+    }
     const steps = options.steps?.length === 0 ? [targetRank] : [...(options.steps ?? [targetRank])];
     const stepDuration = Math.max(24, Math.floor((options.durationMs ?? 780) / steps.length));
 
@@ -90,16 +94,16 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         const nextRank = steps[stepIndex] ?? targetRank;
 
         this.scene.tweens.add({
-          targets: rankText,
+          targets: rankLabelContainer,
           y: this.rankBaseY + 12,
           alpha: 0.18,
           duration: stepDuration / 2,
           ease: 'Sine.easeIn',
           onComplete: () => {
             this.setDisplayRank(nextRank);
-            rankText.setY(this.rankBaseY - 10);
+            rankLabelContainer.setY(this.rankBaseY - 10);
             this.scene.tweens.add({
-              targets: rankText,
+              targets: rankLabelContainer,
               y: this.rankBaseY,
               alpha: 1,
               duration: stepDuration / 2,
@@ -181,43 +185,53 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
     this.add(number);
   }
 
-  private addFlag(scene: Phaser.Scene, flagTextureKey?: string): void {
-    if (flagTextureKey === undefined || !scene.textures.exists(flagTextureKey)) {
-      return;
-    }
-
-    const layout = getCardFlagLayout();
-    const flag = scene.add.image(layout.x, layout.y, flagTextureKey);
-    flag.setOrigin(layout.originX, layout.originY);
-    fitImageContain(flag, { width: layout.width, height: layout.height });
-    const outline = scene.add.graphics();
-    outline.fillStyle(CARD_FACE_FLAG_LAYOUT.outlineColor, 1);
-    outline.fillRect(
-      layout.x - flag.displayWidth * layout.originX - CARD_FACE_FLAG_LAYOUT.outlineWidth,
-      layout.y - flag.displayHeight * layout.originY - CARD_FACE_FLAG_LAYOUT.outlineWidth,
-      flag.displayWidth + CARD_FACE_FLAG_LAYOUT.outlineWidth * 2,
-      flag.displayHeight + CARD_FACE_FLAG_LAYOUT.outlineWidth * 2
-    );
-    this.add([outline, flag]);
-  }
-
   private addRank(scene: Phaser.Scene, options: KitCardFaceViewOptions): void {
+    this.rankLabelContainer = scene.add.container(
+      px(-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft),
+      this.rankBaseY
+    );
     this.rankText = scene.add
       .text(
-        px(-CARD_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft),
-        this.rankBaseY,
-        options.rank,
+        0,
+        0,
+        getCardRankVisualLabel(options.rank).main,
         {
           color: KIT_CARD_LAYOUT.rankColor,
           fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
-          fontSize: `${getCardRankFontSize(options.rank)}px`,
+          fontSize: `${getCardRankFontSize(getCardRankVisualLabel(options.rank).main)}px`,
           fontStyle: '400',
           resolution: SHARP_TEXT_RESOLUTION
         }
       )
       .setOrigin(0, 0);
 
-    this.add(this.rankText);
+    this.rankLabelContainer.add(this.rankText);
+    this.rankSuffixText = this.createRankSuffixText(getCardRankVisualLabel(options.rank).suffix, options.rank);
+    this.add(this.rankLabelContainer);
+  }
+
+  private createRankSuffixText(suffix: string, rank: string): Phaser.GameObjects.Text | null {
+    if (suffix.length === 0 || this.rankText === null || this.rankLabelContainer === null) {
+      return null;
+    }
+
+    const suffixText = this.scene.add
+      .text(
+        px(this.rankText.width + CARD_FACE_VISUAL_TUNING.rankSuffixGap),
+        px(CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY),
+        suffix,
+        {
+          color: KIT_CARD_LAYOUT.rankColor,
+          fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
+          fontSize: `${getCardRankSuffixFontSize(rank)}px`,
+          fontStyle: '400',
+          resolution: SHARP_TEXT_RESOLUTION
+        }
+      )
+      .setOrigin(0, 0);
+
+    this.rankLabelContainer.add(suffixText);
+    return suffixText;
   }
 }
 
