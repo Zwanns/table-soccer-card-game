@@ -296,13 +296,18 @@ describe('kit card face rendering contracts', () => {
     const kitFaceSource = readFileSync(join(process.cwd(), 'src', 'ui', 'KitCardFaceView.ts'), 'utf8');
     const labelStartX = -KIT_CARD_FACE_WIDTH / 2 + KIT_CARD_LAYOUT.rankOffsetLeft;
     const kitTop = getKitImageLayout().y - getKitImageLayout().height;
+    const specialRanks = ['JOKER', 'A', 'K', 'J', 'Q'];
 
     expect(CARD_FACE_VISUAL_TUNING.rankSuffixScale).toBe(0.4);
     expect(CARD_FACE_VISUAL_TUNING.rankSuffixGap).toBe(3);
-    expect(CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY).toBe(0);
+    expect(CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY).toBe(2);
     expect(getCardRankSuffixFontSize('Q')).toBeLessThan(getCardRankFontSize('Q'));
     expect(labelStartX).toBeGreaterThanOrEqual(-KIT_CARD_FACE_WIDTH / 2);
     expect(getCardRankY() + getCardRankSuffixFontSize('Q')).toBeLessThan(kitTop);
+    for (const rank of specialRanks) {
+      expect(getCardRankVisualLabel(rank).suffix).not.toBe('');
+      expect(CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY).toBe(2);
+    }
     expect(kitFaceSource).toContain('px(this.rankText.width + CARD_FACE_VISUAL_TUNING.rankSuffixGap)');
     expect(kitFaceSource).toContain('px(CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY)');
     expect(kitFaceSource).toContain('.setOrigin(0, 0)');

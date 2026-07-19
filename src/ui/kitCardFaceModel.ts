@@ -10,7 +10,7 @@ export const CARD_FACE_VISUAL_TUNING = {
   rankOffsetY: -5,
   rankSuffixScale: 0.4,
   rankSuffixGap: 3,
-  rankSuffixOffsetY: 0,
+  rankSuffixOffsetY: 2,
   kitScale: 1.2,
   kitOffsetX: -4,
   kitOffsetY: -5
