@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Total Soccer: Mundial</string>
+    <string name="title_activity_main">Total Soccer: Mundial</string>
+    <string name="package_name">com.totalsoccermundial.game</string>
+    <string name="custom_url_scheme">com.totalsoccermundial.game</string>
+</resources>
