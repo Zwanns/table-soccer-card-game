@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import {
+  handleAndroidMatchBackButton,
+  registerAndroidBackButtonListener,
+  type AndroidBackButtonSubscription
+} from '../platform/androidBackButton';
+import {
   getFallbackCoverTextureKey,
   markTeamCoverLoadFailed,
   queueTeamCoverLoad,
@@ -236,6 +241,7 @@ export class GameScene extends Phaser.Scene {
   private isInitialDealComplete = false;
   private isAutomaticCardFlowInProgress = false;
   private isAutomaticCardFlowPaused = false;
+  private androidBackButtonSubscription: AndroidBackButtonSubscription | null = null;
   private cardRestoreFlowId = 0;
   private readonly pendingCardRestoreCallbacks = new Set<Phaser.Time.TimerEvent>();
   private readonly activeCardRestoreTweens = new Set<Phaser.Tweens.Tween>();
@@ -246,6 +252,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   public init(data: GameSceneInitData): void {
+    this.removeAndroidBackButtonListener();
     this.player1Name = data.player1Name ?? 'France';
     this.player2Name = data.player2Name ?? 'Spain';
     this.player1FlagCode = data.player1FlagCode ?? 'fr';
@@ -317,6 +324,7 @@ export class GameScene extends Phaser.Scene {
       scheduleDelayedCall: (delayMs, callback) => this.time.delayedCall(delayMs, callback)
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
+    this.registerAndroidBackButtonListener();
     this.engine.startNewGame({
       player1Name: this.player1Name,
       player2Name: this.player2Name,
@@ -1054,13 +1062,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openPauseModal(state: Readonly<GameState>): void {
-    if (
-      this.isTutorialBlockingSystemUi() ||
-      this.pauseModal !== null ||
-      this.infoModal !== null ||
-      this.exitConfirmModal !== null ||
-      this.matchFinishedModal !== null
-    ) {
+    if (this.isTutorialBlockingSystemUi() || !this.canOpenPauseModal()) {
       return;
     }
 
@@ -1088,6 +1090,43 @@ export class GameScene extends Phaser.Scene {
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
     }
+  }
+
+  private canOpenPauseModal(): boolean {
+    return (
+      this.input.enabled &&
+      !this.isSceneShutDown &&
+      !this.isNavigationAwayInProgress &&
+      !this.isTutorialBlockingSystemUi() &&
+      this.pauseModal === null &&
+      this.infoModal === null &&
+      this.exitConfirmModal === null &&
+      this.matchFinishedModal === null
+    );
+  }
+
+  private registerAndroidBackButtonListener(): void {
+    this.removeAndroidBackButtonListener();
+    this.androidBackButtonSubscription = registerAndroidBackButtonListener(() => this.handleAndroidBackButton());
+  }
+
+  private removeAndroidBackButtonListener(): void {
+    this.androidBackButtonSubscription?.remove();
+    this.androidBackButtonSubscription = null;
+  }
+
+  private handleAndroidBackButton(): void {
+    handleAndroidMatchBackButton({
+      canHandleBack: () => !this.isSceneShutDown && !this.isNavigationAwayInProgress,
+      isPauseOpen: () => this.pauseModal !== null,
+      canOpenPause: () => this.engine !== null && this.canOpenPauseModal(),
+      openPause: () => {
+        if (this.engine !== null) {
+          this.openPauseModal(this.engine.getState());
+        }
+      },
+      closePause: () => this.closePauseModal()
+    });
   }
 
   private openMatchInfoModal(kind: InfoModalKind): void {
@@ -2665,6 +2704,7 @@ export class GameScene extends Phaser.Scene {
   private handleSceneShutdown(): void {
     this.isSceneShutDown = true;
     this.isNavigationAwayInProgress = true;
+    this.removeAndroidBackButtonListener();
     this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
