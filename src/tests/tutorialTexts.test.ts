@@ -36,6 +36,19 @@ describe('tutorial localization texts', () => {
     expect(getTutorialText('uk', 'tutorial.button.continue')).toBe('Далі');
   });
 
+  it('gives draw-shot an explicit deck action instruction in every language', () => {
+    const english = getTutorialText('en', 'tutorial.drawShot.message');
+    const polish = getTutorialText('pl', 'tutorial.drawShot.message');
+    const ukrainian = getTutorialText('uk', 'tutorial.drawShot.message');
+
+    expect(english.trim()).not.toBe('');
+    expect(english).toMatch(/draw.*card.*deck.*shot/i);
+    expect(polish.trim()).not.toBe('');
+    expect(polish).toMatch(/dobierz.*kartę.*talii.*strzał/i);
+    expect(ukrainian.trim()).not.toBe('');
+    expect(ukrainian).toMatch(/візьми.*карту.*колоди.*удар/iu);
+  });
+
   it('does not leave obsolete direct text fields in tutorial steps', () => {
     for (const step of TUTORIAL_MATCH_V2_STEPS) {
       const legacyStep = step as typeof step & { title?: string; message?: string; blockedMessage?: string };

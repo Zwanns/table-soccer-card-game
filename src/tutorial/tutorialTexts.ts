@@ -23,7 +23,7 @@ export const TUTORIAL_TEXTS = {
     'tutorial.goalkeeper.message':
       'To score a goal, you need to beat the goalkeeper card. The attacking card must be higher than the goalkeeper card or follow a special rule.',
     'tutorial.drawShot.message':
-      'A card of the same rank as the goalkeeper cannot beat it, but it gives you an extra shot on goal (a rebound).\nA card lower than the goalkeeper card will lose the ball. The goalkeeper card rank will then change randomly.\nIMPORTANT: the goalkeeper cannot be Joker or Two (2).',
+      'A card of the same rank as the goalkeeper cannot beat it, but it gives you an extra shot on goal (a rebound).\nA card lower than the goalkeeper card will lose the ball. The goalkeeper card rank will then change randomly.\nIMPORTANT: the goalkeeper cannot be Joker or Two (2).\nNow draw a card from the deck to take your shot.',
     'tutorial.takeShot.message': 'Click the goalkeeper card to take a shot on goal.',
     'tutorial.turnoverAfterGoal.title': 'Goal!',
     'tutorial.turnoverAfterGoal.message': 'After conceding a goal, the team restores its defense and starts its attack.',
@@ -84,7 +84,7 @@ export const TUTORIAL_TEXTS = {
     'tutorial.goalkeeper.message':
       'Aby zdobyć gola, musisz pokonać kartę bramkarza. Karta atakująca musi być wyższa od karty bramkarza albo podlegać zasadzie specjalnej.',
     'tutorial.drawShot.message':
-      'Karta o takim samym rangu jak bramkarz nie może go pokonać, ale daje dodatkowy strzał na bramkę (dobitkę).\nKarta niższa od karty bramkarza spowoduje stratę piłki. Ranga karty bramkarza zostanie wtedy losowo zmieniona.\nWAŻNE: bramkarzem nie może być Joker ani Dwójka (2).',
+      'Karta o takim samym rangu jak bramkarz nie może go pokonać, ale daje dodatkowy strzał na bramkę (dobitkę).\nKarta niższa od karty bramkarza spowoduje stratę piłki. Ranga karty bramkarza zostanie wtedy losowo zmieniona.\nWAŻNE: bramkarzem nie może być Joker ani Dwójka (2).\nTeraz dobierz kartę z talii, aby oddać strzał.',
     'tutorial.takeShot.message': 'Kliknij kartę bramkarza, aby oddać strzał na bramkę.',
     'tutorial.turnoverAfterGoal.title': 'Gol!',
     'tutorial.turnoverAfterGoal.message': 'Po straconym golu drużyna odbudowuje obronę i zaczyna swoją akcję.',
@@ -142,7 +142,7 @@ export const TUTORIAL_TEXTS = {
     'tutorial.clearDefense.message': 'Пройди лінію захисту, і ти дістанешся голкіпера.',
     'tutorial.goalkeeper.title': 'Голкіпер (GK)',
     'tutorial.goalkeeper.message': 'Щоб забити гол, треба побити карту голкіпера. Для цього атакуюча карта має бути вищою за карту голкіпера або підпадати під спеціальне правило.',
-    'tutorial.drawShot.message': 'Карта такого ж рангу, як і карта голкіпера, не може її побити, але дасть можливість додаткового удару по воротах (добивання). \nКарта нижчого рангу за курту голкіпера, призведе до втрати м’яча. Але при цьому ранг карти голкіпера буде рандомно змінено. \nВАЖЛИВО: голкіпером не може бути Joker або Двійка (2).',
+    'tutorial.drawShot.message': 'Карта такого ж рангу, як і карта голкіпера, не може її побити, але дасть можливість додаткового удару по воротах (добивання). \nКарта нижчого рангу за курту голкіпера, призведе до втрати м’яча. Але при цьому ранг карти голкіпера буде рандомно змінено. \nВАЖЛИВО: голкіпером не може бути Joker або Двійка (2).\nТепер візьми карту з колоди, щоб виконати удар.',
     'tutorial.takeShot.message': 'Натисни на карту голкіпера, щоб нанести удар по воротам.',
     'tutorial.turnoverAfterGoal.title': 'Гол!',
     'tutorial.turnoverAfterGoal.message': 'Після пропущеного м’яча команда відновлює свій захист і почиинає свою атаку.',

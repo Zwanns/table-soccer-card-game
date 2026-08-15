@@ -121,7 +121,7 @@ export const TUTORIAL_MATCH_V2_STEPS: readonly TutorialStep[] = [
     messageKey: 'tutorial.drawShot.message',
     waitFor: 'action',
     highlight: [{ type: 'active-deck' }],
-    allowedAction: { type: 'draw-attack-card', rank: 'Q' }
+    allowedAction: { type: 'draw-attack-card' }
   },
   {
     id: 'take-shot',
