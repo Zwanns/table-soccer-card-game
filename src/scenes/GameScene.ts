@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import {
-  handleAndroidMatchBackButton,
   registerAndroidBackButtonListener,
   type AndroidBackButtonSubscription
 } from '../platform/androidBackButton';
@@ -16,6 +15,7 @@ import type { Card } from '../cards';
 import { GAME_AUTHOR, GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
 import { getLanguageCode, getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
+import { getMatchExitConfirmationContent } from '../i18n/matchExitConfirmation';
 import { QUICK_MATCH_CONTEXT, saveTournament, type MatchLaunchContext, type TournamentState } from '../tournament';
 import {
   GameEngine,
@@ -85,6 +85,7 @@ import {
   getNextGoalScoredSceneEffect,
   type GoalScoredSceneEffect
 } from './gameSceneEventEffects';
+import { handleGameSceneAndroidBackButton } from './gameSceneAndroidBack';
 import {
   CARD_DEPLETION_FALLBACK_BODY,
   resolveCardDepletionMatchFinish,
@@ -125,6 +126,7 @@ const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
 const FLYING_MESSAGE_DEPTH = 3000;
+const EXIT_CONFIRM_MODAL_DEPTH = 6000;
 const GOALKEEPER_RANK_ROLL_DURATION_MS = 820;
 const GOALKEEPER_RANK_ROLL_MIN_STEPS = 8;
 const GOALKEEPER_RANK_ROLL_SEQUENCE: readonly GoalkeeperCard['rank'][] = [
@@ -1004,15 +1006,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   private openExitConfirmModal(): void {
-    if (this.exitConfirmModal !== null) {
+    if (!this.canOpenExitConfirmModal()) {
       return;
     }
 
     this.pauseAutomaticCardFlow();
+    const content = getMatchExitConfirmationContent(
+      this.infoLanguage,
+      this.isTutorialBlockingSystemUi() ? 'tutorial' : 'match'
+    );
 
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
-    const modal = this.add.container(0, 0);
+    const modal = this.add.container(0, 0).setDepth(EXIT_CONFIRM_MODAL_DEPTH);
     const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.68);
     overlay.setInteractive();
 
@@ -1021,7 +1027,7 @@ export class GameScene extends Phaser.Scene {
     background.setStrokeStyle(2, 0xf0c95a, 0.95);
 
     const title = this.add
-      .text(0, -82, 'Exit to menu?', {
+      .text(0, -82, content.title, {
         align: 'center',
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
@@ -1031,7 +1037,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const text = this.add
-      .text(0, -22, 'Current match progress will not be saved. Do you want to leave?', {
+      .text(0, -22, content.body, {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
@@ -1040,8 +1046,8 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const leaveButton = new Button(this, -125, 76, 'Menu', () => this.exitToMainMenu());
-    const stayButton = new Button(this, 125, 76, 'Stay', () => this.closeExitConfirmModal());
+    const leaveButton = new Button(this, -125, 76, content.confirmLabel, () => this.exitToMainMenu());
+    const stayButton = new Button(this, 125, 76, content.cancelLabel, () => this.closeExitConfirmModal());
 
     panel.add([background, title, text, leaveButton, stayButton]);
     modal.add([overlay, panel]);
@@ -1059,6 +1065,20 @@ export class GameScene extends Phaser.Scene {
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
     }
+  }
+
+  private canOpenExitConfirmModal(): boolean {
+    return (
+      this.engine !== null &&
+      this.input.enabled &&
+      !this.isSceneShutDown &&
+      !this.isNavigationAwayInProgress &&
+      this.exitConfirmModal === null &&
+      this.pauseModal === null &&
+      this.infoModal === null &&
+      this.matchFinishedModal === null &&
+      !this.isMatchFinishedModalOpen
+    );
   }
 
   private openPauseModal(state: Readonly<GameState>): void {
@@ -1116,8 +1136,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleAndroidBackButton(): void {
-    handleAndroidMatchBackButton({
+    handleGameSceneAndroidBackButton({
       canHandleBack: () => !this.isSceneShutDown && !this.isNavigationAwayInProgress,
+      isTutorialActive: () => this.isTutorialBlockingSystemUi(),
+      isExitConfirmOpen: () => this.exitConfirmModal !== null,
+      canOpenExitConfirm: () => this.canOpenExitConfirmModal(),
+      openExitConfirm: () => this.openExitConfirmModal(),
+      closeExitConfirm: () => this.closeExitConfirmModal(),
       isPauseOpen: () => this.pauseModal !== null,
       canOpenPause: () => this.engine !== null && this.canOpenPauseModal(),
       openPause: () => {

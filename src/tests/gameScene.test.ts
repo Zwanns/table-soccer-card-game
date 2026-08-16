@@ -1403,8 +1403,8 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('this.cancelAutomaticCardFlow();');
     expect(source).toContain('private exitToMainMenu(): void');
     expect(source).toContain("this.scene.start('MenuScene');");
-    expect(source).toContain("new Button(this, -125, 76, 'Menu', () => this.exitToMainMenu())");
-    expect(source).not.toContain("new Button(this, -125, 76, 'Menu', () => this.scene.start('MenuScene'))");
+    expect(source).toContain('new Button(this, -125, 76, content.confirmLabel, () => this.exitToMainMenu())');
+    expect(source).not.toContain('new Button(this, -125, 76, content.confirmLabel, () => this.scene.start(\'MenuScene\'))');
   });
 
   it('guards automatic card-flow delayed callbacks after scene exit, shutdown, or stale flow generation', () => {
