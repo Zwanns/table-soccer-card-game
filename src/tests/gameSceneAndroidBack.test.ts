@@ -174,7 +174,8 @@ describe('Tutorial Exit confirmation integration', () => {
     );
 
     expect(modalBlock).toContain('content.confirmLabel, () => this.exitToMainMenu()');
-    expect(modalBlock).toContain('content.cancelLabel, () => this.closeExitConfirmModal()');
+    expect(modalBlock).toContain('const refreshGameplayOnDismiss = !isTutorialActive;');
+    expect(modalBlock).toContain('this.closeExitConfirmModal({ refreshGameplay: refreshGameplayOnDismiss })');
     expect(exitBlock).toContain('this.prepareToLeaveMatchScene();');
     expect(exitBlock).toContain("this.scene.start('MenuScene');");
   });
@@ -214,10 +215,15 @@ describe('Tutorial Exit confirmation integration', () => {
       source.indexOf('private openExitConfirmModal()'),
       source.indexOf('private closeExitConfirmModal(')
     );
+    const androidBackBlock = source.slice(
+      source.indexOf('private handleAndroidBackButton()'),
+      source.indexOf('private openMatchInfoModal(')
+    );
 
     expect(gameplayGuard).toContain('this.exitConfirmModal === null');
     expect(modalBlock).toContain('overlay.setInteractive();');
     expect(modalBlock).toContain('.setDepth(EXIT_CONFIRM_MODAL_DEPTH)');
+    expect(androidBackBlock).toContain('closeExitConfirm: () => this.closeExitConfirmModal()');
     expect(source).toContain('const EXIT_CONFIRM_MODAL_DEPTH = 6000;');
   });
 

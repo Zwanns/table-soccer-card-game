@@ -1011,9 +1011,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.pauseAutomaticCardFlow();
+    const isTutorialActive = this.isTutorialBlockingSystemUi();
+    const refreshGameplayOnDismiss = !isTutorialActive;
     const content = getMatchExitConfirmationContent(
       this.infoLanguage,
-      this.isTutorialBlockingSystemUi() ? 'tutorial' : 'match'
+      isTutorialActive ? 'tutorial' : 'match'
     );
 
     const centerX = SCENE_WIDTH / 2;
@@ -1047,19 +1049,29 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const leaveButton = new Button(this, -125, 76, content.confirmLabel, () => this.exitToMainMenu());
-    const stayButton = new Button(this, 125, 76, content.cancelLabel, () => this.closeExitConfirmModal());
+    const stayButton = new Button(this, 125, 76, content.cancelLabel, () =>
+      this.closeExitConfirmModal({ refreshGameplay: refreshGameplayOnDismiss })
+    );
 
     panel.add([background, title, text, leaveButton, stayButton]);
     modal.add([overlay, panel]);
     this.exitConfirmModal = modal;
   }
 
-  private closeExitConfirmModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void {
+  private closeExitConfirmModal(
+    options: { refreshGameplay?: boolean; resumeAutomaticCardFlow?: boolean } = {}
+  ): void {
+    const shouldRefreshGameplay = this.exitConfirmModal !== null && options.refreshGameplay === true;
+
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
 
     if (options.resumeAutomaticCardFlow !== false) {
       this.resumeAutomaticCardFlow();
+    }
+
+    if (shouldRefreshGameplay && this.refreshGameplayAfterBlockingModal()) {
+      return;
     }
 
     if (this.engine !== null && this.isSceneStableForAi()) {
@@ -1100,11 +1112,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void {
+    const shouldRefreshGameplay = this.pauseModal !== null && options.resumeAutomaticCardFlow !== false;
+
     this.pauseModal?.destroy();
     this.pauseModal = null;
 
     if (options.resumeAutomaticCardFlow !== false) {
       this.resumeAutomaticCardFlow();
+    }
+
+    if (shouldRefreshGameplay && this.refreshGameplayAfterBlockingModal()) {
+      return;
     }
 
     if (this.engine !== null && this.isSceneStableForAi()) {
@@ -2363,6 +2381,22 @@ export class GameScene extends Phaser.Scene {
 
   private canRunSceneSetup(): boolean {
     return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
+  }
+
+  private refreshGameplayAfterBlockingModal(): boolean {
+    if (
+      !this.canRunSceneSetup() ||
+      this.pauseModal !== null ||
+      this.exitConfirmModal !== null ||
+      this.infoModal !== null ||
+      this.matchFinishedModal !== null ||
+      this.isMatchFinishedModalOpen
+    ) {
+      return false;
+    }
+
+    this.render(this.requireEngine().getState());
+    return true;
   }
 
   private canRunAutomaticCardFlowStep(flowId: number): boolean {

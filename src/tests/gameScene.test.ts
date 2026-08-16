@@ -1445,7 +1445,8 @@ describe('GameScene visual layout contracts', () => {
     expect(pauseBlock).toContain('private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
     expect(pauseBlock).toContain('if (options.resumeAutomaticCardFlow !== false) {\n      this.resumeAutomaticCardFlow();\n    }');
     expect(exitBlock).toContain('this.pauseAutomaticCardFlow();');
-    expect(exitBlock).toContain('private closeExitConfirmModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
+    expect(exitBlock).toContain('options: { refreshGameplay?: boolean; resumeAutomaticCardFlow?: boolean } = {}');
+    expect(exitBlock).toContain('options.refreshGameplay === true');
     expect(exitBlock).toContain('if (options.resumeAutomaticCardFlow !== false) {\n      this.resumeAutomaticCardFlow();\n    }');
     expect(flowBlock).toContain('timer.paused = true;');
     expect(flowBlock).toContain('tween.pause();');
