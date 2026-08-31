@@ -12,6 +12,7 @@ import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament }
 import { Button } from '../ui/Button';
 import { DEV_LAB_SCENE_KEY, isDevLabEnabled } from '../devLab';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
+import { getMainMenuButtonLayout, type MainMenuAction } from '../ui/mainMenuLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
 const MENU_LAYOUT = {
@@ -486,36 +487,24 @@ export class MenuScene extends Phaser.Scene {
 
   private createMainButtons(): void {
     const buttonWidth = this.getMenuButtonWidth();
-    const buttonOptions = this.getMenuButtonOptions(buttonWidth);
-    const buttons = [
-      new Button(this, MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY, 'Game modes', () => this.openGameModes(), {
-        ...buttonOptions
-      }),
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap,
-        'Teams',
-        () => this.scene.start('SquadSelectScene'),
-        buttonOptions
-      ),
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 2,
-        'Rules',
-        () => this.openRulesModal(),
-        buttonOptions
-      ),
-      new Button(
-        this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * 3,
-        'About',
-        () => this.openAboutModal(),
-        buttonOptions
-      )
-    ];
+    const mobile = isMobileLandscapeLayout();
+    const layout = getMainMenuButtonLayout({
+      buttonFontSize: MENU_LAYOUT.buttonFontSize,
+      buttonHeight: MENU_LAYOUT.buttonHeight,
+      buttonsGap: MENU_LAYOUT.buttonsGap,
+      buttonsStartY: MENU_LAYOUT.buttonsStartY,
+      buttonWidth,
+      centerX: MENU_LAYOUT.centerX
+    }, mobile);
+    const callbacks: Record<MainMenuAction, () => void> = {
+      gameModes: () => this.openGameModes(),
+      teams: () => this.scene.start('SquadSelectScene'),
+      rules: () => this.openRulesModal(),
+      about: () => this.openAboutModal()
+    };
+    const buttons = layout.map(({ action, fontSize, height, label, width, x, y }) =>
+      new Button(this, x, y, label, callbacks[action], { fontSize, height, width })
+    );
 
     this.introTargets.push(...buttons);
   }
