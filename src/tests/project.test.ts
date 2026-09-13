@@ -324,10 +324,10 @@ describe('project scaffold', () => {
     expect(tournamentBlock).toContain('() => this.startNewTournamentSetup()');
     expect(tournamentBlock).toContain("'Continue tournament'");
     expect(tournamentBlock).toContain('() => this.continueTournament()');
-    expect(tournamentBlock).toContain('{ ...buttonOptions, disabled: !hasTournamentSave }');
+    expect(tournamentBlock).toContain('{ ...actionOptions, disabled: !hasTournamentSave }');
     expect(tournamentBlock).toContain("'Delete save'");
     expect(tournamentBlock).toContain('() => this.deleteTournamentSave()');
-    expect(tournamentBlock).toContain("{ ...buttonOptions, disabled: !hasTournamentSave, fontSize: '22px' }");
+    expect(tournamentBlock).toContain("{ ...actionOptions, disabled: !hasTournamentSave, fontSize: mobile ? actionOptions.fontSize : '22px' }");
     expect(tournamentBlock).toContain("'Back'");
     expect(tournamentBlock).toContain('() => this.openGameModes()');
     expect(tournamentBlock.indexOf("'New tournament'")).toBeLessThan(tournamentBlock.indexOf("'Continue tournament'"));

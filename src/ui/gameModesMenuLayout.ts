@@ -1,5 +1,8 @@
 import { MOBILE_MAIN_MENU_BUTTON_FONT_SIZE, MOBILE_MAIN_MENU_BUTTON_HEIGHT } from './mainMenuLayout';
-import { MOBILE_NAV_BUTTON_FONT_SIZE, MOBILE_NAV_BUTTON_HEIGHT, MOBILE_NAV_BUTTON_WIDTH } from './mobileNavigationLayout';
+import {
+  MOBILE_NAV_BUTTON_CENTER_X, MOBILE_NAV_BUTTON_CENTER_Y,
+  MOBILE_NAV_BUTTON_FONT_SIZE, MOBILE_NAV_BUTTON_HEIGHT, MOBILE_NAV_BUTTON_WIDTH
+} from './mobileNavigationLayout';
 
 export type GameModesMenuAction = 'quickMatch' | 'tournament' | 'penaltyShootout' | 'tutorialMatch' | 'devLab' | 'back';
 
@@ -45,8 +48,8 @@ export const MOBILE_GAME_MODES_BACK = {
   label: '← Back',
   labelOffsetY: -2,
   width: MOBILE_NAV_BUTTON_WIDTH,
-  x: 158,
-  y: 666
+  x: MOBILE_NAV_BUTTON_CENTER_X,
+  y: MOBILE_NAV_BUTTON_CENTER_Y
 } as const;
 
 const MAIN_MODE_ACTIONS: ReadonlyArray<Pick<GameModesMenuButtonLayout, 'action' | 'label'>> = [

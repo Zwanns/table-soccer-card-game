@@ -6,7 +6,7 @@ import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
-import { getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
+import { getMobileActionButtonLayout, getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
 import { CardView } from '../ui/CardView';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
@@ -154,18 +154,22 @@ export class TeamSelectScene extends Phaser.Scene {
       height: layout.menuButtonRect.height,
       fontSize: '22px'
     }, layout.mobileWide);
-    const startCenter = rectCenter(layout.startButtonRect);
+    const startButton = getMobileActionButtonLayout({
+      ...rectCenter(layout.startButtonRect),
+      width: layout.startButtonRect.width,
+      height: layout.startButtonRect.height,
+      fontSize: '22px'
+    }, layout.mobileWide);
     new Button(this, menuButton.x, menuButton.y, 'Menu', () => this.scene.start('MenuScene'), menuButton);
     new Button(
       this,
-      startCenter.x,
-      startCenter.y,
-      this.mode === 'penalty' ? 'Start penalties' : 'Start',
+      startButton.x,
+      startButton.y,
+      layout.mobileWide ? 'Start' : this.mode === 'penalty' ? 'Start penalties' : 'Start',
       () => this.startMatch(),
       {
-        disabled: this.selectedTeamOne === this.selectedTeamTwo,
-        width: layout.startButtonRect.width,
-        height: layout.startButtonRect.height
+        ...startButton,
+        disabled: this.selectedTeamOne === this.selectedTeamTwo
       }
     );
   }

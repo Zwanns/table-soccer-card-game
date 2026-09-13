@@ -645,6 +645,15 @@ export class MenuScene extends Phaser.Scene {
     const hasTournamentSave = hasActiveTournamentSave();
     const buttonWidth = this.getMenuButtonWidth();
     const buttonOptions = this.getMenuButtonOptions(buttonWidth);
+    const mobile = isMobileLandscapeLayout();
+    const mobileActions = mobile
+      ? getMainMenuButtonLayout({ ...MENU_LAYOUT, buttonWidth: MENU_LAYOUT.mobileWideButtonMaxWidth }, true)
+      : null;
+    const actionOptions = mobileActions === null ? buttonOptions : {
+      width: mobileActions[0].width,
+      height: mobileActions[0].height,
+      fontSize: mobileActions[0].fontSize
+    };
     const title = this.add
       .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Tournament', {
         align: 'center',
@@ -660,11 +669,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        mobileActions?.[buttonIndex].x ?? MENU_LAYOUT.centerX,
+        mobileActions?.[buttonIndex].y ?? MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'New tournament',
         () => this.startNewTournamentSetup(),
-        buttonOptions
+        actionOptions
       )
     );
     buttonIndex += 1;
@@ -672,11 +681,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        mobileActions?.[buttonIndex].x ?? MENU_LAYOUT.centerX,
+        mobileActions?.[buttonIndex].y ?? MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Continue tournament',
         () => this.continueTournament(),
-        { ...buttonOptions, disabled: !hasTournamentSave }
+        { ...actionOptions, disabled: !hasTournamentSave }
       )
     );
     buttonIndex += 1;
@@ -684,11 +693,11 @@ export class MenuScene extends Phaser.Scene {
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        mobileActions?.[buttonIndex].x ?? MENU_LAYOUT.centerX,
+        mobileActions?.[buttonIndex].y ?? MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
         'Delete save',
         () => this.deleteTournamentSave(),
-        { ...buttonOptions, disabled: !hasTournamentSave, fontSize: '22px' }
+        { ...actionOptions, disabled: !hasTournamentSave, fontSize: mobile ? actionOptions.fontSize : '22px' }
       )
     );
     buttonIndex += 1;
@@ -697,8 +706,7 @@ export class MenuScene extends Phaser.Scene {
       ...buttonOptions,
       x: MENU_LAYOUT.centerX,
       y: MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex
-    }, isMobileLandscapeLayout(),
-    MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex - MENU_LAYOUT.buttonHeight / 2);
+    }, isMobileLandscapeLayout());
     buttons.push(
       new Button(
         this,
@@ -910,7 +918,7 @@ export class MenuScene extends Phaser.Scene {
       ABOUT_MODAL_BACKGROUND_ALPHA
     );
 
-    const backButton = this.createInfoBackButton();
+    const backButton = this.createInfoBackButton(panel);
     const languageSelector = this.createAboutLanguageSelector(336, -258);
     const title = this.add
       .text(0, -252, titleText, {
@@ -960,8 +968,8 @@ export class MenuScene extends Phaser.Scene {
     this.activeInfoModal = null;
   }
 
-  private createInfoBackButton(): Phaser.GameObjects.Container {
-    const layout = getNavigationButtonLayout({ x: 0, ...INFO_BACK_BUTTON }, isMobileLandscapeLayout());
+  private createInfoBackButton(panel: Phaser.GameObjects.Container): Phaser.GameObjects.Container {
+    const layout = getNavigationButtonLayout({ x: 0, ...INFO_BACK_BUTTON }, isMobileLandscapeLayout(), panel);
     return new Button(this, layout.x, layout.y, 'Back', () => this.closeAboutModal(), layout);
   }
 
