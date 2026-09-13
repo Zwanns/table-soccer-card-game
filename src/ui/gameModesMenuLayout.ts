@@ -1,4 +1,5 @@
 import { MOBILE_MAIN_MENU_BUTTON_FONT_SIZE, MOBILE_MAIN_MENU_BUTTON_HEIGHT } from './mainMenuLayout';
+import { MOBILE_NAV_BUTTON_FONT_SIZE, MOBILE_NAV_BUTTON_HEIGHT, MOBILE_NAV_BUTTON_WIDTH } from './mobileNavigationLayout';
 
 export type GameModesMenuAction = 'quickMatch' | 'tournament' | 'penaltyShootout' | 'tutorialMatch' | 'devLab' | 'back';
 
@@ -37,15 +38,13 @@ export interface GameModesMenuLayout {
 }
 
 export const MOBILE_GAME_MODES_STACK_CENTER_Y = 429;
-// Match the mobile TeamSelectScene Menu width and center from createTeamScreenLayout:
-// menuButtonRect = { x: 38, y: 639, width: 240, height: 54 } on the 1600px canvas.
-// Keep Back's taller geometry and optical label offset independent.
+// Keep the approved Team selection navigation center and arrow's optical offset.
 export const MOBILE_GAME_MODES_BACK = {
-  fontSize: '30px',
-  height: 70,
-  label: '← BACK',
+  fontSize: MOBILE_NAV_BUTTON_FONT_SIZE,
+  height: MOBILE_NAV_BUTTON_HEIGHT,
+  label: '← Back',
   labelOffsetY: -2,
-  width: 240,
+  width: MOBILE_NAV_BUTTON_WIDTH,
   x: 158,
   y: 666
 } as const;

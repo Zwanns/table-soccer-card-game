@@ -13,6 +13,7 @@ import { Button } from '../ui/Button';
 import { DEV_LAB_SCENE_KEY, isDevLabEnabled } from '../devLab';
 import { getGameModesMenuLayout } from '../ui/gameModesMenuLayout';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
+import { getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
 import { getMainMenuButtonLayout, type MainMenuAction } from '../ui/mainMenuLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 
@@ -692,14 +693,20 @@ export class MenuScene extends Phaser.Scene {
     );
     buttonIndex += 1;
 
+    const backButton = getNavigationButtonLayout({
+      ...buttonOptions,
+      x: MENU_LAYOUT.centerX,
+      y: MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex
+    }, isMobileLandscapeLayout(),
+    MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex - MENU_LAYOUT.buttonHeight / 2);
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        backButton.x,
+        backButton.y,
         'Back',
         () => this.openGameModes(),
-        buttonOptions
+        backButton
       )
     );
 
@@ -954,11 +961,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createInfoBackButton(): Phaser.GameObjects.Container {
-    return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal(), {
-      fontSize: INFO_BACK_BUTTON.fontSize,
-      height: INFO_BACK_BUTTON.height,
-      width: INFO_BACK_BUTTON.width
-    });
+    const layout = getNavigationButtonLayout({ x: 0, ...INFO_BACK_BUTTON }, isMobileLandscapeLayout());
+    return new Button(this, layout.x, layout.y, 'Back', () => this.closeAboutModal(), layout);
   }
 
   private createAboutLanguageSelector(x: number, y: number): Phaser.GameObjects.Container {

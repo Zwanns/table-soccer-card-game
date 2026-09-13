@@ -85,9 +85,9 @@ describe('Game Modes menu layout', () => {
     expect(layout.backButton).toEqual({ action: 'back', ...MOBILE_GAME_MODES_BACK });
     expect(layout.backButton).toEqual({
       action: 'back',
-      fontSize: '30px',
+      fontSize: '32px',
       height: 70,
-      label: '← BACK',
+      label: '← Back',
       labelOffsetY: -2,
       width: 240,
       x: 158,

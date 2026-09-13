@@ -6,6 +6,7 @@ import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
 import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
+import { getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
 import { CardView } from '../ui/CardView';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
@@ -147,12 +148,14 @@ export class TeamSelectScene extends Phaser.Scene {
 
     this.createCountryGrid(layout.teamGridRect, layout);
 
-    const menuCenter = rectCenter(layout.menuButtonRect);
-    const startCenter = rectCenter(layout.startButtonRect);
-    new Button(this, menuCenter.x, menuCenter.y, 'Menu', () => this.scene.start('MenuScene'), {
+    const menuButton = getNavigationButtonLayout({
+      ...rectCenter(layout.menuButtonRect),
       width: layout.menuButtonRect.width,
-      height: layout.menuButtonRect.height
-    });
+      height: layout.menuButtonRect.height,
+      fontSize: '22px'
+    }, layout.mobileWide);
+    const startCenter = rectCenter(layout.startButtonRect);
+    new Button(this, menuButton.x, menuButton.y, 'Menu', () => this.scene.start('MenuScene'), menuButton);
     new Button(
       this,
       startCenter.x,

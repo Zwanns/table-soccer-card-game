@@ -281,7 +281,7 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('getLanguageCode(language)');
     expect(menuSceneSource).toContain('createInfoBackButton');
     expect(menuSceneSource).toContain('const INFO_BACK_BUTTON = {');
-    expect(menuSceneSource).toContain("return new Button(this, 0, INFO_BACK_BUTTON.y, 'Back', () => this.closeAboutModal()");
+    expect(menuSceneSource).toContain("return new Button(this, layout.x, layout.y, 'Back', () => this.closeAboutModal()");
     expect(menuSceneSource).toContain('height: 360');
     expect(menuSceneSource).not.toContain("text(0, -1, '<'");
     expect(menuSceneSource).toContain('createAboutViewport');
