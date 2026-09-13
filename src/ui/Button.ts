@@ -16,6 +16,7 @@ export interface ButtonOptions {
   disabled?: boolean;
   fontSize?: string;
   height?: number;
+  labelOffsetY?: number;
   leftBorderColor?: number;
   rightBorderColor?: number;
   width?: number;
@@ -58,7 +59,7 @@ export class Button extends Phaser.GameObjects.Container {
     const sideBorders = createButtonSideBorders(scene, width, height, borderWidth, options);
 
     const label = scene.add
-      .text(0, 0, text, {
+      .text(0, options.labelOffsetY ?? 0, text, {
         color: disabled ? '#c6d0ca' : '#1f2a2e',
         fontFamily: BUTTON_FONT_FAMILY,
         fontSize: options.fontSize ?? '22px',

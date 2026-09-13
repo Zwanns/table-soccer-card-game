@@ -11,6 +11,7 @@ import { TUTORIAL_MATCH_V2_TEAMS } from '../tutorial/tutorialScenario';
 import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament } from '../tournament';
 import { Button } from '../ui/Button';
 import { DEV_LAB_SCENE_KEY, isDevLabEnabled } from '../devLab';
+import { getGameModesMenuLayout } from '../ui/gameModesMenuLayout';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { getMainMenuButtonLayout, type MainMenuAction } from '../ui/mainMenuLayout';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
@@ -512,92 +513,127 @@ export class MenuScene extends Phaser.Scene {
   private createGameModeButtons(): void {
     const buttonWidth = this.getMenuButtonWidth();
     const buttonOptions = this.getMenuButtonOptions(buttonWidth);
+    const mobile = isMobileLandscapeLayout();
+    const includeDevLab = import.meta.env.DEV && isDevLabEnabled();
+    const layout = getGameModesMenuLayout({
+      buttonFontSize: MENU_LAYOUT.buttonFontSize,
+      buttonHeight: MENU_LAYOUT.buttonHeight,
+      buttonsGap: MENU_LAYOUT.buttonsGap,
+      buttonsStartY: MENU_LAYOUT.buttonsStartY,
+      buttonWidth,
+      centerX: MENU_LAYOUT.centerX,
+      titleFontSize: '24px',
+      titleY: MENU_LAYOUT.buttonsStartY - 46
+    }, mobile, includeDevLab);
     const title = this.add
-      .text(MENU_LAYOUT.centerX, MENU_LAYOUT.buttonsStartY - 46, 'Game modes', {
+      .text(layout.title.x, layout.title.y, 'Game modes', {
         align: 'center',
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: layout.title.fontSize,
         fontStyle: '700'
       })
       .setOrigin(0.5);
     const buttons: MenuAnimatedObject[] = [title];
     let buttonIndex = 0;
+    const quickMatchLayout = layout.mainButtons[buttonIndex];
 
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        quickMatchLayout.x,
+        quickMatchLayout.y,
         'Quick match',
         () => this.scene.start('TeamSelectScene', { mode: 'match' }),
-        buttonOptions
+        mobile
+          ? { fontSize: quickMatchLayout.fontSize, height: quickMatchLayout.height, width: quickMatchLayout.width }
+          : buttonOptions
       )
     );
     buttonIndex += 1;
+    const tournamentLayout = layout.mainButtons[buttonIndex];
 
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        tournamentLayout.x,
+        tournamentLayout.y,
         'Tournament',
         () => this.openTournamentMenu(),
-        buttonOptions
+        mobile
+          ? { fontSize: tournamentLayout.fontSize, height: tournamentLayout.height, width: tournamentLayout.width }
+          : buttonOptions
       )
     );
     buttonIndex += 1;
+    const penaltyLayout = layout.mainButtons[buttonIndex];
 
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        penaltyLayout.x,
+        penaltyLayout.y,
         'Penalty shootout',
         () => this.scene.start('TeamSelectScene', { mode: 'penalty' }),
-        buttonOptions
+        mobile
+          ? { fontSize: penaltyLayout.fontSize, height: penaltyLayout.height, width: penaltyLayout.width }
+          : buttonOptions
       )
     );
     buttonIndex += 1;
+    const tutorialLayout = layout.mainButtons[buttonIndex];
 
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
+        tutorialLayout.x,
+        tutorialLayout.y,
         'Tutorial Match',
         () =>
           this.scene.start('GameScene', {
             ...TUTORIAL_MATCH_V2_TEAMS,
             matchMode: 'tutorial'
           }),
-        buttonOptions
+        mobile
+          ? { fontSize: tutorialLayout.fontSize, height: tutorialLayout.height, width: tutorialLayout.width }
+          : buttonOptions
       )
     );
     buttonIndex += 1;
 
     if (import.meta.env.DEV && isDevLabEnabled()) {
-      buttons.push(
-        new Button(
-          this,
-          MENU_LAYOUT.centerX,
-          MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-          'Dev Lab',
-          () => this.scene.start(DEV_LAB_SCENE_KEY),
-          buttonOptions
-        )
-      );
-      buttonIndex += 1;
+      if (layout.devLabButton !== null) {
+        const devLabLayout = layout.devLabButton;
+        buttons.push(
+          new Button(
+            this,
+            devLabLayout.x,
+            devLabLayout.y,
+            'Dev Lab',
+            () => this.scene.start(DEV_LAB_SCENE_KEY),
+            buttonOptions
+          )
+        );
+        buttonIndex += 1;
+      }
     }
 
+    const backCaption = mobile ? layout.backButton.label : 'Back';
     buttons.push(
       new Button(
         this,
-        MENU_LAYOUT.centerX,
-        MENU_LAYOUT.buttonsStartY + MENU_LAYOUT.buttonsGap * buttonIndex,
-        'Back',
+        layout.backButton.x,
+        layout.backButton.y,
+        backCaption,
         () => this.scene.start('MenuScene'),
-        buttonOptions
+        mobile
+          ? {
+              fontSize: layout.backButton.fontSize,
+              height: layout.backButton.height,
+              labelOffsetY: layout.backButton.labelOffsetY,
+              width: layout.backButton.width
+            }
+          : buttonOptions
       )
     );
 
