@@ -55,6 +55,35 @@ export const TEAM_SCREEN_TEAM_BUTTON_HEIGHT = 52;
 export const TEAM_SCREEN_GRID_GAP_X = 10;
 export const TEAM_SCREEN_GRID_GAP_Y = 8;
 export const TEAM_SCREEN_GRID_START_Y = 210;
+export const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6;
+export const TEAM_GRID_VIEWPORT_HEIGHT = 360;
+export const MOBILE_TEAM_CARD_SCALE = 2;
+
+// Country options share this geometry in quick-match and penalty team selection.
+// Keep the surrounding selected-team panels and navigation anchored to the original grid.
+export function createTeamCountryGridLayout(layout: TeamScreenLayout, teamCount: number) {
+  const scale = layout.mobileWide ? MOBILE_TEAM_CARD_SCALE : 1;
+  const baseWidth = layout.teamButtonWidth;
+  const baseHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET;
+  const cardWidth = baseWidth * scale;
+  const cardHeight = baseHeight * scale;
+  const gapX = layout.teamGridGapX * scale;
+  const gapY = layout.teamGridGapY * scale;
+  const columns = layout.mobileWide
+    ? Math.max(1, Math.floor((layout.teamGridRect.width + gapX) / (cardWidth + gapX)))
+    : layout.teamGridColumns;
+  const rowCount = Math.ceil(teamCount / columns);
+  const rowHeight = cardHeight + gapY;
+  const contentHeight = Math.max(0, rowCount * rowHeight - gapY);
+  const gridWidth = columns * cardWidth + (columns - 1) * gapX;
+
+  return {
+    scale, baseWidth, baseHeight, cardWidth, cardHeight, gapX, gapY,
+    columns, rowCount, rowHeight, contentHeight,
+    startX: layout.teamGridRect.x + (layout.teamGridRect.width - gridWidth) / 2 + cardWidth / 2,
+    maxScroll: Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT)
+  };
+}
 
 interface TeamSelectLayoutConfig {
   gridColumns: number;
@@ -135,7 +164,7 @@ const MOBILE_WIDE_TEAM_SELECT_LAYOUT: TeamSelectLayoutConfig = {
     height: 0,
     insetX: 0,
     insetY: 0,
-    fontSize: '13px',
+    fontSize: '26px',
     fullHeight: true
   }
 };
@@ -240,6 +269,27 @@ export function rectCenter(rect: TeamScreenRect): TeamScreenPoint {
   return {
     x: rect.x + rect.width / 2,
     y: rect.y + rect.height / 2
+  };
+}
+
+// Shared selected-name contract for quick match and standalone penalties.
+// Coordinates are local to the selected panel; artwork and controls stay anchored.
+export function createSelectedTeamNameLayout(
+  panel: TeamScreenRect,
+  coverFan: TeamScreenRect,
+  toggle: TeamScreenRect,
+  mobileWide: boolean
+) {
+  const left = rectRight(coverFan) + 18;
+  const width = mobileWide ? toggle.x - left - 14 : 260;
+  return {
+    x: left - rectCenter(panel).x,
+    y: 0,
+    style: {
+      fontSize: mobileWide ? '34px' : '26px',
+      wordWrap: mobileWide ? { width, useAdvancedWrap: true } : { width },
+      ...(mobileWide ? { maxLines: 2, lineSpacing: -2 } : {})
+    }
   };
 }
 

@@ -108,7 +108,7 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('layout.team2ControllerToggleRect');
     expect(source).toContain('layout.controllerToggle');
     expect(source).toContain("if (toggleLayout.orientation === 'vertical')");
-    expect(source).toContain('const textWidth = layout.mobileWide');
+    expect(source).toContain('createSelectedTeamNameLayout(rect, coverFanRect, controllerToggleRect, layout.mobileWide)');
     expect(source).toContain('const segmentWidth = width / 2');
     expect(source).toContain('const segmentHeight = height / 2');
     expect(source).toContain('const playerSegment = this.add.rectangle(');
@@ -131,11 +131,11 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('slotLabel.setDepth(1)');
   });
 
-  it('keeps the 8-column country grid layout on one page', () => {
+  it('uses the shared scrollable country grid without pagination', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('layout.teamGridColumns');
-    expect(source).toContain('Math.ceil(NATIONAL_TEAMS.length / layout.teamGridColumns)');
+    expect(source).toContain('createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length)');
+    expect(source).toContain('Math.floor(index / grid.columns)');
     expect(source).not.toContain('page + 1');
     expect(source).not.toContain('1 / 2');
   });
@@ -151,9 +151,9 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('SCOREBOARD_METAL_BORDER_ALPHA');
     expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_COLOR = SCOREBOARD_METAL_BORDER_COLOR');
     expect(source).toContain('const TEAM_SELECTION_METAL_BORDER_ALPHA = SCOREBOARD_METAL_BORDER_ALPHA');
-    expect(source).toContain('const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6');
-    expect(source).toContain('const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET');
-    expect(source).toContain('layout.teamButtonWidth');
+    expect(source).toContain('grid.baseWidth');
+    expect(source).toContain('grid.baseHeight');
+    expect(source).toContain('grid.scale');
     expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
     expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
     expect(source).toContain('const TEAM_OPTION_FLAG_WIDTH = 36');
@@ -200,7 +200,7 @@ describe('quick match team selection AI controls', () => {
     const scoreboardStyleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'scoreboardStyle.ts'), 'utf8');
 
     expect(scoreboardStyleSource).toContain("export const SCOREBOARD_TEXT_COLOR = '#d9eadf'");
-    expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA)');
+    expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA)');
     expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
     expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
     expect(source).toContain("fontFamily: 'Arial, sans-serif'");

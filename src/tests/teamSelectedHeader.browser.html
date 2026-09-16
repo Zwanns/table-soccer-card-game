@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Serve with npm run dev; open this file's URL with ?mode=match or ?mode=penalty.
+     Real Phaser/canvas regression checks complement the Node scene/input tests. -->
+<html><head><base href="/"><style>body { margin: 0; background: #0b5f3a; } pre { color: white; }</style></head>
+<body><div id="game"></div><pre id="result">RUNNING</pre>
+<script type="module">
+import Phaser from 'phaser';
+import { BootScene } from '/src/scenes/BootScene.ts';
+import { TeamSelectScene } from '/src/scenes/TeamSelectScene.ts';
+import { NATIONAL_TEAMS } from '/src/data/nationalTeams.ts';
+import { createTeamScreenLayout, rectRight, rectBottom } from '/src/ui/teamScreenLayout.ts';
+
+const mode = new URLSearchParams(location.search).get('mode') || 'match';
+Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
+const result = document.querySelector('#result');
+window.addEventListener('error', (event) => { result.textContent = `FAIL: ${event.message}`; });
+function check(condition, message) { if (!condition) throw new Error(message); }
+
+class TestBoot extends BootScene {
+  create() { this.scene.start('TeamSelectScene', { mode }); }
+}
+class TestSelection extends TeamSelectScene {
+  create() {
+    super.create();
+    try {
+      const layout = createTeamScreenLayout();
+      check(layout.mobileWide, 'Use a landscape browser window');
+      const panels = this.children.list.filter((item) => item.type === 'Container' && item.width === 480);
+      check(panels.length === 2, 'Both production panels must render');
+      let checked = 0;
+      const examples = [];
+      const names = [...NATIONAL_TEAMS.map((team) => team.name), 'Bosnia and Herzegovina', 'Trinidad and Tobago'];
+      for (const [index, panel] of panels.entries()) {
+        const slot = index + 1;
+        const rect = layout[`team${slot}SelectedCardRect`];
+        const fan = layout[`team${slot}CoverFanRect`];
+        const toggleRect = layout[`team${slot}ControllerToggleRect`];
+        const label = panel.list[2];
+        for (const name of names) {
+          label.setText(name);
+          const lines = label.getWrappedText();
+          const bounds = label.getBounds();
+          check(lines.length <= 2, `${name}: more than two lines`);
+          check(lines.join(' ') === name, `${name}: text lost`);
+          check(bounds.left >= rectRight(fan) && bounds.right <= toggleRect.x - 14, `${name}: horizontal overlap`);
+          check(bounds.top >= rect.y && bounds.bottom <= rectBottom(rect), `${name}: vertical overflow`);
+          check(Math.abs(bounds.centerY - panel.y) < 0.01, `${name}: not vertically centered`);
+          if (name === 'France') check(lines.length === 1, 'Short name should occupy one line');
+          if (['Northern Ireland', 'Bosnia and Herzegovina', 'Trinidad and Tobago'].includes(name)) {
+            check(lines.length === 2, `${name}: expected two lines`);
+            if (index === 0) examples.push({ name, lines, width: bounds.width, height: bounds.height });
+          }
+          checked++;
+        }
+        const toggle = panel.list[3];
+        check(toggle.list[3].text === 'PL' && toggle.list[4].text === 'AI', 'Mobile badge labels');
+        for (const badge of toggle.list.slice(3)) {
+          const bounds = badge.getBounds();
+          check(bounds.left >= toggleRect.x && bounds.right <= rectRight(toggleRect), 'Badge horizontal overflow');
+          check(bounds.height <= toggleRect.height / 2, 'Badge vertical overflow');
+        }
+        label.setText(index === 0 ? 'Northern Ireland' : 'Saudi Arabia');
+      }
+      result.textContent = `PASS ${mode}: ${checked} real canvas name/bounds checks; PL/AI bounds passed\n${JSON.stringify(examples)}`;
+    } catch (error) { result.textContent = `FAIL: ${error.stack}`; }
+  }
+}
+new Phaser.Game({ type: Phaser.CANVAS, parent: 'game', width: 1600, height: 720,
+  backgroundColor: '#0b5f3a', audio: { noAudio: true }, scene: [TestBoot, TestSelection],
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_HORIZONTALLY } });
+</script></body></html>

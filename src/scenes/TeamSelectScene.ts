@@ -17,9 +17,13 @@ import {
   SCOREBOARD_TEXT_COLOR
 } from '../ui/scoreboardStyle';
 import { createTeamFieldBackground } from '../ui/teamFieldBackground';
+import { getTeamSelectionColors } from '../ui/teamSelectionStyle';
 import { createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR, clampScroll } from '../ui/touchInput';
 import {
   createTeamScreenLayout,
+  createTeamCountryGridLayout,
+  createSelectedTeamNameLayout,
+  TEAM_GRID_VIEWPORT_HEIGHT,
   rectCenter,
   type TeamScreenControllerToggleLayout,
   type TeamScreenLayout,
@@ -31,7 +35,6 @@ type TeamSlot = 1 | 2;
 
 const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
-const TEAM_BUTTON_VISUAL_HEIGHT_OFFSET = 6;
 const SELECTED_COVER_FAN_CARD_COUNT = 3;
 const SELECTED_COVER_FAN_CARD_SCALE = 0.56;
 const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.5;
@@ -40,7 +43,6 @@ const SELECTED_COVER_FAN_MOBILE_OFFSETS = [-30, 0, 30] as const;
 const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
-const TEAM_GRID_VIEWPORT_HEIGHT = 360;
 const TEAM_SELECTION_METAL_BORDER_COLOR = SCOREBOARD_METAL_BORDER_COLOR;
 const TEAM_SELECTION_METAL_BORDER_ALPHA = SCOREBOARD_METAL_BORDER_ALPHA;
 const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = SCOREBOARD_BORDER_COLOR;
@@ -188,7 +190,8 @@ export class TeamSelectScene extends Phaser.Scene {
     const coverFanCenter = rectCenter(coverFanRect);
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
     const panel = this.add.container(center.x, center.y);
-    const background = this.add.rectangle(0, 0, rect.width, rect.height, SCOREBOARD_BACKGROUND_COLOR, SCOREBOARD_BACKGROUND_ALPHA);
+    const colors = getTeamSelectionColors(layout.mobileWide);
+    const background = this.add.rectangle(0, 0, rect.width, rect.height, colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA);
     background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
     const fan = this.createSelectedTeamCoverFan(
       coverFanCenter.x - center.x,
@@ -196,10 +199,7 @@ export class TeamSelectScene extends Phaser.Scene {
       coverTextureKey,
       layout.mobileWide
     );
-    const textX = coverFanRect.x + coverFanRect.width - center.x + 18;
-    const textWidth = layout.mobileWide
-      ? Math.max(160, controllerToggleRect.x - (center.x + textX) - 14)
-      : 260;
+    const nameLayout = createSelectedTeamNameLayout(rect, coverFanRect, controllerToggleRect, layout.mobileWide);
     const controllerToggleCenter = rectCenter(controllerToggleRect);
 
     const slotLabel = this.add
@@ -212,13 +212,12 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(1, 0.5);
     const teamText = this.add
-      .text(textX, 0, team.name, {
+      .text(nameLayout.x, nameLayout.y, team.name, {
         align: 'left',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: colors.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '26px',
         fontStyle: '700',
-        wordWrap: { width: textWidth }
+        ...nameLayout.style
       })
       .setOrigin(0, 0.5);
 
@@ -288,14 +287,11 @@ export class TeamSelectScene extends Phaser.Scene {
 
   private createCountryGrid(gridRect: TeamScreenRect, layout: TeamScreenLayout): void {
     const viewportTop = layout.teamGridStartY;
-    const teamButtonHeight = layout.teamButtonHeight + TEAM_BUTTON_VISUAL_HEIGHT_OFFSET;
+    const grid = createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length);
     const content = this.add.container(0, viewportTop);
     const viewportLeft = gridRect.x;
     const viewportWidth = gridRect.width;
-    const rowHeight = teamButtonHeight + layout.teamGridGapY;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / layout.teamGridColumns);
-    const contentHeight = rowCount * rowHeight - layout.teamGridGapY;
-    const maxScroll = Math.max(0, contentHeight - TEAM_GRID_VIEWPORT_HEIGHT);
+    const { contentHeight, maxScroll } = grid;
     const teamOptions: Phaser.GameObjects.Container[] = [];
     let teamGridScrollY = 0;
     let refreshTeamGridItems = (): void => {};
@@ -306,17 +302,17 @@ export class TeamSelectScene extends Phaser.Scene {
       refreshTeamGridItems();
     };
 
-    const startX = gridRect.x + layout.teamButtonWidth / 2;
-
     NATIONAL_TEAMS.forEach((team, index) => {
-      const column = index % layout.teamGridColumns;
-      const row = Math.floor(index / layout.teamGridColumns);
+      const column = index % grid.columns;
+      const row = Math.floor(index / grid.columns);
       const option = this.createCountryOption(
-        startX + column * (layout.teamButtonWidth + layout.teamGridGapX),
-        teamButtonHeight / 2 + row * rowHeight,
-        layout.teamButtonWidth,
-        teamButtonHeight,
-        team
+        grid.startX + column * (grid.cardWidth + grid.gapX),
+        grid.cardHeight / 2 + row * grid.rowHeight,
+        grid.baseWidth,
+        grid.baseHeight,
+        team,
+        grid.scale,
+        layout.mobileWide
       );
 
       option.on('wheel', (_pointer: Phaser.Input.Pointer, _deltaX: number, deltaY: number) => {
@@ -394,17 +390,18 @@ export class TeamSelectScene extends Phaser.Scene {
     }
   }
 
-  private createCountryOption(x: number, y: number, width: number, height: number, team: NationalTeam): Phaser.GameObjects.Container {
+  private createCountryOption(x: number, y: number, width: number, height: number, team: NationalTeam, scale = 1, mobileWide = false): Phaser.GameObjects.Container {
     const isTeamOne = this.selectedTeamOne === team.name;
     const isTeamTwo = this.selectedTeamTwo === team.name;
     const isSelected = isTeamOne || isTeamTwo;
+    const colors = getTeamSelectionColors(mobileWide);
     const option = this.add.container(x, y);
     const background = this.add.rectangle(
       0,
       0,
       width,
       height,
-      SCOREBOARD_BACKGROUND_COLOR,
+      colors.backgroundColor,
       isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
     );
     background.setStrokeStyle(
@@ -421,7 +418,7 @@ export class TeamSelectScene extends Phaser.Scene {
     const teamText = this.add
       .text(textX, 0, team.name, {
         align: 'left',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: colors.textColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
         fontStyle: '700',
@@ -429,17 +426,24 @@ export class TeamSelectScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    option.add([background, flag, teamText]);
-    option.setSize(width, height);
+    // Scale all artwork together, keeping the outer input container in canvas units
+    // so the existing scroll visibility checks use the full rendered height.
+    if (scale === 1) {
+      option.add([background, flag, teamText]);
+    } else {
+      const visuals = this.add.container(0, 0, [background, flag, teamText]).setScale(scale);
+      option.add(visuals);
+    }
+    option.setSize(width * scale, height * scale);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
+        background.setFillStyle(colors.backgroundColor, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(SCOREBOARD_BACKGROUND_COLOR, TEAM_OPTION_BACKGROUND_ALPHA);
+        background.setFillStyle(colors.backgroundColor, TEAM_OPTION_BACKGROUND_ALPHA);
       }
     });
     return option;
@@ -566,7 +570,7 @@ export class TeamSelectScene extends Phaser.Scene {
     );
     const border = this.add.rectangle(0, 0, width, height, SCOREBOARD_BACKGROUND_COLOR, 0);
     const playerLabel = this.add
-      .text(0, -segmentHeight / 2, 'Player', {
+      .text(0, -segmentHeight / 2, 'PL', {
         align: 'center',
         color: isAi ? SCOREBOARD_TEXT_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',

@@ -144,7 +144,7 @@ describe('team selection screen layout', () => {
       height: mobileLayout.team1SelectedCardRect.height,
       insetX: 0,
       insetY: 0,
-      fontSize: '13px',
+      fontSize: '26px',
       fullHeight: true
     });
     expect(mobileLayout.controllerToggle.height).toBeGreaterThan(desktopLayout.controllerToggle.height);
