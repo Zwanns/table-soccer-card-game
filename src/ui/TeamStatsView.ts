@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import {
-  createMatchSidePanelBackground,
   MATCH_SIDE_PANEL_HEIGHT,
   MATCH_SIDE_PANEL_HORIZONTAL_PADDING,
   MATCH_SIDE_PANEL_TEXT_STYLE,
@@ -34,7 +33,6 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     );
     const textAlign = options.align;
     const scorersText = options.scorers.length === 0 ? '-' : options.scorers.join('\n');
-    const background = createMatchSidePanelBackground(scene, 0);
 
     const title = scene.add
       .text(textX, px(-height / 2 + 18), 'Goals', {
@@ -51,9 +49,9 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
     const scorers = scene.add
       .text(textX, 0, scorersText, {
         align: textAlign,
-        color: '#d9eadf',
+        color: '#ffffff',
         fontFamily: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontFamily,
-        fontSize: MATCH_SIDE_PANEL_TEXT_STYLE.itemFontSize,
+        fontSize: '22px',
         lineSpacing: 3,
         resolution: SHARP_TEXT_RESOLUTION,
         wordWrap: { width: viewportWidth }
@@ -111,7 +109,7 @@ export class TeamStatsView extends Phaser.GameObjects.Container {
       dragScroll.bindDragTarget(scrollZone);
     }
 
-    this.add([background, title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
+    this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb]);
     scene.add.existing(this);
   }
 }

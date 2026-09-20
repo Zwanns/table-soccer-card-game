@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { formatGoalScorerLabel, getMatchStats, type GameState, type PlayerMatchStats } from '../game';
+import { formatGoalScorerMatchLabel, getMatchStats, type GameState, type PlayerMatchStats } from '../game';
 import { BUTTON_FONT_FAMILY } from './Button';
 import { RESULT_ACTION_PANEL_WIDTH } from './resultActionButtons';
 import {
@@ -137,5 +137,5 @@ function formatScorers(stats: PlayerMatchStats): string {
     return '-';
   }
 
-  return stats.scorers.map((scorer) => `${formatGoalScorerLabel(scorer)} (${scorer.turnNumber})`).join('\n');
+  return stats.scorers.map((scorer) => formatGoalScorerMatchLabel(scorer)).join('\n');
 }

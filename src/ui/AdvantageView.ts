@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import type { TeamAdvantage } from '../game';
+import { FIELD_VIEW_WIDTH } from './fieldDimensions';
 import { MATCH_HEADER_BORDER_ALPHA, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORDER_WIDTH } from './scoreboardStyle';
 
-export const ADVANTAGE_VIEW_WIDTH = 520;
+export const ADVANTAGE_VIEW_WIDTH = FIELD_VIEW_WIDTH;
 export const ADVANTAGE_VIEW_HEIGHT = 22;
 export const ADVANTAGE_TRACK_WIDTH = ADVANTAGE_VIEW_WIDTH - 12;
 export const ADVANTAGE_TRACK_HEIGHT = 14;

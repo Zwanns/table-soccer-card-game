@@ -5,6 +5,7 @@ import {
   createEmptyField,
   formatGoalScorerLabel,
   formatGoalScorerMatchLabel,
+  formatGoalScorerSideLabel,
   GameEngine,
   getMatchStats,
   getTeamAdvantage,
@@ -17,6 +18,26 @@ import { createDefaultSquad } from '../data/defaultSquads';
 import { DEFAULT_MATCH_STEP_LIMIT } from '../game/GameEngine';
 
 describe('global match step limit', () => {
+  it('records the actual goal step and preserves distinct pause and side labels', () => {
+    const { engine, game } = ready(200);
+    game.matchStepCount = 36;
+    game.turnNumber = 8;
+    game.players[1].field = createEmptyField();
+    game.players[1].field.goalkeeper = goalkeeperCard('3');
+    engine.drawAttackCard();
+    engine.selectTarget('goalkeeper');
+    expect(game.log.find((event) => event.type === 'GOAL_SCORED')).toMatchObject({
+      matchStepNumber: 37, turnNumber: 8
+    });
+    expect(getMatchStats(game)[0].scorers[0]).toMatchObject({ matchStepNumber: 37, turnNumber: 8 });
+    const scorer = { shirtNumber: 15, playerName: 'Example Player', rank: 'Q' as const,
+      teamId: 'fr', turnNumber: 8, matchStepNumber: 37 };
+    expect(formatGoalScorerMatchLabel(scorer)).toBe('#15 Example Player (37)');
+    expect(formatGoalScorerSideLabel(scorer)).toBe('\u26BD\uFE0E (37)');
+    expect(formatGoalScorerSideLabel({ ...scorer, shirtNumber: undefined })).toBe('\u26BD\uFE0E (37)');
+    expect(formatGoalScorerSideLabel({ ...scorer, matchStepNumber: undefined })).toBe('\u26BD\uFE0E (8)');
+    expect(formatGoalScorerLabel(scorer)).toBe('#15 Example Player');
+  });
   function ready(limit = 1, ranks: CardRank[] = ['A', 'K']) {
     const engine = new GameEngine();
     const game = engine.startNewGame({ seed: 'step-limit', matchStepLimit: limit });
@@ -44,13 +65,15 @@ describe('global match step limit', () => {
   }
 
   it('initializes at zero, excludes setup/restore, and resets for a new match', () => {
-    expect(DEFAULT_MATCH_STEP_LIMIT).toBe(500);
+    expect(DEFAULT_MATCH_STEP_LIMIT).toBe(200);
     const { engine, game } = ready();
+    expect(engine.getMatchStepLimit()).toBe(1);
     expect(game.matchStepCount).toBe(0);
     engine.drawAttackCard();
-    expect(game.matchStepCount).toBe(1);
+    expect(game.matchStepCount).toBe(0);
     engine.selectTarget('defender-1');
     const next = engine.startNewGame({ seed: 'reset-limit' });
+    expect(engine.getMatchStepLimit()).toBe(DEFAULT_MATCH_STEP_LIMIT);
     engine.startNextTurn();
     expect(next.matchStepCount).toBe(0);
     engine.drawAttackCard();
@@ -62,10 +85,13 @@ describe('global match step limit', () => {
   it.each(['A', '2'] as CardRank[])('counts a %s deck attack once and resolves it before finishing', (rank) => {
     const { engine, game } = ready(1, [rank, 'K']);
     engine.drawAttackCard();
-    expect(game.matchStepCount).toBe(1);
+    expect(game.matchStepCount).toBe(0);
     expect(game.phase).toBe('WAITING_FOR_TARGET');
     expect(() => engine.selectTarget('midfielder-1')).toThrow();
-    expect(game.matchStepCount).toBe(1);
+    expect(() => engine.selectTarget('unknown')).toThrow();
+    game.players[1].field.goalkeeper = goalkeeperCard('3');
+    expect(() => engine.selectTarget('goalkeeper')).toThrow();
+    expect(game.matchStepCount).toBe(0);
     engine.selectTarget('defender-1');
     expectFinished(game);
     expect(game.players[1].field['defender-1'] === null).toBe(rank === 'A');
@@ -86,10 +112,16 @@ describe('global match step limit', () => {
     };
     engine.drawAttackCard();
     expect(game.phase).toBe('WAITING_FOR_TARGET');
+    expect(game.matchStepCount).toBe(0);
+    expect(() => engine.useMidfieldGap('midfielder-2')).toThrow();
+    expect(game.matchStepCount).toBe(0);
     engine.useMidfieldGap('midfielder-1');
     expect(game.log.some((event) => event.type === 'MIDFIELD_GAP_USED')).toBe(true);
     expectFinished(game);
     expect(game.players[0].deck.cards).toHaveLength(2);
+    expect(() => engine.useMidfieldGap('midfielder-1')).toThrow();
+    expect(() => engine.drawAttackCard()).toThrow();
+    expect(game.matchStepCount).toBe(1);
   });
 
   it('counts only an accepted midfielder and resolves its duel', () => {
@@ -116,6 +148,7 @@ describe('global match step limit', () => {
     game.players[1].field = createEmptyField();
     game.players[1].field.goalkeeper = goalkeeperCard('3');
     engine.drawAttackCard();
+    expect(game.matchStepCount).toBe(0);
     engine.selectTarget('goalkeeper');
     expectFinished(game);
     expect(game.log.findIndex((event) => event.type === outcome)).toBeGreaterThan(-1);
@@ -127,6 +160,9 @@ describe('global match step limit', () => {
       expect(game.players[1].field.goalkeeper).toBeNull();
     }
     if (rank === '2') expect(game.players[1].field.goalkeeper?.rank).not.toBe('3');
+    expect(() => engine.selectTarget('goalkeeper')).toThrow();
+    expect(() => engine.drawAttackCard()).toThrow();
+    expect(game.matchStepCount).toBe(1);
   });
 
   it('counts a draw with no target and cleans up the attack', () => {
@@ -135,6 +171,22 @@ describe('global match step limit', () => {
     engine.drawAttackCard();
     expectFinished(game);
     expect(game.log.some((event) => event.type === 'ATTACK_MISSED')).toBe(true);
+    expect(() => engine.drawAttackCard()).toThrow();
+    expect(game.matchStepCount).toBe(1);
+  });
+
+  it('keeps 499 after reveal and fully resolves step 500 without allowing step 501', () => {
+    const { engine, game } = ready(500);
+    game.matchStepCount = 499;
+    engine.drawAttackCard();
+    expect(game.matchStepCount).toBe(499);
+    expect(game.phase).toBe('WAITING_FOR_TARGET');
+    engine.selectTarget('defender-1');
+    expect(game.players[1].field['defender-1']).toBeNull();
+    expectFinished(game, 500);
+    expect(() => engine.drawAttackCard()).toThrow();
+    expect(() => engine.selectTarget('defender-1')).toThrow();
+    expect(game.matchStepCount).toBe(500);
   });
 
   it('shares the counter across turns and teams and determines the winner by score', () => {
@@ -921,7 +973,8 @@ describe('game engine attacks', () => {
       {
         rank: 'Q',
         teamId: 'fr',
-        turnNumber: 1
+        turnNumber: 1,
+        matchStepNumber: 1
       }
     ]);
     expect(formatGoalScorerLabel(playerOneStats.scorers[0])).toBe('Rank Q');
@@ -1228,7 +1281,8 @@ describe('game engine attacks', () => {
           shirtNumber: 17,
           rank: 'A',
           teamId: 'fr',
-          turnNumber: 3
+          turnNumber: 3,
+          matchStepNumber: 3
         }
       ],
       shots: 1,
@@ -1271,7 +1325,8 @@ describe('game engine attacks', () => {
         shirtNumber: 12,
         rank: 'A',
         teamId: 'fr',
-        turnNumber: 4
+        turnNumber: 4,
+        matchStepNumber: 4
       }
     ]);
   });

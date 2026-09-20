@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import type { PlayerControllerType } from '../ai';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { formatGoalScorerLabel, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
+import { formatGoalScorerMatchLabel, getGoalStepNumber, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
 import { getTeamKitStyle } from '../data/teamKits';
 import {
@@ -708,12 +708,12 @@ function formatPercent(value: PlayerMatchStats['shotAccuracy']): string {
 }
 
 type ScorerTimelineRow = {
-  turnNumber: number;
+  matchStepNumber: number;
   playerOneText: string;
   playerTwoText: string;
 };
 
-function createScorerTimeline(
+export function createScorerTimeline(
   playerOneStats: PlayerMatchStats,
   playerTwoStats: PlayerMatchStats
 ): ScorerTimelineRow[] {
@@ -721,9 +721,9 @@ function createScorerTimeline(
     ...playerOneStats.scorers.map((scorer) => createScorerTimelineEntry('PLAYER_1', scorer)),
     ...playerTwoStats.scorers.map((scorer) => createScorerTimelineEntry('PLAYER_2', scorer))
   ]
-    .sort((first, second) => first.turnNumber - second.turnNumber)
+    .sort((first, second) => first.matchStepNumber - second.matchStepNumber)
     .map((entry) => ({
-      turnNumber: entry.turnNumber,
+      matchStepNumber: entry.matchStepNumber,
       playerOneText: entry.playerId === 'PLAYER_1' ? entry.text : '',
       playerTwoText: entry.playerId === 'PLAYER_2' ? entry.text : ''
     }));
@@ -732,12 +732,12 @@ function createScorerTimeline(
 function createScorerTimelineEntry(playerId: 'PLAYER_1' | 'PLAYER_2', scorer: GoalScorerStat): {
   playerId: 'PLAYER_1' | 'PLAYER_2';
   text: string;
-  turnNumber: number;
+  matchStepNumber: number;
 } {
   return {
     playerId,
-    text: `${formatGoalScorerLabel(scorer)} (turn ${scorer.turnNumber})`,
-    turnNumber: scorer.turnNumber
+    text: formatGoalScorerMatchLabel(scorer),
+    matchStepNumber: getGoalStepNumber(scorer)
   };
 }
 

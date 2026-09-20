@@ -1,6 +1,62 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { MATCH_FIELD_WIDTH, MATCH_SCOREBOARD_CENTER_X, MATCH_SCOREBOARD_CENTER_Y, MATCH_SCREEN_WIDTH } from '../ui/matchScreenLayout';
+import type Phaser from 'phaser';
+import { ScoreView, SCORE_STEP_CENTER_X } from '../ui/ScoreView';
+import { GameEngine } from '../game/GameEngine';
+
+vi.mock('phaser', () => ({
+  default: { GameObjects: { Container: class { add() {} } } }
+}));
+
+describe('scoreboard step counter', () => {
+  function renderScore(count?: number, limit?: number) {
+    const object = {
+      setStrokeStyle() { return this; },
+      setOrigin() { return this; },
+      setDisplaySize() { return this; },
+      add() { return this; }
+    };
+    const text = vi.fn(() => object);
+    const scene = { add: {
+      rectangle: () => object, container: () => object, image: () => object,
+      existing: () => {}, text
+    } };
+    new ScoreView(scene as unknown as Phaser.Scene, 800, 42, 'France', 'Spain', 'fr', 'es', 0, 0,
+      count === undefined ? { penaltyScore: { playerOne: 1, playerTwo: 0 } } : { stepCounter: { count, limit: limit! } });
+    return text;
+  }
+
+  it.each([0, 1, 127, 200])('renders current count %s with the engine default limit', (count) => {
+    const engine = new GameEngine();
+    expect(renderScore(count, engine.getMatchStepLimit())).toHaveBeenCalledWith(
+      SCORE_STEP_CENTER_X, -1, `${count} / 200`, expect.objectContaining({ fontSize: '34px' })
+    );
+  });
+
+  it('renders updated state values and the actual custom match limit', () => {
+    const engine = new GameEngine();
+    const state = engine.startNewGame({ seed: 'score-counter', matchStepLimit: 3 });
+    const render = () => renderScore(state.matchStepCount, engine.getMatchStepLimit());
+    expect(render()).toHaveBeenCalledWith(SCORE_STEP_CENTER_X, -1, '0 / 3', expect.anything());
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    expect(render()).toHaveBeenCalledWith(SCORE_STEP_CENTER_X, -1, '0 / 3', expect.anything());
+    engine.selectTarget(engine.getLegalTargets()[0]!);
+    expect(render()).toHaveBeenCalledWith(SCORE_STEP_CENTER_X, -1, '1 / 3', expect.anything());
+    const source = readSource('src/scenes/GameScene.ts');
+    const header = source.slice(source.indexOf('new ScoreView('), source.indexOf('new ScoreView(') + 650);
+    expect(header).toContain('count: state.matchStepCount ?? 0');
+    expect(header).toContain('limit: this.requireEngine().getMatchStepLimit()');
+  });
+
+  it('keeps penalty scores without inventing a match step counter', () => {
+    const text = renderScore();
+    expect(text).toHaveBeenCalledWith(SCORE_STEP_CENTER_X, -1, '', expect.anything());
+    expect(text).toHaveBeenCalledWith(0, 29, 'PEN 1:0', expect.anything());
+  });
+});
 
 function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');
@@ -740,7 +796,7 @@ describe('GameScene visual layout contracts', () => {
     expect(statsPanelSource).toContain("['Goals', String(playerOneStats.goals), String(playerTwoStats.goals)]");
     expect(statsPanelSource).toContain("['Shots', String(playerOneStats.shots), String(playerTwoStats.shots)]");
     expect(statsPanelSource).toContain("['GK saves', String(playerOneStats.goalkeeperSaves), String(playerTwoStats.goalkeeperSaves)]");
-    expect(statsPanelSource).toContain('formatGoalScorerLabel(scorer)');
+    expect(statsPanelSource).toContain('formatGoalScorerMatchLabel(scorer)');
     expect(statsPanelSource).not.toContain('createScoreLine');
     expect(statsPanelSource).not.toContain('getTeamScoreboardCode');
     expect(statsPanelSource).not.toContain('getFlagAssetKey');
@@ -886,23 +942,33 @@ describe('GameScene visual layout contracts', () => {
     expect(statsSource).toContain('export const TEAM_STATS_VIEW_WIDTH = MATCH_SIDE_PANEL_WIDTH');
     expect(statsSource).toContain('export const TEAM_STATS_VIEW_HEIGHT = MATCH_SIDE_PANEL_HEIGHT');
     expect(statsSource).toContain('const viewportHeight = height - 56');
-    expect(statsSource).toContain('createMatchSidePanelBackground(scene, 0)');
+    expect(statsSource).not.toContain('createMatchSidePanelBackground');
+    expect(statsSource).toContain("fontSize: '22px'");
+    expect(statsSource).toContain('this.add([title, scorersContent, scrollZone, scrollbarTrack, scrollbarThumb])');
     expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_LEFT_X = MATCH_SIDE_PANEL_CORRIDOR_WIDTH / 2');
     expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_RIGHT_X = MATCH_SCREEN_WIDTH - MATCH_SIDE_PANEL_LEFT_X');
     expect(sidePanelSource).toContain('export const MATCH_SIDE_PANEL_TOP_Y = MATCH_FIELD_CENTER_Y - MATCH_FIELD_HEIGHT / 2');
     expect(sidePanelSource).toContain('background.setStrokeStyle(1, MATCH_SIDE_PANEL_BORDER_COLOR, MATCH_SIDE_PANEL_BORDER_ALPHA)');
   });
 
-  it('matches the top scoreboard width to the advantage indicator width', () => {
+  it('matches the top scoreboard width to the field while retaining the original content width', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
     const scoreboardStyleSource = readSource('src/ui/scoreboardStyle.ts');
     const advantageSource = readSource('src/ui/AdvantageView.ts');
 
-    expect(advantageSource).toContain('export const ADVANTAGE_VIEW_WIDTH = 520');
+    expect(advantageSource).toContain("import { FIELD_VIEW_WIDTH } from './fieldDimensions'");
+    expect(advantageSource).toContain('export const ADVANTAGE_VIEW_WIDTH = FIELD_VIEW_WIDTH');
+    expect(advantageSource).toContain('export const ADVANTAGE_VIEW_HEIGHT = 22');
+    expect(MATCH_FIELD_WIDTH - 12).toBe(1108);
     expect(advantageSource).toContain('export const ADVANTAGE_TRACK_WIDTH = ADVANTAGE_VIEW_WIDTH - 12');
-    expect(scoreSource).toContain("import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView'");
+    expect(scoreSource).not.toContain('ADVANTAGE_VIEW_WIDTH');
     expect(scoreSource).toContain("} from './scoreboardStyle'");
-    expect(scoreSource).toContain('export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH');
+    expect(scoreSource).toContain('export const SCORE_CONTENT_WIDTH = 520');
+    expect(scoreSource).toContain('export const SCORE_VIEW_WIDTH = MATCH_FIELD_WIDTH');
+    expect(scoreSource).toContain('export const SCORE_VIEW_HEIGHT = 78');
+    expect(MATCH_FIELD_WIDTH).toBe(1120);
+    expect(MATCH_SCOREBOARD_CENTER_X).toBe(800);
+    expect(MATCH_SCOREBOARD_CENTER_Y).toBe(42);
     expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BACKGROUND_COLOR = 0x08120f');
     expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BACKGROUND_ALPHA = 0.92');
     expect(scoreboardStyleSource).toContain('export const SCOREBOARD_BORDER_COLOR = 0xf0c95a');
@@ -982,6 +1048,64 @@ describe('GameScene visual layout contracts', () => {
     expect(playerTwoCodeX).toBeLessThan(playerTwoFlagX);
     expect(edgeGap).toBeGreaterThanOrEqual(9);
     expect(edgeGap).toBeCloseTo(flagToCodeGap, 0);
+    expect(playerOneCodeX).toBe(-126);
+    expect(playerTwoCodeX).toBe(126);
+    expect(scoreSource).toContain('flag.setDisplaySize(58, 40)');
+    expect(scoreSource).toContain('.text(0, -1, `${playerOneGoals}:${playerTwoGoals}`');
+    expect(scoreSource).toContain("fontSize: '64px'");
+    expect(scoreSource).toContain("fontSize: '32px'");
+    expect(scoreSource).toContain('scoreContent.add([playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag])');
+    expect(scoreSource).toContain('scoreContent.add(\n        scene.add\n          .text(0, 29, `PEN');
+  });
+
+  it('places digital steps to the right of unchanged score content with an inset divider', () => {
+    const source = readSource('src/ui/ScoreView.ts');
+    const contentWidth = Number(source.match(/SCORE_CONTENT_WIDTH = (\d+)/)?.[1]);
+    const contentCenter = Number(source.match(/SCORE_CONTENT_CENTER_X = (\d+)/)?.[1]);
+    const dividerX = contentCenter + contentWidth / 2;
+    const stepCenter = (dividerX + MATCH_FIELD_WIDTH / 2) / 2;
+    expect(contentCenter).toBe(0);
+    expect(MATCH_SCOREBOARD_CENTER_X + contentCenter).toBe(800);
+    expect(MATCH_SCOREBOARD_CENTER_X + contentCenter - contentWidth / 2).toBe(540);
+    expect(MATCH_SCOREBOARD_CENTER_X + contentCenter + contentWidth / 2).toBe(1060);
+    expect(MATCH_SCOREBOARD_CENTER_X + dividerX).toBe(1060);
+    expect(MATCH_FIELD_WIDTH / 2 - dividerX).toBe(300);
+    expect(MATCH_SCOREBOARD_CENTER_X + stepCenter).toBe(1210);
+    expect(source).toContain('SCORE_CONTENT_CENTER_X = 0');
+    expect(source).toContain('SCORE_VIEW_DIVIDER_X = SCORE_CONTENT_CENTER_X + SCORE_CONTENT_WIDTH / 2');
+    expect(source).toContain('SCORE_STEP_CENTER_X = (SCORE_VIEW_DIVIDER_X + SCORE_VIEW_WIDTH / 2) / 2');
+    expect(source).toContain('scene.add.container(SCORE_CONTENT_CENTER_X, 0)');
+    expect(source).toContain('scene.add.text(SCORE_STEP_CENTER_X, -1, stepText');
+    expect(source).not.toContain("'127 / 500'");
+    expect(source).toContain("fontSize: '34px'");
+    expect(source).toContain('SCORE_VIEW_DIVIDER_X, 0, 1, SCORE_VIEW_HEIGHT - 20, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA');
+    expect(source).toContain('this.add([background, scoreContent, divider, stepLabel])');
+    expect(source).not.toMatch(/matchStepCount|matchStepLimit|GameEngine/);
+  });
+
+  it('fits Pause and Rules in the screen corners outside the scoreboard with unchanged behavior', () => {
+    const source = readSource('src/ui/matchControlButtons.ts');
+    const left = MATCH_SCOREBOARD_CENTER_X - MATCH_FIELD_WIDTH / 2;
+    const right = MATCH_SCOREBOARD_CENTER_X + MATCH_FIELD_WIDTH / 2;
+    const gap = Number(source.match(/HORIZONTAL_GAP = (\d+)/)?.[1]);
+    const width = Math.min(left, MATCH_SCREEN_WIDTH - right) - 2 * gap;
+    const pauseX = left / 2;
+    const rulesX = (right + MATCH_SCREEN_WIDTH) / 2;
+    expect(width).toBe(212);
+    expect(pauseX).toBe(120);
+    expect(rulesX).toBe(1480);
+    expect(pauseX - width / 2).toBeGreaterThan(0);
+    expect(pauseX + width / 2).toBeLessThan(left);
+    expect(rulesX - width / 2).toBeGreaterThan(right);
+    expect(rulesX + width / 2).toBeLessThan(MATCH_SCREEN_WIDTH);
+    expect(source).toContain('MATCH_CONTROL_BUTTON_WIDTH = Math.min(SCOREBOARD_LEFT, SCENE_WIDTH - SCOREBOARD_RIGHT) - 2 * HORIZONTAL_GAP');
+    expect(source).toContain('MATCH_CONTROL_BUTTON_LEFT_X = SCOREBOARD_LEFT / 2');
+    expect(source).toContain('MATCH_CONTROL_BUTTON_RIGHT_X = (SCOREBOARD_RIGHT + SCENE_WIDTH) / 2');
+    expect(source).toContain('MATCH_CONTROL_BUTTON_CENTER_Y = MATCH_SCOREBOARD_CENTER_Y + 7');
+    expect(source).toContain('MATCH_CONTROL_BUTTON_DEPTH = 100');
+    expect(source).toContain('disabled: config.disabled');
+    expect(source).toContain('config.onPause,\n    options');
+    expect(source).toContain('config.onRules,\n    options');
   });
 
   it('uses a transparent black background without borders for in-game info panels', () => {

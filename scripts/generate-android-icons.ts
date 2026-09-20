@@ -100,6 +100,27 @@ async function writePng(image: sharp.Sharp, outputPath: string): Promise<void> {
   await image.png().toFile(outputPath);
 }
 
+async function createColorForeground(sourcePath: string, canvasSize: number, contentSize: number): Promise<Buffer> {
+  const { data, info } = await sharp(sourcePath)
+    .ensureAlpha()
+    .resize(contentSize, contentSize, { fit: 'inside', kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  const left = Math.floor((canvasSize - info.width) / 2);
+  const top = Math.floor((canvasSize - info.height) / 2);
+
+  return sharp(data)
+    .extend({
+      left,
+      right: canvasSize - info.width - left,
+      top,
+      bottom: canvasSize - info.height - top,
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png()
+    .toBuffer();
+}
+
 async function main(): Promise<void> {
   const projectRoot = resolve(import.meta.dirname, '..');
   const sourcePath = resolve(projectRoot, process.argv[2] ?? 'TSM icon for GP.png');
@@ -125,7 +146,8 @@ async function main(): Promise<void> {
     const canvasSize = Math.round(ADAPTIVE_CANVAS_DP * density.scale);
     const contentSize = Math.round(ADAPTIVE_SAFE_ZONE_DP * density.scale);
     const transparentSymbol = await createTransparentSymbol(symbolMask, canvasSize, contentSize);
-    await writePng(sharp(transparentSymbol), resolve(outputDirectory, 'ic_launcher_foreground.png'));
+    const colorForeground = await createColorForeground(sourcePath, canvasSize, contentSize);
+    await writePng(sharp(colorForeground), resolve(outputDirectory, 'ic_launcher_foreground.png'));
     await writePng(sharp(transparentSymbol), resolve(outputDirectory, 'ic_launcher_monochrome.png'));
   }
 

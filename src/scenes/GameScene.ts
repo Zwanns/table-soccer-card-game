@@ -20,7 +20,7 @@ import { QUICK_MATCH_CONTEXT, saveTournament, type MatchLaunchContext, type Tour
 import {
   GameEngine,
   getFieldPlayerForCard,
-  formatGoalScorerMatchLabel,
+  formatGoalScorerSideLabel,
   getCurrentTargetLine,
   getMatchStats,
   getStartingGoalkeeper,
@@ -415,7 +415,13 @@ export class GameScene extends Phaser.Scene {
         state.players[0].flagCode,
         state.players[1].flagCode,
         state.players[0].goals,
-        state.players[1].goals
+        state.players[1].goals,
+        {
+          stepCounter: {
+            count: state.matchStepCount ?? 0,
+            limit: this.requireEngine().getMatchStepLimit()
+          }
+        }
       )
     );
     this.dynamicLayer.add(
@@ -932,13 +938,13 @@ export class GameScene extends Phaser.Scene {
     this.dynamicLayer.add(
       new TeamStatsView(this, MATCH_SIDE_PANEL_LEFT_X, MATCH_SIDE_PANEL_CENTER_Y, {
         align: 'left',
-        scorers: playerOneStats.scorers.map(formatGoalScorerMatchLabel)
+        scorers: playerOneStats.scorers.map(formatGoalScorerSideLabel)
       })
     );
     this.dynamicLayer.add(
       new TeamStatsView(this, MATCH_SIDE_PANEL_RIGHT_X, MATCH_SIDE_PANEL_CENTER_Y, {
         align: 'right',
-        scorers: playerTwoStats.scorers.map(formatGoalScorerMatchLabel)
+        scorers: playerTwoStats.scorers.map(formatGoalScorerSideLabel)
       })
     );
   }

@@ -38,7 +38,7 @@ import {
   restoreField
 } from './fieldRules';
 
-export const DEFAULT_MATCH_STEP_LIMIT = 500;
+export const DEFAULT_MATCH_STEP_LIMIT = 200;
 
 export interface StartNewGameOptions {
   matchStepLimit?: number;
@@ -157,6 +157,10 @@ export class GameEngine {
 
   public getState(): Readonly<GameState> {
     return this.state;
+  }
+
+  public getMatchStepLimit(): number {
+    return this.matchStepLimit;
   }
 
   public getLegalTargets(): string[] {
@@ -282,6 +286,7 @@ export class GameEngine {
     }
 
     const activePlayer = this.getActivePlayer();
+    this.countDeckCardUse();
     this.state.attackBank.push(attackCard);
     this.state.attackCard = null;
     this.clearAttackCardSource();
@@ -340,6 +345,8 @@ export class GameEngine {
     if (attackCard === null) {
       throw new Error('Cannot select a target because there is no active attack card.');
     }
+
+    this.countDeckCardUse();
 
     if (this.state.counterattackMidfieldGap != null && currentLine !== 'MIDFIELD') {
       this.closeCounterattackMidfieldGap();
@@ -650,11 +657,16 @@ export class GameEngine {
 
     this.state.attackCard = attackCard;
     this.state.currentAttackCardSource = 'DECK';
-    this.state.matchStepCount = (this.state.matchStepCount ?? 0) + 1;
     this.state.currentAttackingMidfielderPositionId = null;
     this.state.committableMidfielderPositionIds = [];
     this.appendLog({ type: 'ATTACK_CARD_DRAWN', playerId: activePlayer.id, card: attackCard });
     return true;
+  }
+
+  private countDeckCardUse(): void {
+    if (this.state.currentAttackCardSource === 'DECK') {
+      this.state.matchStepCount = (this.state.matchStepCount ?? 0) + 1;
+    }
   }
 
   private resolveAttackCard(): void {
@@ -671,6 +683,7 @@ export class GameEngine {
     this.state.legalMidfieldGapPositionIds = legalGapPositionIds;
 
     if (legalTargets.length === 0 && legalGapPositionIds.length === 0) {
+      this.countDeckCardUse();
       this.state.attackBank.push(attackCard);
       this.state.attackCard = null;
       this.clearAttackCardSource();
@@ -829,6 +842,7 @@ export class GameEngine {
     activePlayer.goals += 1;
     this.appendLog({
       type: 'GOAL_SCORED',
+      matchStepNumber: this.state.matchStepCount ?? 0,
       playerId: activePlayer.id,
       turnNumber: this.state.turnNumber,
       attackerCard: scoringCard,

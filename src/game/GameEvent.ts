@@ -82,7 +82,7 @@ export type GameEvent =
       attackerCard?: Card;
       defenderCard?: Card;
     }
-  | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; attackerCard: Card; scorer: ScorerSnapshot }
+  | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; matchStepNumber?: number; attackerCard: Card; scorer: ScorerSnapshot }
   | { type: 'TURN_ENDED'; playerId: Player['id'] }
   | {
       type: 'GAME_OVER';

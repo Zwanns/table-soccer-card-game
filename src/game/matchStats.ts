@@ -24,6 +24,7 @@ export interface PlayerMatchStats {
 
 export type GoalScorerStat = ScorerSnapshot & {
   turnNumber: number;
+  matchStepNumber?: number;
 };
 
 export function formatGoalScorerLabel(scorer: Pick<GoalScorerStat, 'playerName' | 'shirtNumber' | 'rank'>): string {
@@ -46,9 +47,13 @@ export function formatGoalScorerLabel(scorer: Pick<GoalScorerStat, 'playerName' 
 }
 
 export function formatGoalScorerMatchLabel(
-  scorer: Pick<GoalScorerStat, 'playerName' | 'shirtNumber' | 'rank' | 'turnNumber'>
+  scorer: Pick<GoalScorerStat, 'playerName' | 'shirtNumber' | 'rank' | 'turnNumber' | 'matchStepNumber'>
 ): string {
-  return `${formatGoalScorerLabel(scorer)} (${scorer.turnNumber})`;
+  return `${formatGoalScorerLabel(scorer)} (${getGoalStepNumber(scorer)})`;
+}
+
+export function getGoalStepNumber(scorer: Pick<GoalScorerStat, 'matchStepNumber' | 'turnNumber'>): number {
+  return scorer.matchStepNumber ?? scorer.turnNumber;
 }
 
 export function getMatchStats(state: Readonly<GameState>): [PlayerMatchStats, PlayerMatchStats] {
@@ -59,6 +64,11 @@ export function getMatchStats(state: Readonly<GameState>): [PlayerMatchStats, Pl
     createPlayerMatchStats(state, playerOne, playerTwo, playerOnePossession),
     createPlayerMatchStats(state, playerTwo, playerOne, playerTwoPossession)
   ];
+}
+
+export function formatGoalScorerSideLabel(scorer: GoalScorerStat): string {
+  // U+FE0E requests a monochrome text glyph instead of an emoji presentation.
+  return `\u26BD\uFE0E (${getGoalStepNumber(scorer)})`;
 }
 
 function createPlayerMatchStats(
@@ -74,7 +84,8 @@ function createPlayerMatchStats(
       ? [
           {
             ...event.scorer,
-            turnNumber: event.turnNumber
+            turnNumber: event.turnNumber,
+            matchStepNumber: event.matchStepNumber ?? event.turnNumber
           }
         ]
       : []

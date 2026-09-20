@@ -1,6 +1,31 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createScorerTimeline } from '../scenes/ResultScene';
+import { formatGoalScorerMatchLabel, formatGoalScorerSideLabel, type PlayerMatchStats } from '../game';
+
+vi.mock('phaser', () => ({ default: { Scene: class {}, GameObjects: { Container: class {} } } }));
+
+describe('goal step timeline', () => {
+  it('formats and sorts by match step, falling back for legacy goals', () => {
+    const scorer = { playerName: 'Delacroix', shirtNumber: 11, rank: 'Q' as const,
+      teamId: 'fr', turnNumber: 3, matchStepNumber: 12 };
+    const stats: PlayerMatchStats = { playerId: 'PLAYER_1', goals: 1, shots: 1,
+      goalkeeperSaves: 0, possession: 50, shotAccuracy: 100, scorers: [scorer] };
+    const rows = createScorerTimeline(stats, { ...stats, playerId: 'PLAYER_2', scorers: [
+      { ...scorer, playerName: 'Fontaine', shirtNumber: 10, turnNumber: 1, matchStepNumber: 60 },
+      { ...scorer, turnNumber: 7, matchStepNumber: undefined }
+    ] });
+    expect(rows.map((row) => row.matchStepNumber)).toEqual([7, 12, 60]);
+    expect(rows[0].playerTwoText).toBe('#11 Delacroix (7)');
+    expect(rows[1].playerOneText).toBe('#11 Delacroix (12)');
+    expect(rows[2].playerTwoText).toBe('#10 Fontaine (60)');
+    expect(rows.map((row) => row.playerOneText + row.playerTwoText).join('')).not.toContain('turn');
+    expect(formatGoalScorerMatchLabel(scorer)).toBe('#11 Delacroix (12)');
+    expect(formatGoalScorerSideLabel(scorer)).toBe('\u26BD\uFE0E (12)');
+    expect(readSource('src/ui/MatchStatsPanel.ts')).toContain('formatGoalScorerMatchLabel(scorer)');
+  });
+});
 
 function normalizeSourceLineEndings(source: string): string {
   return source.replace(/\r\n/g, '\n');

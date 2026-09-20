@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
-import { ADVANTAGE_VIEW_WIDTH } from './AdvantageView';
+import { MATCH_FIELD_WIDTH } from './matchScreenLayout';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -11,8 +11,12 @@ import {
 } from './scoreboardStyle';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
-export const SCORE_VIEW_WIDTH = ADVANTAGE_VIEW_WIDTH;
+export const SCORE_CONTENT_WIDTH = 520;
+export const SCORE_VIEW_WIDTH = MATCH_FIELD_WIDTH;
 export const SCORE_VIEW_HEIGHT = 78;
+export const SCORE_CONTENT_CENTER_X = 0;
+export const SCORE_VIEW_DIVIDER_X = SCORE_CONTENT_CENTER_X + SCORE_CONTENT_WIDTH / 2;
+export const SCORE_STEP_CENTER_X = (SCORE_VIEW_DIVIDER_X + SCORE_VIEW_WIDTH / 2) / 2;
 export const SCORE_VIEW_BACKGROUND_COLOR = SCOREBOARD_BACKGROUND_COLOR;
 export const SCORE_VIEW_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 export const SCORE_VIEW_BORDER_COLOR = MATCH_HEADER_BORDER_COLOR;
@@ -21,6 +25,10 @@ export const SCORE_VIEW_BORDER_WIDTH = MATCH_HEADER_BORDER_WIDTH;
 export const SCORE_VIEW_FONT_FAMILY = SCOREBOARD_FONT_FAMILY;
 
 export interface ScoreViewOptions {
+  stepCounter?: {
+    count: number;
+    limit: number;
+  };
   penaltyScore?: {
     playerOne: number;
     playerTwo: number;
@@ -45,6 +53,19 @@ export class ScoreView extends Phaser.GameObjects.Container {
     const background = scene.add.rectangle(0, 0, SCORE_VIEW_WIDTH, SCORE_VIEW_HEIGHT, SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA);
     background.setStrokeStyle(SCORE_VIEW_BORDER_WIDTH, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
 
+    const scoreContent = scene.add.container(SCORE_CONTENT_CENTER_X, 0);
+    const divider = scene.add.rectangle(
+      SCORE_VIEW_DIVIDER_X, 0, 1, SCORE_VIEW_HEIGHT - 20, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA
+    );
+    const stepText = options.stepCounter === undefined ? '' : `${options.stepCounter.count} / ${options.stepCounter.limit}`;
+    const stepLabel = scene.add.text(SCORE_STEP_CENTER_X, -1, stepText, {
+      color: '#f6e06e',
+      fontFamily: SCORE_VIEW_FONT_FAMILY,
+      fontSize: '34px',
+      fontStyle: '400',
+      resolution: SHARP_TEXT_RESOLUTION
+    }).setOrigin(0.5);
+
     const playerOneFlag = this.createFlag(scene, -221, playerOneFlagCode);
     const playerTwoFlag = this.createFlag(scene, 221, playerTwoFlagCode);
     const playerOneLabel = this.createPlayerLabel(scene, -126, getTeamScoreboardCode(playerOneFlagCode), 'right');
@@ -60,10 +81,11 @@ export class ScoreView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
-    this.add([background, playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag]);
+    scoreContent.add([playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag]);
+    this.add([background, scoreContent, divider, stepLabel]);
 
     if (options.penaltyScore !== undefined) {
-      this.add(
+      scoreContent.add(
         scene.add
           .text(0, 29, `PEN ${options.penaltyScore.playerOne}:${options.penaltyScore.playerTwo}`, {
             align: 'center',

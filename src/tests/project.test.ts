@@ -55,7 +55,15 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.4.1');
+    expect(GAME_VERSION).toBe('1.4.2');
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+    expect(pkg.version).toBe(GAME_VERSION);
+    expect(lock.version).toBe(GAME_VERSION);
+    expect(lock.packages[''].version).toBe(GAME_VERSION);
+    const android = readFileSync('android/app/build.gradle', 'utf8');
+    expect(android).toContain('versionName "1.4.2"');
+    expect(android).toContain('versionCode 2');
   });
 
   it('auto-syncs kit registry through the Vite dev and build pipeline', () => {
@@ -265,7 +273,15 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('GAME_AUTHOR_URL');
     expect(menuSceneSource).toContain('ABOUT_LANGUAGES');
     expect(menuSceneSource).toContain('ABOUT_CONTENT');
-    expect(menuSceneSource).toContain('LEGAL_DISCLAIMER_TEXT');
+    expect(menuSceneSource).not.toContain('LEGAL_DISCLAIMER_TEXT');
+    const footer = menuSceneSource.slice(menuSceneSource.indexOf('private createFooter()'), menuSceneSource.indexOf('private playIntroAnimation()'));
+    expect(footer).toContain("fontSize: '22px'");
+    expect(footer).toContain("align: 'right'");
+    expect(footer).toContain("color: '#b8d2c1'");
+    expect(footer).toContain("fontStyle: '700'");
+    expect(footer).toContain('this.introTargets.push(version)');
+    expect(footer).not.toMatch(/disclaimer|copyright|FIFA|UEFA|unofficial|fictional/i);
+    expect(menuSceneSource).toContain("heading: 'Legal / Disclaimer'");
     expect(menuSceneSource).toContain('`${GAME_TITLE} | v${GAME_VERSION}`');
     expect(menuSceneSource).toContain('This is an unofficial football card game.');
     expect(menuSceneSource).toContain('RULES_CONTENT');
@@ -486,8 +502,8 @@ describe('project scaffold', () => {
     const teamStatsViewSource = readFileSync(join(process.cwd(), 'src', 'ui', 'TeamStatsView.ts'), 'utf8');
 
     expect(resultSceneSource).toContain("'Goalscorers'");
-    expect(resultSceneSource).toContain('formatGoalScorerLabel(scorer)');
-    expect(gameSceneSource).toContain('formatGoalScorerMatchLabel');
+    expect(resultSceneSource).toContain('formatGoalScorerMatchLabel(scorer)');
+    expect(gameSceneSource).toContain('formatGoalScorerSideLabel');
     expect(teamStatsViewSource).toContain("options.scorers.join('\\n')");
     expect(teamStatsViewSource).toContain("options.scorers.length === 0 ? '-'");
     expect(teamStatsViewSource).not.toContain('No goals yet');

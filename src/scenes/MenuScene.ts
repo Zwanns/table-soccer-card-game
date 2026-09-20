@@ -37,10 +37,6 @@ const MENU_LAYOUT = {
   footerMargin: 24
 } as const;
 
-export const LEGAL_DISCLAIMER_TEXT =
-  '© 2026 Total Soccer: Mundial. All rights reserved.\n' +
-  'This is an unofficial football card game. It is not affiliated with FIFA, UEFA, national football associations, clubs, leagues, or players. All team names, player names, kits, card backs, and visual elements used in the game are fictional or stylized unless otherwise stated.';
-
 const ABOUT_MODAL = {
   width: 960,
   height: 600
@@ -811,28 +807,17 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createFooter(): void {
-    const disclaimer = this.add
-      .text(MENU_LAYOUT.centerX, SCENE_HEIGHT - 18, LEGAL_DISCLAIMER_TEXT, {
-        align: 'center',
-        color: '#c4d6cc',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
-        lineSpacing: 3,
-        wordWrap: { width: 1040 }
-      })
-      .setOrigin(0.5, 1)
-      .setAlpha(0.82);
     const version = this.add
       .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `${GAME_TITLE} | v${GAME_VERSION}`, {
         align: 'right',
         color: '#b8d2c1',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: '22px',
         fontStyle: '700'
       })
       .setOrigin(1, 1);
 
-    this.introTargets.push(disclaimer, version);
+    this.introTargets.push(version);
   }
 
   private playIntroAnimation(): void {
