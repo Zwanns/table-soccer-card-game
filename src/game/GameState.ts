@@ -32,4 +32,6 @@ export interface GameState {
   isDraw: boolean;
   turnNumber: number;
   log: GameEvent[];
+  /** Always initialized by GameEngine; optional for legacy state fixtures. */
+  matchStepCount?: number;
 }

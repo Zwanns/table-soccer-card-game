@@ -9,6 +9,19 @@ import {
 } from '../scenes/matchFinishFlow';
 
 describe('match finish flow', () => {
+  it('uses the step-limit message even when depletion fallback signals are present', () => {
+    const state = gameOverState({
+      activePlayerId: 'PLAYER_1',
+      players: [player('PLAYER_1', 'Ukraine', []), player('PLAYER_2', 'Poland', [])],
+      log: [
+        { type: 'ATTACK_DECK_EMPTY', playerId: 'PLAYER_1', turnNumber: 1 },
+        { type: 'GAME_OVER', winnerId: null, reason: 'STEP_LIMIT_REACHED' }
+      ]
+    });
+    expect(resolveCardDepletionMatchFinish(state)).toEqual({
+      bodyText: 'The match is over because the step limit has been reached.'
+    });
+  });
   it('detects a real Quick Match card-depletion finish and names the depleted left team', () => {
     const state = gameOverState({
       players: [player('PLAYER_1', 'Ukraine', []), player('PLAYER_2', 'Poland', ['A'])],

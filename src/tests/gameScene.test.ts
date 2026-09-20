@@ -31,6 +31,30 @@ function readConstString(source: string, constName: string, key: string): string
 }
 
 describe('GameScene visual layout contracts', () => {
+  it('handles step-limit GAME_OVER through the outcome animation completion callback', () => {
+    const source = readSource('src/scenes/GameScene.ts');
+    const selection = source.slice(
+      source.indexOf('const animationContext = this.createAttackAnimationContext(positionId);'),
+      source.indexOf('private handleSelectedTargetState(')
+    );
+    expect(selection).toContain('() => this.handleSelectedTargetState(state)');
+    expect(selection).toContain('this.animateAttackSelection(');
+    expect(selection).not.toContain("state.phase === 'GAME_OVER'");
+    const completion = source.slice(
+      source.indexOf('private handleSelectedTargetState('),
+      source.indexOf('private handleSelectedTargetState(') + 240
+    );
+    expect(completion).toContain("if (state.phase === 'GAME_OVER')");
+    expect(completion).toContain('this.handlePlayableMatchFinished(state)');
+    const animation = source.slice(
+      source.indexOf('private animateAttackSelection('),
+      source.indexOf('private finishAttackAnimation(')
+    );
+    expect(animation).toContain('() => this.finishAttackAnimationSequence(onComplete)');
+    expect(animation).toContain('onComplete: () => this.finishAttackAnimation(state, context, card, target, outcome, onComplete)');
+    expect(animation).not.toContain("state.phase === 'GAME_OVER'");
+  });
+
   it('uses a bounce chain for the active deck ball instead of yoyo levitation', () => {
     const source = readSource('src/ui/DeckView.ts');
 

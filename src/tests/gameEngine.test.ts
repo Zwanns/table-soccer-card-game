@@ -14,6 +14,154 @@ import {
   type PlayerField
 } from '../game';
 import { createDefaultSquad } from '../data/defaultSquads';
+import { DEFAULT_MATCH_STEP_LIMIT } from '../game/GameEngine';
+
+describe('global match step limit', () => {
+  function ready(limit = 1, ranks: CardRank[] = ['A', 'K']) {
+    const engine = new GameEngine();
+    const game = engine.startNewGame({ seed: 'step-limit', matchStepLimit: limit });
+    engine.startNextTurn();
+    game.activePlayerId = 'PLAYER_1';
+    game.players[0].deck = deck(ranks);
+    game.players[1].field = createEmptyField();
+    game.players[1].field['defender-1'] = card('3');
+    return { engine, game };
+  }
+
+  function expectFinished(game: GameState, count = 1) {
+    expect(game.matchStepCount).toBe(count);
+    expect(game.phase).toBe('GAME_OVER');
+    expect(game.log.at(-1)).toMatchObject({ type: 'GAME_OVER', reason: 'STEP_LIMIT_REACHED' });
+    expect(game.attackCard).toBeNull();
+    expect(game.attackBank).toEqual([]);
+    expect(game.legalTargetPositionIds).toEqual([]);
+    expect(game.committedMidfielderPositionIds).toEqual([]);
+    expect(game.committableMidfielderPositionIds).toEqual([]);
+    expect(game.legalMidfieldGapPositionIds).toEqual([]);
+    expect(game.counterattackMidfieldGap).toBeNull();
+    expect(game.currentAttackCardSource).toBeNull();
+    expect(game.currentAttackingMidfielderPositionId).toBeNull();
+  }
+
+  it('initializes at zero, excludes setup/restore, and resets for a new match', () => {
+    expect(DEFAULT_MATCH_STEP_LIMIT).toBe(500);
+    const { engine, game } = ready();
+    expect(game.matchStepCount).toBe(0);
+    engine.drawAttackCard();
+    expect(game.matchStepCount).toBe(1);
+    engine.selectTarget('defender-1');
+    const next = engine.startNewGame({ seed: 'reset-limit' });
+    engine.startNextTurn();
+    expect(next.matchStepCount).toBe(0);
+    engine.drawAttackCard();
+    engine.selectTarget(engine.getLegalTargets()[0]!);
+    expect(next.matchStepCount).toBe(1);
+    expect(next.phase).not.toBe('GAME_OVER');
+  });
+
+  it.each(['A', '2'] as CardRank[])('counts a %s deck attack once and resolves it before finishing', (rank) => {
+    const { engine, game } = ready(1, [rank, 'K']);
+    engine.drawAttackCard();
+    expect(game.matchStepCount).toBe(1);
+    expect(game.phase).toBe('WAITING_FOR_TARGET');
+    expect(() => engine.selectTarget('midfielder-1')).toThrow();
+    expect(game.matchStepCount).toBe(1);
+    engine.selectTarget('defender-1');
+    expectFinished(game);
+    expect(game.players[1].field['defender-1'] === null).toBe(rank === 'A');
+    expect(game.log.some((event) => event.type === (rank === 'A' ? 'CARD_DEFEATED' : 'ATTACK_MISSED'))).toBe(true);
+    expect(game.players[0].deck.cards).toHaveLength(rank === 'A' ? 3 : 2);
+    expect(game.isDraw).toBe(true);
+    expect(() => engine.drawAttackCard()).toThrow();
+    expect(() => engine.commitMidfielder('midfielder-1')).toThrow();
+    engine.startNextTurn();
+    expect(game.matchStepCount).toBe(1);
+  });
+
+  it('counts draw plus midfield gap as one fully resolved step', () => {
+    const { engine, game } = ready();
+    game.players[1].field = createEmptyField();
+    game.counterattackMidfieldGap = {
+      defendingPlayerId: 'PLAYER_2', positionIds: ['midfielder-1'], used: false, turnNumber: game.turnNumber
+    };
+    engine.drawAttackCard();
+    expect(game.phase).toBe('WAITING_FOR_TARGET');
+    engine.useMidfieldGap('midfielder-1');
+    expect(game.log.some((event) => event.type === 'MIDFIELD_GAP_USED')).toBe(true);
+    expectFinished(game);
+    expect(game.players[0].deck.cards).toHaveLength(2);
+  });
+
+  it('counts only an accepted midfielder and resolves its duel', () => {
+    const { engine, game } = ready();
+    game.players[1].field = createEmptyField();
+    game.players[1].field['midfielder-1'] = card('5');
+    game.players[0].field['midfielder-1'] = card('5');
+    engine.commitMidfielder('midfielder-1');
+    expect(game.matchStepCount).toBe(0);
+    expect(() => engine.commitMidfielder('goalkeeper')).toThrow();
+    expect(game.matchStepCount).toBe(0);
+    game.players[0].field['midfielder-1'] = card('A');
+    engine.commitMidfielder('midfielder-1');
+    expect(game.players[0].field['midfielder-1']).toBeNull();
+    expect(game.players[1].field['midfielder-1']).toBeNull();
+    expect(game.players[0].deck.cards).toHaveLength(4);
+    expectFinished(game);
+  });
+
+  it.each([
+    ['A', 'GOAL_SCORED'], ['2', 'GOALKEEPER_SAVE'], ['3', 'GOALPOST_HIT']
+  ] as const)('fully resolves goalkeeper outcome %s before GAME_OVER', (rank, outcome) => {
+    const { engine, game } = ready(1, [rank, 'K']);
+    game.players[1].field = createEmptyField();
+    game.players[1].field.goalkeeper = goalkeeperCard('3');
+    engine.drawAttackCard();
+    engine.selectTarget('goalkeeper');
+    expectFinished(game);
+    expect(game.log.findIndex((event) => event.type === outcome)).toBeGreaterThan(-1);
+    expect(game.log.findIndex((event) => event.type === outcome)).toBeLessThan(game.log.length - 1);
+    expect(game.players[0].goals).toBe(rank === 'A' ? 1 : 0);
+    expect(game.winnerId).toBe(rank === 'A' ? 'PLAYER_1' : null);
+    if (rank === 'A') {
+      expect(getMatchStats(game)[0].goals).toBe(1);
+      expect(game.players[1].field.goalkeeper).toBeNull();
+    }
+    if (rank === '2') expect(game.players[1].field.goalkeeper?.rank).not.toBe('3');
+  });
+
+  it('counts a draw with no target and cleans up the attack', () => {
+    const { engine, game } = ready();
+    game.players[1].field = createEmptyField();
+    engine.drawAttackCard();
+    expectFinished(game);
+    expect(game.log.some((event) => event.type === 'ATTACK_MISSED')).toBe(true);
+  });
+
+  it('shares the counter across turns and teams and determines the winner by score', () => {
+    const { engine, game } = ready(2, ['2', 'K']);
+    engine.drawAttackCard();
+    engine.selectTarget('defender-1');
+    expect(game.phase).toBe('ENDING_TURN');
+    expect(game.matchStepCount).toBe(1);
+    engine.startNextTurn();
+    expect(game.activePlayerId).toBe('PLAYER_2');
+    expect(game.matchStepCount).toBe(1);
+    game.players[1].goals = 2;
+    engine.drawAttackCard();
+    engine.selectTarget(engine.getLegalTargets()[0]!);
+    expectFinished(game, 2);
+    expect(game.winnerId).toBe('PLAYER_2');
+    expect(game.isDraw).toBe(false);
+    expect(game.turnNumber).toBe(2);
+  });
+
+  it('keeps natural empty-deck termination before the limit', () => {
+    const { engine, game } = ready(3, []);
+    engine.drawAttackCard();
+    expect(game.matchStepCount).toBe(0);
+    expect(game.log.at(-1)).toMatchObject({ type: 'GAME_OVER', reason: 'NO_ATTACK_CARD' });
+  });
+});
 
 function card(rank: CardRank, id: string = rank): Card {
   return {

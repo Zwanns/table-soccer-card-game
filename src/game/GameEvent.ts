@@ -23,7 +23,7 @@ export type AttackDeckEmptyEvent = {
   turnNumber: number;
 };
 
-export type GameOverReason = 'CANNOT_RESTORE_FIELD' | 'NO_ATTACK_CARD' | 'NO_FIRST_PLAYER_CARD';
+export type GameOverReason = 'CANNOT_RESTORE_FIELD' | 'NO_ATTACK_CARD' | 'NO_FIRST_PLAYER_CARD' | 'STEP_LIMIT_REACHED';
 
 export type GameEvent =
   | { type: 'GAME_STARTED' }

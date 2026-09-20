@@ -23,6 +23,10 @@ export function resolveCardDepletionMatchFinish(state: Readonly<GameState>): Car
     return null;
   }
 
+  if (getLastGameOverEvent(state.log)?.reason === 'STEP_LIMIT_REACHED') {
+    return { bodyText: 'The match is over because the step limit has been reached.' };
+  }
+
   const explicitPlayer = resolveExplicitGameOverDepletedPlayer(state);
 
   if (explicitPlayer !== null) {

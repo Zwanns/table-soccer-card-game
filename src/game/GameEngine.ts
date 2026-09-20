@@ -38,7 +38,10 @@ import {
   restoreField
 } from './fieldRules';
 
+export const DEFAULT_MATCH_STEP_LIMIT = 500;
+
 export interface StartNewGameOptions {
+  matchStepLimit?: number;
   seed?: string;
   player1Name?: string;
   player2Name?: string;
@@ -59,19 +62,26 @@ export interface GameSetupPreset {
   activePlayerId?: Player['id'];
 }
 
-type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS';
+type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS' | 'STEP_LIMIT_REACHED';
 type FinishGameReason = GameOverReason;
 
 export class GameEngine {
   private state: GameState;
   private random: RandomGenerator;
+  private matchStepLimit = DEFAULT_MATCH_STEP_LIMIT;
 
   public constructor(initialState?: GameState) {
     this.state = initialState ?? createInitialState();
+    this.state.matchStepCount ??= 0;
     this.random = Math.random;
   }
 
   public startNewGame(options: StartNewGameOptions = {}): GameState {
+    const matchStepLimit = options.matchStepLimit ?? DEFAULT_MATCH_STEP_LIMIT;
+    if (!Number.isSafeInteger(matchStepLimit) || matchStepLimit < 1) {
+      throw new Error('Match step limit must be a positive safe integer.');
+    }
+    this.matchStepLimit = matchStepLimit;
     this.random = options.seed === undefined ? Math.random : createSeededRandom(hashSeed(options.seed));
     const setupRandom =
       options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:match-setup`));
@@ -231,6 +241,7 @@ export class GameEngine {
     }
 
     activePlayer.field[positionId] = null;
+    this.state.matchStepCount = (this.state.matchStepCount ?? 0) + 1;
     this.state.attackCard = committedCard;
     this.state.currentAttackCardSource = 'MIDFIELDER';
     this.state.currentAttackingMidfielderPositionId = positionId;
@@ -286,6 +297,10 @@ export class GameEngine {
       positionId,
       attackerCard: attackCard
     });
+
+    if (this.finishAttackIfStepLimitReached()) {
+      return this.state;
+    }
 
     if (!this.hasAvailableNextAttackSource()) {
       this.finishAttackBecauseNoMoreAttackCards();
@@ -355,6 +370,10 @@ export class GameEngine {
       defenderCard: outfieldTargetCard
     });
 
+    if (this.finishAttackIfStepLimitReached()) {
+      return this.state;
+    }
+
     if (!this.hasAvailableNextAttackSource()) {
       this.finishAttackBecauseNoMoreAttackCards();
       return this.state;
@@ -397,6 +416,10 @@ export class GameEngine {
       attackerCard: attackCard,
       defenderCard: targetCard
     });
+
+    if (this.finishAttackIfStepLimitReached()) {
+      return this.state;
+    }
 
     if (!this.hasAvailableNextAttackSource()) {
       this.finishAttackBecauseNoMoreAttackCards();
@@ -469,6 +492,15 @@ export class GameEngine {
     const activePlayer = this.getActivePlayer();
 
     return activePlayer.deck.cards.length > 0 || this.computeCommittableMidfielderPositionIds().length > 0;
+  }
+
+  private finishAttackIfStepLimitReached(): boolean {
+    if ((this.state.matchStepCount ?? 0) < this.matchStepLimit) {
+      return false;
+    }
+
+    this.finishAttack('STEP_LIMIT_REACHED');
+    return true;
   }
 
   private clearAttackCardSource(): void {
@@ -618,6 +650,7 @@ export class GameEngine {
 
     this.state.attackCard = attackCard;
     this.state.currentAttackCardSource = 'DECK';
+    this.state.matchStepCount = (this.state.matchStepCount ?? 0) + 1;
     this.state.currentAttackingMidfielderPositionId = null;
     this.state.committableMidfielderPositionIds = [];
     this.appendLog({ type: 'ATTACK_CARD_DRAWN', playerId: activePlayer.id, card: attackCard });
@@ -670,6 +703,10 @@ export class GameEngine {
       this.state.legalTargetPositionIds = [];
       this.state.legalMidfieldGapPositionIds = [];
       this.appendLog({ type: 'GOALPOST_HIT', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
+
+      if (this.finishAttackIfStepLimitReached()) {
+        return this.state;
+      }
 
       if (!this.hasAvailableNextAttackSource()) {
         this.finishAttackBecauseNoMoreAttackCards();
@@ -772,6 +809,9 @@ export class GameEngine {
     this.state.phase = 'ENDING_TURN';
     this.appendLog({ type: 'TURN_ENDED', playerId: activePlayer.id });
     this.switchActivePlayer();
+    if ((this.state.matchStepCount ?? 0) >= this.matchStepLimit) {
+      this.finishGame('STEP_LIMIT_REACHED');
+    }
   }
 
   private finishAttackBecauseNoMoreAttackCards(): void {
@@ -921,6 +961,7 @@ function createInitialState(players: [Player, Player] = [
     winnerId: null,
     isDraw: false,
     turnNumber: 0,
+    matchStepCount: 0,
     log: []
   };
 }
