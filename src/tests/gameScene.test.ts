@@ -5,10 +5,87 @@ import { MATCH_FIELD_WIDTH, MATCH_SCOREBOARD_CENTER_X, MATCH_SCOREBOARD_CENTER_Y
 import type Phaser from 'phaser';
 import { ScoreView, SCORE_STEP_CENTER_X } from '../ui/ScoreView';
 import { GameEngine } from '../game/GameEngine';
+import { KitCardFaceView } from '../ui/KitCardFaceView';
+import { getCardRankFontSize, getCardRankSuffixFontSize, getCardRankVisualLabel, getCardRankY, getKitImageLayout, CARD_FACE_VISUAL_TUNING, KIT_CARD_LAYOUT } from '../ui/kitCardFaceModel';
+import { getTeamAdvantage } from '../game/advantage';
+import { getMatchTopPanelLayout, MATCH_CONTROL_BUTTON_CENTER_Y, MATCH_CONTROL_BUTTON_HEIGHT } from '../ui/matchControlButtons';
+import { AdvantageView, ADVANTAGE_VIEW_HEIGHT, ADVANTAGE_VIEW_WIDTH, MOBILE_ADVANTAGE_VIEW_HEIGHT } from '../ui/AdvantageView';
+import { SCORE_VIEW_HEIGHT, SCORE_CONTENT_CENTER_X, SCORE_VIEW_WIDTH } from '../ui/ScoreView';
 
 vi.mock('phaser', () => ({
   default: { GameObjects: { Container: class { add() {} } } }
 }));
+
+describe('unified mobile match header', () => {
+  it('joins all three sections and aligns their top and bottom edges', () => {
+    const layout = getMatchTopPanelLayout(true);
+    const left = MATCH_SCOREBOARD_CENTER_X - SCORE_VIEW_WIDTH / 2;
+    const right = MATCH_SCOREBOARD_CENTER_X + SCORE_VIEW_WIDTH / 2;
+    expect(layout.leftX + layout.buttonWidth / 2).toBe(left);
+    expect(layout.rightX - layout.buttonWidth / 2).toBe(right);
+    expect(layout.leftX - layout.buttonWidth / 2).toBe(14);
+    expect(layout.rightX + layout.buttonWidth / 2).toBe(1586);
+    expect(layout.scoreY - SCORE_VIEW_HEIGHT / 2).toBe(MATCH_CONTROL_BUTTON_CENTER_Y - MATCH_CONTROL_BUTTON_HEIGHT / 2);
+    expect(layout.scoreY + SCORE_VIEW_HEIGHT / 2).toBe(layout.advantageY - MOBILE_ADVANTAGE_VIEW_HEIGHT / 2);
+    expect(layout.advantageY + MOBILE_ADVANTAGE_VIEW_HEIGHT / 2).toBe(MATCH_CONTROL_BUTTON_CENTER_Y + MATCH_CONTROL_BUTTON_HEIGHT / 2);
+    expect(SCORE_VIEW_HEIGHT + MOBILE_ADVANTAGE_VIEW_HEIGHT).toBe(86);
+    expect(SCORE_VIEW_WIDTH).toBe(MATCH_FIELD_WIDTH);
+    expect(ADVANTAGE_VIEW_WIDTH).toBe(SCORE_VIEW_WIDTH);
+    expect(MOBILE_ADVANTAGE_VIEW_HEIGHT).toBeLessThan(ADVANTAGE_VIEW_HEIGHT);
+    expect(SCORE_CONTENT_CENTER_X).toBe(0);
+    expect(SCORE_STEP_CENTER_X).toBe(410);
+  });
+
+  it('preserves desktop geometry and opts in only on non-tutorial mobile matches', () => {
+    expect(getMatchTopPanelLayout(false)).toEqual({ buttonWidth: 212, leftX: 120, rightX: 1480, scoreY: 42, advantageY: 92 });
+    const source = readSource('src/scenes/GameScene.ts');
+    expect(source).toContain("this.matchMode !== 'tutorial' && isMobileLandscapeLayout()");
+    expect(source).toContain('const topPanel = getMatchTopPanelLayout(mobileUnified)');
+    expect(source).toContain('compact: mobileUnified');
+    expect(source).toContain('topPanel.scoreY');
+  });
+
+  it.each([false, true])('keeps advantage fills and markers inside the bar (compact=%s)', (compact) => {
+    const rectangle = vi.fn((_x: number, _y: number, _width: number, _height: number, _color: number, _alpha: number) => ({ setStrokeStyle() { return this; } }));
+    const scene = { add: { rectangle, existing() {} } };
+    const advantage = getTeamAdvantage(new GameEngine().getState());
+    new AdvantageView(scene as unknown as Phaser.Scene, 800, 92, { advantage, compact });
+    const expectedHeight = compact ? 8 : 22;
+    expect(rectangle.mock.calls[0]).toEqual([0, 0, 1120, expectedHeight, 0x08120f, 0.88]);
+    expect(rectangle.mock.calls[1]).toEqual([0, 0, 1108, compact ? 6 : 14, 0x1a3028, 1]);
+    expect(rectangle.mock.calls[2][3]).toBe(compact ? 6 : 12);
+    expect(rectangle.mock.calls[3][3]).toBe(compact ? 6 : 12);
+    for (const call of rectangle.mock.calls.slice(2)) expect(call[3]).toBeLessThan(expectedHeight);
+  });
+});
+
+describe('card suffix display polish', () => {
+  it.each(['A', 'K', 'Q', 'J', 'JOKER', '2', '3', '4', '5', '6', '7', '8', '9', '10'])('preserves main rank and enlarges only the suffix for %s', (rank) => {
+    const text = vi.fn((_x: number, _y: number, _text: string, _style: { fontSize: string }) => ({ setOrigin() { return this; } }));
+    const main = { width: 24, setText: vi.fn(), setFontSize: vi.fn() };
+    const face = Object.assign(Object.create(KitCardFaceView.prototype), {
+      scene: { add: { text } }, rankText: main,
+      rankLabelContainer: { add: vi.fn() }, rankSuffixText: null
+    }) as KitCardFaceView;
+    face.setDisplayRank(rank);
+    const label = getCardRankVisualLabel(rank);
+    expect(main.setText).toHaveBeenCalledWith(label.main);
+    expect(main.setFontSize).toHaveBeenCalledWith(getCardRankFontSize(label.main));
+    if (!label.suffix) {
+      expect(text).not.toHaveBeenCalled();
+      return;
+    }
+    const size = getCardRankSuffixFontSize(rank) * 1.25;
+    expect(size).toBeCloseTo(16.8);
+    expect(text).toHaveBeenCalledWith(27, 2, label.suffix, expect.objectContaining({ fontSize: `${size}px` }));
+    // Conservative one-em-per-character width still fits the card.
+    expect(KIT_CARD_LAYOUT.rankOffsetLeft + 27 + label.suffix.length * size).toBeLessThan(108);
+    const kit = getKitImageLayout();
+    expect(getCardRankY() + CARD_FACE_VISUAL_TUNING.rankSuffixOffsetY + size).toBeLessThan(kit.y - kit.height / 2);
+    const source = readSource('src/ui/KitCardFaceView.ts');
+    expect(source).toContain('fontSize: `${getCardRankFontSize(getCardRankVisualLabel(options.rank).main)}px`');
+  });
+});
 
 describe('scoreboard step counter', () => {
   function renderScore(count?: number, limit?: number) {
@@ -280,7 +357,7 @@ describe('GameScene visual layout contracts', () => {
     expect(controlsSource).toContain("config.labels?.rules ?? 'Rules'");
     expect(controlsSource).toContain('height: MATCH_CONTROL_BUTTON_HEIGHT');
     expect(controlsSource).toContain('fontSize: MATCH_CONTROL_BUTTON_FONT_SIZE');
-    expect(controlsSource).toContain('width: MATCH_CONTROL_BUTTON_WIDTH');
+    expect(controlsSource).toContain('width: layout.buttonWidth');
     expect(source).not.toContain("() => this.openMatchInfoModal('about')");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'rules' })");
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
@@ -987,7 +1064,7 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).toContain('SCORE_VIEW_BACKGROUND_COLOR, SCORE_VIEW_BACKGROUND_ALPHA');
     expect(scoreSource).toContain('background.setStrokeStyle(SCORE_VIEW_BORDER_WIDTH, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA)');
     expect(advantageSource).toContain('background.setStrokeStyle(MATCH_HEADER_BORDER_WIDTH, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORDER_ALPHA)');
-    expect(advantageSource).toContain('scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, ADVANTAGE_VIEW_HEIGHT');
+    expect(advantageSource).toContain('scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, height');
     expect(scoreSource).not.toContain('scene.add.rectangle(0, 0, 620, 78');
   });
 

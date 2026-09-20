@@ -18,6 +18,7 @@ import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 
 const CARD_WIDTH = 108;
 const CARD_HEIGHT = 148.5;
+const RANK_SUFFIX_DISPLAY_MULTIPLIER = 1.25;
 
 export interface KitCardFaceViewOptions {
   rank: string;
@@ -223,7 +224,7 @@ export class KitCardFaceView extends Phaser.GameObjects.Container {
         {
           color: KIT_CARD_LAYOUT.rankColor,
           fontFamily: KIT_CARD_LAYOUT.rankFontFamily,
-          fontSize: `${getCardRankSuffixFontSize(rank)}px`,
+          fontSize: `${getCardRankSuffixFontSize(rank) * RANK_SUFFIX_DISPLAY_MULTIPLIER}px`,
           fontStyle: '400',
           resolution: SHARP_TEXT_RESOLUTION
         }

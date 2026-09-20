@@ -64,7 +64,9 @@ describe('synchronized initial deal flow', () => {
     expect(gameSource).toContain("this.matchMode = data.matchMode ?? 'quick'");
     expect(gameSource).toContain("launchContext.mode === 'tournament'");
     expect(gameSource).toContain('createInitialDealSteps(pendingRestores');
-    expect(gameSource).not.toContain('isMobile');
+    const dealFlow = gameSource.slice(gameSource.indexOf('createInitialDealSteps(pendingRestores'), gameSource.indexOf('private drawAttackCard('));
+    expect(dealFlow).toContain('createInitialDealSteps(pendingRestores');
+    expect(dealFlow).not.toMatch(/isMobile|mobileUnified/);
     expect(devLabSource).toContain("'Initial deal preview'");
     expect(devLabSource).toContain("this.startGamePreview('initial-deal')");
     expect(devLabSource).toContain("this.scene.start('GameScene'");

@@ -44,7 +44,8 @@ import { getGoalkeeperGoalAnimation } from '../ui/goalkeeperGoalAnimation';
 import { createInitialDealSteps, INITIAL_DEAL_CARD_DURATION_MS } from '../ui/initialDealFlow';
 import { createMatchFinishedModal } from '../ui/matchFinishedModal';
 import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
-import { createMatchControlButtons } from '../ui/matchControlButtons';
+import { createMatchControlButtons, getMatchTopPanelLayout } from '../ui/matchControlButtons';
+import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from '../ui/scoreboardStyle';
@@ -62,11 +63,9 @@ import {
   MATCH_SIDE_PANEL_RIGHT_X
 } from '../ui/matchSidePanelStyle';
 import {
-  MATCH_ADVANTAGE_CENTER_Y,
   MATCH_DECK_Y,
   MATCH_FIELD_CENTER_X,
-  MATCH_FIELD_CENTER_Y,
-  MATCH_SCOREBOARD_CENTER_Y
+  MATCH_FIELD_CENTER_Y
 } from '../ui/matchScreenLayout';
 import { ScoreView } from '../ui/ScoreView';
 import { TeamStatsView } from '../ui/TeamStatsView';
@@ -95,8 +94,6 @@ import { submitSimulatedTournamentMatch } from './tournamentMatchSimulation';
 
 const FIELD_CENTER_Y = MATCH_FIELD_CENTER_Y;
 const DECK_Y = MATCH_DECK_Y;
-const SCOREBOARD_CENTER_Y = MATCH_SCOREBOARD_CENTER_Y;
-const ADVANTAGE_CENTER_Y = MATCH_ADVANTAGE_CENTER_Y;
 const INFO_MODAL = {
   width: 960,
   height: 600
@@ -364,6 +361,8 @@ export class GameScene extends Phaser.Scene {
 
   private render(state: Readonly<GameState>, options: RenderOptions = {}): void {
     const centerX = MATCH_FIELD_CENTER_X;
+    const mobileUnified = this.matchMode !== 'tutorial' && isMobileLandscapeLayout();
+    const topPanel = getMatchTopPanelLayout(mobileUnified);
     const interactive = options.interactive !== false;
     const pendingRestores = this.getPendingRestoreAnimationEntries(state);
     const hasPendingRestores = pendingRestores.length > 0;
@@ -401,6 +400,7 @@ export class GameScene extends Phaser.Scene {
     );
     const matchControls = createMatchControlButtons({
       scene: this,
+      mobileUnified,
       onPause: () => this.openPauseModal(state),
       onRules: () => this.openMatchInfoModal('rules')
     });
@@ -409,7 +409,7 @@ export class GameScene extends Phaser.Scene {
       new ScoreView(
         this,
         centerX,
-        SCOREBOARD_CENTER_Y,
+        topPanel.scoreY,
         state.players[0].name,
         state.players[1].name,
         state.players[0].flagCode,
@@ -453,7 +453,8 @@ export class GameScene extends Phaser.Scene {
       )
     );
     this.dynamicLayer.add(
-      new AdvantageView(this, centerX, ADVANTAGE_CENTER_Y, {
+      new AdvantageView(this, centerX, topPanel.advantageY, {
+        compact: mobileUnified,
         advantage: getTeamAdvantage(state)
       })
     );

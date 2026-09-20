@@ -5,31 +5,38 @@ import { MATCH_HEADER_BORDER_ALPHA, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORD
 
 export const ADVANTAGE_VIEW_WIDTH = FIELD_VIEW_WIDTH;
 export const ADVANTAGE_VIEW_HEIGHT = 22;
+export const MOBILE_ADVANTAGE_VIEW_HEIGHT = 8;
 export const ADVANTAGE_TRACK_WIDTH = ADVANTAGE_VIEW_WIDTH - 12;
 export const ADVANTAGE_TRACK_HEIGHT = 14;
 
 export interface AdvantageViewOptions {
   advantage: TeamAdvantage;
+  compact?: boolean;
 }
 
 export class AdvantageView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, x: number, y: number, options: AdvantageViewOptions) {
     super(scene, x, y);
 
+    const height = options.compact ? MOBILE_ADVANTAGE_VIEW_HEIGHT : ADVANTAGE_VIEW_HEIGHT;
+    const trackHeight = options.compact ? MOBILE_ADVANTAGE_VIEW_HEIGHT - 2 : ADVANTAGE_TRACK_HEIGHT;
+    const fillHeight = options.compact ? trackHeight : trackHeight - 2;
+    const markerHeight = options.compact ? 6 : 18;
+
     const playerOneWidth = Math.round(ADVANTAGE_TRACK_WIDTH * options.advantage.playerOneShare);
     const playerTwoWidth = ADVANTAGE_TRACK_WIDTH - playerOneWidth;
 
-    const background = scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, ADVANTAGE_VIEW_HEIGHT, 0x08120f, 0.88);
+    const background = scene.add.rectangle(0, 0, ADVANTAGE_VIEW_WIDTH, height, 0x08120f, 0.88);
     background.setStrokeStyle(MATCH_HEADER_BORDER_WIDTH, MATCH_HEADER_BORDER_COLOR, MATCH_HEADER_BORDER_ALPHA);
 
-    const track = scene.add.rectangle(0, 0, ADVANTAGE_TRACK_WIDTH, ADVANTAGE_TRACK_HEIGHT, 0x1a3028, 1);
-    track.setStrokeStyle(1, 0x86a995, 0.55);
+    const track = scene.add.rectangle(0, 0, ADVANTAGE_TRACK_WIDTH, trackHeight, 0x1a3028, 1);
+    if (!options.compact) track.setStrokeStyle(1, 0x86a995, 0.55);
 
     const playerOneFill = scene.add.rectangle(
       -ADVANTAGE_TRACK_WIDTH / 2 + playerOneWidth / 2,
       0,
       Math.max(1, playerOneWidth),
-      ADVANTAGE_TRACK_HEIGHT - 2,
+      fillHeight,
       0xd84a3f,
       0.96
     );
@@ -37,14 +44,14 @@ export class AdvantageView extends Phaser.GameObjects.Container {
       ADVANTAGE_TRACK_WIDTH / 2 - playerTwoWidth / 2,
       0,
       Math.max(1, playerTwoWidth),
-      ADVANTAGE_TRACK_HEIGHT - 2,
+      fillHeight,
       0x4da3d9,
       0.96
     );
 
     const splitX = -ADVANTAGE_TRACK_WIDTH / 2 + playerOneWidth;
-    const splitMarker = scene.add.rectangle(splitX, 0, 2, 18, 0xffffff, 0.95);
-    const centerMarker = scene.add.rectangle(0, 0, 1, 18, 0xf6e06e, 0.82);
+    const splitMarker = scene.add.rectangle(splitX, 0, 2, markerHeight, 0xffffff, 0.95);
+    const centerMarker = scene.add.rectangle(0, 0, 1, markerHeight, 0xf6e06e, 0.82);
 
     this.add([background, track, playerOneFill, playerTwoFill, centerMarker, splitMarker]);
     scene.add.existing(this);
