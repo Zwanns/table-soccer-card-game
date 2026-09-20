@@ -2092,7 +2092,7 @@ export class TournamentHubScene extends Phaser.Scene {
       return;
     }
 
-    if (!hasFutureHumanRelevantMatch(tournament)) {
+    if (shouldFinishTournament(tournament)) {
       this.registry.set('currentTournament', tournament);
       saveTournament(tournament);
       this.render();
@@ -2131,7 +2131,7 @@ export class TournamentHubScene extends Phaser.Scene {
       saveTournament(currentTournament);
       simulatedAnyMatch = true;
 
-      if (!hasFutureHumanRelevantMatch(currentTournament)) {
+      if ((tournament.stage === 'group' && currentTournament.stage !== 'group') || shouldFinishTournament(currentTournament)) {
         this.render();
         return;
       }
@@ -2180,7 +2180,7 @@ export class TournamentHubScene extends Phaser.Scene {
 
       const nextMatch = findNextAvailableMatch(currentTournament);
 
-      if (nextMatch === undefined) {
+      if (nextMatch === undefined || isHumanRelevantTournamentMatch(currentTournament, nextMatch)) {
         this.registry.set('currentTournament', currentTournament);
         saveTournament(currentTournament);
         this.render();
@@ -2470,7 +2470,7 @@ function getStatsTeamCode(teamId: TournamentTeamId): string {
   return team === undefined ? teamId : getTeamScoreboardCode(team.flagCode);
 }
 
-function getTournamentFooterAction(tournament: TournamentState): TournamentFooterAction | null {
+export function getTournamentFooterAction(tournament: TournamentState): TournamentFooterAction | null {
   if (tournament.stage === 'complete' || !hasRemainingUnplayedMatches(tournament)) {
     return null;
   }
@@ -2481,7 +2481,7 @@ function getTournamentFooterAction(tournament: TournamentState): TournamentFoote
     return null;
   }
 
-  if (!hasFutureHumanRelevantMatch(tournament)) {
+  if (shouldFinishTournament(tournament)) {
     return { kind: 'finish', label: 'Finish tournament' };
   }
 
@@ -2511,6 +2511,11 @@ function hasFutureHumanRelevantMatch(tournament: TournamentState): boolean {
       match.status !== 'completed' &&
       isHumanRelevantTournamentMatch(tournament, match)
   );
+}
+
+function shouldFinishTournament(tournament: TournamentState): boolean {
+  // Unseeded knockout fixtures cannot establish elimination during the group stage.
+  return tournament.stage !== 'group' && !hasFutureHumanRelevantMatch(tournament);
 }
 
 function isHumanRelevantTournamentMatch(tournament: TournamentState, match: TournamentMatch): boolean {

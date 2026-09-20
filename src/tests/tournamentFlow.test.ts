@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { TournamentHubScene, getTournamentFooterAction } from '../scenes/TournamentHubScene';
+import { submitTournamentMatchResult, getTournamentGroupStandings, type TournamentState } from '../tournament';
+
+vi.mock('phaser', () => ({ default: { Scene: class {}, GameObjects: { Container: class {} } } }));
 import { GoalkeeperDeck, type Card, type GoalkeeperCard } from '../cards';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
@@ -26,6 +30,122 @@ import {
 function readSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8').replace(/\r\n/g, '\n');
 }
+
+describe('human tournament advancement regression', () => {
+  const teams = ['fr', 'es', 'pl', 'ua', 'de', 'it', 'br', 'ar'];
+  const involves = (match: TournamentMatch, team = 'fr') => match.homeTeamId === team || match.awayTeamId === team;
+
+  function groupEnding(qualified = true, humans = ['fr']) {
+    let state = createTournamentState({ formatId: 'cup-m', teamIds: teams, seed: 'human-advance',
+      participants: teams.map((flagCode) => ({ flagCode, controllerType: humans.includes(flagCode) ? 'HUMAN' : 'AI' })) });
+    for (const match of state.matches.filter((m) => m.stage === 'group' && involves(m))) {
+      const homeWins = (match.homeTeamId === 'fr') === qualified;
+      state = submitTournamentMatchResult(state, match.id, { homeGoals: homeWins ? 4 : 0, awayGoals: homeWins ? 0 : 4 });
+    }
+    return state;
+  }
+
+  function harness(initial: TournamentState) {
+    let current = initial;
+    const simulate = vi.fn((state: TournamentState, match: TournamentMatch) =>
+      submitTournamentMatchResult(state, match.id, { homeGoals: 2, awayGoals: 0 }));
+    const render = vi.fn();
+    const start = vi.fn();
+    const scene = Object.assign(Object.create(TournamentHubScene.prototype), {
+      canRunGuardedInputAction: () => true,
+      registry: { set: (_key: string, value: TournamentState) => { current = value; } },
+      render, scene: { start }, simulateTournamentMatch: simulate,
+      showSimulationError: (message: string) => { throw new Error(message); }
+    }) as { handleAdvanceToNextMatch(state: TournamentState): void; handleFinishTournament(state: TournamentState): void };
+    return { state: () => current, simulate, render, start,
+      advance: () => scene.handleAdvanceToNextMatch(current), finish: () => scene.handleFinishTournament(current) };
+  }
+
+  it('advances remaining AI groups, seeds first-place France and stops before its semifinal', () => {
+    const initial = groupEnding();
+    expect(initial.matches.some((m) => m.stage === 'group' && m.status !== 'completed')).toBe(true);
+    expect(getTournamentFooterAction(initial)?.kind).toBe('advance');
+    const run = harness(initial);
+    run.advance();
+    const state = run.state();
+    expect(state.stage).toBe('semi-final');
+    expect(getTournamentGroupStandings(state.groups[0], state.matches, state.drawOrder)[0].teamId).toBe('fr');
+    const semi = state.matches.find((m) => m.id === 'semi-final-1')!;
+    expect(semi.homeTeamId).toBe('fr');
+    expect(semi.status).toBe('available');
+    expect(semi.result).toBeUndefined();
+    expect(getTournamentFooterAction(state)?.kind).toBe('play');
+    expect(run.simulate.mock.calls.every(([, match]) => match.stage === 'group' && !involves(match))).toBe(true);
+  });
+
+  it('permits finish only after an eliminated human is absent from seeded playoffs', () => {
+    const run = harness(groupEnding(false));
+    expect(getTournamentFooterAction(run.state())?.kind).toBe('advance');
+    run.advance();
+    expect(run.state().stage).toBe('semi-final');
+    expect(run.state().matches.filter((m) => m.stage !== 'group').some((m) => involves(m))).toBe(false);
+    expect(getTournamentFooterAction(run.state())?.kind).toBe('finish');
+    run.finish();
+    expect(run.state().stage).toBe('complete');
+  });
+
+  it('guards finish when a human playoff is available, saving and rendering without simulation', () => {
+    const seed = harness(groupEnding());
+    seed.advance();
+    const run = harness(seed.state());
+    run.finish();
+    expect(run.simulate).not.toHaveBeenCalled();
+    expect(run.render).toHaveBeenCalledOnce();
+    expect(run.start).not.toHaveBeenCalled();
+    expect(run.state().matches.find((m) => m.id === 'semi-final-1')?.result).toBeUndefined();
+  });
+
+  it('also stops a misrouted finish after group simulation reveals a qualified human', () => {
+    const run = harness(groupEnding());
+    run.finish();
+    expect(run.state().stage).toBe('semi-final');
+    expect(run.state().matches.find((m) => m.id === 'semi-final-1')?.result).toBeUndefined();
+    expect(run.simulate.mock.calls.every(([, match]) => !involves(match))).toBe(true);
+  });
+
+  it('advances the other AI semifinal but leaves the human final unplayed', () => {
+    const seed = harness(groupEnding());
+    seed.advance();
+    const won = submitTournamentMatchResult(seed.state(), 'semi-final-1', { homeGoals: 3, awayGoals: 0 });
+    const run = harness(won);
+    expect(getTournamentFooterAction(won)?.kind).toBe('advance');
+    run.advance();
+    expect(run.simulate).toHaveBeenCalledTimes(1);
+    expect(getTournamentFooterAction(run.state())?.kind).toBe('play');
+    const final = run.state().matches.find((m) => m.stage === 'final')!;
+    expect(involves(final)).toBe(true);
+    expect(final.status).toBe('available');
+    expect(final.result).toBeUndefined();
+    run.finish();
+    expect(run.simulate).toHaveBeenCalledTimes(1);
+  });
+
+  it('finishes an AI-only tournament and respects any other remaining human', () => {
+    const ai = harness(groupEnding(true, []));
+    ai.finish();
+    expect(ai.state().stage).toBe('complete');
+    const multi = harness(groupEnding(false, ['fr', 'de']));
+    multi.finish();
+    expect(multi.simulate.mock.calls.every(([, match]) => !involves(match, 'de'))).toBe(true);
+    expect(getTournamentFooterAction(multi.state())?.kind).toBe('play');
+  });
+
+  it('allows finish after the last human loses a knockout match', () => {
+    const seed = harness(groupEnding());
+    seed.advance();
+    const lost = submitTournamentMatchResult(seed.state(), 'semi-final-1', { homeGoals: 0, awayGoals: 3 });
+    expect(getTournamentFooterAction(lost)?.kind).toBe('finish');
+    const run = harness(lost);
+    run.finish();
+    expect(run.state().stage).toBe('complete');
+    expect(run.simulate.mock.calls.every(([, match]) => !involves(match))).toBe(true);
+  });
+});
 
 describe('tournament hub scene integration', () => {
   it('registers tournament setup and hub scenes in Phaser config', () => {
