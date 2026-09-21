@@ -166,7 +166,7 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2');
     expect(source).toContain('flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT)');
     expect(source).toContain("fontSize: '16px'");
-    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain("color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR");
     expect(source).not.toContain('isSelected ? 0xf0c95a : 0x143f2c');
     expect(source).not.toContain("color: isSelected ? '#1f2a2e' : '#ffffff'");
     expect(source).not.toContain('const TRANSLUCENT_CARD_BACKGROUND = 0x000000');
@@ -202,7 +202,7 @@ describe('quick match team selection AI controls', () => {
     expect(scoreboardStyleSource).toContain("export const SCOREBOARD_TEXT_COLOR = '#d9eadf'");
     expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA)');
     expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
-    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain("color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR");
     expect(source).toContain("fontFamily: 'Arial, sans-serif'");
     expect(source).not.toContain('SCOREBOARD_FONT_FAMILY');
   });
@@ -218,7 +218,7 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('border.setStrokeStyle(2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
     expect(source).toContain('background.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
     expect(source).toContain('border.setStrokeStyle(2, SCOREBOARD_BORDER_COLOR, 1)');
-    expect(source).toContain('color: SCOREBOARD_TEXT_COLOR');
+    expect(source).toContain("color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR");
     expect(source).toContain('color: isAi ? SCOREBOARD_TEXT_COLOR : TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR');
     expect(source).toContain('color: isAi ? TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR : SCOREBOARD_TEXT_COLOR');
     expect(source).not.toContain('isAi ? 0xf0c95a : 0x5f9572');

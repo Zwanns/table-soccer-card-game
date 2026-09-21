@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
 import { createTournamentBackground } from '../ui/tournamentBackground';
+import { fitMobileGroupName } from '../ui/tournamentGroupNameLayout';
 import {
   createTournamentSetupLayout,
   getTournamentSetupGroupMaxScroll,
@@ -131,7 +132,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       );
       background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
       const label = this.add
-        .text(0, 0, getTournamentSetupFormatLabel(formatId), {
+        .text(0, 0, getTournamentSetupFormatLabel(formatId, layout.mobileLandscape), {
           align: 'center',
           color: style.textColor,
           fontFamily: 'Arial, sans-serif',
@@ -384,7 +385,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       });
     }
 
-    const label = team === undefined ? 'Empty' : getTeamScoreboardCode(team.flagCode);
+    const label = team === undefined ? 'Empty' : layout.mobileLandscape ? team.name : getTeamScoreboardCode(team.flagCode);
     const name = this.add
       .text(team === undefined ? 12 : layout.groups.slotCodeX, layout.groups.slotHeight / 2, label, {
         color: style.textColor,
@@ -394,6 +395,10 @@ export class TournamentSetupScene extends Phaser.Scene {
         wordWrap: { width: team === undefined ? layout.groups.slotWidth - 24 : 96 }
       })
       .setOrigin(team === undefined ? 0 : 0.5, 0.5);
+
+    if (layout.mobileLandscape && team !== undefined) {
+      fitMobileGroupName(name, layout.groups);
+    }
 
     slot.add([background, name]);
 
@@ -442,7 +447,7 @@ export class TournamentSetupScene extends Phaser.Scene {
         align: 'center',
         color: isAi ? SLOT_AI_BUTTON_ACTIVE_TEXT_COLOR : SLOT_AI_BUTTON_OFF_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
-        fontSize: SLOT_AI_BUTTON_FONT_SIZE,
+        fontSize: layout.mobileLandscape ? '28px' : SLOT_AI_BUTTON_FONT_SIZE,
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -834,8 +839,11 @@ function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
   return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
 }
 
-function getTournamentSetupFormatLabel(formatId: TournamentFormatId): string {
+function getTournamentSetupFormatLabel(formatId: TournamentFormatId, mobileLandscape = false): string {
   const format = getTournamentFormat(formatId);
+  if (mobileLandscape) {
+    return `${FORMAT_LABELS[formatId]} (${format.teamCount} teams)`;
+  }
   const matchCount = getTournamentMatchCount(formatId);
 
   return `${FORMAT_LABELS[formatId]} (${format.teamCount} teams / ${matchCount} matches)`;

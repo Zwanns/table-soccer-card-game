@@ -66,9 +66,9 @@ const DESKTOP_BOTTOM_BUTTONS: readonly TournamentSetupButtonLayout[] = [
 ];
 
 const MOBILE_BOTTOM_BUTTONS: readonly TournamentSetupButtonLayout[] = [
-  { x: 227, y: 674, width: 390, height: 68, fontSize: '20px' },
-  { x: 800, y: 674, width: 390, height: 68, fontSize: '20px' },
-  { x: 1373, y: 674, width: 390, height: 68, fontSize: '20px' }
+  { x: 227, y: 674, width: 390, height: 68, fontSize: '28px' },
+  { x: 800, y: 674, width: 390, height: 68, fontSize: '28px' },
+  { x: 1373, y: 674, width: 390, height: 68, fontSize: '28px' }
 ];
 
 export function createTournamentSetupLayout(
@@ -78,7 +78,7 @@ export function createTournamentSetupLayout(
     return {
       mobileLandscape: true,
       title: { y: 28, fontSize: '26px' },
-      format: { startX: 32, gapX: 0, y: 86, width: 512, height: 58, fontSize: '21px' },
+      format: { startX: 32, gapX: 0, y: 86, width: 512, height: 58, fontSize: '30px' },
       groups: {
         columns: 2,
         startX: 40,
@@ -99,17 +99,17 @@ export function createTournamentSetupLayout(
         slotWidth: 451,
         slotHeight: 82,
         slotFlagX: 46,
-        slotFlagWidth: 48,
-        slotFlagHeight: 36,
+        slotFlagWidth: 64,
+        slotFlagHeight: 48,
         slotCodeX: 210,
         slotAiButtonWidth: 64,
-        slotFontSize: '30px',
+        slotFontSize: '34px',
         emptyFontSize: '22px'
       },
       teams: {
         columns: 2,
         buttonWidth: 220,
-        buttonHeight: 56,
+        buttonHeight: 64,
         gapX: 12,
         gapY: 8,
         startX: 1192,
@@ -118,9 +118,9 @@ export function createTournamentSetupLayout(
         viewportPadding: 8,
         flagX: -72,
         codeX: 32,
-        codeFontSize: '24px',
-        flagWidth: 36,
-        flagHeight: 27
+        codeFontSize: '28px',
+        flagWidth: 42,
+        flagHeight: 32
       },
       bottomButtons: MOBILE_BOTTOM_BUTTONS,
       messageY: 684

@@ -26,6 +26,7 @@ function renderHeader(mobileWide: boolean, mode: 'match' | 'penalty') {
   const scene = new TeamSelectScene();
   scene.init({ mode });
   const panels: DisplayObject[] = [];
+  const labels: DisplayObject[] = [];
   const start = vi.fn();
   const render = vi.fn();
   Object.assign(scene, {
@@ -38,7 +39,11 @@ function renderHeader(mobileWide: boolean, mode: 'match' | 'penalty') {
       container: (x: number, y: number) => { const panel = new DisplayObject(x, y); panels.push(panel); return panel; },
       rectangle: (x: number, y: number, w: number, h: number, fillColor: number, fillAlpha: number) =>
         Object.assign(new DisplayObject(x, y).setSize(w, h), { fillColor, fillAlpha }),
-      text: (x: number, y: number, text: string, style: Record<string, unknown>) => new DisplayObject(x, y, text, style)
+      text: (x: number, y: number, text: string, style: Record<string, unknown>) => {
+        const label = new DisplayObject(x, y, text, style);
+        labels.push(label);
+        return label;
+      }
     }
   });
   const layout = createTeamScreenLayout({ mobileWide });
@@ -48,12 +53,16 @@ function renderHeader(mobileWide: boolean, mode: 'match' | 'penalty') {
       layout[`team${slot}ControllerToggleRect`], layout, `Player ${slot}`,
       { name: slot === 1 ? 'Northern Ireland' : 'France', flagCode: slot === 1 ? 'nir' : 'fr' }, slot);
   }
-  return { scene, layout, panels: [panels[0], panels[2]], start, render };
+  return { scene, layout, labels, panels: [panels[0], panels[2]], start, render };
 }
 
 describe.each(['match', 'penalty'] as const)('%s selected header', (mode) => {
   it.each([true, false])('renders the shared name contract and preserves desktop styling (mobile=%s)', (mobile) => {
-    const { layout, panels } = renderHeader(mobile, mode);
+    const { layout, panels, labels } = renderHeader(mobile, mode);
+    for (const label of labels.filter(label => /^Player [12]$/.test(label.text))) {
+      expect(label.style).toMatchObject({ fontSize: mobile ? '28px' : '17px', color: mobile ? '#ffffff' : '#d9eadf' });
+      expect(label.origin).toEqual([1, 0.5]);
+    }
     for (const [index, panel] of panels.entries()) {
       const slot = index === 0 ? 1 : 2;
       const rect = layout[`team${slot}SelectedCardRect`];
@@ -70,7 +79,7 @@ describe.each(['match', 'penalty'] as const)('%s selected header', (mode) => {
       expect(name.y).toBe(0);
       expect(panel.x + name.x).toBe(rectRight(fan) + 18);
       if (mobile) {
-        expect(name.style).toMatchObject({ wordWrap: { width: 248, useAdvancedWrap: true }, maxLines: 2, lineSpacing: -2 });
+        expect(name.style).toMatchObject({ wordWrap: { width: 220, useAdvancedWrap: true }, maxLines: 2, lineSpacing: -2 });
         expect(panel.x + name.x + contract.style.wordWrap.width).toBe(toggle.x - 14);
         expect(rectCenter(rect).y).toBe(panel.y);
       } else {

@@ -37,9 +37,9 @@ const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
 const SELECTED_COVER_FAN_CARD_COUNT = 3;
 const SELECTED_COVER_FAN_CARD_SCALE = 0.56;
-const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.5;
+const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.64;
 const SELECTED_COVER_FAN_OFFSETS = [-34, 0, 34] as const;
-const SELECTED_COVER_FAN_MOBILE_OFFSETS = [-30, 0, 30] as const;
+const SELECTED_COVER_FAN_MOBILE_OFFSETS = [-36, 0, 36] as const;
 const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
@@ -205,9 +205,9 @@ export class TeamSelectScene extends Phaser.Scene {
     const slotLabel = this.add
       .text(rect.x + rect.width, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
         align: 'right',
-        color: SCOREBOARD_TEXT_COLOR,
+        color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
+        fontSize: layout.mobileWide ? '28px' : '17px',
         fontStyle: '700'
       })
       .setOrigin(1, 0.5);

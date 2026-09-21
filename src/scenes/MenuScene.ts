@@ -12,6 +12,7 @@ import { deleteStoredTournament, hasActiveTournamentSave, loadActiveTournament }
 import { Button } from '../ui/Button';
 import { DEV_LAB_SCENE_KEY, isDevLabEnabled } from '../devLab';
 import { getGameModesMenuLayout } from '../ui/gameModesMenuLayout';
+import { getMenuInfoLayout } from '../ui/menuInfoLayout';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
 import { getMainMenuButtonLayout, type MainMenuAction } from '../ui/mainMenuLayout';
@@ -43,13 +44,6 @@ const ABOUT_MODAL = {
 } as const;
 const ABOUT_MODAL_BACKGROUND_COLOR = 0x000000;
 const ABOUT_MODAL_BACKGROUND_ALPHA = 0.82;
-
-const ABOUT_VIEWPORT = {
-  x: -390,
-  y: -150,
-  width: 780,
-  height: 360
-} as const;
 
 const INFO_BACK_BUTTON = {
   y: 258,
@@ -183,20 +177,19 @@ export const RULES_CONTENT: Record<AboutLanguage, { title: string; sections: rea
       {
         heading: 'Open midfield zone',
         body: [
-          'An open midfield zone works like a weak rank-2 gap.',
-          'It can be used only when the rules allow it.',
-          'The AI should prefer beating a real defensive card before using an open zone.'
+          "A highlighted midfield gap can be used once during the next counterattack, with a card from the deck. It lets the attack pass through the empty corridor."
         ]
       },
       {
         heading: 'Goalkeeper',
         body: [
-          'The goalkeeper is resolved with a separate goalkeeper card.',
-          'After a goal, the goalkeeper card returns to the bottom of the goalkeeper deck.',
-          'The goalkeeper card is never captured by the attacker.'
+          "The goalkeeper is drawn from a separate GK deck and cannot be 2 or JOKER.",
+          "A higher rank scores. An equal rank hits the post and gives a rebound / extra shot if an attacking card and match steps remain.",
+          "A lower rank loses possession, except for the special beats against J, Q, K and A listed above.",
+          "After a goal, the GK card returns to the bottom of its deck; it is never captured."
         ]
       },
-      { heading: 'Shot result', body: ['A shot can end as:', 'Goal.', 'Goalkeeper save.', 'Post.', 'Turnover.'] },
+      { heading: 'Match length', body: ["The match ends after 200 steps.", "A step is an attempt to play a deck card against a target, using an open midfield zone, or successfully committing a midfielder. Drawing a card alone is not a step."] },
       {
         heading: 'Penalty shootout',
         body: [
@@ -253,20 +246,19 @@ export const RULES_CONTENT: Record<AboutLanguage, { title: string; sections: rea
       {
         heading: 'Otwarta strefa w środku pola',
         body: [
-          'Otwarta strefa działa jak słaba luka o randze 2.',
-          'Można jej użyć tylko wtedy, gdy pozwalają na to zasady.',
-          'AI powinno najpierw próbować pokonać prawdziwą kartę obrony, a dopiero potem używać otwartej strefy.'
+          "Podświetloną lukę w pomocy można wykorzystać raz podczas następnej kontry, kartą z talii. Pozwala przejść przez pusty korytarz."
         ]
       },
       {
         heading: 'Bramkarz',
         body: [
-          'Bramkarz jest rozstrzygany osobną kartą bramkarza.',
-          'Po golu karta bramkarza wraca na spód talii bramkarza.',
-          'Karta bramkarza nigdy nie jest przejmowana przez atakującego.'
+          "Bramkarz jest dobierany z osobnej talii GK i nie może mieć rangi 2 ani JOKER.",
+          "Wyższa ranga daje gola. Równa ranga trafia w słupek i daje dobitkę / kolejny strzał, jeśli pozostała karta ataku i kroki meczu.",
+          "Niższa ranga oznacza stratę piłki, z wyjątkiem opisanych wyżej specjalnych zwycięstw nad J, Q, K i A.",
+          "Po golu karta GK wraca na spód swojej talii; nigdy nie jest przejmowana."
         ]
       },
-      { heading: 'Wynik strzału', body: ['Strzał może zakończyć się jako:', 'Gol.', 'Obrona bramkarza.', 'Słupek.', 'Strata piłki.'] },
+      { heading: 'Długość meczu', body: ["Mecz kończy się po 200 krokach.", "Krok to próba zagrania karty z talii na cel, użycie wolnej strefy lub udane podłączenie pomocnika. Samo dobranie karty nie jest krokiem."] },
       {
         heading: 'Rzuty karne',
         body: [
@@ -323,20 +315,19 @@ export const RULES_CONTENT: Record<AboutLanguage, { title: string; sections: rea
       {
         heading: 'Відкрита зона в півзахисті',
         body: [
-          'Відкрита зона працює як слабка прогалина з рангом 2.',
-          'Її можна використати лише тоді, коли це дозволено правилами.',
-          'AI має спочатку намагатися побити справжню карту захисту, а вже потім використовувати відкриту зону.'
+          "Підсвічену прогалину в півзахисті можна використати один раз під час наступної контратаки, картою з колоди. Вона дозволяє пройти порожнім коридором."
         ]
       },
       {
         heading: 'Воротар',
         body: [
-          'Дія воротаря розігрується окремою воротарською картою.',
-          'Після гола карта воротаря повертається вниз воротарської колоди.',
-          'Карта воротаря ніколи не захоплюється атакувальним гравцем.'
+          "Воротар бере карту з окремої GK-колоди й не може мати ранг 2 або JOKER.",
+          "Вищий ранг забиває гол. Рівний ранг — штанга та відскок / додатковий удар, якщо ще є карта для атаки та кроки матчу.",
+          "Нижчий ранг втрачає м’яч, крім описаних вище спеціальних перемог над J, Q, K та A.",
+          "Після гола карта GK повертається вниз своєї колоди; її ніколи не захоплюють."
         ]
       },
-      { heading: 'Результат удару', body: ['Удар може завершитися як:', 'Гол.', 'Сейв воротаря.', 'Штанга.', 'Втрата м’яча.'] },
+      { heading: 'Тривалість матчу', body: ["Матч завершується після 200 кроків.", "Крок — це спроба зіграти карту з колоди по цілі, використання вільної зони або успішне підключення півзахисника. Саме взяття карти не є кроком."] },
       {
         heading: 'Серія пенальті',
         body: [
@@ -807,15 +798,16 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createFooter(): void {
+    const mobile = isMobileLandscapeLayout();
     const version = this.add
-      .text(SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `${GAME_TITLE} | v${GAME_VERSION}`, {
-        align: 'right',
-        color: '#b8d2c1',
+      .text(mobile ? SCENE_WIDTH / 2 : SCENE_WIDTH - MENU_LAYOUT.footerMargin, SCENE_HEIGHT - MENU_LAYOUT.footerMargin, `${GAME_TITLE} | v${GAME_VERSION}`, {
+        align: mobile ? 'center' : 'right',
+        color: mobile ? '#ffffff' : '#b8d2c1',
         fontFamily: 'Arial, sans-serif',
         fontSize: '22px',
         fontStyle: '700'
       })
-      .setOrigin(1, 1);
+      .setOrigin(mobile ? 0.5 : 1, 1);
 
     this.introTargets.push(version);
   }
@@ -960,16 +952,17 @@ export class MenuScene extends Phaser.Scene {
 
   private createAboutLanguageSelector(x: number, y: number): Phaser.GameObjects.Container {
     const selector = this.add.container(x, y);
-    const startX = -62;
+    const layout = getMenuInfoLayout(isMobileLandscapeLayout());
+    const startX = layout.languageStartX;
 
     ABOUT_LANGUAGES.forEach((language, index) => {
       const isActive = language === this.aboutLanguage;
       const label = this.add
-        .text(startX + index * 54, 0, getAboutLanguageCode(language), {
+        .text(startX + index * layout.languageStep, 0, getAboutLanguageCode(language), {
           align: 'center',
           color: isActive ? '#f0c95a' : '#d9eadf',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '18px',
+          fontSize: layout.languageFontSize,
           fontStyle: '700'
         })
         .setOrigin(0.5);
@@ -986,10 +979,10 @@ export class MenuScene extends Phaser.Scene {
       if (index < ABOUT_LANGUAGES.length - 1) {
         selector.add(
           this.add
-            .text(startX + index * 54 + 27, 0, '|', {
+            .text(startX + index * layout.languageStep + layout.languageStep / 2, 0, '|', {
               color: '#5f9572',
               fontFamily: 'Arial, sans-serif',
-              fontSize: '18px',
+              fontSize: layout.languageFontSize,
               fontStyle: '700'
             })
             .setOrigin(0.5)
@@ -1001,6 +994,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createAboutViewport(content: (typeof ABOUT_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+    const layout = getMenuInfoLayout(isMobileLandscapeLayout());
+    const ABOUT_VIEWPORT = layout.viewport;
     const wrapper = this.add.container(0, 0);
     const scrollContent = this.add.container(0, ABOUT_VIEWPORT.y);
     let contentHeight = 0;
@@ -1011,7 +1006,7 @@ export class MenuScene extends Phaser.Scene {
           align: 'left',
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '20px',
+          fontSize: layout.paragraphFontSize,
           lineSpacing: 12,
           wordWrap: { width: ABOUT_VIEWPORT.width }
         })
@@ -1027,7 +1022,7 @@ export class MenuScene extends Phaser.Scene {
           align: 'left',
           color: '#f0c95a',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '19px',
+          fontSize: layout.headingFontSize,
           fontStyle: '700',
           wordWrap: { width: ABOUT_VIEWPORT.width }
         })
@@ -1042,7 +1037,7 @@ export class MenuScene extends Phaser.Scene {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
+            fontSize: layout.bodyFontSize,
             lineSpacing: 8,
             wordWrap: { width: ABOUT_VIEWPORT.width }
           })
@@ -1061,6 +1056,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createRulesViewport(content: (typeof RULES_CONTENT)[AboutLanguage]): Phaser.GameObjects.Container {
+    const layout = getMenuInfoLayout(isMobileLandscapeLayout());
+    const ABOUT_VIEWPORT = layout.viewport;
     const wrapper = this.add.container(0, 0);
     const scrollContent = this.add.container(0, ABOUT_VIEWPORT.y);
     let contentHeight = 0;
@@ -1071,7 +1068,7 @@ export class MenuScene extends Phaser.Scene {
           align: 'left',
           color: index === 0 ? '#f0c95a' : '#ffffff',
           fontFamily: 'Arial, sans-serif',
-          fontSize: index === 0 ? '22px' : '19px',
+          fontSize: index === 0 ? layout.rulesTitleFontSize : layout.headingFontSize,
           fontStyle: '700',
           wordWrap: { width: ABOUT_VIEWPORT.width }
         })
@@ -1086,7 +1083,7 @@ export class MenuScene extends Phaser.Scene {
             align: 'left',
             color: '#d9eadf',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
+            fontSize: layout.bodyFontSize,
             lineSpacing: 8,
             wordWrap: { width: ABOUT_VIEWPORT.width }
           })
@@ -1109,6 +1106,7 @@ export class MenuScene extends Phaser.Scene {
     scrollContent: Phaser.GameObjects.Container,
     contentHeight: number
   ): void {
+    const ABOUT_VIEWPORT = getMenuInfoLayout(isMobileLandscapeLayout()).viewport;
     const maxScroll = Math.max(0, contentHeight - ABOUT_VIEWPORT.height);
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics

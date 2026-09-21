@@ -55,15 +55,15 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.4.2');
+    expect(GAME_VERSION).toBe('1.4.4');
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
     const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
     expect(pkg.version).toBe(GAME_VERSION);
     expect(lock.version).toBe(GAME_VERSION);
     expect(lock.packages[''].version).toBe(GAME_VERSION);
     const android = readFileSync('android/app/build.gradle', 'utf8');
-    expect(android).toContain('versionName "1.4.2"');
-    expect(android).toContain('versionCode 2');
+    expect(android).toContain('versionName "1.4.4"');
+    expect(android).toContain('versionCode 4');
   });
 
   it('auto-syncs kit registry through the Vite dev and build pipeline', () => {
@@ -276,8 +276,8 @@ describe('project scaffold', () => {
     expect(menuSceneSource).not.toContain('LEGAL_DISCLAIMER_TEXT');
     const footer = menuSceneSource.slice(menuSceneSource.indexOf('private createFooter()'), menuSceneSource.indexOf('private playIntroAnimation()'));
     expect(footer).toContain("fontSize: '22px'");
-    expect(footer).toContain("align: 'right'");
-    expect(footer).toContain("color: '#b8d2c1'");
+    expect(footer).toContain("align: mobile ? 'center' : 'right'");
+    expect(footer).toContain("color: mobile ? '#ffffff' : '#b8d2c1'");
     expect(footer).toContain("fontStyle: '700'");
     expect(footer).toContain('this.introTargets.push(version)');
     expect(footer).not.toMatch(/disclaimer|copyright|FIFA|UEFA|unofficial|fictional/i);
@@ -298,7 +298,9 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('createInfoBackButton');
     expect(menuSceneSource).toContain('const INFO_BACK_BUTTON = {');
     expect(menuSceneSource).toContain("return new Button(this, layout.x, layout.y, 'Back', () => this.closeAboutModal()");
-    expect(menuSceneSource).toContain('height: 360');
+    expect(menuSceneSource).toContain('const ABOUT_VIEWPORT = layout.viewport');
+    expect(footer).toContain('.setOrigin(mobile ? 0.5 : 1, 1)');
+    expect(footer).toContain('mobile ? SCENE_WIDTH / 2 : SCENE_WIDTH - MENU_LAYOUT.footerMargin');
     expect(menuSceneSource).not.toContain("text(0, -1, '<'");
     expect(menuSceneSource).toContain('createAboutViewport');
     expect(menuSceneSource).toContain('createGeometryMask');
@@ -384,8 +386,8 @@ describe('project scaffold', () => {
     expect(menuSceneSource).toContain('8 beats Q.');
     expect(menuSceneSource).toContain('9 beats J.');
     expect(menuSceneSource).toContain('A committed midfielder must strictly beat the opposite midfielder');
-    expect(menuSceneSource).toContain('An open midfield zone works like a weak rank-2 gap.');
-    expect(menuSceneSource).toContain('The goalkeeper is resolved with a separate goalkeeper card.');
+    expect(menuSceneSource).toContain('A highlighted midfield gap can be used once during the next counterattack');
+    expect(menuSceneSource).toContain('The goalkeeper is drawn from a separate GK deck and cannot be 2 or JOKER.');
     expect(menuSceneSource).toContain('Penalty shootouts use a separate penalty system.');
     expect(menuSceneSource).toContain('Tournament mode supports group matches');
     expect(menuSceneSource).toContain('2 pokonuje JOKERA.');

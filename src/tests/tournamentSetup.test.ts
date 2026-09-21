@@ -125,9 +125,10 @@ describe('tournament setup scene integration', () => {
     expect(mobileLayout.format.gapX).toBe(0);
     expect(getFormatControlWidth(mobileLayout)).toBe(1536);
     expect(setupSource).toContain('index * (layout.format.width + layout.format.gapX)');
-    expect(setupSource).toContain('getTournamentSetupFormatLabel(formatId)');
+    expect(setupSource).toContain('getTournamentSetupFormatLabel(formatId, layout.mobileLandscape)');
     expect(setupSource).toContain('const format = getTournamentFormat(formatId)');
     expect(setupSource).toContain('const matchCount = getTournamentMatchCount(formatId)');
+    expect(setupSource).toContain('if (mobileLandscape) {\n    return `${FORMAT_LABELS[formatId]} (${format.teamCount} teams)`;');
     expect(setupSource).toContain('`${FORMAT_LABELS[formatId]} (${format.teamCount} teams / ${matchCount} matches)`');
   });
 
@@ -195,7 +196,7 @@ describe('tournament setup scene integration', () => {
     expect(setupSource).toContain('layout.groups.slotAiButtonWidth');
     expect(setupSource).toContain('layout.groups.slotHeight');
     expect(setupSource).toContain("text(0, 0, 'AI'");
-    expect(setupSource).toContain('fontSize: SLOT_AI_BUTTON_FONT_SIZE');
+    expect(setupSource).toContain("fontSize: layout.mobileLandscape ? '28px' : SLOT_AI_BUTTON_FONT_SIZE");
     expect(setupSource).toContain('this.toggleTeamControllerType(slotIndex)');
     expect(setupSource).toContain('event.stopPropagation()');
     expect(aiButtonBlock).not.toContain('0x0b2118');
@@ -246,13 +247,13 @@ describe('tournament setup scene integration', () => {
     expect(desktopLayout.groups.titleFontSize).toBe('20px');
     expect(mobileLayout.groups.titleFontSize).toBe('30px');
     expect(desktopLayout.groups.slotFontSize).toBe('20px');
-    expect(mobileLayout.groups.slotFontSize).toBe('30px');
+    expect(mobileLayout.groups.slotFontSize).toBe('34px');
     expect(desktopLayout.groups.emptyFontSize).toBe('16px');
     expect(mobileLayout.groups.emptyFontSize).toBe('22px');
     expect(desktopLayout.groups.slotFlagWidth).toBe(30);
     expect(desktopLayout.groups.slotFlagHeight).toBe(22);
-    expect(mobileLayout.groups.slotFlagWidth).toBe(48);
-    expect(mobileLayout.groups.slotFlagHeight).toBe(36);
+    expect(mobileLayout.groups.slotFlagWidth).toBe(64);
+    expect(mobileLayout.groups.slotFlagHeight).toBe(48);
   });
 
   it('balances group title vertical padding above the first slot on desktop and mobile', () => {
