@@ -128,6 +128,7 @@ export class DevLabScene extends Phaser.Scene {
       { label: 'Pause during restore test', onClick: () => this.startGamePreview('pause-during-restore') },
       { label: 'Result screen preview', onClick: () => this.openResultPreview() },
       { label: 'Final result confetti preview', onClick: () => this.openFinalResultConfettiPreview() },
+      { label: 'Completed tournament penalties', onClick: () => this.openCompletedPenaltyPreview() },
       { label: 'Tournament complete preview', onClick: () => this.openTournamentCompletePreview() }
     ];
 
@@ -265,6 +266,23 @@ export class DevLabScene extends Phaser.Scene {
       suppressFinalWhistle: true,
       isTournamentFinal: true,
       devMockReturnScene: 'DevLabScene'
+    });
+  }
+
+  private openCompletedPenaltyPreview(): void {
+    if (!import.meta.env.DEV) return;
+    this.scene.start('TournamentPenaltyScene', {
+      devMockCompleted: true,
+      tournamentId: 'dev-lab-penalties',
+      homeControllerType: 'HUMAN', awayControllerType: 'AI',
+      matchResult: {
+        matchId: 'final-1', homeTeamId: 'es', awayTeamId: 'fr', homeGoals: 1, awayGoals: 1,
+        teamStats: {
+          home: { teamId: 'es', goals: 1, shots: 4, goalkeeperSaves: 2 },
+          away: { teamId: 'fr', goals: 1, shots: 3, goalkeeperSaves: 3 }
+        },
+        playerStats: []
+      }
     });
   }
 

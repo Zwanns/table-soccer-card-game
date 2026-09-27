@@ -363,22 +363,22 @@ describe('GameScene visual layout contracts', () => {
     expect(source).not.toContain("this.scene.start('MenuScene', { mode: 'about' })");
   });
 
-  it('opens a Pause overlay with full-width Exit and Continue actions', () => {
+  it('opens a Pause overlay with equal Exit, Restart and Continue actions', () => {
     const source = readSource('src/scenes/GameScene.ts');
     const overlaySource = readSource('src/ui/matchPauseOverlay.ts');
 
     expect(source).toContain('private pauseModal: Phaser.GameObjects.Container | null = null');
     expect(source).toContain('private openPauseModal(state: Readonly<GameState>): void');
     expect(source).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
-    expect(source).toContain("{ label: 'Continue the Match', onClick: () => this.closePauseModal() }");
+    expect(source).toContain("{ label: 'Continue', onClick: () => this.closePauseModal() }");
     expect(source).toContain("label: 'Exit to Menu'");
     expect(source).toContain('this.openExitConfirmModal()');
     const pauseBlock = source.slice(source.indexOf('private openPauseModal('), source.indexOf('private closePauseModal('));
     expect(pauseBlock).not.toContain("label: 'Sim'");
     expect(pauseBlock.indexOf("label: 'Exit to Menu'")).toBeLessThan(
-      pauseBlock.indexOf("label: 'Continue the Match'")
+      pauseBlock.indexOf("label: 'Continue'")
     );
-    expect(pauseBlock.match(/label:/g)).toHaveLength(2);
+    expect(pauseBlock.match(/label:/g)).toHaveLength(3);
     expect(source).toContain('private simulatePausedMatch(state: Readonly<GameState>): void');
     expect(source).toContain('submitSimulatedTournamentMatch(tournament, match, homeTeam, awayTeam)');
     expect(source).toContain("this.scene.start('TournamentCompleteScene')");
@@ -1097,7 +1097,7 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource.match(/fontFamily: SCORE_VIEW_FONT_FAMILY/g)?.length).toBeGreaterThanOrEqual(3);
     expect(scoreSource.match(/resolution: SHARP_TEXT_RESOLUTION/g)?.length).toBeGreaterThanOrEqual(3);
     expect(scoreSource).toContain('super(scene, px(x), px(y))');
-    expect(scoreSource).not.toContain('.setScale(');
+    expect(scoreSource).not.toContain('scoreContent.setScale(');
     expect(scoreSource).not.toContain('fontFamily: \'Arial, sans-serif\'');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, -158, 26, playerOneName)');
     expect(scoreSource).not.toContain('createPlayerLabel(scene, 158, 26, playerTwoName)');

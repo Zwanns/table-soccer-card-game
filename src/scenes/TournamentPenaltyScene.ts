@@ -42,6 +42,7 @@ import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons, MATCH_CONTROL_BUTTON_DEPTH } from '../ui/matchControlButtons';
 import { MatchFieldView } from '../ui/MatchFieldView';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
+import { createMatchRestartConfirmation } from '../ui/matchRestartConfirmation';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import {
   PENALTY_ATTEMPT_LIST_TOP_Y,
@@ -63,7 +64,8 @@ import {
 import { MATCH_STATS_PANEL_CENTER_Y } from '../ui/MatchStatsPanel';
 import { PenaltyPauseStatsPanel } from '../ui/PenaltyPauseStatsPanel';
 import { ScoreView } from '../ui/ScoreView';
-import { createResultActionButtons } from '../ui/resultActionButtons';
+import { createResultActionButtons, RESULT_ACTION_BUTTON_HEIGHT } from '../ui/resultActionButtons';
+import { SCOREBOARD_BORDER_COLOR } from '../ui/scoreboardStyle';
 import { ABOUT_LANGUAGES, RULES_CONTENT, type AboutLanguage } from './MenuScene';
 import {
   getPenaltyImpactSceneEffect,
@@ -72,6 +74,7 @@ import {
 } from './penaltySceneEffects';
 
 interface TournamentPenaltySceneData {
+  devMockCompleted?: boolean;
   tournamentId?: string;
   matchResult?: TournamentMatchResult;
   standalone?: boolean;
@@ -124,6 +127,10 @@ interface InFlightPenaltyCard {
 }
 
 export class TournamentPenaltyScene extends Phaser.Scene {
+  private devMockCompleted = false;
+  private resultRecorded = false;
+  private isLeaving = false;
+  private restartModal: Phaser.GameObjects.Container | null = null;
   private tournamentId: string | null = null;
   private matchResult: TournamentMatchResult | null = null;
   private shootoutState: PenaltyShootoutState | null = null;
@@ -146,6 +153,10 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   public init(data: TournamentPenaltySceneData): void {
+    this.devMockCompleted = import.meta.env.DEV && data.devMockCompleted === true;
+    this.resultRecorded = false;
+    this.isLeaving = false;
+    this.restartModal = null;
     this.tournamentId = data.tournamentId ?? null;
     this.matchResult = data.matchResult ?? null;
     this.shootoutState = null;
@@ -196,7 +207,12 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyPenaltyAiController, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.destroyPenaltyAiController, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.destroyPenaltyAiController, this);
+    if (import.meta.env.DEV && this.devMockCompleted) {
+      this.completeShootoutFromPause();
+      return;
+    }
     this.render();
   }
 
@@ -264,7 +280,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private openPauseModal(): void {
-    if (this.pauseModal !== null || this.rulesModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
+    if (this.pauseModal !== null || this.restartModal !== null || this.rulesModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
       return;
     }
 
@@ -279,19 +295,55 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     });
 
     this.pauseModal = createMatchPauseOverlay(this, [
-      {
-        label: 'Sim',
-        onClick: () => this.completeShootoutFromPause()
-      },
-      { label: 'Continue', onClick: () => this.closePauseModal() },
-      {
-        label: 'Exit to Menu',
-        onClick: () => {
-          this.closePauseModal();
-          this.scene.start('MenuScene');
-        }
-      }
-    ], { statsPanel });
+      { label: 'Exit to Menu', onClick: () => {
+        this.closePauseModal();
+        this.scene.start('MenuScene');
+      } },
+      { label: 'Restart', onClick: () => this.openRestartConfirmation() },
+      { label: 'Continue', onClick: () => this.closePauseModal() }
+    ], { statsPanel, secondaryAction: { label: 'Sim', onClick: () => this.completeShootoutFromPause() } });
+  }
+
+  private openRestartConfirmation(): void {
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    this.restartModal = createMatchRestartConfirmation(this, () => {
+      this.restartModal?.destroy();
+      this.restartModal = null;
+      this.schedulePenaltyAiAction();
+    }, () => this.restartMatch());
+  }
+
+  private restartMatch(): void {
+    if (this.matchResult === null || this.isLeaving) return;
+    this.isLeaving = true;
+    this.input.enabled = false;
+    this.destroyPenaltyAiController();
+    this.time.removeAllEvents();
+    this.tweens.killAll();
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    this.restartModal?.destroy();
+    this.restartModal = null;
+    this.rulesModal?.destroy();
+    this.rulesModal = null;
+    if (this.standalone) this.startStandalonePenaltyReplay();
+    else this.startMainMatch(true);
+  }
+
+  private startMainMatch(restart: boolean): void {
+    if (this.matchResult === null) return;
+    this.scene.start('GameScene', {
+      player1Name: getTeamName(this.matchResult.homeTeamId),
+      player2Name: getTeamName(this.matchResult.awayTeamId),
+      player1FlagCode: this.matchResult.homeTeamId,
+      player2FlagCode: this.matchResult.awayTeamId,
+      player1ControllerType: this.homeControllerType,
+      player2ControllerType: this.awayControllerType,
+      launchContext: restart && this.tournamentId !== null
+        ? { mode: 'tournament', tournamentId: this.tournamentId, tournamentMatchId: this.matchResult.matchId }
+        : { mode: 'quick-match' }
+    });
   }
 
   private completeShootoutFromPause(): void {
@@ -343,7 +395,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private openRulesModal(): void {
-    if (this.rulesModal !== null || this.pauseModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
+    if (this.rulesModal !== null || this.restartModal !== null || this.pauseModal !== null || this.inputLocked || this.shootoutState?.status === 'complete') {
       return;
     }
 
@@ -386,6 +438,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       matchResult.homeGoals,
       matchResult.awayGoals,
       {
+        matchContext: 'PENALTIES',
         penaltyScore: {
           playerOne: shootoutState.homeGoals,
           playerTwo: shootoutState.awayGoals
@@ -431,21 +484,21 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     createResultActionButtons(
       this,
       SCENE_WIDTH / 2,
-      [
-        {
-          label: this.standalone ? 'Play Again' : 'Continue',
-          onClick: () =>
-            this.standalone
-              ? this.startStandalonePenaltyReplay()
-              : this.scene.start(this.getCompletedShootoutReturnScene())
-        },
-        {
-          label: 'New Match',
-          onClick: () => this.scene.start('TeamSelectScene', { mode: this.standalone ? 'penalty' : 'match' })
-        },
+      this.standalone ? [
+        { label: 'Play Again', onClick: () => this.startStandalonePenaltyReplay() },
+        { label: 'New Match', onClick: () => this.scene.start('TeamSelectScene', { mode: 'penalty' }) },
         { label: 'Menu', onClick: () => this.scene.start('MenuScene') }
+      ] : [
+        { label: 'Play Again', onClick: () => this.startMainMatch(false) },
+        { label: 'Continue', onClick: () => this.scene.start(this.getCompletedShootoutReturnScene()) }
       ],
-      { totalWidth: PENALTY_COMPLETE_PANEL_WIDTH }
+      {
+        totalWidth: PENALTY_COMPLETE_PANEL_WIDTH,
+        centerY: PENALTY_COMPLETE_PANEL_Y + PENALTY_COMPLETE_PANEL_HEIGHT / 2 + RESULT_ACTION_BUTTON_HEIGHT / 2,
+        attachedToPanel: true,
+        borderColor: SCOREBOARD_BORDER_COLOR,
+        innerBorderColor: 0x000000
+      }
     );
   }
 
@@ -706,6 +759,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private completeTournamentMatch(): void {
+    if (this.devMockCompleted || this.resultRecorded) return;
     if (this.tournamentId === null || this.matchResult === null || this.shootoutState === null) {
       if (this.standalone && this.shootoutState?.winnerTeamId !== undefined) {
         this.message = `${getTeamName(this.shootoutState.winnerTeamId)} wins on penalties.`;
@@ -717,6 +771,12 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
     if (tournament === undefined || tournament.id !== this.tournamentId) {
       this.message = 'Tournament was not found. The penalty result could not be saved.';
+      return;
+    }
+
+    const matchId = this.matchResult.matchId;
+    if (tournament.matches.find((match) => match.id === matchId)?.status === 'completed') {
+      this.resultRecorded = true;
       return;
     }
 
@@ -734,6 +794,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
 
       this.registry.set('currentTournament', updatedTournament);
       saveTournament(updatedTournament);
+      this.resultRecorded = true;
       this.message = `${getTeamName(penaltyShootout.winnerTeamId)} wins on penalties.`;
     } catch (error) {
       this.message = error instanceof Error ? error.message : 'Could not save the penalty shootout.';
@@ -741,13 +802,14 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private getCompletedShootoutReturnScene(): string {
+    if (import.meta.env.DEV && this.devMockCompleted) return 'DevLabScene';
     if (this.standalone) {
       return 'MenuScene';
     }
 
     const tournament = this.registry.get('currentTournament') as TournamentState | undefined;
 
-    return tournament?.stage === 'complete' ? 'TournamentCompleteScene' : 'TournamentHubScene';
+    return tournament?.id === this.tournamentId && tournament?.stage === 'complete' ? 'TournamentCompleteScene' : 'TournamentHubScene';
   }
 
   private createShootoutMarkers(shootoutState: PenaltyShootoutState): void {
@@ -1191,7 +1253,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   private schedulePenaltyAiAction(): void {
-    if (this.inputLocked || this.pauseModal !== null || this.rulesModal !== null || this.shootoutState?.status === 'complete') {
+    if (this.isLeaving || this.inputLocked || this.pauseModal !== null || this.restartModal !== null || this.rulesModal !== null || this.shootoutState?.status === 'complete') {
       return;
     }
 

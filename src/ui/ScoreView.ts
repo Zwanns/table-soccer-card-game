@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
 import { MATCH_FIELD_WIDTH } from './matchScreenLayout';
+import { isMobileLandscapeLayout } from './mobileLayout';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -24,7 +25,12 @@ export const SCORE_VIEW_BORDER_ALPHA = MATCH_HEADER_BORDER_ALPHA;
 export const SCORE_VIEW_BORDER_WIDTH = MATCH_HEADER_BORDER_WIDTH;
 export const SCORE_VIEW_FONT_FAMILY = SCOREBOARD_FONT_FAMILY;
 
+export const SCORE_CONTEXT_DIVIDER_X = -SCORE_VIEW_DIVIDER_X;
+export const SCORE_CONTEXT_CENTER_X = -SCORE_STEP_CENTER_X;
+export const SCORE_CONTEXT_TEXT_WIDTH = SCORE_VIEW_WIDTH / 2 - SCORE_VIEW_DIVIDER_X - 24;
+
 export interface ScoreViewOptions {
+  matchContext?: string;
   stepCounter?: {
     count: number;
     limit: number;
@@ -83,6 +89,19 @@ export class ScoreView extends Phaser.GameObjects.Container {
 
     scoreContent.add([playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag]);
     this.add([background, scoreContent, divider, stepLabel]);
+
+    if (isMobileLandscapeLayout()) {
+      const leftDivider = scene.add.rectangle(
+        SCORE_CONTEXT_DIVIDER_X, 0, 1, SCORE_VIEW_HEIGHT - 20, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA
+      );
+      const contextLabel = scene.add.text(SCORE_CONTEXT_CENTER_X, 0, options.matchContext ?? '', {
+        align: 'center', color: '#d9eadf', fontFamily: SCORE_VIEW_FONT_FAMILY,
+        fontSize: '22px', fontStyle: '400', resolution: SHARP_TEXT_RESOLUTION,
+        wordWrap: { width: SCORE_CONTEXT_TEXT_WIDTH }
+      }).setOrigin(0.5);
+      contextLabel.setScale(Math.min(1, SCORE_CONTEXT_TEXT_WIDTH / Math.max(1, contextLabel.width), 58 / Math.max(1, contextLabel.height)));
+      this.add([leftDivider, contextLabel]);
+    }
 
     if (options.penaltyScore !== undefined) {
       scoreContent.add(

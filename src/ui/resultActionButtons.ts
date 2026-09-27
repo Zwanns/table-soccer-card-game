@@ -19,6 +19,7 @@ export interface ResultActionButtonsOptions {
   borderColor?: number;
   innerBorderColor?: number;
   totalWidth?: number;
+  centerY?: number;
 }
 
 export function createResultActionButtons(
@@ -35,7 +36,7 @@ export function createResultActionButtons(
     new Button(
       scene,
       firstButtonX + index * (buttonWidth + RESULT_ACTION_BUTTON_GAP),
-      RESULT_ACTION_BUTTON_Y,
+      options.centerY ?? RESULT_ACTION_BUTTON_Y,
       action.label,
       action.onClick,
       {

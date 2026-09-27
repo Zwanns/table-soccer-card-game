@@ -427,7 +427,7 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('this.pauseModal = createMatchPauseOverlay(this, [');
     expect(penaltySource).toContain("import { PenaltyPauseStatsPanel } from '../ui/PenaltyPauseStatsPanel'");
     expect(penaltySource).toContain('const statsPanel = new PenaltyPauseStatsPanel(this, SCENE_WIDTH / 2, MATCH_STATS_PANEL_CENTER_Y');
-    expect(penaltySource).toContain('], { statsPanel });');
+    expect(penaltySource).toContain("], { statsPanel, secondaryAction: { label: 'Sim'");
     expect(penaltySource).toContain("label: 'Continue'");
     expect(penaltySource).toContain("label: 'Exit to Menu'");
     expect(penaltySource).toContain("label: 'Sim'");
@@ -442,7 +442,7 @@ describe('tournament hub scene integration', () => {
     expect(penaltySource).toContain('this.schedulePenaltyAiAction()');
     expect(penaltySource).toContain("this.scene.start('MenuScene')");
     expect(penaltySource).toContain('this.createCompletedShootoutActions()');
-    expect(penaltySource).toContain("label: this.standalone ? 'Play Again' : 'Continue'");
+    expect(penaltySource).toContain("{ label: 'Play Again', onClick: () => this.startMainMatch(false) }");
     expect(penaltySource).toContain("label: 'New Match'");
     expect(penaltySource).toContain("{ label: 'Menu', onClick: () => this.scene.start('MenuScene') }");
     expect(penaltySource).not.toContain("this.standalone ? 'Menu' : 'Back to tournament'");
@@ -452,7 +452,7 @@ describe('tournament hub scene integration', () => {
       'const PENALTY_COMPLETE_PANEL_Y = PENALTY_COMPLETE_PANEL_TOP_Y + PENALTY_COMPLETE_PANEL_HEIGHT / 2'
     );
     expect(penaltySource).toContain('height: 420');
-    expect(penaltySource).toContain('{ totalWidth: PENALTY_COMPLETE_PANEL_WIDTH }');
+    expect(penaltySource).toContain('totalWidth: PENALTY_COMPLETE_PANEL_WIDTH,');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_PANEL_WIDTH = 840');
     expect(resultActionsSource).toContain('export const RESULT_ACTION_BUTTON_HEIGHT = 68');
     expect(resultActionsSource).toContain("export const RESULT_ACTION_BUTTON_FONT_SIZE = '24px'");

@@ -7,6 +7,7 @@ import {
   MATCH_STATS_PANEL_HEIGHT,
   MATCH_STATS_PANEL_WIDTH
 } from './MatchStatsPanel';
+import { Button } from './Button';
 import { createResultActionButtons } from './resultActionButtons';
 import { SCOREBOARD_BORDER_COLOR } from './scoreboardStyle';
 
@@ -19,6 +20,7 @@ export interface MatchPauseAction {
 
 export interface MatchPauseOverlayOptions {
   state?: Readonly<GameState>;
+  secondaryAction?: MatchPauseAction;
   statsPanel?: Phaser.GameObjects.GameObject;
 }
 
@@ -49,5 +51,10 @@ export function createMatchPauseOverlay(
   });
 
   modal.add(statsPanel === null ? [overlay, ...buttons] : [overlay, statsPanel, ...buttons]);
+  if (options.secondaryAction) {
+    modal.add(new Button(scene, centerX, 32, options.secondaryAction.label, options.secondaryAction.onClick, {
+      width: 160, height: 44, fontSize: '20px'
+    }));
+  }
   return modal;
 }

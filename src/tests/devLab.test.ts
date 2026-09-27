@@ -381,7 +381,7 @@ describe('Dev Lab side-panel layout', () => {
   });
 
   it('keeps every scenario button and the Back button inside the side panel', () => {
-    const scenarioCount = 10;
+    const scenarioCount = 11;
 
     for (const mobileLandscape of [false, true]) {
       const layout = createDevLabLayout(mobileLandscape);

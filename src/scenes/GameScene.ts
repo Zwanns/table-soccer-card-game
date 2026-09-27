@@ -47,6 +47,8 @@ import { MATCH_CARD_SCALE } from '../ui/matchCardScale';
 import { createMatchControlButtons, getMatchTopPanelLayout } from '../ui/matchControlButtons';
 import { isMobileLandscapeLayout } from '../ui/mobileLayout';
 import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
+import { createMatchRestartConfirmation } from '../ui/matchRestartConfirmation';
+import { getMatchHeaderContext } from '../ui/matchHeaderContext';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from '../ui/scoreboardStyle';
 import {
@@ -417,6 +419,7 @@ export class GameScene extends Phaser.Scene {
         state.players[0].goals,
         state.players[1].goals,
         {
+          matchContext: getMatchHeaderContext(this.matchMode, this.launchContext, this.registry.get('currentTournament')),
           stepCounter: {
             count: state.matchStepCount ?? 0,
             limit: this.requireEngine().getMatchStepLimit()
@@ -1114,8 +1117,32 @@ export class GameScene extends Phaser.Scene {
           this.openExitConfirmModal();
         }
       },
-      { label: 'Continue the Match', onClick: () => this.closePauseModal() }
+      { label: 'Restart', onClick: () => this.openRestartConfirmation() },
+      { label: 'Continue', onClick: () => this.closePauseModal() }
     ], { state });
+  }
+
+  private openRestartConfirmation(): void {
+    this.pauseModal?.destroy();
+    this.pauseModal = null;
+    // Reuse the blocking confirmation slot so Android Back cancels normally.
+    this.exitConfirmModal = createMatchRestartConfirmation(this,
+      () => this.closeExitConfirmModal({ refreshGameplay: true }),
+      () => this.restartMatch());
+  }
+
+  private restartMatch(): void {
+    if (this.isNavigationAwayInProgress) return;
+    const data: GameSceneInitData = {
+      player1Name: this.player1Name, player2Name: this.player2Name,
+      player1FlagCode: this.player1FlagCode, player2FlagCode: this.player2FlagCode,
+      player1ControllerType: this.player1ControllerType, player2ControllerType: this.player2ControllerType,
+      launchContext: this.launchContext, matchMode: this.matchMode
+    };
+    this.prepareToLeaveMatchScene();
+    this.time.removeAllEvents();
+    this.tweens.killAll();
+    this.scene.restart(data);
   }
 
   private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void {
