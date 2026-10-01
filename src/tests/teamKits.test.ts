@@ -30,22 +30,6 @@ import {
 
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/;
 const RESERVED_KIT_FILE_CODES = new Set(['none', 'gk1', 'gk2']);
-const EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES = new Map<string, string>([
-  ['am', '#FFFFFF'],
-  ['ar', '#111111'],
-  ['by', '#FFFFFF'],
-  ['cz', '#FFFFFF'],
-  ['ec', '#FFFFFF'],
-  ['gr', '#0D5EAF'],
-  ['hr', '#0033A0'],
-  ['jm', '#000000'],
-  ['ma', '#FFFFFF'],
-  ['ng', '#000000'],
-  ['no', '#FFFFFF'],
-  ['pt', '#F7D117'],
-  ['py', '#0038A8'],
-  ['tr', '#E30A17']
-]);
 
 describe('team kit data contract', () => {
   it('defines the Stage 1 kit types and shared constants', () => {
@@ -59,7 +43,6 @@ describe('team kit data contract', () => {
       path: string;
       primaryColor: string;
       secondaryColor: string;
-      accentColor?: string;
       shirtNumberColor: string;
       shirtNumberStrokeColor?: string;
     }>();
@@ -104,22 +87,17 @@ describe('team kit data contract', () => {
 
     for (const style of TEAM_KIT_STYLES) {
       expect(style.assetKey).toBe(`kit-${style.flagCode}`);
-      expect(style.path).toBe(`kits/images/${style.flagCode}.webp`);
+      expect(style.path).toBe(`kits/images/${style.flagCode}1.webp`);
       expect(style.assetKey.startsWith('kit-')).toBe(true);
       expect(style.path.startsWith('kits/images/')).toBe(true);
       expect(style.path.endsWith('.webp')).toBe(true);
       expect(style.primaryColor).toMatch(HEX_COLOR_PATTERN);
       expect(style.secondaryColor).toMatch(HEX_COLOR_PATTERN);
-      if (style.accentColor !== undefined) {
-        expect(style.accentColor).toMatch(HEX_COLOR_PATTERN);
-      }
+      expect(style).not.toHaveProperty('accentColor');
       expect(style.shirtNumberColor).toMatch(HEX_COLOR_PATTERN);
       if (style.shirtNumberStrokeColor !== undefined) {
         expect(style.shirtNumberStrokeColor).toMatch(HEX_COLOR_PATTERN);
       }
-      expect(style.shirtNumberColor).toBe(
-        EXPLICIT_SHIRT_NUMBER_COLOR_OVERRIDES.get(style.flagCode) ?? style.secondaryColor
-      );
       expect(assetKeys.has(style.assetKey)).toBe(false);
       expect(paths.has(style.path)).toBe(false);
 
@@ -132,53 +110,51 @@ describe('team kit data contract', () => {
     expect(getTeamKitStyle('pl')).toMatchObject({
       flagCode: 'pl',
       assetKey: 'kit-pl',
-      path: 'kits/images/pl.webp'
+      path: 'kits/images/pl1.webp'
     });
     expect(getTeamKitStyle('ua')).toMatchObject({
       flagCode: 'ua',
       assetKey: 'kit-ua',
-      path: 'kits/images/ua.webp',
-      primaryColor: '#FFD700',
-      secondaryColor: '#0057B8',
-      accentColor: undefined,
-      shirtNumberColor: '#0057B8'
+      path: 'kits/images/ua1.webp',
+      primaryColor: '#FFDF0D',
+      secondaryColor: '#FFDF0D',
+      shirtNumberColor: '#0056B6'
     });
     expect(getTeamKitStyle('br')).toMatchObject({
       flagCode: 'br',
       assetKey: 'kit-br',
-      path: 'kits/images/br.webp',
+      path: 'kits/images/br1.webp',
       primaryColor: '#FFDF00',
-      secondaryColor: '#049C42',
-      accentColor: '#003CB1',
-      shirtNumberColor: '#049C42'
+      secondaryColor: '#003CB1',
+      shirtNumberColor: '#009739'
     });
     expect(getTeamKitStyle('ar')).toMatchObject({
       flagCode: 'ar',
       assetKey: 'kit-ar',
-      path: 'kits/images/ar.webp',
+      path: 'kits/images/ar1.webp',
       primaryColor: '#75AADB',
       secondaryColor: '#FFFFFF',
-      shirtNumberColor: '#111111'
+      shirtNumberColor: '#000000'
     });
-    expect(getTeamKitStyle('gb-eng')).toMatchObject({
-      flagCode: 'gb-eng',
-      assetKey: 'kit-gb-eng',
-      path: 'kits/images/gb-eng.webp'
+    expect(getTeamKitStyle('eng')).toMatchObject({
+      flagCode: 'eng',
+      assetKey: 'kit-eng',
+      path: 'kits/images/eng1.webp'
     });
-    expect(getTeamKitStyle('gb-sct')).toMatchObject({
-      flagCode: 'gb-sct',
-      assetKey: 'kit-gb-sct',
-      path: 'kits/images/gb-sct.webp'
+    expect(getTeamKitStyle('sct')).toMatchObject({
+      flagCode: 'sct',
+      assetKey: 'kit-sct',
+      path: 'kits/images/sct1.webp'
     });
-    expect(getTeamKitStyle('gb-wls')).toMatchObject({
-      flagCode: 'gb-wls',
-      assetKey: 'kit-gb-wls',
-      path: 'kits/images/gb-wls.webp'
+    expect(getTeamKitStyle('wls')).toMatchObject({
+      flagCode: 'wls',
+      assetKey: 'kit-wls',
+      path: 'kits/images/wls1.webp'
     });
     expect(getTeamKitStyle('nir')).toMatchObject({
       flagCode: 'nir',
       assetKey: 'kit-nir',
-      path: 'kits/images/nir.webp',
+      path: 'kits/images/nir1.webp',
       primaryColor: '#006A3A',
       secondaryColor: '#FFFFFF',
       shirtNumberColor: '#FFFFFF'
@@ -186,7 +162,7 @@ describe('team kit data contract', () => {
     expect(getTeamKitStyle('ng')).toMatchObject({
       flagCode: 'ng',
       assetKey: 'kit-ng',
-      path: 'kits/images/ng.webp',
+      path: 'kits/images/ng1.webp',
       primaryColor: '#008753',
       secondaryColor: '#FFFFFF',
       shirtNumberColor: '#000000',
@@ -195,18 +171,17 @@ describe('team kit data contract', () => {
     expect(getTeamKitStyle('jm')).toMatchObject({
       flagCode: 'jm',
       assetKey: 'kit-jm',
-      path: 'kits/images/jm.webp',
-      primaryColor: '#FED100',
-      secondaryColor: '#009B3A',
-      accentColor: '#000000',
+      path: 'kits/images/jm1.webp',
+      primaryColor: '#FFD100',
+      secondaryColor: '#000000',
       shirtNumberColor: '#000000'
     });
     expect(getTeamKitStyle('no')).toMatchObject({
       flagCode: 'no',
       assetKey: 'kit-no',
-      path: 'kits/images/no.webp',
+      path: 'kits/images/no1.webp',
       primaryColor: '#BA0C2F',
-      secondaryColor: '#00205B',
+      secondaryColor: '#FFFFFF',
       shirtNumberColor: '#FFFFFF',
       shirtNumberStrokeColor: undefined
     });
@@ -261,7 +236,7 @@ describe('team kit data contract', () => {
     expect(generatedFlagCodes).toEqual(currentTeamKitFileCodes);
     expect(registeredFlagCodes).toEqual(currentTeamKitFileCodes);
     expect(registeredFlagCodes).toEqual(
-      expect.arrayContaining(['al', 'fr', 'es', 'gb-eng', 'gb-sct', 'gb-wls', 'ie', 'nir', 'pt', 'sk', 'tr'])
+      expect.arrayContaining(['al', 'fr', 'es', 'eng', 'sct', 'wls', 'ie', 'nir', 'pt', 'sk', 'tr'])
     );
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).toContain('ie');
     expect(GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES).toContain('jm');
@@ -278,7 +253,7 @@ describe('team kit data contract', () => {
     expect(hasManualTeamKit('fr')).toBe(true);
     expect(hasManualTeamKit('jm')).toBe(true);
     expect(hasManualTeamKit('es')).toBe(true);
-    expect(hasManualTeamKit('gb-eng')).toBe(true);
+    expect(hasManualTeamKit('eng')).toBe(true);
     expect(hasManualTeamKit('none')).toBe(false);
     expect(hasManualTeamKit('gk1')).toBe(false);
     expect(hasManualTeamKit('gk2')).toBe(false);
@@ -305,8 +280,8 @@ function getCurrentTeamKitFileCodes(): string[] {
   const nationalFlagCodes = new Set(NATIONAL_TEAMS.map((team) => team.flagCode));
 
   return readdirSync(join(process.cwd(), 'public', 'kits', 'images'))
-    .filter((fileName) => fileName.endsWith('.webp'))
-    .map((fileName) => fileName.slice(0, -'.webp'.length))
+    .filter((fileName) => fileName.endsWith('1.webp'))
+    .map((fileName) => fileName.slice(0, -'1.webp'.length))
     .filter((flagCode) => !RESERVED_KIT_FILE_CODES.has(flagCode))
     .filter((flagCode) => nationalFlagCodes.has(flagCode))
     .sort();

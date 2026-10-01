@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { TeamSelectScene } from '../scenes/TeamSelectScene';
-import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
 import { createTeamCountryGridLayout, createTeamScreenLayout } from '../ui/teamScreenLayout';
 
 vi.mock('phaser', () => ({ default: {
@@ -64,19 +64,19 @@ function renderGrid(mobile: boolean, mode: 'match' | 'penalty') {
 describe.each([true, false])('country cards mobile=%s', (mobile) => {
   it.each(['match', 'penalty'] as const)('renders proportional %s cards with matching input bounds and no overlap', (mode) => {
     const { content, layout, fillRect } = renderGrid(mobile, mode);
-    const grid = createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length);
+    const grid = createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length);
     expect(grid).toMatchObject(mobile
-      ? { baseWidth: 180, baseHeight: 58, scale: 2, cardWidth: 360, cardHeight: 116, gapX: 24, gapY: 16, columns: 4, rowCount: 17, contentHeight: 2228, maxScroll: 1868, startX: 224 }
-      : { baseWidth: 168, baseHeight: 58, scale: 1, cardWidth: 168, cardHeight: 58, gapX: 10, gapY: 8, columns: 8, rowCount: 9, contentHeight: 586, maxScroll: 226, startX: 177 });
+      ? { baseWidth: 180, baseHeight: 58, scale: 2, cardWidth: 360, cardHeight: 116, gapX: 24, gapY: 16, columns: 4, rowCount: 8, contentHeight: 1040, maxScroll: 680, startX: 224 }
+      : { baseWidth: 168, baseHeight: 58, scale: 1, cardWidth: 168, cardHeight: 58, gapX: 10, gapY: 8, columns: 8, rowCount: 4, contentHeight: 256, maxScroll: 0, startX: 177 });
     expect(fillRect).toHaveBeenCalledWith(layout.teamGridRect.x, 210, layout.teamGridRect.width, 360);
-    expect(content.children).toHaveLength(66);
+    expect(content.children).toHaveLength(32);
     for (const [index, card] of content.children.entries()) {
       expect(card.scale).toBe(1);
       expect(card.input.hitArea).toEqual({ width: grid.cardWidth, height: grid.cardHeight });
       const visuals = mobile ? card.children[0] : card;
       expect(visuals.scale).toBe(grid.scale);
       const [background, flag, name] = visuals.children;
-      const selected = ['France', 'Spain'].includes(NATIONAL_TEAMS[index].name);
+      const selected = ['France', 'Spain'].includes(ACTIVE_NATIONAL_TEAMS[index].name);
       expect(background.data).toEqual({ color: mobile ? 0x1c1c1c : 0x08120f, alpha: selected ? 0.98 : 0.92 });
       expect(background.setStrokeStyle).toHaveBeenCalledWith(selected ? 3 : 2, selected ? 0xf0c95a : 0x8f9a96, selected ? 1 : 0.95);
       expect(name.data).toMatchObject({ style: { color: mobile ? '#ffffff' : '#d9eadf' } });
@@ -92,7 +92,7 @@ describe.each([true, false])('country cards mobile=%s', (mobile) => {
       expect(background.height * visuals.scale).toBe(grid.cardHeight);
       expect(flag.width * visuals.scale).toBe(mobile ? 72 : 36);
       expect(flag.height * visuals.scale).toBe(mobile ? 54 : 27);
-      expect(name.data).toMatchObject({ text: NATIONAL_TEAMS[index].name, style: { fontSize: '16px', fontFamily: 'Arial, sans-serif', fontStyle: '700' } });
+      expect(name.data).toMatchObject({ text: ACTIVE_NATIONAL_TEAMS[index].name, style: { fontSize: '16px', fontFamily: 'Arial, sans-serif', fontStyle: '700' } });
       expect(16 * visuals.scale).toBe(mobile ? 32 : 16);
       expect(card.x - card.width / 2).toBeGreaterThanOrEqual(layout.teamGridRect.x);
       expect(card.x + card.width / 2).toBeLessThanOrEqual(layout.teamGridRect.x + layout.teamGridRect.width);
@@ -109,18 +109,18 @@ describe.each([true, false])('country cards mobile=%s', (mobile) => {
 
   it.each(['match', 'penalty'] as const)('preserves %s wheel, drag and tap after scrolling to the final card', (mode) => {
     const { content, layout, selectTeam } = renderGrid(mobile, mode);
-    const grid = createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length);
+    const grid = createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length);
     const first = content.children[0];
     const last = content.children.at(-1)!;
     first.emit('wheel', {}, 0, 100000);
     expect(content.y).toBe(210 - grid.maxScroll);
-    expect(first.input.enabled).toBe(false);
+    expect(first.input.enabled).toBe(!mobile);
     expect(last.input.enabled).toBe(true);
-    expect(content.y + last.y + last.height / 2).toBe(570);
+    expect(content.y + last.y + last.height / 2).toBe(mobile ? 570 : 466);
     const pointer = { id: 1, worldX: last.x + last.width / 2 - 1, worldY: content.y + last.y + last.height / 2 - 1 };
     last.emit('pointerdown', pointer);
     last.emit('pointerup', pointer);
-    expect(selectTeam).toHaveBeenCalledWith(NATIONAL_TEAMS.at(-1)!.name);
+    expect(selectTeam).toHaveBeenCalledWith(ACTIVE_NATIONAL_TEAMS.at(-1)!.name);
     selectTeam.mockClear();
     first.emit('wheel', {}, 0, -100000);
     expect(content.y).toBe(210);
@@ -128,7 +128,7 @@ describe.each([true, false])('country cards mobile=%s', (mobile) => {
     first.emit('pointerdown', drag);
     first.emit('pointermove', { ...drag, worldY: drag.worldY - 60 });
     first.emit('pointerup', { ...drag, worldY: drag.worldY - 60 });
-    expect(content.y).toBe(150);
+    expect(content.y).toBe(mobile ? 150 : 210);
     expect(selectTeam).not.toHaveBeenCalled();
     const outside = { id: 3, worldX: first.x, worldY: 600 };
     first.emit('pointerdown', outside);

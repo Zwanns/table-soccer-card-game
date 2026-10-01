@@ -19,6 +19,13 @@ vi.mock('../ui/MatchStatsPanel', () => ({
 vi.mock('../ui/PenaltyPauseStatsPanel', () => ({ PenaltyPauseStatsPanel: class {} }));
 vi.mock('../tournament/TournamentStorage', () => ({ saveTournament: vi.fn(), loadTournament: vi.fn() }));
 
+import { TeamSelectScene } from '../scenes/TeamSelectScene';
+import { ResultScene } from '../scenes/ResultScene';
+import { TournamentHubScene } from '../scenes/TournamentHubScene';
+import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { createTeamScreenLayout } from '../ui/teamScreenLayout';
+import { GameEngine } from '../game/GameEngine';
+import * as kitSelection from '../game/tournamentKitSelection';
 import { GameScene } from '../scenes/GameScene';
 import { TournamentPenaltyScene } from '../scenes/TournamentPenaltyScene';
 import { PenaltyAiController } from '../ai';
@@ -110,7 +117,7 @@ describe('completed penalty navigation and persistence', () => {
     expect(ui.buttons.map((b) => b.label)).toEqual(['Play Again', 'New Match', 'Menu']);
     click('Play Again');
     expect(scene.scene.start).toHaveBeenLastCalledWith('TournamentPenaltyScene', {
-      standalone: true, matchResult: scene.matchResult, homeControllerType: 'HUMAN', awayControllerType: 'AI'
+      fieldKits: {}, standalone: true, matchResult: scene.matchResult, homeControllerType: 'HUMAN', awayControllerType: 'AI'
     });
     click('New Match'); expect(scene.scene.start).toHaveBeenLastCalledWith('TeamSelectScene', { mode: 'penalty' });
     click('Menu'); expect(scene.scene.start).toHaveBeenLastCalledWith('MenuScene');
@@ -178,7 +185,7 @@ describe('pause and restart', () => {
     scene.pauseModal = node(); scene.exitConfirmModal = node(); scene.tutorialOverlay = node();
     const ai = scene.aiTurnController;
     scene.restartMatch(); scene.restartMatch();
-    expect(scene.scene.restart).toHaveBeenCalledExactlyOnceWith({ player1Name: 'Spain', player2Name: 'France',
+    expect(scene.scene.restart).toHaveBeenCalledExactlyOnceWith({ player1FieldKit: 'home', player2FieldKit: 'home', player1Name: 'Spain', player2Name: 'France',
       player1FlagCode: 'es', player2FlagCode: 'fr', player1ControllerType: 'HUMAN', player2ControllerType: 'AI',
       matchMode: mode === 'tutorial' ? 'tutorial' : 'quick', launchContext: scene.launchContext });
     expect(ai.dispose).toHaveBeenCalledOnce(); expect(scene.cancelAutomaticCardFlow).toHaveBeenCalledOnce();
@@ -296,5 +303,162 @@ describe('Stage 17.1 penalty result button attachment', () => {
       { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 },
       { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 8 }
     ]);
+  });
+});
+
+
+describe('field kit scene lifecycle', () => {
+  it('keeps desktop preview buttons independent and disables missing AWAY', () => {
+    const mobile = false;
+    const scene = attach(new TeamSelectScene());
+    scene.init();
+    scene.render = vi.fn();
+    scene.textures = { exists: () => true };
+    scene.add.graphics = () => ({ fillStyle() {}, fillRoundedRect() {}, lineStyle() {}, strokeRoundedRect() {} });
+    const layout = createTeamScreenLayout({ mobileWide: mobile });
+    expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
+    const germany = NATIONAL_TEAMS.find((team) => team.flagCode === 'de')!;
+    scene.createTeamKitPreview(layout.team1KitPreviewRect, germany, 1);
+    expect(scene.add.image).toHaveBeenLastCalledWith(expect.any(Number), expect.any(Number), 'kit-de');
+    const away = ui.buttons.at(-1);
+    expect(away.options.disabled).toBe(false);
+    away.onClick();
+    expect(scene.fieldKits).toEqual({ 1: 'away', 2: 'home' });
+    expect(scene.render).toHaveBeenCalledOnce();
+    scene.createTeamKitPreview(layout.team1KitPreviewRect, germany, 1);
+    expect(scene.add.image).toHaveBeenLastCalledWith(expect.any(Number), expect.any(Number), 'kit-de-away');
+    scene.createTeamKitPreview(layout.team2KitPreviewRect, germany, 2);
+    ui.buttons.at(-1).onClick();
+    expect(scene.fieldKits).toEqual({ 1: 'away', 2: 'away' });
+    scene.createTeamKitPreview(layout.team1KitPreviewRect, germany, 1);
+    ui.buttons.at(-2).onClick();
+    expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'away' });
+    scene.createTeamKitPreview(layout.team2KitPreviewRect, NATIONAL_TEAMS.find((team) => team.flagCode === 'fr'), 2);
+    expect(ui.buttons.at(-1).options.disabled).toBe(true);
+    // Toggle hitboxes sit above each preview and clear the title and team panels.
+    for (const button of ui.buttons) {
+      expect(button.y - button.options.height / 2).toBeGreaterThan(51);
+      expect(button.y + button.options.height / 2).toBeLessThan(layout.team1SelectedCardRect.y);
+    }
+  });
+
+  it.each(['match', 'penalty'])('passes manual kit choice to %s and resets it on new team/selection', (mode) => {
+    const scene = attach(new TeamSelectScene());
+    scene.init({ mode }); scene.render = vi.fn();
+    scene.selectTeam('Germany'); scene.fieldKits[1] = 'away';
+    scene.startMatch();
+    if (mode === 'match') expect(scene.scene.start).toHaveBeenLastCalledWith('GameScene', expect.objectContaining({
+      player1FlagCode: 'de', player1FieldKit: 'away', player2FieldKit: 'home'
+    }));
+    else expect(scene.scene.start).toHaveBeenLastCalledWith('TournamentPenaltyScene', expect.objectContaining({ fieldKits: { de: 'away', es: 'home' } }));
+    scene.selectTeam('Germany'); expect(scene.fieldKits[1]).toBe('away');
+    scene.selectTeam('France'); expect(scene.fieldKits[1]).toBe('home');
+    scene.fieldKits[2] = 'away'; scene.activeSlot = 2; scene.selectTeam('Germany');
+    expect(scene.fieldKits[2]).toBe('home');
+    scene.fieldKits[1] = 'away'; scene.fieldKits[2] = 'away'; scene.init({ mode });
+    expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
+  });
+
+  it('preserves AWAY through Restart without consulting the tournament selector', () => {
+    const selector = vi.spyOn(kitSelection, 'resolveTournamentKits');
+    try {
+      const scene = attach(new GameScene());
+      scene.cancelAutomaticCardFlow = vi.fn();
+      scene.init({ player1FlagCode: 'de', player1FieldKit: 'away', player2FieldKit: 'home',
+        launchContext: { mode: 'tournament', tournamentId: 'cup', tournamentMatchId: 'fixture' } });
+      scene.restartMatch();
+      expect(scene.scene.restart).toHaveBeenCalledWith(expect.objectContaining({ player1FieldKit: 'away', player2FieldKit: 'home' }));
+      expect(selector).not.toHaveBeenCalled();
+    } finally { selector.mockRestore(); }
+  });
+
+  it('maps match kits to tournament penalties by team and preserves direct replay', () => {
+    const scene = attach(new ResultScene());
+    const state = new GameEngine().startNewGame({ player1FlagCode: 'de', player2FlagCode: 'fr', player1FieldKit: 'away' });
+    scene.init({ state });
+    scene.startReplayMatch();
+    expect(scene.scene.start).toHaveBeenLastCalledWith('GameScene', expect.objectContaining({ player1FieldKit: 'away', player2FieldKit: 'home' }));
+    const tournament = tournamentAt('semi-final');
+    const result = { homeTeamId: 'fr', awayTeamId: 'de', matchId: 'fixture' };
+    scene.startPenaltyShootout(tournament, result);
+    const data = scene.scene.start.mock.calls.at(-1)[1];
+    expect(data.fieldKits).toEqual({ de: 'away', fr: 'home' });
+    const shootout = attach(new TournamentPenaltyScene()); shootout.init(data);
+    shootout.startMainMatch(true);
+    expect(shootout.scene.start).toHaveBeenLastCalledWith('GameScene', expect.objectContaining({ player1FlagCode: 'fr', player1FieldKit: 'home', player2FlagCode: 'de', player2FieldKit: 'away' }));
+    shootout.startStandalonePenaltyReplay();
+    expect(shootout.scene.start).toHaveBeenLastCalledWith('TournamentPenaltyScene', expect.objectContaining({ fieldKits: { de: 'away', fr: 'home' } }));
+  });
+
+  it('selects anew for each fixture using actual fixture order', () => {
+    const selector = vi.spyOn(kitSelection, 'resolveTournamentKits').mockReturnValueOnce(['home', 'away']).mockReturnValueOnce(['away', 'home']);
+    try {
+      const scene = attach(new TournamentHubScene()); scene.time.now = 1000;
+      const tournament = tournamentAt('semi-final');
+      scene.startTournamentMatch(tournament, { id: 'first', homeTeamId: 'fr', awayTeamId: 'de' });
+      expect(selector).toHaveBeenNthCalledWith(1, 'fr', 'de');
+      expect(scene.scene.start).toHaveBeenLastCalledWith('GameScene', expect.objectContaining({ player1FieldKit: 'home', player2FieldKit: 'away' }));
+      scene.startTournamentMatch(tournament, { id: 'next', homeTeamId: 'de', awayTeamId: 'fr' });
+      expect(selector).toHaveBeenNthCalledWith(2, 'de', 'fr');
+      expect(scene.scene.start).toHaveBeenLastCalledWith('GameScene', expect.objectContaining({ player1FieldKit: 'away', player2FieldKit: 'home' }));
+    } finally { selector.mockRestore(); }
+  });
+});
+
+
+describe('KIT.SELECTOR.MOBILE.2', () => {
+  it.each(['match', 'penalty'])('swaps stacked cards and starts with the active kit in %s', (mode) => {
+    const scene = attach(new TeamSelectScene());
+    scene.init({ mode });
+    scene.selectedTeamOne = 'Germany';
+    scene.textures = { exists: () => true };
+    scene.add.graphics = () => ({ fillStyle() {}, fillRoundedRect() {}, lineStyle() {}, strokeRoundedRect() {} });
+    const cards: any[] = [];
+    scene.add.container = (x: number, y: number) => {
+      const card = { x, y, children: [] as any[], handler: null as any,
+        add(child: any) { this.children.push(child); }, setAlpha: vi.fn(),
+        setSize(width: number, height: number) { Object.assign(this, { width, height }); },
+        setInteractive: vi.fn(), on(_event: string, handler: any) { this.handler = handler; } };
+      cards.push(card); return card;
+    };
+    scene.add.image = (_x: number, _y: number, key: string) => ({ ...node(), key });
+    const layout = createTeamScreenLayout({ mobileWide: true });
+    scene.render = () => {
+      cards.length = 0;
+      scene.createTeamKitPreview(layout.team1KitPreviewRect, scene.getSelectedTeam(1), 1, true);
+      scene.createTeamKitPreview(layout.team2KitPreviewRect, scene.getSelectedTeam(2), 2, true);
+    };
+    const tap = (card: any) => card.handler(null, 0, 0, { stopPropagation: vi.fn() });
+    const key = (card: any) => card.children.find((child: any) => child.key)?.key;
+    scene.render();
+    expect(ui.buttons).toEqual([]);
+    expect(cards.map(key)).toEqual(['kit-de-away', 'kit-de', 'kit-none', 'kit-es']);
+    expect(cards[0].x - cards[1].x).toBe(cards[0].width / 2);
+    expect(cards[2].x - cards[3].x).toBe(-cards[2].width / 2);
+    expect(cards[0].y).toBeGreaterThan(cards[1].y);
+    expect(cards[0].y - cards[1].y).toBeLessThan(cards[0].height);
+    expect(cards[1].width).toBeGreaterThan(layout.team1KitPreviewRect.width);
+    expect(cards[1].height).toBeGreaterThan(layout.team1KitPreviewRect.height);
+    tap(cards[1]); expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
+    tap(cards[2]); expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
+    tap(cards[0]);
+    expect(scene.fieldKits).toEqual({ 1: 'away', 2: 'home' });
+    expect(cards.map(key).slice(0, 2)).toEqual(['kit-de', 'kit-de-away']);
+    scene.startMatch();
+    expect(scene.scene.start).toHaveBeenLastCalledWith(mode === 'match' ? 'GameScene' : 'TournamentPenaltyScene',
+      expect.objectContaining(mode === 'match' ? { player1FieldKit: 'away', player2FieldKit: 'home' } : { fieldKits: { de: 'away', es: 'home' } }));
+    tap(cards[0]);
+    expect(scene.fieldKits[1]).toBe('home');
+    expect(cards.map(key).slice(0, 2)).toEqual(['kit-de-away', 'kit-de']);
+    // Existing image with no tournament colors stays manually selectable; a missing texture does not.
+    scene.textures.exists = (key: string) => key !== 'kit-de-away';
+    scene.render(); expect(key(cards[0])).toBe('kit-none');
+    tap(cards[0]); expect(scene.fieldKits[1]).toBe('home');
+    scene.textures.exists = () => true;
+    scene.selectedTeamOne = 'France'; scene.selectedTeamTwo = 'Germany';
+    scene.render(); tap(cards[2]);
+    expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'away' });
+    expect(cards.map(key).slice(2)).toEqual(['kit-de', 'kit-de-away']);
+    tap(cards[2]); expect(scene.fieldKits[2]).toBe('home');
   });
 });

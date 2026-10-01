@@ -2,8 +2,7 @@ import type { TeamKitStyle } from '../data/teamKits';
 
 export type TeamColorSwatchRole =
   | 'primary'
-  | 'secondary'
-  | 'accent';
+  | 'secondary';
 
 export interface TeamColorSwatch {
   role: TeamColorSwatchRole;
@@ -35,8 +34,7 @@ export function buildTeamColorSwatches(
 
   const colors = [
     ['primary', style.primaryColor],
-    ['secondary', style.secondaryColor],
-    ['accent', style.accentColor]
+    ['secondary', style.secondaryColor]
   ] as const;
   const validColors = colors
     .map(([role, color]) => ({ role, color, fillColor: parseHexColor(color) }))

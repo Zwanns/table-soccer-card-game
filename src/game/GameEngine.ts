@@ -1,3 +1,5 @@
+import type { FieldKitVariant } from '../data/teamKits';
+import { normalizeFlagCode } from '../data/flagCodes';
 import {
   addCardsToBottom,
   canBeat,
@@ -45,6 +47,8 @@ export interface StartNewGameOptions {
   seed?: string;
   player1Name?: string;
   player2Name?: string;
+  player1FieldKit?: FieldKitVariant;
+  player2FieldKit?: FieldKitVariant;
   player1FlagCode?: string;
   player2FlagCode?: string;
   player1ControllerType?: PlayerControllerType;
@@ -85,8 +89,8 @@ export class GameEngine {
     this.random = options.seed === undefined ? Math.random : createSeededRandom(hashSeed(options.seed));
     const setupRandom =
       options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:match-setup`));
-    const playerOneTeamId = options.player1FlagCode ?? 'fr';
-    const playerTwoTeamId = options.player2FlagCode ?? 'es';
+    const playerOneTeamId = normalizeFlagCode(options.player1FlagCode ?? 'fr');
+    const playerTwoTeamId = normalizeFlagCode(options.player2FlagCode ?? 'es');
 
     const [playerOneDeck, playerTwoDeck] = createPlayerDecks();
     const setupPreset = options.setupPreset;
@@ -120,12 +124,14 @@ export class GameEngine {
     const matchSetups: MatchTeamSetups = {
       [players[0].id]: createMatchTeamSetup({
         teamId: playerOneTeamId,
+        fieldKit: options.player1FieldKit,
         squad: loadSquad(playerOneTeamId),
         goalkeeperKitId: playerOneGoalkeeperKitId,
         controllerType: options.player1ControllerType
       }),
       [players[1].id]: createMatchTeamSetup({
         teamId: playerTwoTeamId,
+        fieldKit: options.player2FieldKit,
         squad: loadSquad(playerTwoTeamId),
         goalkeeperKitId: playerTwoGoalkeeperKitId,
         controllerType: options.player2ControllerType

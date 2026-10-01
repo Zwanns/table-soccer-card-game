@@ -1,5 +1,5 @@
 import type { PlayerControllerType } from '../ai';
-import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { ACTIVE_NATIONAL_TEAMS, assertActiveTeams } from '../data/activeTeams';
 import {
   createTournamentState,
   fillEmptyTournamentSlots,
@@ -51,6 +51,8 @@ export function selectTournamentSetupTeam(
   teamId: TournamentTeamId
 ): TournamentSetupDraft {
   assertSlotIndex(draft, slotIndex);
+
+  assertActiveTeams([teamId]);
 
   if (draft.slots.some((slotTeamId, index) => slotTeamId === teamId && index !== slotIndex)) {
     throw new Error('This team is already selected.');
@@ -134,6 +136,7 @@ export function createTournamentFromSetupDraft(draft: TournamentSetupDraft, seed
   }
 
   const teamIds: TournamentTeamId[] = [...draft.slots];
+  assertActiveTeams(teamIds);
 
   return createTournamentState({
     formatId: draft.formatId,
@@ -151,7 +154,7 @@ export function getTournamentSetupSlotCount(formatId: TournamentFormatId): numbe
 }
 
 export function getDefaultTournamentSetupTeamIds(): TournamentTeamId[] {
-  return NATIONAL_TEAMS.map((team) => team.flagCode);
+  return ACTIVE_NATIONAL_TEAMS.map((team) => team.flagCode);
 }
 
 function createEmptySlots(formatId: TournamentFormatId): TournamentSetupSlot[] {

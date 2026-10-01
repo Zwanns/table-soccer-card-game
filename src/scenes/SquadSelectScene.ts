@@ -1,8 +1,9 @@
+import { ACTIVE_NATIONAL_TEAMS, isActiveTeam } from '../data/activeTeams';
 import Phaser from 'phaser';
 import { resolveTeamCoverLoadResult } from '../assets/teamCover';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
@@ -54,7 +55,7 @@ const SQUAD_PANEL_COLORS = {
 } as const;
 
 export class SquadSelectScene extends Phaser.Scene {
-  private selectedTeamId = NATIONAL_TEAMS[0].flagCode;
+  private selectedTeamId = ACTIVE_NATIONAL_TEAMS[0].flagCode;
   private squad: NationalTeamSquad = loadSquad(this.selectedTeamId);
   private teamGridScrollY = 0;
 
@@ -116,7 +117,7 @@ export class SquadSelectScene extends Phaser.Scene {
     const startX = leftGridX + CARD_WIDTH / 2;
     const viewportWidth = GRID_COLUMNS * CARD_WIDTH + (GRID_COLUMNS - 1) * GRID_GAP_X;
     const rowHeight = CARD_HEIGHT + GRID_GAP_Y;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / GRID_COLUMNS);
+    const rowCount = Math.ceil(ACTIVE_NATIONAL_TEAMS.length / GRID_COLUMNS);
     const contentHeight = rowCount * rowHeight - GRID_GAP_Y;
     const maxScroll = Math.max(0, contentHeight - GRID_VIEWPORT_HEIGHT);
     const teamOptions: Phaser.GameObjects.Container[] = [];
@@ -128,7 +129,7 @@ export class SquadSelectScene extends Phaser.Scene {
       refreshItemInputs();
     };
 
-    NATIONAL_TEAMS.forEach((team, index) => {
+    ACTIVE_NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % GRID_COLUMNS;
       const row = Math.floor(index / GRID_COLUMNS);
       const option = this.createTeamOption(
@@ -183,7 +184,7 @@ export class SquadSelectScene extends Phaser.Scene {
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
     teamOptions.forEach((option, index) => {
-      const team = NATIONAL_TEAMS[index];
+      const team = ACTIVE_NATIONAL_TEAMS[index];
 
       if (team !== undefined) {
         dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team));
@@ -275,6 +276,7 @@ export class SquadSelectScene extends Phaser.Scene {
   }
 
   private selectTeam(team: NationalTeam): void {
+    if (!isActiveTeam(team.flagCode)) return;
     this.selectedTeamId = team.flagCode;
     this.squad = loadSquad(this.selectedTeamId);
     this.render();
@@ -437,5 +439,5 @@ export class SquadSelectScene extends Phaser.Scene {
 }
 
 function getTeam(teamId: string): NationalTeam {
-  return NATIONAL_TEAMS.find((team) => team.flagCode === teamId) ?? NATIONAL_TEAMS[0];
+  return ACTIVE_NATIONAL_TEAMS.find((team) => team.flagCode === teamId) ?? ACTIVE_NATIONAL_TEAMS[0];
 }

@@ -36,7 +36,7 @@ describe('match team setup snapshot', () => {
     expect(setup.flagCode).toBe('fr');
     expect(setup.teamId).toBe('fr');
     expect(setup.controllerType).toBe('HUMAN');
-    expect(setup).not.toHaveProperty('fieldKit');
+    expect(setup.fieldKit).toBe('home');
     expect(setup).not.toHaveProperty('startingGoalkeeperId');
     expect(getFieldPlayerForCard(setup, card('Q'))).toMatchObject({
       name: 'Briandot',

@@ -24,7 +24,7 @@ export const NATIONAL_TEAMS: readonly NationalTeam[] = [
   { rank: 17, name: 'Denmark', flagCode: 'dk' },
   { rank: 18, name: 'Ecuador', flagCode: 'ec' },
   { rank: 19, name: 'Egypt', flagCode: 'eg' },
-  { rank: 20, name: 'England', flagCode: 'gb-eng' },
+  { rank: 20, name: 'England', flagCode: 'eng' },
   { rank: 21, name: 'France', flagCode: 'fr' },
   { rank: 22, name: 'Georgia', flagCode: 'ge' },
   { rank: 23, name: 'Germany', flagCode: 'de' },
@@ -53,7 +53,7 @@ export const NATIONAL_TEAMS: readonly NationalTeam[] = [
   { rank: 45, name: 'Qatar', flagCode: 'qa' },
   { rank: 46, name: 'Romania', flagCode: 'ro' },
   { rank: 47, name: 'Saudi Arabia', flagCode: 'sa' },
-  { rank: 48, name: 'Scotland', flagCode: 'gb-sct' },
+  { rank: 48, name: 'Scotland', flagCode: 'sct' },
   { rank: 49, name: 'Senegal', flagCode: 'sn' },
   { rank: 50, name: 'Serbia', flagCode: 'rs' },
   { rank: 51, name: 'Slovakia', flagCode: 'sk' },
@@ -70,7 +70,7 @@ export const NATIONAL_TEAMS: readonly NationalTeam[] = [
   { rank: 62, name: 'USA', flagCode: 'us' },
   { rank: 63, name: 'Uzbekistan', flagCode: 'uz' },
   { rank: 64, name: 'Venezuela', flagCode: 've' },
-  { rank: 65, name: 'Wales', flagCode: 'gb-wls' }
+  { rank: 65, name: 'Wales', flagCode: 'wls' }
 ];
 
 export const TEAM_SCOREBOARD_CODES: Readonly<Record<string, string>> = {
@@ -93,7 +93,7 @@ export const TEAM_SCOREBOARD_CODES: Readonly<Record<string, string>> = {
   dk: 'DEN',
   ec: 'ECU',
   eg: 'EGY',
-  'gb-eng': 'ENG',
+  'eng': 'ENG',
   fr: 'FRA',
   ge: 'GEO',
   de: 'GER',
@@ -122,7 +122,7 @@ export const TEAM_SCOREBOARD_CODES: Readonly<Record<string, string>> = {
   qa: 'QAT',
   ro: 'ROU',
   sa: 'KSA',
-  'gb-sct': 'SCO',
+  'sct': 'SCO',
   sn: 'SEN',
   rs: 'SRB',
   sk: 'SVK',
@@ -139,7 +139,7 @@ export const TEAM_SCOREBOARD_CODES: Readonly<Record<string, string>> = {
   us: 'USA',
   uz: 'UZB',
   ve: 'VEN',
-  'gb-wls': 'WAL'
+  'wls': 'WAL'
 };
 
 export function getFlagAssetKey(flagCode: string): string {

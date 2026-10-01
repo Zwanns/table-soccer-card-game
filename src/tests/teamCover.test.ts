@@ -33,7 +33,7 @@ describe('team cover assets', () => {
   it('builds stable texture keys from flag filenames', () => {
     expect(getTeamCoverTextureKey('poland.png')).toBe('cover-poland');
     expect(getTeamCoverAssetKey('poland.png')).toBe('cover-poland');
-    expect(getTeamCoverTextureKey('gb-eng')).toBe('cover-gb-eng');
+    expect(getTeamCoverTextureKey('eng')).toBe('cover-eng');
     expect(getFallbackCoverTextureKey()).toBe('cover-none');
   });
 
@@ -62,13 +62,13 @@ describe('team cover assets', () => {
   it('registers every current team cover file while preserving fallback for unknown teams', () => {
     expect([...AVAILABLE_TEAM_COVER_FLAG_CODES].sort()).toEqual(getCurrentTeamCoverFileCodes());
     expect(AVAILABLE_TEAM_COVER_FLAG_CODES).toEqual(
-      expect.arrayContaining(['fr', 'es', 'nir', 'gb-eng', 'gb-sct', 'gb-wls', 'ie'])
+      expect.arrayContaining(['fr', 'es', 'nir', 'eng', 'sct', 'wls', 'ie'])
     );
     expect(AVAILABLE_TEAM_COVER_FLAG_CODES).not.toContain('none');
     expect(hasManualTeamCover('fr')).toBe(true);
     expect(hasManualTeamCover('es')).toBe(true);
     expect(hasManualTeamCover('nir')).toBe(true);
-    expect(hasManualTeamCover('gb-eng')).toBe(true);
+    expect(hasManualTeamCover('eng')).toBe(true);
     expect(hasManualTeamCover('none')).toBe(false);
     expect(hasManualTeamCover('unknown')).toBe(false);
     expect(hasManualTeamCover('jm')).toBe(true);

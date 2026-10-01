@@ -3,14 +3,18 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { NATIONAL_TEAMS } from '../src/data/nationalTeams';
+import { validateActiveTeamPool } from '../src/data/activeTeams';
 import {
   AVAILABLE_MANUAL_KIT_FLAG_CODES,
+  AVAILABLE_AWAY_KIT_FLAG_CODES,
+  getTeamKitStyle,
   GOALKEEPER_KIT_STYLES,
   KIT_IMAGE_SIZE,
   TEAM_KIT_STYLES,
   type GoalkeeperKitId,
   type GoalkeeperKitStyle,
-  type TeamKitStyle
+  type TeamKitStyle,
+  validateTeamKitStylesAgainstNationalTeams
 } from '../src/data/teamKits';
 
 export type KitAttributionEntry = {
@@ -32,6 +36,7 @@ export type ValidateKitsOptions = {
   teamKitStyles?: readonly TeamKitStyle[];
   goalkeeperKitStyles?: readonly GoalkeeperKitStyle[];
   manualKitFlagCodes?: Iterable<string>;
+  awayKitFlagCodes?: Iterable<string>;
   goalkeeperKitIds?: Iterable<GoalkeeperKitId>;
 };
 
@@ -81,7 +86,7 @@ export async function validateRegisteredKits(options: ValidateKitsOptions = {}):
 
   pushDuplicateErrors(errors, registeredKits.map((kit) => kit.assetKey), 'assetKey');
   pushDuplicateErrors(errors, registeredKits.map((kit) => kit.path), 'path');
-  validateManualKitRegistry(projectRoot, manualKitFlagCodes, errors);
+  validateManualKitRegistry(projectRoot, manualKitFlagCodes, errors, [...(options.awayKitFlagCodes ?? AVAILABLE_AWAY_KIT_FLAG_CODES)]);
 
   for (const kit of registeredKits) {
     validateKitPath(errors, kit);
@@ -145,6 +150,15 @@ function collectRegisteredKits(
     });
   }
 
+  for (const flagCode of options.awayKitFlagCodes ?? AVAILABLE_AWAY_KIT_FLAG_CODES) {
+    const kit = getTeamKitStyle(flagCode, 'away');
+    if (kit === undefined) {
+      errors.push(`manual away kit "${flagCode}" has no team kit style.`);
+    } else {
+      registeredKits.push({ label: `team kit ${flagCode} away`, assetKey: kit.assetKey, path: kit.path });
+    }
+  }
+
   for (const id of goalkeeperKitIds) {
     const style = goalkeeperStyles.find((candidate) => candidate.id === id);
 
@@ -163,7 +177,8 @@ function collectRegisteredKits(
 function validateManualKitRegistry(
   projectRoot: string,
   manualKitFlagCodes: readonly string[],
-  errors: string[]
+  errors: string[],
+  awayKitFlagCodes: readonly string[]
 ): void {
   const nationalFlagCodeSet = new Set(NATIONAL_TEAMS.map((team) => team.flagCode));
   const manualKitFlagCodeSet = new Set(manualKitFlagCodes);
@@ -184,20 +199,22 @@ function validateManualKitRegistry(
       continue;
     }
 
-    const flagCode = fileName.slice(0, -'.webp'.length);
+    const basename = fileName.slice(0, -'.webp'.length);
+    if (RESERVED_TEAM_KIT_BASENAMES.has(basename)) continue;
+    const match = /^(.*)([12])$/.exec(basename);
+    const flagCode = match?.[1] ?? basename;
 
-    if (RESERVED_TEAM_KIT_BASENAMES.has(flagCode)) {
-      continue;
-    }
-
-    if (!nationalFlagCodeSet.has(flagCode)) {
+    if (match === null || !nationalFlagCodeSet.has(flagCode)) {
       errors.push(
         `Unknown kit file public/kits/images/${fileName}: "${flagCode}" is not a national team flagCode.\nRename the file or add the team first.`
       );
       continue;
     }
 
-    if (!manualKitFlagCodeSet.has(flagCode)) {
+    if (match[2] === '2' && !awayKitFlagCodes.includes(flagCode)) {
+      errors.push(`team away kit file public/kits/images/${fileName} is missing from generated AVAILABLE_AWAY_KIT_FLAG_CODES. Run npm run sync:kits.`);
+    }
+    if (match[2] === '1' && !manualKitFlagCodeSet.has(flagCode)) {
       errors.push(
         `team kit file public/kits/images/${fileName} exists for flagCode "${flagCode}" but is missing from generated AVAILABLE_MANUAL_KIT_FLAG_CODES. Run npm run sync:kits.`
       );
@@ -269,6 +286,8 @@ function pushDuplicateErrors(errors: string[], values: readonly string[], label:
 }
 
 async function runCli(): Promise<void> {
+  validateActiveTeamPool();
+  validateTeamKitStylesAgainstNationalTeams();
   const result = await validateRegisteredKits();
 
   for (const warning of result.warnings) {

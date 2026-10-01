@@ -40,7 +40,11 @@ describe('mobile menu polish', () => {
     ]) {
       expect(rectBottom(fan)).toBeLessThan(mobile.teamGridStartY);
       expect(rectBottom(kit)).toBeLessThan(mobile.teamGridStartY);
-      expect(rectRight(fan) + 18).toBeLessThan(toggle.x);
+      if (panel === mobile.team1SelectedCardRect) {
+        expect(rectRight(fan) + 18).toBeLessThan(toggle.x);
+      } else {
+        expect(rectRight(toggle) + 14).toBeLessThan(fan.x - 18);
+      }
       expect(toggle.height).toBe(panel.height);
     }
     expect(rectRight(mobile.team1SelectedCardRect)).toBeLessThan(mobile.team1KitPreviewRect.x);

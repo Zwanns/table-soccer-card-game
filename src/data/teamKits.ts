@@ -1,7 +1,9 @@
 import {
+  AVAILABLE_AWAY_KIT_FLAG_CODES as GENERATED_AVAILABLE_AWAY_KIT_FLAG_CODES,
   AVAILABLE_MANUAL_KIT_FLAG_CODES as GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES
 } from './generated/availableManualKitFlagCodes';
 import { NATIONAL_TEAMS } from './nationalTeams';
+import { normalizeFlagCode } from './flagCodes';
 
 export type ShirtNumberAnchor = {
   x: number;
@@ -16,7 +18,6 @@ export type TeamKitStyle = {
 
   primaryColor: string;
   secondaryColor: string;
-  accentColor?: string;
 
   shirtNumberColor: string;
   shirtNumberStrokeColor?: string;
@@ -61,105 +62,86 @@ export const DEFAULT_SHIRT_NUMBER_STYLE = {
   strokeThickness: 0
 } as const;
 
-// Row format:
-// [flagCode, primaryColor, secondaryColor, accentColor, shirtNumberStrokeColor?, shirtNumberColor?]
-// primaryColor — основной цвет формы;
-// secondaryColor — дополнительный цвет формы и цвет номера по умолчанию;
-// accentColor — акцентный цвет деталей формы;
-// shirtNumberStrokeColor — необязательный цвет обводки номера; без значения обводки нет;
-// shirtNumberColor — цвет номера (необязательный, по умолчанию используется secondaryColor).
-// Чтобы задать shirtNumberColor без обводки, укажите undefined на месте shirtNumberStrokeColor.
+// HOME row format: [flagCode, primaryColor, secondaryColor, shirtNumberColor, shirtNumberStrokeColor?]
+// Number colors are explicit; an undefined stroke means no outline.
+// Source for 32 teams: National Football Teams, Teams!A3:K34.
+// Other teams retain their effective HOME colors from before this migration.
 const TEAM_KIT_STYLE_ROWS = [
-  ['al', '#D71920', '#111111', '#FFFFFF', undefined],
-  ['dz', '#00843D', '#FFFFFF', '#00843D', undefined],
-  [
-    'ar',
-    '#75AADB', // primaryColor: основной цвет формы
-    '#FFFFFF', // secondaryColor: дополнительный цвет формы и цвет номера по умолчанию
-    '#111111', // accentColor: акцентный цвет деталей формы
-    '#FFFFFF', // shirtNumberStrokeColor: цвет обводки номера
-    '#111111' // shirtNumberColor: основной цвет номера
-  ],
-  ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111', '#FFFFFF'],
-  ['au', '#FFCD00', '#05573D', '#006747', '#FFFFFF'],
+  ['al', '#D71920', '#111111', '#111111', undefined],
+  ['dz', '#00843D', '#FFFFFF', '#FFFFFF', undefined],
+  ['ar', '#75AADB', '#FFFFFF', '#000000', undefined],
+  ['am', '#D90012', '#0033A0', '#FFFFFF', '#111111'],
+  ['au', '#FFCD00', '#05573D', '#05573D', '#FFFFFF'],
   ['at', '#ED2939', '#FFFFFF', '#FFFFFF', '#111111'],
-  ['by', '#D22730', '#007C4C', '#FFFFFF', undefined, '#FFFFFF'],
-  ['be', '#E30613', '#FFCD00', '#FFCD00', '#111111'],
-  ['br', '#FFDF00', '#049C42', '#003CB1', undefined],
-  ['cm', '#007A5E', '#FCD116', '#FCD116', undefined],
-  ['ca', '#D80621', '#FFFFFF', '#FFFFFF', undefined],
-  ['cl', '#D52B1E', '#0039A6', '#FFFFFF', '#FFFFFF', '#0039A6'],
+  ['by', '#D22730', '#007C4C', '#FFFFFF', undefined],
+  ['be', '#E30613', '#000000', '#FFCD00', undefined],
+  ['br', '#FFDF00', '#003CB1', '#009739', undefined],
+  ['cm', '#007A5E', '#D7141A', '#FCD116', undefined],
+  ['ca', '#FD0001', '#D52A1D', '#FFFFFF', undefined],
+  ['cl', '#D52B1E', '#0039A6', '#0039A6', '#FFFFFF'],
   ['co', '#FCDE00', '#0570E5', '#FF0000', undefined],
-  ['cr', '#CE1126', '#002B7F', '#FFFFFF', '#111111'],
-  ['hr', '#FFFFFF', '#FF0000', '#0033A0', '#FFFFFF', '#0033A0'],
-  ['cz', '#D7141A', '#11457E', '#FFFFFF', undefined, '#FFFFFF'],
+  ['cr', '#CE1126', '#002B7F', '#002B7F', '#111111'],
+  ['hr', '#DA0C12', '#FFFFFF', '#0303D2', undefined],
+  ['cz', '#D7141A', '#11457E', '#FFFFFF', '#11457E'],
   ['dk', '#C60C30', '#FFFFFF', '#FFFFFF', undefined],
-  ['ec', '#FFFC00', '#034EA2', '#034EA2', '#253167', '#FFFFFF'],
-  ['eg', '#CE1126', '#000000', '#FFFFFF', '#111111'],
-  ['gb-eng', '#FFFFFF', '#1C2C5B', '#1C2C5B', '#FFFFFF'],
+  ['ec', '#FFFC00', '#034EA2', '#FFFFFF', '#253167'],
+  ['eg', '#CE1126', '#000000', '#000000', '#111111'],
+  ['eng', '#FFFFFF', '#1C2C5B', '#1C2C5B', undefined],
   ['fr', '#002654', '#FFFFFF', '#FFFFFF', undefined],
-  ['ge', '#FFFFFF', '#E30A17', '#E30A17', '#FFFFFF'],
-  ['de', '#FFFFFF', '#111111', '#111111', '#FFFFFF'],
-  ['gr', '#0D5EAF', '#FFFFFF', '#FFFFFF', undefined, '#0D5EAF'],
+  ['ge', '#FFFFFF', '#E30A17', '#E30A17', undefined],
+  ['de', '#FFFFFF', '#111111', '#111111', undefined],
+  ['gr', '#0D5EAF', '#FFFFFF', '#0D5EAF', undefined],
   ['hu', '#CE2939', '#FFFFFF', '#FFFFFF', '#111111'],
   ['ir', '#FFFFFF', '#239F40', '#239F40', undefined],
   ['iq', '#017B3D', '#FFFFFF', '#FFFFFF', '#111111'],
   ['ie', '#169B62', '#FFFFFF', '#FFFFFF', undefined],
   ['it', '#0066CC', '#FFFFFF', '#FFFFFF', undefined],
-  ['ci', '#F77F00', '#009E60', '#006B3F', '#FFFFFF'],
-  ['jm', '#FED100', '#009B3A', '#000000', undefined, '#000000'],
+  ['ci', '#F77F00', '#009E60', '#009E60', '#FFFFFF'],
+  ['jm', '#FFD100', '#000000', '#000000', undefined],
   ['jp', '#003478', '#FFFFFF', '#FFFFFF', undefined],
-  ['kz', '#00AFCA', '#FEC50C', '#003B5C', '#FFFFFF'],
-  ['ml', '#FCD116', '#14B53A', '#007A33', '#FFFFFF'],
+  ['kz', '#00AFCA', '#FEC50C', '#FEC50C', '#FFFFFF'],
+  ['ml', '#FCD116', '#14B53A', '#14B53A', '#FFFFFF'],
   ['mx', '#006847', '#FFFFFF', '#FFFFFF', undefined],
-  ['ma', '#C1272D', '#006233', '#FFFFFF', undefined, '#FFFFFF'],
+  ['ma', '#C1272D', '#006233', '#FFFFFF', undefined],
   ['nl', '#F36C21', '#111111', '#111111', undefined],
-  ['ng', '#008753', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#000000'],
+  ['ng', '#008753', '#FFFFFF', '#000000', '#FFFFFF'],
   ['nir', '#006A3A', '#FFFFFF', '#FFFFFF', undefined],
-  ['no', '#BA0C2F', '#00205B', '#FFFFFF', undefined, '#FFFFFF'],
+  ['no', '#BA0C2F', '#FFFFFF', '#FFFFFF', undefined],
   ['pa', '#DA121A', '#FFFFFF', '#FFFFFF', '#111111'],
-  ['py', '#D52B1E', '#FFFFFF', '#0038A8', '#FFFFFF', '#0038A8'],
+  ['py', '#DA121A', '#003893', '#003893', '#FFFFFF'],
   ['pe', '#FFFFFF', '#D91023', '#D91023', '#FFFFFF'],
-  ['pl', '#FFFFFF', '#DC143C', '#DC143C', '#FFFFFF'],
-  ['pt', '#E42518', '#046A38', '#F7D117', undefined, '#F7D117'],
+  ['pl', '#FFFFFF', '#DC143C', '#DC143C', undefined],
+  ['pt', '#E00302', '#1F8F20', '#F8C900', undefined],
   ['qa', '#8A1538', '#FFFFFF', '#FFFFFF', '#111111'],
   ['ro', '#FCD116', '#002B7F', '#002B7F', '#FFFFFF'],
   ['sa', '#006C35', '#FFFFFF', '#FFFFFF', '#111111'],
-  ['gb-sct', '#003876', '#FFFFFF', '#FFFFFF', undefined],
+  ['sct', '#003876', '#FFFFFF', '#FFFFFF', undefined],
   ['sn', '#FFFFFF', '#00853F', '#00853F', '#FFFFFF'],
-  ['rs', '#C6363C', '#0C4076', '#FFFFFF', undefined],
+  ['rs', '#C6363C', '#0C4076', '#0C4076', undefined],
   ['sk', '#0052B4', '#FFFFFF', '#FFFFFF', undefined],
-  ['si', '#1D5C4A', '#FFFFFF', '#005DA4', '#1D5C4A', '#FFFFFF'],
+  ['si', '#1D5C4A', '#FFFFFF', '#FFFFFF', '#1D5C4A'],
   ['za', '#FFB81C', '#007749', '#007749', '#FFFFFF'],
-  ['kr', '#E6002D', '#111111', '#111111', '#FFFFFF'],
-  ['es', '#FF0000', '#F9C601', '#F9C601', '#08088E'],
-  ['se', '#FEF605', '#0146DC', '#0146DC', undefined],
+  ['kr', '#E61414', '#122EA8', '#122EA8', '#FFFFFF'],
+  ['es', '#FF0100', '#07088E', '#FAC803', undefined],
+  ['se', '#FFF605', '#0146DC', '#0146DC', undefined],
   ['ch', '#D52B1E', '#FFFFFF', '#FFFFFF', undefined],
   ['tn', '#FFFFFF', '#E70013', '#E70013', '#FFFFFF'],
-  ['tr', '#E30A17', '#FFFFFF', '#FFFFFF', undefined, '#E30A17'],
-  ['ua', '#FFD700', '#0057B8', '#0057B8', undefined],
-  ['uy', '#5BC0EB', '#111111', '#111111', '#FFFFFF'],
-  ['us', '#FFFFFF', '#112B88', '#002868', undefined],
-  ['uz', '#FFFFFF', '#0099B5', '#006B8F', '#FFFFFF'],
+  ['tr', '#FF0100', '#FF0100', '#FF0100', undefined],
+  ['ua', '#FFDF0D', '#FFDF0D', '#0056B6', undefined],
+  ['uy', '#7BADD3', '#000000', '#000000', '#FFFFFF'],
+  ['us', '#FFFFFF', '#002868', '#002868', '#C8102E'],
+  ['uz', '#FFFFFF', '#0099B5', '#FFFFFF', undefined],
   ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
-  ['gb-wls', '#C8102E', '#FFFFFF', '#FFFFFF', undefined]
-] as const satisfies readonly (readonly [string, string, string, string, string?, string?])[];
+  ['wls', '#C8102E', '#FFFFFF', '#FFFFFF', undefined]
+] as const satisfies readonly (readonly [string, string, string, string, string?])[];
 
 export const TEAM_KIT_STYLES: readonly TeamKitStyle[] = TEAM_KIT_STYLE_ROWS.map(
-  ([
-    flagCode,
-    primaryColor,
-    secondaryColor,
-    accentColorCandidate,
-    shirtNumberStrokeColor,
-    shirtNumberColor = secondaryColor
-  ]) => ({
+  ([flagCode, primaryColor, secondaryColor, shirtNumberColor, shirtNumberStrokeColor]) => ({
     flagCode,
     assetKey: `kit-${flagCode}`,
-    path: `kits/images/${flagCode}.webp`,
+    path: `kits/images/${flagCode}1.webp`,
     primaryColor,
     secondaryColor,
-    accentColor: resolveAccentColor(primaryColor, secondaryColor, accentColorCandidate),
     shirtNumberColor,
     shirtNumberStrokeColor
   })
@@ -199,6 +181,8 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = new Set<string>(
   GENERATED_AVAILABLE_MANUAL_KIT_FLAG_CODES
 );
 
+export const AVAILABLE_AWAY_KIT_FLAG_CODES = new Set<string>(GENERATED_AVAILABLE_AWAY_KIT_FLAG_CODES);
+
 export const AVAILABLE_GOALKEEPER_KIT_IDS = new Set<GoalkeeperKitId>(['gk1', 'gk2']);
 
 const TEAM_KIT_STYLES_BY_FLAG_CODE: ReadonlyMap<string, TeamKitStyle> = new Map(
@@ -209,16 +193,240 @@ const GOALKEEPER_KIT_STYLES_BY_ID: ReadonlyMap<GoalkeeperKitId, GoalkeeperKitSty
   GOALKEEPER_KIT_STYLES.map((style) => [style.id, style])
 );
 
-export function getTeamKitStyle(flagCode: string): TeamKitStyle | undefined {
-  return TEAM_KIT_STYLES_BY_FLAG_CODE.get(flagCode);
+export type AwayKitMetadata = {
+  primaryColor?: string;
+  secondaryColor?: string;
+  shirtNumberColor?: string;
+  shirtNumberStrokeColor?: string | null;
+};
+
+// AWAY colors from National Football Teams, Teams!A3:K34.
+// Add entries by flagCode; image availability is generated independently by sync:kits.
+export const AWAY_KIT_METADATA: Record<string, AwayKitMetadata> = {
+  'ar': {
+    primaryColor: '#173E69',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'be': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#E30613',
+    shirtNumberColor: '#E30613',
+    shirtNumberStrokeColor: undefined
+  },
+  'br': {
+    primaryColor: '#003CB1',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'cm': {
+    primaryColor: '#D7141A',
+    secondaryColor: '#007A5E',
+    shirtNumberColor: '#FCD116',
+    shirtNumberStrokeColor: undefined
+  },
+  'co': {
+    primaryColor: '#003893',
+    secondaryColor: '#FCD116',
+    shirtNumberColor: '#FCD116',
+    shirtNumberStrokeColor: undefined
+  },
+  'hr': {
+    primaryColor: '#0303D2',
+    secondaryColor: '#0303D2',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: '#DA0C12'
+  },
+  'cz': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#11457E',
+    shirtNumberColor: '#D7141A',
+    shirtNumberStrokeColor: undefined
+  },
+  'dk': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#C60C30',
+    shirtNumberColor: '#C60C30',
+    shirtNumberStrokeColor: undefined
+  },
+  'eng': {
+    primaryColor: '#C8102E',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'fr': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#002395',
+    shirtNumberColor: '#002395',
+    shirtNumberStrokeColor: undefined
+  },
+  'ge': {
+    primaryColor: '#E30A17',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'de': {
+    primaryColor: '#006400',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'it': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#0066CC',
+    shirtNumberColor: '#0066CC',
+    shirtNumberStrokeColor: undefined
+  },
+  'jm': {
+    primaryColor: '#009B3A',
+    secondaryColor: '#009B3A',
+    shirtNumberColor: '#FFD100',
+    shirtNumberStrokeColor: undefined
+  },
+  'jp': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#003478',
+    shirtNumberColor: '#003478',
+    shirtNumberStrokeColor: undefined
+  },
+  'mx': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#006847',
+    shirtNumberColor: '#EC0F3D',
+    shirtNumberStrokeColor: undefined
+  },
+  'ma': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#006233',
+    shirtNumberColor: '#006233',
+    shirtNumberStrokeColor: undefined
+  },
+  'nl': {
+    primaryColor: '#001E62',
+    secondaryColor: '#001E62',
+    shirtNumberColor: '#F36C21',
+    shirtNumberStrokeColor: undefined
+  },
+  'ng': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#008751',
+    shirtNumberColor: '#000000',
+    shirtNumberStrokeColor: undefined
+  },
+  'no': {
+    primaryColor: '#000000',
+    secondaryColor: '#000000',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'py': {
+    primaryColor: '#003893',
+    secondaryColor: '#003893',
+    shirtNumberColor: '#D52B1E',
+    shirtNumberStrokeColor: '#FFFFFF'
+  },
+  'pl': {
+    primaryColor: '#DC143C',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'pt': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#1F8F20',
+    shirtNumberColor: '#E00302',
+    shirtNumberStrokeColor: undefined
+  },
+  'ca': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#C9C9C9',
+    shirtNumberColor: '#D52A1D',
+    shirtNumberStrokeColor: undefined
+  },
+  'kr': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#122EA8',
+    shirtNumberColor: '#E61414',
+    shirtNumberStrokeColor: undefined
+  },
+  'es': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#74041C',
+    shirtNumberColor: '#74041C',
+    shirtNumberStrokeColor: undefined
+  },
+  'se': {
+    primaryColor: '#0146DC',
+    secondaryColor: '#FFF605',
+    shirtNumberColor: '#FFF605',
+    shirtNumberStrokeColor: undefined
+  },
+  'tr': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: undefined
+  },
+  'ua': {
+    primaryColor: '#0056B6',
+    secondaryColor: '#FFDF0D',
+    shirtNumberColor: '#FFDF0D',
+    shirtNumberStrokeColor: undefined
+  },
+  'uy': {
+    primaryColor: '#FFFFFF',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#000000',
+    shirtNumberStrokeColor: '#7BADD3'
+  },
+  'us': {
+    primaryColor: '#000000',
+    secondaryColor: '#000000',
+    shirtNumberColor: '#FFFFFF',
+    shirtNumberStrokeColor: '#C8102E'
+  },
+  'uz': {
+    primaryColor: '#0099B5',
+    secondaryColor: '#FFFFFF',
+    shirtNumberColor: '#0099B5',
+    shirtNumberStrokeColor: undefined
+  }
+};
+
+export type FieldKitStyle = Omit<TeamKitStyle, 'primaryColor' | 'secondaryColor'> & {
+  primaryColor?: string;
+  secondaryColor?: string;
+};
+
+export function getTeamKitStyle(flagCode: string): TeamKitStyle | undefined;
+export function getTeamKitStyle(flagCode: string, variant: FieldKitVariant): FieldKitStyle | undefined;
+export function getTeamKitStyle(flagCode: string, variant: FieldKitVariant = 'home'): FieldKitStyle | undefined {
+  const home = TEAM_KIT_STYLES_BY_FLAG_CODE.get(flagCode);
+  if (home === undefined || variant === 'home') return home;
+  const metadata = AWAY_KIT_METADATA[flagCode] ?? {};
+  return {
+    flagCode,
+    assetKey: `kit-${flagCode}-away`,
+    path: `kits/images/${flagCode}2.webp`,
+    primaryColor: metadata.primaryColor,
+    secondaryColor: metadata.secondaryColor,
+    shirtNumberColor: metadata.shirtNumberColor ?? home.shirtNumberColor,
+    // Explicit undefined/null clears the outline; only an absent field uses compatibility fallback.
+    shirtNumberStrokeColor: Object.prototype.hasOwnProperty.call(metadata, 'shirtNumberStrokeColor')
+      ? metadata.shirtNumberStrokeColor ?? undefined : home.shirtNumberStrokeColor
+  };
 }
 
 export function getGoalkeeperKitStyle(id: GoalkeeperKitId): GoalkeeperKitStyle | undefined {
   return GOALKEEPER_KIT_STYLES_BY_ID.get(id);
 }
 
-export function hasManualTeamKit(flagCode: string): boolean {
-  return AVAILABLE_MANUAL_KIT_FLAG_CODES.has(flagCode);
+export function hasManualTeamKit(flagCode: string, variant: FieldKitVariant = 'home'): boolean {
+  return variant === 'home' ? AVAILABLE_MANUAL_KIT_FLAG_CODES.has(flagCode) : AVAILABLE_AWAY_KIT_FLAG_CODES.has(flagCode);
 }
 
 export function hasManualGoalkeeperKit(id: GoalkeeperKitId): boolean {
@@ -253,17 +461,48 @@ export function validateTeamKitStylesAgainstNationalTeams(): void {
   }
 
   pushDuplicateErrors(errors, styleFlagCodes, 'flagCode');
+  pushDuplicateErrors(errors, nationalFlagCodes, 'national team flagCode');
   pushDuplicateErrors(errors, TEAM_KIT_STYLES.map((style) => style.assetKey), 'team assetKey');
   pushDuplicateErrors(errors, TEAM_KIT_STYLES.map((style) => style.path), 'team path');
   pushDuplicateErrors(errors, GOALKEEPER_KIT_STYLES.map((style) => style.assetKey), 'goalkeeper assetKey');
   pushDuplicateErrors(errors, GOALKEEPER_KIT_STYLES.map((style) => style.path), 'goalkeeper path');
 
+  for (const flagCode of [...AVAILABLE_MANUAL_KIT_FLAG_CODES, ...AVAILABLE_AWAY_KIT_FLAG_CODES]) {
+    if (!nationalFlagCodeSet.has(flagCode) || normalizeFlagCode(flagCode) !== flagCode) {
+      errors.push(`Asset registry flagCode "${flagCode}" must be a canonical national team code.`);
+    }
+  }
+
   for (const style of TEAM_KIT_STYLES) {
+    if (normalizeFlagCode(style.flagCode) !== style.flagCode) errors.push(`Legacy HOME flagCode "${style.flagCode}".`);
     validateKitStyleShape(errors, style, `team "${style.flagCode}"`);
+    if (style.path !== `kits/images/${style.flagCode}1.webp`) {
+      errors.push(`team "${style.flagCode}" HOME path must be kits/images/${style.flagCode}1.webp.`);
+    }
+    if (getTeamKitStyle(style.flagCode, 'away')?.path !== `kits/images/${style.flagCode}2.webp`) {
+      errors.push(`team "${style.flagCode}" AWAY path must be kits/images/${style.flagCode}2.webp.`);
+    }
+  }
+
+  for (const [flagCode, metadata] of Object.entries(AWAY_KIT_METADATA)) {
+    if (normalizeFlagCode(flagCode) !== flagCode) errors.push(`Legacy AWAY metadata flagCode "${flagCode}".`);
+    if (!nationalFlagCodeSet.has(flagCode)) errors.push(`Unknown AWAY metadata flagCode "${flagCode}".`);
+    for (const [field, color] of Object.entries(metadata)) {
+      if (color === undefined || (field === 'shirtNumberStrokeColor' && color === null)) continue;
+      if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) {
+        errors.push(`AWAY "${flagCode}" ${field} must be #RRGGBB, got "${color}".`);
+      }
+    }
   }
 
   for (const style of GOALKEEPER_KIT_STYLES) {
     validateKitStyleShape(errors, style, `goalkeeper "${style.id}"`);
+    if (style.accentColor !== undefined && !isHexColor(style.accentColor)) {
+      errors.push(`goalkeeper "${style.id}" accentColor must be #RRGGBB, got "${style.accentColor}".`);
+    }
+    if (style.path !== `kits/images/${style.id}.webp`) {
+      errors.push(`goalkeeper "${style.id}" path must be kits/images/${style.id}.webp.`);
+    }
   }
 
   if (SHIRT_NUMBER_ANCHOR.x < 0 || SHIRT_NUMBER_ANCHOR.x > 1) {
@@ -310,7 +549,6 @@ function validateKitStyleShape(
     path: string;
     primaryColor: string;
     secondaryColor: string;
-    accentColor?: string;
     shirtNumberColor: string;
     shirtNumberStrokeColor?: string;
   },
@@ -324,10 +562,6 @@ function validateKitStyleShape(
     if (!isHexColor(value)) {
       errors.push(`${label} ${field} must be #RRGGBB, got "${value}".`);
     }
-  }
-
-  if (style.accentColor !== undefined && !isHexColor(style.accentColor)) {
-    errors.push(`${label} accentColor must be #RRGGBB, got "${style.accentColor}".`);
   }
 
   if (style.shirtNumberStrokeColor !== undefined && !isHexColor(style.shirtNumberStrokeColor)) {
@@ -370,25 +604,8 @@ function isHexColor(value: string): boolean {
   return /^#[0-9A-F]{6}$/.test(value);
 }
 
-function resolveAccentColor(
-  primaryColor: string,
-  secondaryColor: string,
-  accentColorCandidate: string
-): string | undefined {
-  if (
-    accentColorCandidate === primaryColor ||
-    accentColorCandidate === secondaryColor ||
-    accentColorCandidate === '#FFFFFF' ||
-    accentColorCandidate === '#111111'
-  ) {
-    return undefined;
-  }
-
-  return accentColorCandidate;
-}
-
-// Compatibility exports for existing scenes. The Stage 1 contract above is the source of truth.
-export type FieldKitVariant = 'home';
+// Shared field variants and asset-loading helpers.
+export type FieldKitVariant = 'home' | 'away';
 
 export type MatchTeamKitSelection = {
   fieldKit: FieldKitVariant;
@@ -419,13 +636,16 @@ export type LoadAvailableKitTexturesOptions = {
   timeoutMs?: number;
 };
 
-export const FIELD_KIT_VARIANTS: readonly FieldKitVariant[] = ['home'];
+export const FIELD_KIT_VARIANTS: readonly FieldKitVariant[] = ['home', 'away'];
 
 export const GOALKEEPER_KIT_IDS: readonly GoalkeeperKitId[] = ['gk1', 'gk2'];
 
 export const DEFAULT_FIELD_KIT: FieldKitVariant = 'home';
 
-export function getTeamKitAssetKey(flagCode: string, _variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
+export function getTeamKitAssetKey(flagCode: string, variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
+  if (variant === 'away' && hasManualTeamKit(flagCode, variant)) {
+    return getTeamKitStyle(flagCode, variant)?.assetKey ?? FALLBACK_TEAM_KIT_ASSET.assetKey;
+  }
   if (!hasManualTeamKit(flagCode)) {
     return FALLBACK_TEAM_KIT_ASSET.assetKey;
   }
@@ -433,7 +653,10 @@ export function getTeamKitAssetKey(flagCode: string, _variant: FieldKitVariant =
   return getTeamKitStyle(flagCode)?.assetKey ?? FALLBACK_TEAM_KIT_ASSET.assetKey;
 }
 
-export function getTeamKitAssetPath(flagCode: string, _variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
+export function getTeamKitAssetPath(flagCode: string, variant: FieldKitVariant = DEFAULT_FIELD_KIT): string {
+  if (variant === 'away' && hasManualTeamKit(flagCode, variant)) {
+    return getTeamKitStyle(flagCode, variant)?.path ?? FALLBACK_TEAM_KIT_ASSET.path;
+  }
   if (!hasManualTeamKit(flagCode)) {
     return FALLBACK_TEAM_KIT_ASSET.path;
   }
@@ -450,17 +673,12 @@ export function getGoalkeeperKitAssetPath(goalkeeperKitId: GoalkeeperKitId): str
 }
 
 export function getTeamKitAssetDescriptors(flagCode: string): KitAssetDescriptor[] {
-  const style = getTeamKitStyle(flagCode);
-
-  return style === undefined
-    ? []
-    : [
-        {
-          kind: 'field',
-          textureKey: style.assetKey,
-          path: style.path
-        }
-      ];
+  return FIELD_KIT_VARIANTS.flatMap((variant) => {
+    const style = getTeamKitStyle(flagCode, variant);
+    return style === undefined || !hasManualTeamKit(flagCode, variant) ? [] : [{
+      kind: 'field' as const, textureKey: style.assetKey, path: style.path
+    }];
+  });
 }
 
 export function getGoalkeeperKitAssetDescriptors(): KitAssetDescriptor[] {
@@ -487,7 +705,7 @@ export function getAllKitAssetDescriptors(): KitAssetDescriptor[] {
   }
 
   return [
-    ...[...AVAILABLE_MANUAL_KIT_FLAG_CODES].flatMap((flagCode) => getTeamKitAssetDescriptors(flagCode)),
+    ...[...new Set([...AVAILABLE_MANUAL_KIT_FLAG_CODES, ...AVAILABLE_AWAY_KIT_FLAG_CODES])].flatMap((flagCode) => getTeamKitAssetDescriptors(flagCode)),
     ...goalkeeperDescriptors
   ];
 }

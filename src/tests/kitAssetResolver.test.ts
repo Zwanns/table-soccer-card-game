@@ -24,8 +24,7 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('pl')).toEqual({
       assetKey: 'kit-pl',
-      numberColor: '#DC143C',
-      numberStrokeColor: '#FFFFFF'
+      numberColor: '#DC143C'
     });
   });
 
@@ -34,8 +33,7 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('ar')).toEqual({
       assetKey: 'kit-ar',
-      numberColor: '#111111',
-      numberStrokeColor: '#FFFFFF'
+      numberColor: '#000000'
     });
   });
 
@@ -64,7 +62,7 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('ua')).toEqual({
       assetKey: 'kit-ua',
-      numberColor: '#0057B8'
+      numberColor: '#0056B6'
     });
   });
 
@@ -82,13 +80,13 @@ describe('kit asset resolver', () => {
 
     expect(resolveTeamKitAsset('py')).toEqual({
       assetKey: 'kit-py',
-      numberColor: '#0038A8',
+      numberColor: '#003893',
       numberStrokeColor: '#FFFFFF'
     });
   });
 
   it('resolves newly registered team WebP assets by flagCode', () => {
-    for (const flagCode of ['fr', 'es', 'gb-eng', 'nir'] as const) {
+    for (const flagCode of ['fr', 'es', 'eng', 'nir'] as const) {
       AVAILABLE_MANUAL_KIT_FLAG_CODES.add(flagCode);
 
       expect(resolveTeamKitAsset(flagCode).assetKey).toBe(`kit-${flagCode}`);
@@ -98,12 +96,11 @@ describe('kit asset resolver', () => {
   it('resolves an unregistered known team to none.webp with team number colors', () => {
     expect(resolveTeamKitAsset('br')).toEqual({
       assetKey: 'kit-none',
-      numberColor: '#049C42'
+      numberColor: '#009739'
     });
     expect(resolveTeamKitAsset('ar')).toEqual({
       assetKey: 'kit-none',
-      numberColor: '#111111',
-      numberStrokeColor: '#FFFFFF'
+      numberColor: '#000000'
     });
   });
 

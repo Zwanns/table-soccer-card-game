@@ -1,6 +1,7 @@
+import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
 import Phaser from 'phaser';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
@@ -481,7 +482,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       (teamLayout.columns - 1) * teamLayout.gapX +
       teamLayout.viewportPadding * 2;
     const rowHeight = teamLayout.buttonHeight + teamLayout.gapY;
-    const rowCount = Math.ceil(NATIONAL_TEAMS.length / teamLayout.columns);
+    const rowCount = Math.ceil(ACTIVE_NATIONAL_TEAMS.length / teamLayout.columns);
     const contentHeight = rowCount * rowHeight - teamLayout.gapY;
     const maxScroll = Math.max(0, contentHeight - teamLayout.viewportHeight);
     const teamOptions: Phaser.GameObjects.Container[] = [];
@@ -492,7 +493,7 @@ export class TournamentSetupScene extends Phaser.Scene {
       refreshItemInputs();
     };
 
-    NATIONAL_TEAMS.forEach((team, index) => {
+    ACTIVE_NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % teamLayout.columns;
       const row = Math.floor(index / teamLayout.columns);
       const option = this.createTeamOption(
@@ -553,7 +554,7 @@ export class TournamentSetupScene extends Phaser.Scene {
     this.teamGridScrollY = clampScroll(this.teamGridScrollY, maxScroll);
     setScroll(this.teamGridScrollY);
     teamOptions.forEach((option, index) => {
-      const team = NATIONAL_TEAMS[index];
+      const team = ACTIVE_NATIONAL_TEAMS[index];
       const isSelected = team !== undefined && this.draft.slots.includes(team.flagCode);
 
       if (team !== undefined) {
@@ -836,7 +837,7 @@ export class TournamentSetupScene extends Phaser.Scene {
 }
 
 function findTeam(teamId: TournamentTeamId): NationalTeam | undefined {
-  return NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
+  return ACTIVE_NATIONAL_TEAMS.find((team) => team.flagCode === teamId);
 }
 
 function getTournamentSetupFormatLabel(formatId: TournamentFormatId, mobileLandscape = false): string {

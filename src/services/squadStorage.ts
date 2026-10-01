@@ -1,8 +1,9 @@
 import { REAL_SQUADS, requireRealSquad } from '../data/realSquads';
 import type { NationalTeamSquad } from '../data/squadTypes';
+import { normalizeFlagCode } from '../data/flagCodes';
 
 export function loadSquad(flagCode: string): NationalTeamSquad {
-  return cloneNationalTeamSquad(requireRealSquad(flagCode));
+  return cloneNationalTeamSquad(requireRealSquad(normalizeFlagCode(flagCode)));
 }
 
 export function loadAllSquads(): NationalTeamSquad[] {

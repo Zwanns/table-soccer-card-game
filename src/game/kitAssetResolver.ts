@@ -1,5 +1,8 @@
 import {
-  AVAILABLE_MANUAL_KIT_FLAG_CODES,
+  hasManualTeamKit,
+  TEAM_KIT_STYLES,
+  FIELD_KIT_VARIANTS,
+  type FieldKitVariant,
   FALLBACK_TEAM_KIT_ASSET,
   getGoalkeeperKitStyle,
   getTeamKitStyle,
@@ -18,14 +21,14 @@ const FALLBACK_NUMBER_COLORS = {
   numberColor: '#111111'
 } as const;
 
-export function resolveTeamKitAsset(flagCode: string): ResolvedKitAsset {
-  const style = getTeamKitStyle(flagCode);
+export function resolveTeamKitAsset(flagCode: string, variant: FieldKitVariant = 'home'): ResolvedKitAsset {
+  const style = getTeamKitStyle(flagCode, hasManualTeamKit(flagCode, variant) ? variant : 'home');
 
   if (style === undefined) {
     return createFallbackTeamAsset(FALLBACK_NUMBER_COLORS);
   }
 
-  if (!AVAILABLE_MANUAL_KIT_FLAG_CODES.has(flagCode)) {
+  if (!hasManualTeamKit(flagCode, variant) && !hasManualTeamKit(flagCode)) {
     return createFallbackTeamAsset(style);
   }
 
@@ -65,4 +68,16 @@ function createFallbackTeamAsset(
     numberColor: 'shirtNumberColor' in colors ? colors.shirtNumberColor : colors.numberColor,
     ...(numberStrokeColor === undefined ? {} : { numberStrokeColor })
   };
+}
+
+// Resolve explicit field textures before the player-profile HOME fallback.
+export function resolveFieldKitTextureAsset(textureKey?: string): ResolvedKitAsset | undefined {
+  if (textureKey === undefined) return undefined;
+  for (const home of TEAM_KIT_STYLES) {
+    for (const variant of FIELD_KIT_VARIANTS) {
+      const style = getTeamKitStyle(home.flagCode, variant);
+      if (style?.assetKey === textureKey) return resolveTeamKitAsset(home.flagCode, variant);
+    }
+  }
+  return undefined;
 }

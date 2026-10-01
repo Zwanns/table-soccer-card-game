@@ -1,4 +1,5 @@
 import type { PlayerControllerType } from '../ai';
+import { normalizeFlagCode } from '../data/flagCodes';
 import { getTournamentFormat } from './TournamentFormat';
 import { createTournamentGroups } from './TournamentGroup';
 import { createTournamentMatches } from './TournamentMatch';
@@ -14,13 +15,15 @@ export type CreateTournamentStateOptions = {
 
 export function createTournamentState(options: CreateTournamentStateOptions): TournamentState {
   const format = getTournamentFormat(options.formatId);
-  const teamIds = [...options.teamIds];
+  const teamIds = options.teamIds.map(normalizeFlagCode);
   const seed = options.seed ?? `${options.formatId}:default`;
 
   assertExactTeamCount(options.formatId, teamIds);
   assertUniqueTeams(teamIds);
 
-  const participants = createTournamentParticipants(teamIds, options.participants);
+  const participants = createTournamentParticipants(teamIds, options.participants?.map((participant) => ({
+    ...participant, flagCode: normalizeFlagCode(participant.flagCode)
+  })));
   const groups = createTournamentGroups(format, teamIds);
   const drawOrder = createDrawOrder(teamIds, seed);
 

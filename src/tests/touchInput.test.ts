@@ -51,7 +51,7 @@ describe('touch drag-scroll helpers', () => {
     const squadSelectSource = readSource('src/scenes/SquadSelectScene.ts');
     const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
 
-    expect(teamSelectSource).toContain('createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length)');
+    expect(teamSelectSource).toContain('createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length)');
     expect(teamSelectSource).toContain('option.setSize(width * scale, height * scale)');
     expect(teamSelectSource).toContain('dragScroll.bindScrollableTapTarget(option');
     expect(teamSelectSource).toContain('dragScroll.updateScrollableItemInputs(content, teamOptions)');

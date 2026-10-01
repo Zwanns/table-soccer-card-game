@@ -375,7 +375,7 @@ describe('tournament setup scene integration', () => {
     const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
 
-    expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams'");
+    expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
     expect(desktopLayout.teams.flagX).toBe(-42);
     expect(desktopLayout.groups.slotFlagX).toBe(32);

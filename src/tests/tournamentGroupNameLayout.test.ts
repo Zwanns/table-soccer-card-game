@@ -110,10 +110,10 @@ describe('mobile tournament group names', () => {
       }
     });
     const draft = Reflect.get(scene, 'draft');
-    draft.slots[0] = 'nir';
+    draft.slots[0] = 'uz';
     const layout = createTournamentSetupLayout(mobile);
     Reflect.get(scene, 'createSlot').call(scene, 0, 0, 0, layout, false);
-    const label = objects.find(object => object.text === (mobile ? 'Northern Ireland' : getTeamScoreboardCode('nir')))!;
+    const label = objects.find(object => object.text === (mobile ? 'Uzbekistan' : getTeamScoreboardCode('uz')))!;
     expect(label).toBeDefined();
     expect(label.origin).toEqual([mobile ? 0 : 0.5, 0.5]);
     expect(objects.find(object => object.text === 'AI')?.style.fontSize).toBe(mobile ? '28px' : '16px');

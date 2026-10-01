@@ -130,7 +130,7 @@ describe('team selection screen layout', () => {
     expect(mobileLayout.team1SelectedCardRect.y - mobileLayout.team1CoverFanRect.y)
       .toBeLessThan(desktopLayout.team1SelectedCardRect.y - desktopLayout.team1CoverFanRect.y);
     expect(rectRight(mobileLayout.team1CoverFanRect)).toBeLessThan(mobileLayout.team1ControllerToggleRect.x);
-    expect(rectRight(mobileLayout.team2CoverFanRect)).toBeLessThan(mobileLayout.team2ControllerToggleRect.x);
+    expect(rectRight(mobileLayout.team2ControllerToggleRect)).toBeLessThan(mobileLayout.team2CoverFanRect.x);
   });
 
   it('uses a vertical mobile controller toggle while keeping desktop horizontal', () => {
@@ -150,7 +150,7 @@ describe('team selection screen layout', () => {
     expect(mobileLayout.controllerToggle.height).toBeGreaterThan(desktopLayout.controllerToggle.height);
   });
 
-  it('keeps mobile controller toggles full-height inside selected cards and pinned to the right edge', () => {
+  it('keeps mobile controller toggles full-height and pinned to the inner mirrored edges', () => {
     const layout = createTeamScreenLayout({ mobileWide: true });
     const toggles = [
       { card: layout.team1SelectedCardRect, toggle: layout.team1ControllerToggleRect },
@@ -161,9 +161,8 @@ describe('team selection screen layout', () => {
       expect(toggle.x).toBeGreaterThanOrEqual(card.x);
       expect(toggle.y).toBe(card.y);
       expect(toggle.height).toBe(card.height);
-      expect(rectRight(toggle)).toBe(rectRight(card) - layout.controllerToggle.insetX);
+      expect(toggle.x).toBe(card === layout.team1SelectedCardRect ? rectRight(card) - toggle.width : card.x);
       expect(rectBottom(toggle)).toBe(rectBottom(card) - layout.controllerToggle.insetY);
-      expect(rectRight(toggle)).toBe(rectRight(card));
       expect(rectBottom(toggle)).toBe(rectBottom(card));
       expect(rectRight(toggle)).toBeLessThanOrEqual(rectRight(card));
       expect(rectBottom(toggle)).toBeLessThanOrEqual(rectBottom(card));
@@ -171,8 +170,7 @@ describe('team selection screen layout', () => {
 
     expect(layout.team1ControllerToggleRect.width).toBe(layout.team2ControllerToggleRect.width);
     expect(layout.team1ControllerToggleRect.height).toBe(layout.team2ControllerToggleRect.height);
-    expect(layout.team1ControllerToggleRect.x - layout.team1SelectedCardRect.x)
-      .toBe(layout.team2ControllerToggleRect.x - layout.team2SelectedCardRect.x);
+    expect(layout.team1ControllerToggleRect.x).toBe(SCENE_WIDTH - rectRight(layout.team2ControllerToggleRect));
   });
 
   it('splits mobile controller toggles into equal Player and AI halves', () => {
@@ -189,7 +187,7 @@ describe('team selection screen layout', () => {
     const layout = createTeamScreenLayout({ mobileWide: true });
 
     expect(rectRight(layout.team1ControllerToggleRect)).toBeLessThan(layout.team1KitPreviewRect.x);
-    expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(rectRight(layout.team2CoverFanRect));
+    expect(rectRight(layout.team2ControllerToggleRect)).toBeLessThan(layout.team2CoverFanRect.x);
     expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(layout.vsPosition.x);
     expect(layout.team2ControllerToggleRect.x).toBeGreaterThan(rectRight(layout.team2KitPreviewRect));
   });

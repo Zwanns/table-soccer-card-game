@@ -1,9 +1,11 @@
+import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
+import { getMobileKitCardLayout } from '../ui/mobileKitSelectorLayout';
 import Phaser from 'phaser';
 import { fitImageContain, resolveTeamCoverLoadResult } from '../assets/teamCover';
 import type { PlayerControllerType } from '../ai';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey } from '../data/teamKits';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey, getTeamKitStyle, hasManualTeamKit, type FieldKitVariant } from '../data/teamKits';
+import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
 import { getMobileActionButtonLayout, getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
@@ -23,6 +25,8 @@ import {
   createTeamScreenLayout,
   createTeamCountryGridLayout,
   createSelectedTeamNameLayout,
+  createSelectedTeamHeaderLayout,
+  SELECTED_COVER_FAN_MOBILE_CARD_SCALE,
   TEAM_GRID_VIEWPORT_HEIGHT,
   rectCenter,
   type TeamScreenControllerToggleLayout,
@@ -37,11 +41,9 @@ const DEFAULT_TEAM_ONE = 'France';
 const DEFAULT_TEAM_TWO = 'Spain';
 const SELECTED_COVER_FAN_CARD_COUNT = 3;
 const SELECTED_COVER_FAN_CARD_SCALE = 0.56;
-const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.64;
 const SELECTED_COVER_FAN_OFFSETS = [-34, 0, 34] as const;
 const SELECTED_COVER_FAN_MOBILE_OFFSETS = [-36, 0, 36] as const;
 const SELECTED_COVER_FAN_ANGLES = [-9, 0, 9] as const;
-const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const TEAM_GRID_VIEWPORT_TOP = 210;
 const TEAM_SELECTION_METAL_BORDER_COLOR = SCOREBOARD_METAL_BORDER_COLOR;
 const TEAM_SELECTION_METAL_BORDER_ALPHA = SCOREBOARD_METAL_BORDER_ALPHA;
@@ -62,6 +64,8 @@ export function toggleQuickMatchControllerType(controllerType: PlayerControllerT
 }
 
 export interface TeamSelectionData {
+  player1FieldKit?: FieldKitVariant;
+  player2FieldKit?: FieldKitVariant;
   player1Name: string;
   player2Name: string;
   player1FlagCode: string;
@@ -75,6 +79,8 @@ interface TeamSelectSceneData {
 }
 
 export class TeamSelectScene extends Phaser.Scene {
+  private fieldKits: Record<TeamSlot, FieldKitVariant> = { 1: 'home', 2: 'home' };
+  private teamGridScrollY = 0;
   private selectedTeamOne = DEFAULT_TEAM_ONE;
   private selectedTeamTwo = DEFAULT_TEAM_TWO;
   private player1ControllerType: PlayerControllerType = DEFAULT_QUICK_MATCH_CONTROLLER_TYPE;
@@ -88,6 +94,8 @@ export class TeamSelectScene extends Phaser.Scene {
   }
 
   public init(data: TeamSelectSceneData = {}): void {
+    this.fieldKits = { 1: 'home', 2: 'home' };
+    this.teamGridScrollY = 0;
     this.mode = data.mode ?? 'match';
     this.selectedTeamOne = DEFAULT_TEAM_ONE;
     this.selectedTeamTwo = DEFAULT_TEAM_TWO;
@@ -136,8 +144,8 @@ export class TeamSelectScene extends Phaser.Scene {
       this.getSelectedTeam(2),
       2
     );
-    this.createTeamKitPreview(layout.team1KitPreviewRect, this.getSelectedTeam(1));
-    this.createTeamKitPreview(layout.team2KitPreviewRect, this.getSelectedTeam(2));
+    this.createTeamKitPreview(layout.team1KitPreviewRect, this.getSelectedTeam(1), 1, layout.mobileWide);
+    this.createTeamKitPreview(layout.team2KitPreviewRect, this.getSelectedTeam(2), 2, layout.mobileWide);
 
     this.add
       .text(layout.vsPosition.x, layout.vsPosition.y, 'VS', {
@@ -187,7 +195,8 @@ export class TeamSelectScene extends Phaser.Scene {
   ): void {
     const isActive = this.activeSlot === slot;
     const center = rectCenter(rect);
-    const coverFanCenter = rectCenter(coverFanRect);
+    const headerLayout = createSelectedTeamHeaderLayout(rect, coverFanRect, slot, layout.mobileWide);
+    const coverFanCenter = headerLayout.fanCenter;
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
     const panel = this.add.container(center.x, center.y);
     const colors = getTeamSelectionColors(layout.mobileWide);
@@ -203,14 +212,14 @@ export class TeamSelectScene extends Phaser.Scene {
     const controllerToggleCenter = rectCenter(controllerToggleRect);
 
     const slotLabel = this.add
-      .text(rect.x + rect.width, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title, {
-        align: 'right',
+      .text(headerLayout.label.x, headerLayout.label.y, title, {
+        align: headerLayout.label.align,
         color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR,
         fontFamily: 'Arial, sans-serif',
         fontSize: layout.mobileWide ? '28px' : '17px',
         fontStyle: '700'
       })
-      .setOrigin(1, 0.5);
+      .setOrigin(headerLayout.label.originX, 0.5);
     const teamText = this.add
       .text(nameLayout.x, nameLayout.y, team.name, {
         align: 'left',
@@ -264,9 +273,24 @@ export class TeamSelectScene extends Phaser.Scene {
     return fan;
   }
 
-  private createTeamKitPreview(rect: TeamScreenRect, team: NationalTeam): void {
+  private createTeamKitPreview(rect: TeamScreenRect, team: NationalTeam, slot: TeamSlot, mobileWide = false): void {
+    if (mobileWide) {
+      this.createMobileKitSelector(rect, team, slot);
+      return;
+    }
     const center = rectCenter(rect);
-    const textureKey = getTeamKitAssetKey(team.flagCode);
+    const textureKey = getTeamKitAssetKey(team.flagCode, this.fieldKits[slot]);
+    for (const [index, variant] of (['home', 'away'] as const).entries()) {
+      new Button(this, center.x + (index === 0 ? -30 : 30), center.y - 76, variant.toUpperCase(), () => {
+        this.fieldKits[slot] = variant;
+        this.render();
+      }, {
+        width: 56, height: 40, fontSize: '12px',
+        disabled: variant === 'away' && !hasManualTeamKit(team.flagCode, 'away'),
+        borderWidth: this.fieldKits[slot] === variant ? 4 : 1,
+        borderColor: this.fieldKits[slot] === variant ? 0xffffff : 0x1f2a2e
+      });
+    }
     const fallbackTextureKey = FALLBACK_TEAM_KIT_ASSET.assetKey;
     const kitTextureKey = this.textures.exists(textureKey) ? textureKey : fallbackTextureKey;
     const background = this.add.graphics();
@@ -285,24 +309,67 @@ export class TeamSelectScene extends Phaser.Scene {
     }
   }
 
+  private createMobileKitSelector(rect: TeamScreenRect, team: NationalTeam, slot: TeamSlot): void {
+    const awayStyle = getTeamKitStyle(team.flagCode, 'away');
+    const awayAvailable = hasManualTeamKit(team.flagCode, 'away') && awayStyle !== undefined
+      && this.textures.exists(awayStyle.assetKey);
+    if (!awayAvailable) this.fieldKits[slot] = 'home';
+    const selected = this.fieldKits[slot];
+    const alternate: FieldKitVariant = selected === 'home' ? 'away' : 'home';
+
+    // Back first, front last: both drawing and pointer priority follow selection.
+    for (const variant of [alternate, selected] as const) {
+      const active = variant === selected;
+      const available = variant === 'home' || awayAvailable;
+      const cardRect = getMobileKitCardLayout(rect, slot, active);
+      const center = rectCenter(cardRect);
+      const card = this.add.container(center.x, center.y);
+      const background = this.add.graphics();
+      background.fillStyle(0xffffff, 1);
+      background.fillRoundedRect(-cardRect.width / 2, -cardRect.height / 2, cardRect.width, cardRect.height, 8);
+      background.lineStyle(active ? 4 : 2, active ? SCOREBOARD_BORDER_COLOR : 0x8a9691, 1);
+      background.strokeRoundedRect(-cardRect.width / 2, -cardRect.height / 2, cardRect.width, cardRect.height, 8);
+      card.add(background);
+
+      const requestedKey = available ? getTeamKitAssetKey(team.flagCode, variant) : FALLBACK_TEAM_KIT_ASSET.assetKey;
+      const textureKey = this.textures.exists(requestedKey) ? requestedKey : FALLBACK_TEAM_KIT_ASSET.assetKey;
+      if (this.textures.exists(textureKey)) {
+        const image = this.add.image(0, 0, textureKey);
+        fitImageContain(image, { width: cardRect.width - 14, height: cardRect.height - 12 });
+        card.add(image);
+      }
+      card.setAlpha(available ? 1 : 0.55);
+      card.setSize(cardRect.width, cardRect.height);
+      // Even inactive placeholders consume taps, so they cannot select a team behind them.
+      card.setInteractive({ useHandCursor: available && !active });
+      card.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        if (!available || active) return;
+        this.fieldKits[slot] = variant;
+        this.render();
+      });
+    }
+  }
+
   private createCountryGrid(gridRect: TeamScreenRect, layout: TeamScreenLayout): void {
     const viewportTop = layout.teamGridStartY;
-    const grid = createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length);
+    const grid = createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length);
     const content = this.add.container(0, viewportTop);
     const viewportLeft = gridRect.x;
     const viewportWidth = gridRect.width;
     const { contentHeight, maxScroll } = grid;
     const teamOptions: Phaser.GameObjects.Container[] = [];
-    let teamGridScrollY = 0;
+    let teamGridScrollY = this.teamGridScrollY;
     let refreshTeamGridItems = (): void => {};
 
     const setScroll = (value: number): void => {
       teamGridScrollY = clampScroll(value, maxScroll);
+      this.teamGridScrollY = teamGridScrollY;
       content.y = viewportTop - teamGridScrollY;
       refreshTeamGridItems();
     };
 
-    NATIONAL_TEAMS.forEach((team, index) => {
+    ACTIVE_NATIONAL_TEAMS.forEach((team, index) => {
       const column = index % grid.columns;
       const row = Math.floor(index / grid.columns);
       const option = this.createCountryOption(
@@ -360,7 +427,7 @@ export class TeamSelectScene extends Phaser.Scene {
     };
     setScroll(teamGridScrollY);
     teamOptions.forEach((option, index) => {
-      const team = NATIONAL_TEAMS[index];
+      const team = ACTIVE_NATIONAL_TEAMS[index];
 
       if (team !== undefined) {
         dragScroll.bindScrollableTapTarget(option, () => this.selectTeam(team.name));
@@ -450,6 +517,7 @@ export class TeamSelectScene extends Phaser.Scene {
   }
 
   private selectTeam(teamName: string): void {
+    if (!ACTIVE_NATIONAL_TEAMS.some((team) => team.name === teamName)) return;
     if (this.activeSlot === 1 && teamName === this.selectedTeamTwo) {
       this.showMessage('This team is already selected for Player 2');
       return;
@@ -461,8 +529,10 @@ export class TeamSelectScene extends Phaser.Scene {
     }
 
     if (this.activeSlot === 1) {
+      if (this.selectedTeamOne !== teamName) this.fieldKits[1] = 'home';
       this.selectedTeamOne = teamName;
     } else {
+      if (this.selectedTeamTwo !== teamName) this.fieldKits[2] = 'home';
       this.selectedTeamTwo = teamName;
     }
 
@@ -635,6 +705,8 @@ export class TeamSelectScene extends Phaser.Scene {
 
   private startMatch(): void {
     const data: TeamSelectionData = {
+      player1FieldKit: this.fieldKits[1],
+      player2FieldKit: this.fieldKits[2],
       player1Name: this.selectedTeamOne,
       player2Name: this.selectedTeamTwo,
       player1FlagCode: this.getSelectedTeam(1).flagCode,
@@ -645,6 +717,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
     if (this.mode === 'penalty') {
       this.scene.start('TournamentPenaltyScene', {
+        fieldKits: { [data.player1FlagCode]: this.fieldKits[1], [data.player2FlagCode]: this.fieldKits[2] },
         standalone: true,
         matchResult: createStandalonePenaltyMatchResult(data),
         player1ControllerType: data.player1ControllerType,
@@ -688,7 +761,7 @@ export class TeamSelectScene extends Phaser.Scene {
 
   private getSelectedTeam(slot: TeamSlot): NationalTeam {
     const teamName = slot === 1 ? this.selectedTeamOne : this.selectedTeamTwo;
-    return NATIONAL_TEAMS.find((team) => team.name === teamName) ?? NATIONAL_TEAMS[0];
+    return ACTIVE_NATIONAL_TEAMS.find((team) => team.name === teamName) ?? ACTIVE_NATIONAL_TEAMS[0];
   }
 }
 

@@ -38,6 +38,7 @@ export class CardView extends Phaser.GameObjects.Container {
       this.addFaceDownCard(scene, options);
     } else {
       const face = prepareKitCardFace({
+        kitTextureKey: options.kitTextureKey,
         rank: options.rank,
         playerProfile: options.playerProfile
       });

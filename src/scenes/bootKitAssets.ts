@@ -1,31 +1,14 @@
-import {
-  AVAILABLE_MANUAL_KIT_FLAG_CODES,
-  FALLBACK_TEAM_KIT_ASSET,
-  GOALKEEPER_KIT_IDS,
-  getGoalkeeperKitAssetKey,
-  getGoalkeeperKitAssetPath,
-  getTeamKitAssetKey,
-  getTeamKitAssetPath
-} from '../data/teamKits';
+import { FALLBACK_TEAM_KIT_ASSET, getAllKitAssetDescriptors } from '../data/teamKits';
 
-export type BootKitAssetLoadItem = {
-  assetKey: string;
-  path: string;
-};
+export type BootKitAssetLoadItem = { assetKey: string; path: string };
 
 export function getRegisteredKitAssetsToLoad(): BootKitAssetLoadItem[] {
+  const descriptors = getAllKitAssetDescriptors();
   return [
-    {
-      assetKey: FALLBACK_TEAM_KIT_ASSET.assetKey,
-      path: FALLBACK_TEAM_KIT_ASSET.path
-    },
-    ...GOALKEEPER_KIT_IDS.map((goalkeeperKitId) => ({
-      assetKey: getGoalkeeperKitAssetKey(goalkeeperKitId),
-      path: getGoalkeeperKitAssetPath(goalkeeperKitId)
-    })),
-    ...[...AVAILABLE_MANUAL_KIT_FLAG_CODES].map((flagCode) => ({
-      assetKey: getTeamKitAssetKey(flagCode),
-      path: getTeamKitAssetPath(flagCode)
-    }))
+    FALLBACK_TEAM_KIT_ASSET,
+    ...descriptors.filter((kit) => kit.kind === 'goalkeeper')
+      .map(({ textureKey, path }) => ({ assetKey: textureKey, path })),
+    ...descriptors.filter((kit) => kit.kind === 'field')
+      .map(({ textureKey, path }) => ({ assetKey: textureKey, path }))
   ];
 }

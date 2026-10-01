@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
+import { ACTIVE_NATIONAL_TEAMS, resolveActiveTeamSelection } from '../data/activeTeams';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { loadSquad } from '../services/squadStorage';
 import { Button } from '../ui/Button';
@@ -37,7 +38,7 @@ export class SquadEditorScene extends Phaser.Scene {
   }
 
   public init(data: SquadEditorSceneData): void {
-    this.teamId = data.teamId ?? 'fr';
+    this.teamId = resolveActiveTeamSelection(data.teamId);
     this.squad = loadSquad(this.teamId);
   }
 
@@ -172,5 +173,5 @@ export class SquadEditorScene extends Phaser.Scene {
 }
 
 function getTeam(teamId: string): NationalTeam {
-  return NATIONAL_TEAMS.find((team) => team.flagCode === teamId) ?? NATIONAL_TEAMS[0];
+  return ACTIVE_NATIONAL_TEAMS.find((team) => team.flagCode === teamId) ?? ACTIVE_NATIONAL_TEAMS[0];
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PenaltyAiController, type PenaltyAiAction, type PlayerControllerType } from '../ai';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
 import {
   createPenaltyShootoutState,
   createTournamentPenaltyResult,
@@ -134,7 +135,7 @@ describe('tournament team filling', () => {
   });
 
   it('fills only empty slots while preserving manually selected teams', () => {
-    const manualTeams = teamIds(3);
+    const manualTeams = ACTIVE_NATIONAL_TEAMS.slice(0, 3).map((team) => team.flagCode);
     const slots: Array<TournamentTeamId | null> = [manualTeams[0], null, manualTeams[1], null, manualTeams[2], null, null, null];
     const filled = fillEmptyTournamentSlots('cup-m', slots, 'fill-empty-test');
 

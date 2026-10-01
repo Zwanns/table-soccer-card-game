@@ -2,17 +2,21 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AVAILABLE_TEAM_COVER_FLAG_CODES, getTeamCoverPath, getTeamCoverTextureKey } from '../assets/teamCover';
-import { AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
+import { AVAILABLE_AWAY_KIT_FLAG_CODES, AVAILABLE_MANUAL_KIT_FLAG_CODES } from '../data/teamKits';
 import { getRegisteredKitAssetsToLoad } from '../scenes/bootKitAssets';
 
+const initialAwayKitFlagCodes = new Set(AVAILABLE_AWAY_KIT_FLAG_CODES);
 const initialManualKitFlagCodes = new Set(AVAILABLE_MANUAL_KIT_FLAG_CODES);
 
 describe('BootScene kit asset loading', () => {
   beforeEach(() => {
+    AVAILABLE_AWAY_KIT_FLAG_CODES.clear();
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
   });
 
   afterEach(() => {
+    AVAILABLE_AWAY_KIT_FLAG_CODES.clear();
+    for (const code of initialAwayKitFlagCodes) AVAILABLE_AWAY_KIT_FLAG_CODES.add(code);
     AVAILABLE_MANUAL_KIT_FLAG_CODES.clear();
 
     for (const flagCode of initialManualKitFlagCodes) {
@@ -56,11 +60,11 @@ describe('BootScene kit asset loading', () => {
       },
       {
         assetKey: 'kit-pl',
-        path: 'kits/images/pl.webp'
+        path: 'kits/images/pl1.webp'
       },
       {
         assetKey: 'kit-ua',
-        path: 'kits/images/ua.webp'
+        path: 'kits/images/ua1.webp'
       }
     ]);
   });
@@ -75,7 +79,7 @@ describe('BootScene kit asset loading', () => {
     for (const flagCode of initialManualKitFlagCodes) {
       expect(queuedAssets).toContainEqual({
         assetKey: `kit-${flagCode}`,
-        path: `kits/images/${flagCode}.webp`
+        path: `kits/images/${flagCode}1.webp`
       });
     }
 

@@ -1,11 +1,13 @@
 import type { RandomGenerator } from '../cards';
 import type { PlayerControllerType } from '../ai';
-import { GOALKEEPER_KIT_IDS, type GoalkeeperKitId } from '../data/teamKits';
+import { GOALKEEPER_KIT_IDS, type FieldKitVariant, type GoalkeeperKitId } from '../data/teamKits';
 import type { NationalTeamSquad } from '../data/squadTypes';
+import { normalizeFlagCode } from '../data/flagCodes';
 
 export type MatchTeamSetup = {
   flagCode: string;
   squad: NationalTeamSquad;
+  fieldKit?: FieldKitVariant;
   goalkeeperKitId: GoalkeeperKitId;
   controllerType: PlayerControllerType;
   /**
@@ -19,17 +21,19 @@ export type MatchTeamSetups = Record<string, MatchTeamSetup>;
 export type CreateMatchTeamSetupOptions = {
   teamId: string;
   squad: NationalTeamSquad;
+  fieldKit?: FieldKitVariant;
   goalkeeperKitId: GoalkeeperKitId;
   controllerType?: PlayerControllerType;
 };
 
 export function createMatchTeamSetup(options: CreateMatchTeamSetupOptions): MatchTeamSetup {
   return {
-    flagCode: options.teamId,
+    flagCode: normalizeFlagCode(options.teamId),
+    fieldKit: options.fieldKit ?? 'home',
     squad: cloneNationalTeamSquad(options.squad),
     goalkeeperKitId: options.goalkeeperKitId,
     controllerType: options.controllerType ?? 'HUMAN',
-    teamId: options.teamId
+    teamId: normalizeFlagCode(options.teamId)
   };
 }
 
@@ -46,7 +50,7 @@ export function createGoalkeeperKitPair(random: RandomGenerator): readonly [Goal
 
 export function cloneNationalTeamSquad(squad: NationalTeamSquad): NationalTeamSquad {
   return {
-    flagCode: squad.flagCode,
+    flagCode: normalizeFlagCode(squad.flagCode),
     fieldPlayers: Object.fromEntries(
       Object.entries(squad.fieldPlayers).map(([rank, player]) => [rank, { ...player }])
     ) as NationalTeamSquad['fieldPlayers'],

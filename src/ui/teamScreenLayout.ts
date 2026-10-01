@@ -243,7 +243,9 @@ export function createTeamScreenLayout(
       height: layout.coverFanHeight
     },
     team2CoverFanRect: {
-      x: team2SelectedCardRect.x + layout.coverFanInsetX,
+      x: mobileWide
+        ? rectRight(team2SelectedCardRect) - layout.coverFanInsetX - layout.coverFanWidth
+        : team2SelectedCardRect.x + layout.coverFanInsetX,
       y: team2SelectedCardRect.y + layout.coverFanInsetY,
       width: layout.coverFanWidth,
       height: layout.coverFanHeight
@@ -261,7 +263,7 @@ export function createTeamScreenLayout(
       layout.kitPreviewHeight
     ),
     team1ControllerToggleRect: createControllerToggleRect(team1SelectedCardRect, controllerToggle),
-    team2ControllerToggleRect: createControllerToggleRect(team2SelectedCardRect, controllerToggle),
+    team2ControllerToggleRect: createControllerToggleRect(team2SelectedCardRect, controllerToggle, mobileWide),
     controllerToggle,
     vsPosition
   };
@@ -274,6 +276,32 @@ export function rectCenter(rect: TeamScreenRect): TeamScreenPoint {
   };
 }
 
+export const SELECTED_COVER_FAN_MOBILE_CARD_SCALE = 0.70;
+const MOBILE_SELECTED_FAN_OFFSET_X = 8;
+const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
+const MOBILE_RIGHT_LABEL_OFFSET_Y = 28;
+
+// Shared by Team Selection and Penalty teams. Desktop and the Player 1 label
+// retain their original anchors. Mobile Player 2 mirrors the fan and uses a left-aligned label.
+export function createSelectedTeamHeaderLayout(
+  panel: TeamScreenRect,
+  coverFan: TeamScreenRect,
+  slot: 1 | 2,
+  mobileWide: boolean
+) {
+  const fanCenter = rectCenter(coverFan);
+  const leftLabel = mobileWide && slot === 2;
+  return {
+    fanCenter: { x: fanCenter.x + (mobileWide ? (slot === 2 ? -1 : 1) * MOBILE_SELECTED_FAN_OFFSET_X : 0), y: fanCenter.y },
+    label: {
+      x: leftLabel ? panel.x : rectRight(panel),
+      y: panel.y - (leftLabel ? MOBILE_RIGHT_LABEL_OFFSET_Y : SELECTED_PANEL_LABEL_OFFSET_Y),
+      originX: leftLabel ? 0 : 1,
+      align: leftLabel ? 'left' : 'right'
+    }
+  };
+}
+
 // Shared selected-name contract for quick match and standalone penalties.
 // Coordinates are local to the selected panel; artwork and controls stay anchored.
 export function createSelectedTeamNameLayout(
@@ -282,8 +310,9 @@ export function createSelectedTeamNameLayout(
   toggle: TeamScreenRect,
   mobileWide: boolean
 ) {
-  const left = rectRight(coverFan) + 18;
-  const width = mobileWide ? toggle.x - left - 14 : 260;
+  const mirrored = mobileWide && toggle.x < coverFan.x;
+  const left = mirrored ? rectRight(toggle) + 14 : rectRight(coverFan) + 18;
+  const width = mobileWide ? (mirrored ? coverFan.x - 18 : toggle.x - 14) - left : 260;
   return {
     x: left - rectCenter(panel).x,
     y: 0,
@@ -314,12 +343,15 @@ function createCenteredRect(x: number, y: number, width: number, height: number)
 
 function createControllerToggleRect(
   selectedCardRect: TeamScreenRect,
-  toggleLayout: TeamScreenControllerToggleLayout
+  toggleLayout: TeamScreenControllerToggleLayout,
+  leftAligned = false
 ): TeamScreenRect {
   const height = toggleLayout.fullHeight ? selectedCardRect.height : toggleLayout.height;
 
   return {
-    x: rectRight(selectedCardRect) - toggleLayout.insetX - toggleLayout.width,
+    x: leftAligned
+      ? selectedCardRect.x + toggleLayout.insetX
+      : rectRight(selectedCardRect) - toggleLayout.insetX - toggleLayout.width,
     y: toggleLayout.fullHeight
       ? selectedCardRect.y
       : rectBottom(selectedCardRect) - toggleLayout.insetY - height,

@@ -117,24 +117,24 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('segmentHeight / 2');
   });
 
-  it('places player labels above panels aligned to panel right edges', () => {
+  it('uses shared player-label anchors above the selected panels', () => {
     const source = readTeamSelectSource();
 
     expect(source).toContain("'Player 1'");
     expect(source).toContain("'Player 2'");
     expect(source).not.toContain("'Team 1'");
     expect(source).not.toContain("'Team 2'");
-    expect(source).toContain('const SELECTED_PANEL_LABEL_OFFSET_Y = 16');
-    expect(source).toContain('.text(rect.x + rect.width, rect.y - SELECTED_PANEL_LABEL_OFFSET_Y, title');
-    expect(source).toContain("align: 'right'");
-    expect(source).toContain('.setOrigin(1, 0.5)');
+    expect(source).toContain('createSelectedTeamHeaderLayout(rect, coverFanRect, slot, layout.mobileWide)');
+    expect(source).toContain('.text(headerLayout.label.x, headerLayout.label.y, title');
+    expect(source).toContain('align: headerLayout.label.align');
+    expect(source).toContain('.setOrigin(headerLayout.label.originX, 0.5)');
     expect(source).toContain('slotLabel.setDepth(1)');
   });
 
   it('uses the shared scrollable country grid without pagination', () => {
     const source = readTeamSelectSource();
 
-    expect(source).toContain('createTeamCountryGridLayout(layout, NATIONAL_TEAMS.length)');
+    expect(source).toContain('createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length)');
     expect(source).toContain('Math.floor(index / grid.columns)');
     expect(source).not.toContain('page + 1');
     expect(source).not.toContain('1 / 2');
@@ -236,7 +236,7 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('const SELECTED_COVER_FAN_CARD_COUNT = 3');
     expect(source).toContain("faceDownVariant: 'preview'");
     expect(source).toContain('private createTeamKitPreview');
-    expect(source).toContain('getTeamKitAssetKey(team.flagCode)');
+    expect(source).toContain('getTeamKitAssetKey(team.flagCode, this.fieldKits[slot])');
     expect(source).toContain('FALLBACK_TEAM_KIT_ASSET.assetKey');
     expect(source).toContain('fitImageContain(kit, {');
     expect(source).toContain('width: rect.width - 14');

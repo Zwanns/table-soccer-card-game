@@ -17,7 +17,7 @@ describe('read-only squad scenes', () => {
     expect(menuSource).toContain("this.scene.start('SquadSelectScene')");
   });
 
-  it('shows all national teams in the squad selector', () => {
+  it('shows only active national teams while retaining all master data', () => {
     const selectSource = readSource('src/scenes/SquadSelectScene.ts');
 
     expect(NATIONAL_TEAMS).toHaveLength(66);
@@ -33,7 +33,7 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('background.setDisplaySize(SCENE_WIDTH, SCENE_HEIGHT)');
     expect(selectSource).toContain('createTeamFieldBackground(this)');
     expect(selectSource).not.toContain('GAME_TITLE');
-    expect(selectSource).toContain('NATIONAL_TEAMS.forEach');
+    expect(selectSource).toContain('ACTIVE_NATIONAL_TEAMS.forEach');
     expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
     expect(selectSource).toContain('team.name');
     expect(selectSource).toContain('flag.setDisplaySize(36, 27)');
@@ -189,7 +189,7 @@ describe('read-only squad scenes', () => {
     });
     expect(northernIrelandStyle?.primaryColor).toBe('#006A3A');
     expect(franceStyle?.primaryColor).toBe('#002654');
-    expect(spainStyle?.primaryColor).toBe('#FF0000');
+    expect(spainStyle?.primaryColor).toBe('#FF0100');
 
     expect(selectSource).toContain("import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits'");
     expect(selectSource).toContain("import { buildTeamColorSwatches } from '../ui/teamColorSwatches'");
@@ -206,12 +206,12 @@ describe('read-only squad scenes', () => {
       swatchY: 62,
       radius: 10,
       gap: 10
-    }).map((swatch) => swatch.color)).toEqual(['#FFD700', '#0057B8']);
+    }).map((swatch) => swatch.color)).toEqual(['#FFDF0D', '#FFDF0D']);
     expect(buildTeamColorSwatches(getTeamKitStyle('br'), {
       swatchY: 62,
       radius: 10,
       gap: 10
-    }).map((swatch) => swatch.role)).toEqual(['primary', 'secondary', 'accent']);
+    }).map((swatch) => swatch.role)).toEqual(['primary', 'secondary']);
   });
 
   it('refreshes team preview cards when the selected squad changes', () => {

@@ -1,4 +1,5 @@
 import type { TournamentStage, TournamentState } from './tournamentTypes';
+import { normalizeTournamentFlagCodes } from './tournamentFlagCodes';
 
 export const TOURNAMENT_STORAGE_KEY = 'total-soccer-mundial:tournament';
 export const TOURNAMENT_STORAGE_SCHEMA_VERSION = 1;
@@ -25,13 +26,12 @@ export function saveTournament(tournament: TournamentState, storage = getTournam
     return false;
   }
 
-  const storedTournament: StoredTournament = {
-    schemaVersion: TOURNAMENT_STORAGE_SCHEMA_VERSION,
-    tournament,
-    savedAt: new Date().toISOString()
-  };
-
   try {
+    const storedTournament: StoredTournament = {
+      schemaVersion: TOURNAMENT_STORAGE_SCHEMA_VERSION,
+      tournament: normalizeTournamentFlagCodes(tournament),
+      savedAt: new Date().toISOString()
+    };
     storage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(storedTournament));
     return true;
   } catch {
@@ -57,7 +57,8 @@ export function loadStoredTournament(storage = getTournamentStorage()): StoredTo
       return null;
     }
 
-    return cloneStoredTournament(parsedValue);
+    const stored = cloneStoredTournament(parsedValue);
+    return { ...stored, tournament: normalizeTournamentFlagCodes(stored.tournament) };
   } catch {
     return null;
   }

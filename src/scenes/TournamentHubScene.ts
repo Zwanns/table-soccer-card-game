@@ -1,3 +1,4 @@
+import { resolveTournamentKits } from '../game/tournamentKitSelection';
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getFlagAssetKey, getTeamScoreboardCode, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
@@ -2217,7 +2218,10 @@ export class TournamentHubScene extends Phaser.Scene {
       return;
     }
 
+    const [player1FieldKit, player2FieldKit] = resolveTournamentKits(match.homeTeamId, match.awayTeamId);
     this.scene.start('GameScene', {
+      player1FieldKit,
+      player2FieldKit,
       player1Name: homeTeam.name,
       player2Name: awayTeam.name,
       player1FlagCode: homeTeam.flagCode,

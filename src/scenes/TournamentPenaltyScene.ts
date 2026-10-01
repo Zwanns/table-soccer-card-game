@@ -15,8 +15,10 @@ import {
 } from '../assets/teamCover';
 import type { CardColor, CardRank, GoalkeeperRank } from '../cards';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getGoalkeeperKitAssetKey, getTeamKitAssetKey, type GoalkeeperKitId } from '../data/teamKits';
+import { getGoalkeeperKitAssetKey, getTeamKitAssetKey, type GoalkeeperKitId, type FieldKitVariant } from '../data/teamKits';
 import { NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { normalizeFlagCodeKeys } from '../data/flagCodes';
+import { normalizeTournamentMatchResult } from '../tournament/tournamentFlagCodes';
 import { getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
 import { loadSquad } from '../services/squadStorage';
 import {
@@ -74,6 +76,7 @@ import {
 } from './penaltySceneEffects';
 
 interface TournamentPenaltySceneData {
+  fieldKits?: Record<string, FieldKitVariant>;
   devMockCompleted?: boolean;
   tournamentId?: string;
   matchResult?: TournamentMatchResult;
@@ -127,6 +130,7 @@ interface InFlightPenaltyCard {
 }
 
 export class TournamentPenaltyScene extends Phaser.Scene {
+  private fieldKits: Record<string, FieldKitVariant> = {};
   private devMockCompleted = false;
   private resultRecorded = false;
   private isLeaving = false;
@@ -153,12 +157,13 @@ export class TournamentPenaltyScene extends Phaser.Scene {
   }
 
   public init(data: TournamentPenaltySceneData): void {
+    this.fieldKits = normalizeFlagCodeKeys(data.fieldKits ?? {});
     this.devMockCompleted = import.meta.env.DEV && data.devMockCompleted === true;
     this.resultRecorded = false;
     this.isLeaving = false;
     this.restartModal = null;
     this.tournamentId = data.tournamentId ?? null;
-    this.matchResult = data.matchResult ?? null;
+    this.matchResult = data.matchResult === undefined ? null : normalizeTournamentMatchResult(data.matchResult);
     this.shootoutState = null;
     this.message = null;
     this.inputLocked = false;
@@ -336,6 +341,8 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     this.scene.start('GameScene', {
       player1Name: getTeamName(this.matchResult.homeTeamId),
       player2Name: getTeamName(this.matchResult.awayTeamId),
+      player1FieldKit: this.fieldKits[this.matchResult.homeTeamId] ?? 'home',
+      player2FieldKit: this.fieldKits[this.matchResult.awayTeamId] ?? 'home',
       player1FlagCode: this.matchResult.homeTeamId,
       player2FlagCode: this.matchResult.awayTeamId,
       player1ControllerType: this.homeControllerType,
@@ -509,6 +516,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
     }
 
     this.scene.start('TournamentPenaltyScene', {
+      fieldKits: this.fieldKits,
       standalone: true,
       matchResult: this.matchResult,
       homeControllerType: this.homeControllerType,
@@ -1009,7 +1017,7 @@ export class TournamentPenaltyScene extends Phaser.Scene {
       faceDown: options.faceDown,
       highlighted: options.highlighted,
       coverTextureKey: this.getCoverTextureKey(teamId),
-      kitTextureKey: getTeamKitAssetKey(teamId, 'home'),
+      kitTextureKey: getTeamKitAssetKey(teamId, this.fieldKits[teamId]),
       onClick: options.onClick,
       playerProfile: options.faceDown === true ? undefined : createCardPlayerProfile(teamId, squad.fieldPlayers[rank]),
       tooltipEnabled: false

@@ -327,6 +327,7 @@ export class ResultScene extends Phaser.Scene {
     this.scene.start('TournamentPenaltyScene', {
       tournamentId: tournament.id,
       matchResult,
+      fieldKits: Object.fromEntries(Object.values(this.state?.matchSetups ?? {}).map((setup) => [setup.flagCode, setup.fieldKit ?? 'home'])),
       homeControllerType: getTournamentTeamControllerType(tournament, matchResult.homeTeamId),
       awayControllerType: getTournamentTeamControllerType(tournament, matchResult.awayTeamId)
     });
@@ -692,6 +693,8 @@ export class ResultScene extends Phaser.Scene {
     const [playerOne, playerTwo] = this.state.players;
 
     this.scene.start('GameScene', {
+      player1FieldKit: this.state.matchSetups[playerOne.id]?.fieldKit ?? 'home',
+      player2FieldKit: this.state.matchSetups[playerTwo.id]?.fieldKit ?? 'home',
       player1Name: playerOne.name,
       player2Name: playerTwo.name,
       player1FlagCode: playerOne.flagCode,
@@ -766,7 +769,6 @@ export function resolveResultConfettiColors(state: Readonly<GameState> | null): 
 
   return normalizeConfettiColors([
     kitStyle.primaryColor,
-    kitStyle.secondaryColor,
-    ...(kitStyle.accentColor === undefined ? [] : [kitStyle.accentColor])
+    kitStyle.secondaryColor
   ]);
 }

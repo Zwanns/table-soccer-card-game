@@ -14,6 +14,7 @@ import { AiTurnController, type AiAction, type AiTurnCheckReason, type PlayerCon
 import type { Card } from '../cards';
 import { GAME_AUTHOR, GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { normalizeFlagCode } from '../data/flagCodes';
 import { getLanguageCode, getPreferredLanguage, setPreferredLanguage } from '../i18n/languageStore';
 import { getMatchExitConfirmationContent } from '../i18n/matchExitConfirmation';
 import { QUICK_MATCH_CONTEXT, saveTournament, type MatchLaunchContext, type TournamentState } from '../tournament';
@@ -33,7 +34,7 @@ import {
   type Player
 } from '../game';
 import type { GoalkeeperCard } from '../cards';
-import { getGoalkeeperKitAssetKey, getTeamKitAssetKey } from '../data/teamKits';
+import { getGoalkeeperKitAssetKey, getTeamKitAssetKey, type FieldKitVariant } from '../data/teamKits';
 import { AdvantageView } from '../ui/AdvantageView';
 import { Button } from '../ui/Button';
 import { createCardPlayerProfile, createGoalkeeperCardProfile, type CardPlayerProfile } from '../ui/cardPlayerProfile';
@@ -217,6 +218,8 @@ export class GameScene extends Phaser.Scene {
   private startWhistlePlayed = false;
   private player1Name = 'France';
   private player2Name = 'Spain';
+  private player1FieldKit: FieldKitVariant = 'home';
+  private player2FieldKit: FieldKitVariant = 'home';
   private player1FlagCode = 'fr';
   private player2FlagCode = 'es';
   private player1ControllerType: PlayerControllerType = 'HUMAN';
@@ -254,10 +257,12 @@ export class GameScene extends Phaser.Scene {
 
   public init(data: GameSceneInitData): void {
     this.removeAndroidBackButtonListener();
+    this.player1FieldKit = data.player1FieldKit ?? 'home';
+    this.player2FieldKit = data.player2FieldKit ?? 'home';
     this.player1Name = data.player1Name ?? 'France';
     this.player2Name = data.player2Name ?? 'Spain';
-    this.player1FlagCode = data.player1FlagCode ?? 'fr';
-    this.player2FlagCode = data.player2FlagCode ?? 'es';
+    this.player1FlagCode = normalizeFlagCode(data.player1FlagCode ?? 'fr');
+    this.player2FlagCode = normalizeFlagCode(data.player2FlagCode ?? 'es');
     this.player1ControllerType = data.player1ControllerType ?? 'HUMAN';
     this.player2ControllerType = data.player2ControllerType ?? 'HUMAN';
     this.launchContext = data.launchContext ?? QUICK_MATCH_CONTEXT;
@@ -327,6 +332,8 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleSceneShutdown, this);
     this.registerAndroidBackButtonListener();
     this.engine.startNewGame({
+      player1FieldKit: this.player1FieldKit,
+      player2FieldKit: this.player2FieldKit,
       player1Name: this.player1Name,
       player2Name: this.player2Name,
       player1FlagCode: this.player1FlagCode,
@@ -1134,6 +1141,8 @@ export class GameScene extends Phaser.Scene {
   private restartMatch(): void {
     if (this.isNavigationAwayInProgress) return;
     const data: GameSceneInitData = {
+      player1FieldKit: this.player1FieldKit,
+      player2FieldKit: this.player2FieldKit,
       player1Name: this.player1Name, player2Name: this.player2Name,
       player1FlagCode: this.player1FlagCode, player2FlagCode: this.player2FlagCode,
       player1ControllerType: this.player1ControllerType, player2ControllerType: this.player2ControllerType,
@@ -1579,7 +1588,7 @@ export class GameScene extends Phaser.Scene {
           ? undefined
           : defenderIsGoalkeeper
             ? getGoalkeeperKitAssetKey(defenderSetup.goalkeeperKitId)
-            : getTeamKitAssetKey(defenderSetup.flagCode),
+            : getTeamKitAssetKey(defenderSetup.flagCode, defenderSetup.fieldKit),
       defenderProfile:
         defenderSetup === undefined
           ? undefined
@@ -2342,7 +2351,7 @@ export class GameScene extends Phaser.Scene {
           ? undefined
           : isGoalkeeper
             ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
-            : getTeamKitAssetKey(setup.flagCode)
+            : getTeamKitAssetKey(setup.flagCode, setup.fieldKit)
     });
     card.setScale(MATCH_CARD_SCALE * 0.92);
     card.setAlpha(0.92);
@@ -2931,7 +2940,7 @@ function resolveFieldCardProfile(state: Readonly<GameState>, player: Player, car
 function resolveFieldKitTextureKey(state: Readonly<GameState>, player: Player): string | undefined {
   const setup = state.matchSetups[player.id];
 
-  return setup === undefined ? undefined : getTeamKitAssetKey(setup.flagCode);
+  return setup === undefined ? undefined : getTeamKitAssetKey(setup.flagCode, setup.fieldKit);
 }
 
 function getRestoreAnimationEntries(events: readonly GameEvent[]): RestoreAnimationEntry[] {

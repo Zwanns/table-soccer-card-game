@@ -140,7 +140,7 @@ export class FieldView extends MatchFieldView {
             ? undefined
             : isGoalkeeper
               ? getGoalkeeperKitAssetKey(setup.goalkeeperKitId)
-              : getTeamKitAssetKey(setup.flagCode),
+              : getTeamKitAssetKey(setup.flagCode, setup.fieldKit),
         label: isGoalkeeper ? 'GK' : '',
         onClick: selectable
           ? () => onTargetSelect(position.positionId)

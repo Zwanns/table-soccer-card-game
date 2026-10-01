@@ -33,15 +33,16 @@ describe('kit validator', () => {
 
     expect(style).toBeDefined();
     await createRequiredWebps(projectRoot);
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl1.webp'));
 
     const attribution: KitAttribution = {
-      'images/pl.webp': {
+      'images/pl1.webp': {
         license: 'CC BY-SA 4.0'
       }
     };
     const result = await validateRegisteredKits({
       projectRoot,
+      awayKitFlagCodes: [],
       attribution,
       manualKitFlagCodes: ['pl']
     });
@@ -72,16 +73,17 @@ describe('kit validator', () => {
     const projectRoot = createTempProjectRoot();
 
     await createRequiredWebps(projectRoot);
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl1.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr1.webp'));
 
     const result = await validateRegisteredKits({
       projectRoot,
+      awayKitFlagCodes: [],
       manualKitFlagCodes: ['pl']
     });
 
     expect(result.errors).toContain(
-      'team kit file public/kits/images/fr.webp exists for flagCode "fr" but is missing from generated AVAILABLE_MANUAL_KIT_FLAG_CODES. Run npm run sync:kits.'
+      'team kit file public/kits/images/fr1.webp exists for flagCode "fr" but is missing from generated AVAILABLE_MANUAL_KIT_FLAG_CODES. Run npm run sync:kits.'
     );
     expect(result.warnings).toEqual([]);
   });
@@ -90,8 +92,8 @@ describe('kit validator', () => {
     const projectRoot = createTempProjectRoot();
 
     await createRequiredWebps(projectRoot);
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl.webp'));
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl1.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'fr1.webp'));
 
     const result = syncKitRegistry({
       projectRoot,
@@ -99,6 +101,7 @@ describe('kit validator', () => {
     });
 
     expect(result.flagCodes).toEqual(['fr', 'pl']);
+    expect(result.awayFlagCodes).toEqual([]);
     expect(result.content).toContain("  'fr'");
     expect(result.content).toContain("  'pl'");
     expect(result.content).not.toContain("  'none'");
@@ -106,18 +109,29 @@ describe('kit validator', () => {
     expect(result.content).not.toContain("  'gk2'");
   });
 
+  it('syncs AWAY independently including an AWAY-only team', async () => {
+    const projectRoot = createTempProjectRoot();
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'de2.webp'));
+    const result = syncKitRegistry({ projectRoot, write: false });
+    expect(result.flagCodes).toEqual([]);
+    expect(result.awayFlagCodes).toEqual(['de']);
+    expect(result.content).toContain('AVAILABLE_AWAY_KIT_FLAG_CODES');
+    expect(await validateRegisteredKits({ projectRoot, manualKitFlagCodes: [], awayKitFlagCodes: ['de'] })).toEqual({ errors: [], warnings: [] });
+  });
+
   it('rejects unknown kit image files', async () => {
     const projectRoot = createTempProjectRoot();
 
     await createRequiredWebps(projectRoot);
-    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'xx.webp'));
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'xx1.webp'));
 
     const result = await validateRegisteredKits({
       projectRoot
     });
 
     expect(result.errors).toContain(
-      'Unknown kit file public/kits/images/xx.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
+      'Unknown kit file public/kits/images/xx1.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
     );
     expect(() =>
       syncKitRegistry({
@@ -125,7 +139,7 @@ describe('kit validator', () => {
         write: false
       })
     ).toThrow(
-      'Unknown kit file public/kits/images/xx.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
+      'Unknown kit file public/kits/images/xx1.webp: "xx" is not a national team flagCode.\nRename the file or add the team first.'
     );
     expect(result.warnings).toEqual([]);
   });
@@ -137,6 +151,7 @@ describe('kit validator', () => {
 
     const result = await validateRegisteredKits({
       projectRoot,
+      awayKitFlagCodes: [],
       manualKitFlagCodes: ['none', 'gk1', 'missing']
     });
 
@@ -163,7 +178,7 @@ describe('kit validator', () => {
     expect(readme).toContain('Do not include a player number');
     expect(readme).toContain('Do not include the card rank');
     expect(readme).toContain('Do not include text or labels');
-    expect(readme).toContain('Field kit file name must be `<flagCode>.webp`');
+    expect(readme).toContain('Field kit file name must be `<flagCode>1.webp`');
     expect(readme).toContain('none.webp');
     expect(readme).toContain('gk1.webp');
     expect(readme).toContain('gk2.webp');

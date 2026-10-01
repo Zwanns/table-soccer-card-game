@@ -1,4 +1,4 @@
-import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { ACTIVE_NATIONAL_TEAMS, assertActiveTeams, isActiveTeam } from '../data/activeTeams';
 import { getTournamentFormat } from './TournamentFormat';
 import { refreshTournamentProgress } from './TournamentBracket';
 import { createTournamentState } from './TournamentState';
@@ -25,6 +25,7 @@ export class TournamentEngine {
     seed?: string,
     participants?: readonly TournamentParticipant[]
   ): TournamentState {
+    assertActiveTeams(teamIds);
     return createTournamentState({ formatId, teamIds, seed, participants });
   }
 
@@ -56,18 +57,18 @@ export class TournamentEngine {
 export function fillTournamentTeamsRandom(
   formatId: TournamentFormatId,
   seed: string,
-  availableTeamIds: readonly TournamentTeamId[] = NATIONAL_TEAMS.map((team) => team.flagCode)
+  availableTeamIds: readonly TournamentTeamId[] = ACTIVE_NATIONAL_TEAMS.map((team) => team.flagCode)
 ): TournamentTeamId[] {
   const format = getTournamentFormat(formatId);
 
-  return takeRandomUnique(availableTeamIds, format.teamCount, `${seed}:fill-random`);
+  return takeRandomUnique([...new Set(availableTeamIds.filter(isActiveTeam))], format.teamCount, `${seed}:fill-random`);
 }
 
 export function fillEmptyTournamentSlots(
   formatId: TournamentFormatId,
   slots: readonly (TournamentTeamId | null)[],
   seed: string,
-  availableTeamIds: readonly TournamentTeamId[] = NATIONAL_TEAMS.map((team) => team.flagCode)
+  availableTeamIds: readonly TournamentTeamId[] = ACTIVE_NATIONAL_TEAMS.map((team) => team.flagCode)
 ): TournamentTeamId[] {
   const format = getTournamentFormat(formatId);
 
@@ -76,13 +77,14 @@ export function fillEmptyTournamentSlots(
   }
 
   const selectedTeamIds = slots.flatMap((teamId) => (teamId === null ? [] : [teamId]));
+  assertActiveTeams(selectedTeamIds);
 
   if (new Set(selectedTeamIds).size !== selectedTeamIds.length) {
     throw new Error('Tournament teams must be unique.');
   }
 
   const selectedSet = new Set(selectedTeamIds);
-  const candidates = availableTeamIds.filter((teamId) => !selectedSet.has(teamId));
+  const candidates = [...new Set(availableTeamIds.filter((teamId) => isActiveTeam(teamId) && !selectedSet.has(teamId)))];
   const missingCount = slots.filter((teamId) => teamId === null).length;
   const randomTeams = takeRandomUnique(candidates, missingCount, `${seed}:fill-empty`);
   let randomIndex = 0;

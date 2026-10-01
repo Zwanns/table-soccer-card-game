@@ -1,0 +1,194 @@
+{
+  "al": {
+    "primaryColor": "#D71920",
+    "secondaryColor": "#111111",
+    "shirtNumberColor": "#111111"
+  },
+  "dz": {
+    "primaryColor": "#00843D",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "am": {
+    "primaryColor": "#D90012",
+    "secondaryColor": "#0033A0",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "au": {
+    "primaryColor": "#FFCD00",
+    "secondaryColor": "#05573D",
+    "shirtNumberColor": "#05573D",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "at": {
+    "primaryColor": "#ED2939",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "by": {
+    "primaryColor": "#D22730",
+    "secondaryColor": "#007C4C",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "cl": {
+    "primaryColor": "#D52B1E",
+    "secondaryColor": "#0039A6",
+    "shirtNumberColor": "#0039A6",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "cr": {
+    "primaryColor": "#CE1126",
+    "secondaryColor": "#002B7F",
+    "shirtNumberColor": "#002B7F",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "ec": {
+    "primaryColor": "#FFFC00",
+    "secondaryColor": "#034EA2",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#253167"
+  },
+  "eg": {
+    "primaryColor": "#CE1126",
+    "secondaryColor": "#000000",
+    "shirtNumberColor": "#000000",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "gr": {
+    "primaryColor": "#0D5EAF",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#0D5EAF"
+  },
+  "hu": {
+    "primaryColor": "#CE2939",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "ir": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#239F40",
+    "shirtNumberColor": "#239F40"
+  },
+  "iq": {
+    "primaryColor": "#017B3D",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "ie": {
+    "primaryColor": "#169B62",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "ci": {
+    "primaryColor": "#F77F00",
+    "secondaryColor": "#009E60",
+    "shirtNumberColor": "#009E60",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "kz": {
+    "primaryColor": "#00AFCA",
+    "secondaryColor": "#FEC50C",
+    "shirtNumberColor": "#FEC50C",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "ml": {
+    "primaryColor": "#FCD116",
+    "secondaryColor": "#14B53A",
+    "shirtNumberColor": "#14B53A",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "nir": {
+    "primaryColor": "#006A3A",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "pa": {
+    "primaryColor": "#DA121A",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "pe": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#D91023",
+    "shirtNumberColor": "#D91023",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "qa": {
+    "primaryColor": "#8A1538",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "ro": {
+    "primaryColor": "#FCD116",
+    "secondaryColor": "#002B7F",
+    "shirtNumberColor": "#002B7F",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "sa": {
+    "primaryColor": "#006C35",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "sct": {
+    "primaryColor": "#003876",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "sn": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#00853F",
+    "shirtNumberColor": "#00853F",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "rs": {
+    "primaryColor": "#C6363C",
+    "secondaryColor": "#0C4076",
+    "shirtNumberColor": "#0C4076"
+  },
+  "sk": {
+    "primaryColor": "#0052B4",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "si": {
+    "primaryColor": "#1D5C4A",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF",
+    "shirtNumberStrokeColor": "#1D5C4A"
+  },
+  "za": {
+    "primaryColor": "#FFB81C",
+    "secondaryColor": "#007749",
+    "shirtNumberColor": "#007749",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "ch": {
+    "primaryColor": "#D52B1E",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  },
+  "tn": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#E70013",
+    "shirtNumberColor": "#E70013",
+    "shirtNumberStrokeColor": "#FFFFFF"
+  },
+  "ve": {
+    "primaryColor": "#8A1538",
+    "secondaryColor": "#F4C430",
+    "shirtNumberColor": "#F4C430",
+    "shirtNumberStrokeColor": "#111111"
+  },
+  "wls": {
+    "primaryColor": "#C8102E",
+    "secondaryColor": "#FFFFFF",
+    "shirtNumberColor": "#FFFFFF"
+  }
+}

@@ -77,7 +77,7 @@ describe('match finish flow', () => {
 
   it('uses an explicit GAME_OVER depleted player payload before inspecting fallback state', () => {
     const state = gameOverState({
-      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'eng')],
       activePlayerId: 'PLAYER_2',
       log: [{ type: 'GAME_OVER', winnerId: 'PLAYER_1', reason: 'NO_ATTACK_CARD', depletedPlayerId: 'PLAYER_1' }]
     });
@@ -90,7 +90,7 @@ describe('match finish flow', () => {
 
   it('resolves NO_ATTACK_CARD to the current attacker when the payload has only the reason', () => {
     const state = gameOverState({
-      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      players: [player('PLAYER_1', 'Portugal', ['Q'], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'eng')],
       activePlayerId: 'PLAYER_2',
       log: [{ type: 'GAME_OVER', winnerId: 'PLAYER_1', reason: 'NO_ATTACK_CARD' }]
     });
@@ -103,7 +103,7 @@ describe('match finish flow', () => {
 
   it('resolves CANNOT_RESTORE_FIELD to the active team when outfield cards are clearly short', () => {
     const portugal = player('PLAYER_1', 'Portugal', ['2', '3', '4'], undefined, 'pt');
-    const england = player('PLAYER_2', 'England', ['A', 'K', 'Q', 'J', '10'], undefined, 'gb-eng');
+    const england = player('PLAYER_2', 'England', ['A', 'K', 'Q', 'J', '10'], undefined, 'eng');
 
     portugal.field.goalkeeper = { id: 'pt_gk', kind: 'goalkeeper', rank: '6' };
     portugal.field['defender-1'] = {
@@ -141,7 +141,7 @@ describe('match finish flow', () => {
 
   it('falls back when both teams appear unable to provide attack cards', () => {
     const state = gameOverState({
-      players: [player('PLAYER_1', 'Portugal', [], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'gb-eng')],
+      players: [player('PLAYER_1', 'Portugal', [], undefined, 'pt'), player('PLAYER_2', 'England', [], undefined, 'eng')],
       activePlayerId: 'PLAYER_1',
       log: [{ type: 'GAME_OVER', winnerId: null }]
     });

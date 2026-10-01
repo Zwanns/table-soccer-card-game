@@ -196,7 +196,7 @@ describe('result scene mobile statistics card', () => {
     expect(colorBlock).toContain('return [...DEFAULT_CONFETTI_COLORS];');
     expect(colorBlock).toContain('kitStyle.primaryColor');
     expect(colorBlock).toContain('kitStyle.secondaryColor');
-    expect(colorBlock).toContain('kitStyle.accentColor');
+    expect(colorBlock).not.toContain('kitStyle.accentColor');
     expect(colorBlock).toContain('normalizeConfettiColors([');
   });
 
