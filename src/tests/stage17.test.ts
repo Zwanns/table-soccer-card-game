@@ -3,7 +3,7 @@ import type Phaser from 'phaser';
 
 const ui = vi.hoisted(() => ({ buttons: [] as any[], mobile: false }));
 vi.mock('phaser', () => ({ default: {
-  Scene: class {}, GameObjects: { Container: class { add() {} } },
+  Scene: class {}, GameObjects: { Container: class { add() {} once() {} } },
   Math: { DegToRad: (n: number) => n * Math.PI / 180 }
 } }));
 vi.mock('../ui/mobileLayout', () => ({ isMobileLandscapeLayout: () => ui.mobile }));
@@ -40,13 +40,17 @@ import { createDevLabLayout } from '../devLabLayout';
 import { createResultActionButtons, RESULT_ACTION_BUTTON_Y } from '../ui/resultActionButtons';
 import { SCOREBOARD_BORDER_COLOR } from '../ui/scoreboardStyle';
 
-function node(): any {
-  return { width: 200, height: 50, destroy: vi.fn(), add: vi.fn(),
+function node(x = 0, y = 0): any {
+  return { x, y, width: 200, height: 50, destroy: vi.fn(), add: vi.fn(),
+    setText() { return this; }, setVisible() { return this; }, setMask() { return this; },
+    get displayWidth() { return this.width; }, setX(nextX: number) { this.x = nextX; return this; },
     setDepth() { return this; }, setInteractive() { return this; }, setStrokeStyle() { return this; },
-    setOrigin() { return this; }, setDisplaySize() { return this; }, setScale: vi.fn() };
+    setOrigin() { return this; }, setDisplaySize(width: number, height: number) { this.width = width; this.height = height; return this; }, setScale: vi.fn() };
 }
 function attach(scene: any): any {
   Object.assign(scene, {
+    make: { graphics: () => ({ fillStyle() { return this; }, fillRect() { return this; }, createGeometryMask() { return this; }, setVisible() {} }) },
+    textures: { exists: () => true },
     add: { container: vi.fn(node), rectangle: vi.fn(node), text: vi.fn(node), image: vi.fn(node), existing: vi.fn() },
     input: { enabled: true }, scene: { start: vi.fn(), restart: vi.fn() },
     time: { removeAllEvents: vi.fn() }, tweens: { killAll: vi.fn() }
@@ -202,6 +206,19 @@ describe('pause and restart', () => {
   });
 });
 
+describe('diagnostics across pause and rules', () => {
+  it('keeps the existing match event log and sequence when dismissing either overlay', () => {
+    const scene = attach(new GameScene());
+    const engine = new GameEngine(); engine.startNewGame({ seed: 'pause-log' });
+    const entries = engine.getEventLog(); const snapshot = structuredClone(entries);
+    scene.engine = engine; scene.isSceneStableForAi = vi.fn(() => false);
+    scene.pauseModal = node(); scene.closePauseModal({ resumeAutomaticCardFlow: false });
+    scene.infoModal = node(); scene.activeInfoModal = 'rules'; scene.closeMatchInfoModal();
+    expect(scene.engine).toBe(engine); expect(engine.getEventLog()).toBe(entries);
+    expect(engine.getEventLog()).toEqual(snapshot);
+  });
+});
+
 describe('mobile match context', () => {
   it('uses the real format, match stage and group with a neutral fallback', () => {
     const t = tournamentAt('semi-final');
@@ -218,12 +235,9 @@ describe('mobile match context', () => {
     ui.mobile = mobile; const scene = attach({});
     new ScoreView(scene as Phaser.Scene, 800, 42, 'Spain', 'France', 'es', 'fr', 1, 1, { matchContext: 'PENALTIES', penaltyScore: { playerOne: 4, playerTwo: 3 } });
     const rects = scene.add.rectangle.mock.calls;
-    expect(rects).toHaveLength(mobile ? 3 : 2);
+    expect(rects).toHaveLength(3);
     const right = rects[1]; expect(right.slice(0, 4)).toEqual([260, 0, 1, 58]);
-    if (mobile) {
-      expect(rects[2]).toEqual([-260, ...right.slice(1)]);
-      expect(scene.add.text).toHaveBeenCalledWith(-410, 0, 'PENALTIES', expect.objectContaining({ align: 'center', wordWrap: { width: 276 } }));
-    } else expect(scene.add.text.mock.calls.some((c: any[]) => c[2] === 'PENALTIES')).toBe(false);
+    expect(rects[2]).toEqual([-260, ...right.slice(1)]);
     expect(scene.add.text).toHaveBeenCalledWith(0, -1, '1:1', expect.anything());
     expect(scene.add.text).toHaveBeenCalledWith(410, -1, '', expect.anything());
     expect(scene.add.image.mock.calls.map((c: any[]) => c[0])).toEqual([-221, 221]);
@@ -435,7 +449,7 @@ describe('KIT.SELECTOR.MOBILE.2', () => {
     expect(cards.map(key)).toEqual(['kit-de-away', 'kit-de', 'kit-none', 'kit-es']);
     expect(cards[0].x - cards[1].x).toBe(cards[0].width / 2);
     expect(cards[2].x - cards[3].x).toBe(-cards[2].width / 2);
-    expect(cards[0].y).toBeGreaterThan(cards[1].y);
+    expect(cards[0].y).toBe(cards[1].y);
     expect(cards[0].y - cards[1].y).toBeLessThan(cards[0].height);
     expect(cards[1].width).toBeGreaterThan(layout.team1KitPreviewRect.width);
     expect(cards[1].height).toBeGreaterThan(layout.team1KitPreviewRect.height);

@@ -13,7 +13,7 @@ import { AdvantageView, ADVANTAGE_VIEW_HEIGHT, ADVANTAGE_VIEW_WIDTH, MOBILE_ADVA
 import { SCORE_VIEW_HEIGHT, SCORE_CONTENT_CENTER_X, SCORE_VIEW_WIDTH } from '../ui/ScoreView';
 
 vi.mock('phaser', () => ({
-  default: { GameObjects: { Container: class { add() {} } } }
+  default: { GameObjects: { Container: class { add() {} once() {} } } }
 }));
 
 describe('unified mobile match header', () => {
@@ -88,15 +88,62 @@ describe('card suffix display polish', () => {
 });
 
 describe('scoreboard step counter', () => {
+  it.each([64, 92])('keeps a 10px badge/code gap for rendered team-code width %s', (codeWidth) => {
+    const labels: Record<string, { x: number; displayWidth: number; originX: number }> = {};
+    const badges: { x: number; y: number; displayWidth: number; displayHeight: number; scaleX: number; scaleY: number }[] = [];
+    const object = { setStrokeStyle() { return this; }, add() { return this; } };
+    const scene = {
+      make: { graphics: () => ({ fillStyle() { return this; }, fillRect() { return this; }, createGeometryMask() { return this; }, setVisible() {} }) },
+      textures: { exists: () => true },
+      add: {
+        rectangle: () => object, container: () => object, existing() {},
+        image: (x: number, y: number) => {
+          const badge = { x, y, displayWidth: 64, displayHeight: 64, scaleX: 1, scaleY: 1,
+            setDisplaySize(width: number, height: number) {
+              this.displayWidth = width; this.displayHeight = height;
+              this.scaleX = width / 64; this.scaleY = height / 64; return this;
+            } };
+          badges.push(badge); return badge;
+        },
+        text: (x: number, _y: number, text: string) => {
+          const label = { x, displayWidth: codeWidth, originX: 0,
+            setVisible() { return this; }, setMask() { return this; }, setText() { return this; }, width: codeWidth,
+            setOrigin(originX: number) { this.originX = originX; return this; },
+            setX(nextX: number) { this.x = nextX; return this; } };
+          labels[text] = label; return label;
+        }
+      }
+    };
+    new ScoreView(scene as unknown as Phaser.Scene, 800, 42, 'Argentina', 'England', 'ar', 'eng', 1, 1);
+    const [homeBadge, awayBadge] = badges;
+    for (const badge of badges) {
+      expect(badge.displayWidth).toBe(48);
+      expect(badge.displayHeight).toBe(badge.displayWidth);
+      expect(badge.scaleX).toBe(badge.scaleY);
+      expect(Number.isInteger(badge.x)).toBe(true);
+      expect(Number.isInteger(badge.y)).toBe(true);
+      expect(badge.y).toBe(0);
+      expect(Math.abs(badge.x) + badge.displayWidth / 2).toBeLessThan(260);
+      expect(badge.displayHeight).toBeLessThan(SCORE_VIEW_HEIGHT);
+    }
+    expect(homeBadge.x).toBe(-awayBadge.x);
+    expect(labels.ARG.x - labels.ARG.displayWidth - (homeBadge.x + homeBadge.displayWidth / 2)).toBe(10);
+    expect(awayBadge.x - awayBadge.displayWidth / 2 - (labels.ENG.x + labels.ENG.displayWidth)).toBe(10);
+    expect(labels.ARG.x).toBeLessThan(-50);
+    expect(labels.ENG.x).toBeGreaterThan(50);
+  });
+
   function renderScore(count?: number, limit?: number) {
     const object = {
       setStrokeStyle() { return this; },
+      setVisible() { return this; }, setMask() { return this; }, setText() { return this; },
       setOrigin() { return this; },
       setDisplaySize() { return this; },
+      setX() { return this; },
       add() { return this; }
     };
     const text = vi.fn(() => object);
-    const scene = { add: {
+    const scene = { make: { graphics: () => ({ fillStyle() { return this; }, fillRect() { return this; }, createGeometryMask() { return this; }, setVisible() {} }) }, textures: { exists: () => true }, add: {
       rectangle: () => object, container: () => object, image: () => object,
       existing: () => {}, text
     } };
@@ -901,8 +948,8 @@ describe('GameScene visual layout contracts', () => {
     expect(actionsSource).toContain('fontSize: RESULT_ACTION_BUTTON_FONT_SIZE');
     expect(actionsSource).toContain('borderColor: options.borderColor');
     expect(actionsSource).toContain('const buttonWidth = (totalWidth - RESULT_ACTION_BUTTON_GAP * Math.max(0, actions.length - 1)) / actions.length');
-    expect(actionsSource).toContain('leftBorderColor: index > 0 ? options.innerBorderColor : undefined');
-    expect(actionsSource).toContain('rightBorderColor: index < actions.length - 1 ? options.innerBorderColor : undefined');
+    expect(actionsSource).toContain('leftBorderColor: index > 0 ? (options.innerBorderColor ?? 0x2d382f) : undefined');
+    expect(actionsSource).toContain('rightBorderColor: index < actions.length - 1 ? (options.innerBorderColor ?? 0x2d382f) : undefined');
     expect(actionsSource).toContain('topLeft: 0');
     expect(actionsSource).toContain('topRight: 0');
     expect(actionsSource).toContain('bottomRight: isLast ? RESULT_ACTION_BUTTON_RADIUS : 0');
@@ -1089,7 +1136,7 @@ describe('GameScene visual layout contracts', () => {
   it('uses scoreboard codes and the score font for all top scoreboard text', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
 
-    expect(scoreSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams'");
+    expect(scoreSource).toContain("import { getTeamScoreboardCode } from '../data/nationalTeams'");
     expect(scoreSource).toContain("import { px, SHARP_TEXT_RESOLUTION } from './textRendering'");
     expect(scoreSource).toContain('getTeamScoreboardCode(playerOneFlagCode)');
     expect(scoreSource).toContain('getTeamScoreboardCode(playerTwoFlagCode)');
@@ -1105,7 +1152,7 @@ describe('GameScene visual layout contracts', () => {
     expect(scoreSource).not.toContain('Shots:');
   });
 
-  it('keeps top scoreboard flags inset with team codes between flags and score', () => {
+  it('keeps top scoreboard badges inset and positions team codes from their actual rendered widths', () => {
     const scoreSource = readSource('src/ui/ScoreView.ts');
     const width = 520;
     const flagWidth = 58;
@@ -1127,10 +1174,12 @@ describe('GameScene visual layout contracts', () => {
     expect(edgeGap).toBeCloseTo(flagToCodeGap, 0);
     expect(playerOneCodeX).toBe(-126);
     expect(playerTwoCodeX).toBe(126);
-    expect(scoreSource).toContain('flag.setDisplaySize(58, 40)');
+    expect(scoreSource).toContain('createTeamIdentityImage(scene, px(x), 0, flagCode, 64, 48)');
+    expect(scoreSource).toContain('playerOneFlag.x + playerOneFlag.displayWidth / 2 + 10 + playerOneLabel.displayWidth');
+    expect(scoreSource).toContain('playerTwoFlag.x - playerTwoFlag.displayWidth / 2 - 10 - playerTwoLabel.displayWidth');
     expect(scoreSource).toContain('.text(0, -1, `${playerOneGoals}:${playerTwoGoals}`');
     expect(scoreSource).toContain("fontSize: '64px'");
-    expect(scoreSource).toContain("fontSize: '32px'");
+    expect(scoreSource).toContain("fontSize: '35px'");
     expect(scoreSource).toContain('scoreContent.add([playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag])');
     expect(scoreSource).toContain('scoreContent.add(\n        scene.add\n          .text(0, 29, `PEN');
   });
@@ -1197,7 +1246,7 @@ describe('GameScene visual layout contracts', () => {
     );
     expect(source).not.toContain('background.setStrokeStyle(2, 0x9dd2a7)');
     expect(source).toContain('const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72)');
-    expect(rulesSource).toContain('scene.add.rectangle(0, 0, MODAL_WIDTH, MODAL_HEIGHT, 0x000000, 0.82)');
+    expect(rulesSource).toContain('scene.add.rectangle(0, 0, layout.modalWidth, layout.modalHeight, 0x000000, 0.82)');
   });
 
   it('restores failed move card animation while leaving field success on card flight', () => {

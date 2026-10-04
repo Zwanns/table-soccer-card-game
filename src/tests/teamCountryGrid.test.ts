@@ -22,10 +22,20 @@ class DisplayObject extends EventEmitter {
   add(children: DisplayObject | DisplayObject[]) { this.children.push(...[children].flat()); return this; }
   setSize(width: number, height: number) { this.width = width; this.height = height; return this; }
   setDisplaySize(width: number, height: number) { return this.setSize(width, height); }
+  get displayWidth() { return this.width * this.scale; }
+  get displayHeight() { return this.height * this.scale; }
+  setX(x: number) { this.x = x; return this; }
   setScale(scale: number) { this.scale = scale; return this; }
   setInteractive() { this.input = { enabled: true, hitArea: { width: this.width, height: this.height } }; return this; }
   setMask(mask: unknown) { this.mask = mask; return this; }
-  setOrigin() { return this; }
+  originX = 0.5;
+  originY = 0.5;
+  setOrigin(x: number, y = x) { this.originX = x; this.originY = y; return this; }
+  clear() { return this; }
+  fillStyle = vi.fn((color: number, alpha: number) => { this.data = { color, alpha }; return this; });
+  lineStyle = vi.fn(() => this);
+  fillRoundedRect = vi.fn((_x: number, _y: number, width: number, height: number) => { this.width = width; this.height = height; return this; });
+  strokeRoundedRect = vi.fn(() => this);
   setStrokeStyle = vi.fn(() => this);
   setFillStyle = vi.fn(() => this);
   setAlpha() { return this; }
@@ -43,8 +53,10 @@ function renderGrid(mobile: boolean, mode: 'match' | 'penalty') {
   Object.assign(scene, {
     selectTeam,
     events: new EventEmitter(),
+    textures: { exists: () => true },
     make: { graphics: () => mask },
     add: {
+      graphics: () => new DisplayObject(),
       container: (x: number, y: number, children: DisplayObject[] = []) => {
         const container = new DisplayObject(x, y).add(children);
         containers.push(container);
@@ -73,27 +85,35 @@ describe.each([true, false])('country cards mobile=%s', (mobile) => {
     for (const [index, card] of content.children.entries()) {
       expect(card.scale).toBe(1);
       expect(card.input.hitArea).toEqual({ width: grid.cardWidth, height: grid.cardHeight });
-      const visuals = mobile ? card.children[0] : card;
-      expect(visuals.scale).toBe(grid.scale);
+      const visuals = card;
+      expect(visuals.scale).toBe(1);
       const [background, flag, name] = visuals.children;
       const selected = ['France', 'Spain'].includes(ACTIVE_NATIONAL_TEAMS[index].name);
       expect(background.data).toEqual({ color: mobile ? 0x1c1c1c : 0x08120f, alpha: selected ? 0.98 : 0.92 });
-      expect(background.setStrokeStyle).toHaveBeenCalledWith(selected ? 3 : 2, selected ? 0xf0c95a : 0x8f9a96, selected ? 1 : 0.95);
+      expect(background.lineStyle).toHaveBeenCalledWith((selected ? 3 : 2) * grid.scale, selected ? 0xf0c95a : 0x8f9a96, selected ? 1 : 0.95);
       expect(name.data).toMatchObject({ style: { color: mobile ? '#ffffff' : '#d9eadf' } });
       card.emit('pointerover');
       card.emit('pointerout');
       if (selected) {
-        expect(background.setFillStyle).not.toHaveBeenCalled();
+        expect(background.fillStyle).toHaveBeenCalledTimes(1);
       } else {
-        expect(background.setFillStyle).toHaveBeenNthCalledWith(1, mobile ? 0x1c1c1c : 0x08120f, 0.98);
-        expect(background.setFillStyle).toHaveBeenNthCalledWith(2, mobile ? 0x1c1c1c : 0x08120f, 0.92);
+        expect(background.fillStyle).toHaveBeenNthCalledWith(2, mobile ? 0x1c1c1c : 0x08120f, 0.98);
+        expect(background.fillStyle).toHaveBeenNthCalledWith(3, mobile ? 0x1c1c1c : 0x08120f, 0.92);
       }
       expect(background.width * visuals.scale).toBe(grid.cardWidth);
       expect(background.height * visuals.scale).toBe(grid.cardHeight);
-      expect(flag.width * visuals.scale).toBe(mobile ? 72 : 36);
-      expect(flag.height * visuals.scale).toBe(mobile ? 54 : 27);
-      expect(name.data).toMatchObject({ text: ACTIVE_NATIONAL_TEAMS[index].name, style: { fontSize: '16px', fontFamily: 'Arial, sans-serif', fontStyle: '700' } });
-      expect(16 * visuals.scale).toBe(mobile ? 32 : 16);
+      expect(flag.displayWidth).toBe(mobile ? 64 : 28);
+      expect(flag.displayHeight).toBe(flag.displayWidth);
+      expect(name.data).toMatchObject({ text: ACTIVE_NATIONAL_TEAMS[index].name, style: {
+        fontSize: mobile ? '32px' : '16px', fontFamily: 'Arial, sans-serif', fontStyle: '700', resolution: 2 } });
+      expect(name.scale).toBe(1);
+      expect([name.originX, name.originY]).toEqual([0, 0]);
+      for (const child of [flag, name]) {
+        expect(Number.isInteger(content.x + card.x + child.x)).toBe(true);
+        expect(Number.isInteger(content.y + card.y + child.y)).toBe(true);
+      }
+      expect(Number.isInteger(flag.displayWidth)).toBe(true);
+      expect(Number.isInteger(flag.displayHeight)).toBe(true);
       expect(card.x - card.width / 2).toBeGreaterThanOrEqual(layout.teamGridRect.x);
       expect(card.x + card.width / 2).toBeLessThanOrEqual(layout.teamGridRect.x + layout.teamGridRect.width);
       if (index % grid.columns > 0) expect(card.x - content.children[index - 1].x - card.width).toBe(grid.gapX);
@@ -134,9 +154,27 @@ describe.each([true, false])('country cards mobile=%s', (mobile) => {
     first.emit('pointerdown', outside);
     first.emit('pointerup', outside);
     expect(selectTeam).not.toHaveBeenCalled();
-    const visuals = mobile ? first.children[0] : first;
+    const visuals = first;
     first.emit('pointerover');
     first.emit('pointerout');
-    expect(visuals.children[0].setFillStyle).toHaveBeenCalledTimes(2);
+    expect(visuals.children[0].fillStyle).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['match', 'penalty'] as const)('keeps %s final positions aligned after fractional wheel/drag input', (mode) => {
+    const { content } = renderGrid(mobile, mode);
+    const first = content.children[0];
+    first.emit('wheel', {}, 0, 11);
+    expect(Number.isInteger(content.y)).toBe(true);
+    const pointer = { id: 5, worldX: first.x, worldY: content.y + first.y };
+    first.emit('pointerdown', pointer);
+    first.emit('pointermove', { ...pointer, worldY: pointer.worldY - 21.3 });
+    first.emit('pointerup', { ...pointer, worldY: pointer.worldY - 21.3 });
+    expect(Number.isInteger(content.y)).toBe(true);
+    for (const card of content.children) {
+      expect(card.scale).toBe(1);
+      for (const child of card.children.slice(1)) {
+        expect(Number.isInteger(content.y + card.y + child.y)).toBe(true);
+      }
+    }
   });
 });

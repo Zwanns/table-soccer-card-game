@@ -14,6 +14,7 @@ import { createCardPlayerProfile, createGoalkeeperCardProfile } from './cardPlay
 import { CARD_HEIGHT, CARD_WIDTH, CardView } from './CardView';
 import { MATCH_CARD_SCALE } from './matchCardScale';
 import { MatchFieldView } from './MatchFieldView';
+import { MATCH_TOOLTIP_VIEWPORT } from './matchScreenLayout';
 
 export { FIELD_VIEW_HEIGHT, FIELD_VIEW_WIDTH } from './fieldDimensions';
 export {
@@ -127,6 +128,7 @@ export class FieldView extends MatchFieldView {
       const setup = state.matchSetups[player.id];
       const isGoalkeeper = position.positionId === 'goalkeeper';
       const cardView = new CardView(scene, position.x, position.y, {
+        tooltipViewport: MATCH_TOOLTIP_VIEWPORT,
         rank: card.rank,
         color: isGoalkeeper ? player.teamColor : (card as Card).color,
         playerProfile:

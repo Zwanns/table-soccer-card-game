@@ -22,11 +22,11 @@ type FirstRoundPairing = {
   away: GroupSeed;
 };
 
-type Advancement = {
+export type KnockoutAdvancement = Readonly<{
   fromMatchId: string;
   toMatchId: string;
   slot: TeamSlot;
-};
+}>;
 
 const FIRST_ROUND_PAIRINGS: Record<TournamentFormatId, readonly FirstRoundPairing[]> = {
   'cup-m': [
@@ -51,7 +51,7 @@ const FIRST_ROUND_PAIRINGS: Record<TournamentFormatId, readonly FirstRoundPairin
   ]
 };
 
-const ADVANCEMENTS: Record<TournamentFormatId, readonly Advancement[]> = {
+const ADVANCEMENTS: Record<TournamentFormatId, readonly KnockoutAdvancement[]> = {
   'cup-m': [
     { fromMatchId: 'semi-final-1', toMatchId: 'final-1', slot: 'homeTeamId' },
     { fromMatchId: 'semi-final-2', toMatchId: 'final-1', slot: 'awayTeamId' }
@@ -81,6 +81,16 @@ const ADVANCEMENTS: Record<TournamentFormatId, readonly Advancement[]> = {
     { fromMatchId: 'semi-final-2', toMatchId: 'final-1', slot: 'awayTeamId' }
   ]
 };
+
+// Expose the engine's graph without allowing renderers to mutate its edges.
+for (const advancements of Object.values(ADVANCEMENTS)) {
+  advancements.forEach(Object.freeze);
+  Object.freeze(advancements);
+}
+
+export function getTournamentKnockoutAdvancements(formatId: TournamentFormatId): readonly KnockoutAdvancement[] {
+  return ADVANCEMENTS[formatId];
+}
 
 export function refreshTournamentProgress(tournament: TournamentState): TournamentState {
   const seededTournament = areAllGroupMatchesCompleted(tournament)

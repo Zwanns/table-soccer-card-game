@@ -23,6 +23,8 @@ class DisplayObject extends EventEmitter {
   setPosition(x: number, y: number) { this.x = x; this.y = y; return this; }
   setSize(width: number, height: number) { this.width = width; this.height = height; return this; }
   setDisplaySize = this.setSize;
+  get displayWidth() { return this.width; }
+  setX(x: number) { this.x = x; return this; }
   setStrokeStyle() { return this; }
   setInteractive() { return this; }
   setWordWrapWidth(width: number) { this.wrapWidth = width; return this; }
@@ -102,6 +104,7 @@ describe('mobile tournament group names', () => {
       return object;
     };
     Object.assign(scene, {
+      textures: { exists: () => true },
       add: {
         container: make,
         rectangle: (x: number, y: number, width: number, height: number) => make(x, y).setSize(width, height),

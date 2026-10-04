@@ -4,10 +4,8 @@ import { getLanguageCode, type GameLanguage } from '../i18n/languageStore';
 import { Button } from './Button';
 import { MATCH_OVERLAY_DEPTH } from './matchPauseOverlay';
 import { clampScroll, createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR } from './touchInput';
-
-const MODAL_WIDTH = 960;
-const MODAL_HEIGHT = 600;
-const VIEWPORT = { x: -390, y: -150, width: 780, height: 360 } as const;
+import { isMobileLandscapeLayout } from './mobileLayout';
+import { getMatchRulesLayout, type MatchRulesLayout } from './matchRulesLayout';
 
 export interface MatchRulesContent {
   title: string;
@@ -25,6 +23,7 @@ export interface MatchRulesOverlayConfig {
 
 export function createMatchRulesOverlay(config: MatchRulesOverlayConfig): Phaser.GameObjects.Container {
   const { scene } = config;
+  const layout = getMatchRulesLayout(isMobileLandscapeLayout());
   const centerX = SCENE_WIDTH / 2;
   const centerY = SCENE_HEIGHT / 2;
   const rules = config.content[config.language];
@@ -33,47 +32,51 @@ export function createMatchRulesOverlay(config: MatchRulesOverlayConfig): Phaser
   overlay.setInteractive();
 
   const panel = scene.add.container(centerX, centerY);
-  const background = scene.add.rectangle(0, 0, MODAL_WIDTH, MODAL_HEIGHT, 0x000000, 0.82);
-  const backButton = new Button(scene, 0, 258, 'Back', config.onClose, { fontSize: '18px', height: 42, width: 190 });
-  const languageSelector = createLanguageSelector(config, 336, -258);
+  const background = scene.add.rectangle(0, 0, layout.modalWidth, layout.modalHeight, 0x000000, 0.82);
+  const backButton = new Button(scene, 0, layout.back.y, 'Back', config.onClose, layout.back);
+  const languageSelector = createLanguageSelector(config, layout.languageX, -258, layout);
   const title = scene.add
     .text(0, -252, rules.title, {
       align: 'center',
       color: '#ffffff',
       fontFamily: 'Arial, sans-serif',
-      fontSize: '34px',
+      fontSize: layout.titleFontSize,
+      resolution: layout.textResolution,
       fontStyle: '700'
     })
     .setOrigin(0.5);
   const subtitle = scene.add
-    .text(0, -214, `${GAME_TITLE} | v${GAME_VERSION}`, {
+    .text(0, layout.subtitleY, `${GAME_TITLE} | v${GAME_VERSION}`, {
       align: 'center',
       color: '#f0c95a',
       fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
+      fontSize: layout.subtitleFontSize,
+      resolution: layout.textResolution,
       fontStyle: '700'
     })
     .setOrigin(0.5);
-  const viewport = createRulesViewport(scene, rules);
+  const viewport = createRulesViewport(scene, rules, layout);
 
   panel.add([background, backButton, languageSelector, title, subtitle, viewport]);
   modal.add([overlay, panel]);
   return modal;
 }
 
-function createLanguageSelector(config: MatchRulesOverlayConfig, x: number, y: number): Phaser.GameObjects.Container {
+function createLanguageSelector(config: MatchRulesOverlayConfig, x: number, y: number,
+  layout: MatchRulesLayout): Phaser.GameObjects.Container {
   const { scene } = config;
   const selector = scene.add.container(x, y);
-  const startX = -62;
+  const startX = layout.languageStartX;
 
   config.languages.forEach((language, index) => {
     const isActive = language === config.language;
     const label = scene.add
-      .text(startX + index * 54, 0, getLanguageCode(language), {
+      .text(startX + index * layout.languageStep, 0, getLanguageCode(language), {
         align: 'center',
         color: isActive ? '#f0c95a' : '#d9eadf',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: layout.languageFontSize,
+        resolution: layout.textResolution,
         fontStyle: '700'
       })
       .setOrigin(0.5);
@@ -89,10 +92,11 @@ function createLanguageSelector(config: MatchRulesOverlayConfig, x: number, y: n
     if (index < config.languages.length - 1) {
       selector.add(
         scene.add
-          .text(startX + index * 54 + 27, 0, '|', {
+          .text(startX + index * layout.languageStep + layout.languageStep / 2, 0, '|', {
             color: '#5f9572',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '18px',
+            fontSize: layout.languageFontSize,
+            resolution: layout.textResolution,
             fontStyle: '700'
           })
           .setOrigin(0.5)
@@ -103,7 +107,9 @@ function createLanguageSelector(config: MatchRulesOverlayConfig, x: number, y: n
   return selector;
 }
 
-function createRulesViewport(scene: Phaser.Scene, content: MatchRulesContent): Phaser.GameObjects.Container {
+function createRulesViewport(scene: Phaser.Scene, content: MatchRulesContent,
+  layout: MatchRulesLayout): Phaser.GameObjects.Container {
+  const VIEWPORT = layout.viewport;
   const wrapper = scene.add.container(0, 0);
   const scrollContent = scene.add.container(0, VIEWPORT.y);
   let contentHeight = 0;
@@ -114,13 +120,14 @@ function createRulesViewport(scene: Phaser.Scene, content: MatchRulesContent): P
         align: 'left',
         color: index === 0 ? '#f0c95a' : '#ffffff',
         fontFamily: 'Arial, sans-serif',
-        fontSize: index === 0 ? '22px' : '19px',
+        fontSize: index === 0 ? layout.rulesTitleFontSize : layout.headingFontSize,
+        resolution: layout.textResolution,
         fontStyle: '700',
         wordWrap: { width: VIEWPORT.width }
       })
       .setOrigin(0, 0);
     scrollContent.add(heading);
-    contentHeight += heading.height + 8;
+    contentHeight += heading.height + layout.headingGap;
 
     section.body.forEach((paragraph) => {
       const body = scene.add
@@ -128,18 +135,19 @@ function createRulesViewport(scene: Phaser.Scene, content: MatchRulesContent): P
           align: 'left',
           color: '#d9eadf',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
-          lineSpacing: 8,
+          fontSize: layout.bodyFontSize,
+          resolution: layout.textResolution,
+          lineSpacing: layout.lineSpacing,
           wordWrap: { width: VIEWPORT.width }
         })
         .setOrigin(0, 0);
       scrollContent.add(body);
-      contentHeight += body.height + 6;
+      contentHeight += body.height + layout.paragraphGap;
     });
-    contentHeight += 12;
+    contentHeight += layout.sectionGap;
   });
 
-  applyScrollableViewport(scene, wrapper, scrollContent, contentHeight);
+  applyScrollableViewport(scene, wrapper, scrollContent, contentHeight, layout);
   return wrapper;
 }
 
@@ -147,8 +155,10 @@ function applyScrollableViewport(
   scene: Phaser.Scene,
   wrapper: Phaser.GameObjects.Container,
   scrollContent: Phaser.GameObjects.Container,
-  contentHeight: number
+  contentHeight: number,
+  layout: MatchRulesLayout
 ): void {
+  const VIEWPORT = layout.viewport;
   const maxScroll = Math.max(0, contentHeight - VIEWPORT.height);
   const maskGraphics = scene.make.graphics();
   const mask = maskGraphics

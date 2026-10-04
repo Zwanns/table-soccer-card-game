@@ -1,9 +1,10 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import type { PlayerControllerType } from '../ai';
 import { GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { formatGoalScorerMatchLabel, getGoalStepNumber, getMatchStats, type GameState, type GoalScorerStat, type PlayerMatchStats } from '../game';
-import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
+import { getTeamScoreboardCode } from '../data/nationalTeams';
 import { getTeamKitStyle } from '../data/teamKits';
 import {
   RESULT_ACTION_BUTTON_HEIGHT,
@@ -53,7 +54,7 @@ const RESULT_TEAM_CODE_FONT_SIZE = '38px';
 const RESULT_TEAM_FLAG_WIDTH = 70;
 const RESULT_TEAM_FLAG_HEIGHT = 52;
 const RESULT_TEAM_CODE_OFFSET_X = 52;
-const RESULT_MOBILE_AI_BADGE_WIDTH = 34;
+const RESULT_MOBILE_AI_BADGE_WIDTH = 44;
 const RESULT_MOBILE_AI_BADGE_HEIGHT = 16;
 const RESULT_MOBILE_AI_BADGE_RADIUS = 4;
 const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10;
@@ -448,57 +449,33 @@ export class ResultScene extends Phaser.Scene {
     const statsRowGap = layout.statsRowGap;
     const scorersTitleY = statsStartY + rows.length * statsRowGap + 18;
     const scorersStartY = scorersTitleY + 34;
-    const rowHeight = 24;
-    const scorerColumnWidth = 280;
+    const scorerColumnWidth = 320;
     const playerOneScorerX = viewportLeft;
     const playerTwoScorerX = panelWidth / 2 - 56 - scorerColumnWidth;
-    const penaltyTitleY = scorersStartY + Math.max(1, timelineRows.length) * rowHeight + 12;
-    const penaltySectionHeight = penaltyRows.length === 0 ? 0 : 34 + penaltyRows.length * rowHeight;
-    const contentHeight = Math.max(
-      viewportHeight,
-      scorersStartY + Math.max(1, timelineRows.length) * rowHeight + penaltySectionHeight
-    );
-    const maxScroll = Math.max(0, contentHeight - viewportHeight);
-
     rows.forEach(([label, playerOneValue, playerTwoValue], index) => {
       const rowY = statsStartY + index * statsRowGap;
       content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize));
       content.add(this.createStatsLabel(rowY, label, typography.labelFontSize));
       content.add(this.createStatsValue(285, rowY, playerTwoValue, typography.valueFontSize));
     });
-
     content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize));
-    timelineRows.forEach((row, index) => {
-      const rowY = scorersStartY + index * rowHeight;
-      content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth));
-      content.add(this.createScorersList(playerTwoScorerX, rowY, row.playerTwoText, scorerColumnWidth));
-    });
-
-    if (timelineRows.length === 0) {
-      content.add(this.createScorersList(playerOneScorerX, scorersStartY, '-', scorerColumnWidth));
-      content.add(this.createScorersList(playerTwoScorerX, scorersStartY, '-', scorerColumnWidth));
-    }
-
+    let nextY = scorersStartY;
+    const addTimelineRow = (row: { playerOneText: string; playerTwoText: string }): void => {
+      const left = this.createScorersList(playerOneScorerX, nextY, row.playerOneText, scorerColumnWidth).setOrigin(0, 0);
+      const right = this.createScorersList(playerTwoScorerX, nextY, row.playerTwoText, scorerColumnWidth).setOrigin(0, 0);
+      content.add([left, right]);
+      nextY += Math.max(left.height, right.height, 24) + 12;
+    };
+    if (timelineRows.length === 0) addTimelineRow({ playerOneText: '-', playerTwoText: '-' });
+    timelineRows.forEach(addTimelineRow);
     if (penaltyRows.length > 0) {
-      content.add(
-        this.add
-          .text(0, penaltyTitleY, 'Penalties', {
-            align: 'center',
-            color: '#ffffff',
-            fontFamily: RESULT_STATS_FONT_FAMILY,
-            fontSize: typography.sectionTitleFontSize,
-            fontStyle: '700',
-            resolution: SHARP_TEXT_RESOLUTION
-          })
-          .setOrigin(0.5, 0)
-      );
-
-      penaltyRows.forEach((row, index) => {
-        const rowY = penaltyTitleY + 30 + index * rowHeight;
-        content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth));
-        content.add(this.createScorersList(playerTwoScorerX, rowY, row.playerTwoText, scorerColumnWidth));
-      });
+      nextY += 12;
+      content.add(this.createStatsLabel(nextY, 'Penalties', typography.sectionTitleFontSize));
+      nextY += 34;
+      penaltyRows.forEach(addTimelineRow);
     }
+    const contentHeight = Math.max(viewportHeight, nextY + 16);
+    const maxScroll = Math.max(0, contentHeight - viewportHeight);
 
     const maskGraphics = this.make.graphics();
     const mask = maskGraphics
@@ -601,9 +578,9 @@ export class ResultScene extends Phaser.Scene {
     const block = this.add.container(px(x), px(y));
     const isAi = controllerType === 'AI';
     const teamCodeX = RESULT_TEAM_CODE_OFFSET_X;
-    const teamCodeY = isAi ? RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y : 0;
-    const flag = this.add.image(0, 0, getFlagAssetKey(flagCode));
-    flag.setDisplaySize(RESULT_TEAM_FLAG_WIDTH, RESULT_TEAM_FLAG_HEIGHT);
+    const teamCodeY = RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y;
+    const flag = createTeamIdentityImage(this, 0, 0, flagCode, RESULT_TEAM_FLAG_WIDTH, RESULT_TEAM_FLAG_HEIGHT);
+    flag.setX(flag.x + (RESULT_TEAM_FLAG_WIDTH - flag.displayWidth) / 2);
 
     const teamCode = this.add
       .text(teamCodeX, teamCodeY, getTeamScoreboardCode(flagCode), {
@@ -617,14 +594,12 @@ export class ResultScene extends Phaser.Scene {
 
     block.add([flag, teamCode]);
 
-    if (isAi) {
-      this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y);
-    }
+    this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y, isAi ? 'AI' : 'USER');
 
     return block;
   }
 
-  private addResultAiBadge(container: Phaser.GameObjects.Container, x: number, topY: number): void {
+  private addResultAiBadge(container: Phaser.GameObjects.Container, x: number, topY: number, label: string): void {
     const badge = this.add.graphics();
 
     badge
@@ -633,7 +608,7 @@ export class ResultScene extends Phaser.Scene {
     container.add(badge);
     container.add(
       this.add
-        .text(x + RESULT_MOBILE_AI_BADGE_WIDTH / 2, topY + RESULT_MOBILE_AI_BADGE_HEIGHT / 2, 'AI', {
+        .text(x + RESULT_MOBILE_AI_BADGE_WIDTH / 2, topY + RESULT_MOBILE_AI_BADGE_HEIGHT / 2, label, {
           color: '#1f2a2e',
           fontFamily: RESULT_STATS_FONT_FAMILY,
           fontSize: '12px',
@@ -676,10 +651,10 @@ export class ResultScene extends Phaser.Scene {
         align: 'left',
         color: '#f0c95a',
         fontFamily: RESULT_STATS_FONT_FAMILY,
-        fontSize: '17px',
+        fontSize: isMobileLandscapeLayout() ? '24px' : '20px',
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION,
-        wordWrap: { width }
+        wordWrap: { width, useAdvancedWrap: true }
       })
       .setOrigin(0, 0.5);
   }

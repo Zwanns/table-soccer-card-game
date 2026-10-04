@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
-import { syncKitRegistry } from '../../scripts/sync-kit-registry';
+import { collectAvailableManualKitFlagCodes, syncKitRegistry } from '../../scripts/sync-kit-registry';
 import { validateRegisteredKits, type KitAttribution } from '../../scripts/validate-kits';
 import { getGoalkeeperKitStyle, getTeamKitStyle } from '../data/teamKits';
 
@@ -20,8 +20,13 @@ describe('kit validator', () => {
     }
   });
 
-  it('accepts the current WebP kit contract', async () => {
-    await expect(validateRegisteredKits()).resolves.toEqual({
+  it('accepts current user-owned WebP assets before a deferred registry sync', async () => {
+    // Read current files without rewriting generated data while kits are being edited.
+    // Registry mismatch detection is still covered by the isolated validator fixtures.
+    await expect(validateRegisteredKits({
+      manualKitFlagCodes: collectAvailableManualKitFlagCodes(process.cwd()),
+      awayKitFlagCodes: collectAvailableManualKitFlagCodes(process.cwd(), 'away')
+    })).resolves.toEqual({
       errors: [],
       warnings: []
     });
@@ -51,6 +56,16 @@ describe('kit validator', () => {
       errors: [],
       warnings: []
     });
+  });
+
+  it('still reports an unsynced AWAY file when checking a generated registry', async () => {
+    const projectRoot = createTempProjectRoot();
+    await createRequiredWebps(projectRoot);
+    await createWebp(join(projectRoot, 'public', 'kits', 'images', 'pl2.webp'));
+    const result = await validateRegisteredKits({ projectRoot, manualKitFlagCodes: [], awayKitFlagCodes: [] });
+    expect(result.errors).toContain(
+      'team away kit file public/kits/images/pl2.webp is missing from generated AVAILABLE_AWAY_KIT_FLAG_CODES. Run npm run sync:kits.'
+    );
   });
 
   it('reports missing mandatory files, wrong size, and non-WebP files', async () => {

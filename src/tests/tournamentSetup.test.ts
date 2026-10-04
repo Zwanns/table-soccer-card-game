@@ -241,7 +241,7 @@ describe('tournament setup scene integration', () => {
 
     expect(setupSource).toContain('fillRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius)');
     expect(setupSource).toContain('strokeRoundedRect(0, 0, layout.groups.panelWidth, layout.groups.panelHeight, layout.groups.panelRadius)');
-    expect(setupSource).toContain('flag.setDisplaySize(layout.groups.slotFlagWidth, layout.groups.slotFlagHeight)');
+    expect(setupSource).toContain('createTeamIdentityImage(this, layout.groups.slotFlagX, layout.groups.slotHeight / 2, team.flagCode, layout.groups.slotFlagWidth, layout.groups.slotFlagHeight)');
     expect(desktopLayout.groups.panelRadius).toBe(8);
     expect(mobileLayout.groups.panelRadius).toBe(8);
     expect(desktopLayout.groups.titleFontSize).toBe('20px');
@@ -375,7 +375,7 @@ describe('tournament setup scene integration', () => {
     const setupSource = readSourceFile('src', 'scenes', 'TournamentSetupScene.ts');
     const desktopLayout = createTournamentSetupLayout(false);
 
-    expect(setupSource).toContain("import { getFlagAssetKey, getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams'");
+    expect(setupSource).toContain("import { getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams'");
     expect(setupSource).toContain('getTeamScoreboardCode(team.flagCode)');
     expect(desktopLayout.teams.flagX).toBe(-42);
     expect(desktopLayout.groups.slotFlagX).toBe(32);

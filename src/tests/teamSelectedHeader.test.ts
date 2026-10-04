@@ -28,6 +28,11 @@ class DisplayObject extends EventEmitter {
   setSize(width: number, height: number) { this.width = width; this.height = height; return this; }
   setOrigin(...origin: number[]) { this.origin = origin; return this; }
   setInteractive() { this.interactive = true; return this; }
+  clear() { return this; }
+  fillStyle = vi.fn((color: number, alpha: number) => { this.fillColor = color; this.fillAlpha = alpha; return this; });
+  lineStyle = vi.fn(() => this);
+  fillRoundedRect = vi.fn((_x: number, _y: number, width: number, height: number) => { this.width = width; this.height = height; return this; });
+  strokeRoundedRect = vi.fn(() => this);
   setStrokeStyle = vi.fn(() => this);
   setDepth() { return this; }
 }
@@ -46,6 +51,7 @@ function renderHeader(mobileWide: boolean, mode: 'match' | 'penalty') {
     showMessage: vi.fn(),
     scene: { start },
     add: {
+      graphics: () => new DisplayObject(),
       container: (x: number, y: number) => { const panel = new DisplayObject(x, y); panels.push(panel); return panel; },
       rectangle: (x: number, y: number, w: number, h: number, fillColor: number, fillAlpha: number) =>
         Object.assign(new DisplayObject(x, y).setSize(w, h), { fillColor, fillAlpha }),
@@ -74,7 +80,7 @@ describe.each(['match', 'penalty'] as const)('%s selected header', (mode) => {
       expect(label.origin).toEqual([mobile && label.text === 'Player 2' ? 0 : 1, 0.5]);
       const panel = layout[label.text === 'Player 1' ? 'team1SelectedCardRect' : 'team2SelectedCardRect'];
       expect(label.x).toBe(mobile && label.text === 'Player 2' ? panel.x : rectRight(panel));
-      expect(label.y).toBe(panel.y - (mobile && label.text === 'Player 2' ? 28 : 16));
+      expect(label.y).toBe(panel.y - (mobile ? 28 : 16));
     }
     for (const [index, panel] of panels.entries()) {
       const slot = index === 0 ? 1 : 2;
@@ -86,20 +92,20 @@ describe.each(['match', 'penalty'] as const)('%s selected header', (mode) => {
       expect(panel.x + panel.children[1].x).toBe(header.fanCenter.x);
       expect(panel.y + panel.children[1].y).toBe(header.fanCenter.y);
       expect(panel.children[0]).toMatchObject({ fillColor: mobile ? 0x1c1c1c : 0x08120f, fillAlpha: 0.92 });
-      expect(panel.children[0].setStrokeStyle).toHaveBeenCalledWith(slot === 1 ? 4 : 2, 0x8f9a96, 0.95);
+      expect(panel.children[0].lineStyle).toHaveBeenCalledWith(slot === 1 ? 4 : 2, 0x8f9a96, 0.95);
       expect(name.style.color).toBe(mobile ? '#ffffff' : '#d9eadf');
       const contract = createSelectedTeamNameLayout(rect, fan, toggle, mobile);
       expect(name.style).toMatchObject(contract.style);
       expect(name.style).toMatchObject({ fontSize: mobile ? '34px' : '26px', fontFamily: 'Arial, sans-serif', fontStyle: '700' });
-      expect(name.origin).toEqual([0, 0.5]);
+      expect(name.origin).toEqual([mobile && slot === 1 ? 1 : 0, 0.5]);
       expect(name.y).toBe(0);
-      expect(panel.x + name.x).toBe(mobile && slot === 2 ? rectRight(toggle) + 14 : rectRight(fan) + 18);
+      expect(panel.x + name.x).toBe(mobile ? (slot === 2 ? rectRight(toggle) + 14 : toggle.x - 14) : rectRight(fan) + 18);
       if (mobile) {
         expect(name.style).toMatchObject({ wordWrap: { width: 220, useAdvancedWrap: true }, maxLines: 2, lineSpacing: -2 });
-        expect(panel.x + name.x + contract.style.wordWrap.width).toBe(slot === 2 ? fan.x - 18 : toggle.x - 14);
+        expect(panel.x + name.x + (mobile && slot === 1 ? 0 : contract.style.wordWrap.width)).toBe(slot === 2 ? fan.x - 18 : toggle.x - 14);
         expect(rectCenter(rect).y).toBe(panel.y);
       } else {
-        expect(contract.style).toEqual({ fontSize: '26px', wordWrap: { width: 260 } });
+        expect(contract.style).toEqual({ align: 'left', fontSize: '26px', wordWrap: { width: 260 } });
         expect(name.x).toBe(-68);
       }
       const badges = panel.children[3].children.filter((child) => child.text);
@@ -201,7 +207,7 @@ describe('KIT.SELECTOR.MOBILE.3.1 mirrored header geometry', () => {
     expect(layout.team1SelectedCardRect).toEqual({ x: 38, y: 100, width: 480, height: 100 });
     expect(layout.team1ControllerToggleRect).toEqual({ x: 450, y: 100, width: 68, height: 100 });
     const first = createSelectedTeamHeaderLayout(layout.team1SelectedCardRect, layout.team1CoverFanRect, 1, true);
-    expect(first).toEqual({ fanCenter: { x: 121, y: 147 }, label: { x: 518, y: 84, originX: 1, align: 'right' } });
+    expect(first).toEqual({ fanCenter: { x: 121, y: 147 }, label: { x: 518, y: 72, originX: 1, align: 'right' } });
     expect(layout.team2SelectedCardRect).toEqual({ x: 1082, y: 100, width: 480, height: 100 });
     expect(layout.team2ControllerToggleRect).toEqual({ x: 1082, y: 100, width: 68, height: 100 });
     const second = createSelectedTeamHeaderLayout(layout.team2SelectedCardRect, layout.team2CoverFanRect, 2, true);

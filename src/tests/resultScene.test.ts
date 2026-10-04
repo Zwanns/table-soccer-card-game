@@ -246,17 +246,17 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('const RESULT_TEAM_FLAG_WIDTH = 70');
     expect(source).toContain('const RESULT_TEAM_FLAG_HEIGHT = 52');
     expect(source).toContain('const RESULT_TEAM_CODE_OFFSET_X = 52');
-    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_WIDTH = 34');
+    expect(source).toContain('const RESULT_MOBILE_AI_BADGE_WIDTH = 44');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_HEIGHT = 16');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_RADIUS = 4');
     expect(source).toContain('const RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y = -10');
     expect(source).toContain('const RESULT_MOBILE_AI_BADGE_TOP_Y = 12');
     expect(source).toContain('private createResultTeamCodeBlock');
     expect(source).toContain('const isAi = controllerType === \'AI\'');
-    expect(source).toContain('const teamCodeY = isAi ? RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y : 0');
+    expect(source).toContain('const teamCodeY = RESULT_MOBILE_AI_TEAM_CODE_OFFSET_Y');
     expect(source).toContain('getTeamScoreboardCode(flagCode)');
-    expect(source).toContain('getFlagAssetKey(flagCode)');
-    expect(source).toContain('this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y)');
+    expect(source).toContain('createTeamIdentityImage(this, 0, 0, flagCode, RESULT_TEAM_FLAG_WIDTH, RESULT_TEAM_FLAG_HEIGHT)');
+    expect(source).toContain("this.addResultAiBadge(block, teamCodeX, RESULT_MOBILE_AI_BADGE_TOP_Y, isAi ? 'AI' : 'USER')");
     expect(source).toContain(".fillStyle(0xf0c95a, 1)");
     expect(source).toContain("color: '#1f2a2e'");
     expect(source).not.toContain('private createControllerBadge');
@@ -273,7 +273,7 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('fontSize: RESULT_TEAM_CODE_FONT_SIZE');
     expect(source).toContain("valueFontSize: '24px'");
     expect(source).toContain("labelFontSize: '20px'");
-    expect(source).toContain("fontSize: '17px'");
+    expect(source).toContain("fontSize: isMobileLandscapeLayout() ? '24px' : '20px'");
   });
 
   it('enlarges only mobile post-match statistic typography inside the existing stats card', () => {
@@ -290,7 +290,7 @@ describe('result scene mobile statistics card', () => {
       'return isMobileLandscapeLayout() ? RESULT_MOBILE_STATS_TYPOGRAPHY : RESULT_DESKTOP_STATS_TYPOGRAPHY;'
     );
     expect(source).toContain('const typography = getResultStatsTypography();');
-    expect(source).toContain('fontSize: typography.sectionTitleFontSize');
+    expect(source).toContain("this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize)");
     expect(source).toContain('fontSize,');
     expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize))');
     expect(source).toContain('content.add(this.createStatsLabel(rowY, label, typography.labelFontSize))');
@@ -357,7 +357,7 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('const content = this.add.container(0, viewportTop)');
     expect(source).toContain('content.add(this.createStatsValue(-285, rowY, playerOneValue, typography.valueFontSize))');
     expect(source).toContain("content.add(this.createStatsLabel(scorersTitleY, 'Goalscorers', typography.sectionTitleFontSize))");
-    expect(source).toContain('content.add(this.createScorersList(playerOneScorerX, rowY, row.playerOneText, scorerColumnWidth))');
+    expect(source).toContain('content.add([left, right])');
     expect(source).toContain('content.setMask(mask)');
     expect(source).toContain('const maxScroll = Math.max(0, contentHeight - viewportHeight)');
     expect(source).toContain('createDragScrollArea({');
@@ -481,9 +481,9 @@ describe('result scene mobile statistics card', () => {
     expect(source).toContain('private getPostMatchPenaltyAttempts(): PenaltyAttemptSummary[]');
     expect(source).toContain('getPenaltyAttemptSummaries(penaltyShootout)');
     expect(source).toContain('const penaltyRows = createPenaltyTimeline(');
-    expect(source).toContain(".text(0, penaltyTitleY, 'Penalties'");
+    expect(source).toContain("this.createStatsLabel(nextY, 'Penalties'");
     expect(source).toContain('formatPenaltyAttempt(playerOneAttempts[index])');
-    expect(source).toContain('const penaltySectionHeight = penaltyRows.length === 0 ? 0');
+    expect(source).toContain('penaltyRows.forEach(addTimelineRow)');
     expect(source).toContain('if (penaltyRows.length > 0)');
   });
 });

@@ -1,6 +1,7 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH, TOURNAMENT_ASSETS } from '../config';
-import { getFlagAssetKey, NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
+import { NATIONAL_TEAMS, type NationalTeam } from '../data/nationalTeams';
 import {
   deleteStoredTournament,
   getTournamentPlayerStats,
@@ -223,14 +224,14 @@ export class TournamentCompleteScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     const flagGap = champion === undefined ? 0 : 16;
-    const totalWidth = (champion === undefined ? 0 : layout.header.flagWidth) + flagGap + championLabel.width;
+    const championBadge = champion === undefined ? null : createTeamIdentityImage(this, 0, 0, champion.flagCode, layout.header.flagWidth, layout.header.flagHeight);
+    const totalWidth = (championBadge?.displayWidth ?? 0) + flagGap + championLabel.width;
     let labelX = -totalWidth / 2;
 
-    if (champion !== undefined) {
-      const flag = this.add.image(labelX + layout.header.flagWidth / 2, 0, getFlagAssetKey(champion.flagCode));
-      flag.setDisplaySize(layout.header.flagWidth, layout.header.flagHeight);
-      championRow.add(flag);
-      labelX += layout.header.flagWidth + flagGap;
+    if (championBadge !== null) {
+      championBadge.setX(labelX + championBadge.displayWidth / 2);
+      championRow.add(championBadge);
+      labelX += championBadge.displayWidth + flagGap;
     }
 
     championLabel.setX(labelX);
@@ -252,7 +253,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         -layout.panel.height / 2,
         layout.panel.width,
         layout.panel.height,
-        COMPLETE_PANEL_RADIUS
+        { tl: COMPLETE_PANEL_RADIUS, tr: COMPLETE_PANEL_RADIUS, bl: 0, br: 0 }
       )
       .lineStyle(2, SCOREBOARD_BORDER_COLOR, SCOREBOARD_BORDER_ALPHA)
       .strokeRoundedRect(
@@ -260,7 +261,7 @@ export class TournamentCompleteScene extends Phaser.Scene {
         -layout.panel.height / 2,
         layout.panel.width,
         layout.panel.height,
-        COMPLETE_PANEL_RADIUS
+        { tl: COMPLETE_PANEL_RADIUS, tr: COMPLETE_PANEL_RADIUS, bl: 0, br: 0 }
       );
     panel.add(background);
 
@@ -440,11 +441,6 @@ export class TournamentCompleteScene extends Phaser.Scene {
         player: getTournamentPlayerStatsRanking(playerStats, 'goals', 1)[0]
       },
       {
-        title: 'Top assist',
-        statLabel: 'assists',
-        player: getTournamentPlayerStatsRanking(playerStats, 'assists', 1)[0]
-      },
-      {
         title: 'Top goalkeeper',
         statLabel: 'saves',
         player: getTournamentPlayerStatsRanking(playerStats, 'goalkeeperSaves', 1)[0]
@@ -512,26 +508,26 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const team = findTeam(leader.player.teamId);
 
     if (team !== undefined) {
-      const flag = this.add.image(-layout.leaders.width / 2 + 40, 22, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(layout.leaders.flagWidth, layout.leaders.flagHeight);
+      const flag = createTeamIdentityImage(this, -layout.leaders.width / 2 + 40, 22, team.flagCode, layout.leaders.flagWidth, layout.leaders.flagHeight);
+      flag.setX(flag.x + (layout.leaders.flagWidth - flag.displayWidth) / 2);
       card.add(flag);
     }
 
     const value = getLeaderValue(leader);
     card.add(
       this.add
-        .text(-layout.leaders.width / 2 + 66, 22, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
+        .text(-layout.leaders.width / 2 + 78, 10, `${leader.player.playerName} #${leader.player.shirtNumber}`, {
           color: '#ffffff',
           fontFamily: 'Arial, sans-serif',
           fontSize: layout.leaders.playerFontSize,
           fontStyle: '700',
-          wordWrap: { width: layout.leaders.width - 178 }
+          wordWrap: { width: layout.leaders.width - 102, useAdvancedWrap: true }, maxLines: 2
         })
         .setOrigin(0, 0.5)
     );
     card.add(
       this.add
-        .text(layout.leaders.width / 2 - 24, 22, `${value} ${leader.statLabel}`, {
+        .text(layout.leaders.width / 2 - 24, 60, `${value} ${leader.statLabel}`, {
           align: 'right',
           color: SCOREBOARD_TEXT_COLOR,
           fontFamily: 'Arial, sans-serif',
@@ -568,8 +564,8 @@ export class TournamentCompleteScene extends Phaser.Scene {
     const label = this.add.container(x, y);
 
     if (team !== undefined) {
-      const flag = this.add.image(0, 0, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(flagWidth, flagHeight);
+      const flag = createTeamIdentityImage(this, 0, 0, team.flagCode, flagWidth, flagHeight);
+      flag.setX(flag.x + (flagWidth - flag.displayWidth) / 2);
       label.add(flag);
     }
 
@@ -592,7 +588,8 @@ export class TournamentCompleteScene extends Phaser.Scene {
     if (this.devMockReturnScene !== null) {
       new Button(this, SCENE_WIDTH / 2, layout.actions.y, 'Back', () => this.scene.start(this.devMockReturnScene!), {
         borderRadius: RESULT_ACTION_BUTTON_RADIUS,
-        borderWidth: 0,
+        borderWidth: 2,
+        borderColor: SCOREBOARD_BORDER_COLOR,
         fontSize: layout.actions.fontSize,
         height: layout.actions.height,
         width: 360
@@ -617,12 +614,22 @@ export class TournamentCompleteScene extends Phaser.Scene {
     actions.forEach((action, index) => {
       new Button(this, firstButtonX + index * buttonWidth, layout.actions.y, action.label, action.onClick, {
         borderRadius: getCompleteActionButtonRadius(index, actions.length),
-        borderWidth: 0,
+        borderWidth: 2,
+        borderColor: SCOREBOARD_BORDER_COLOR,
+        leftBorderColor: index > 0 ? SCOREBOARD_BORDER_COLOR : undefined,
         fontSize: layout.actions.fontSize,
         height: layout.actions.height,
         width: buttonWidth
       }).setDepth(COMPLETE_CONTENT_DEPTH);
     });
+    const separators = this.add.graphics().setDepth(COMPLETE_CONTENT_DEPTH);
+    for (let index = 1; index < actions.length; index++) {
+      const separatorX = SCENE_WIDTH / 2 - layout.actions.width / 2 + index * buttonWidth;
+      const top = layout.actions.y - layout.actions.height / 2;
+      const bottom = layout.actions.y + layout.actions.height / 2;
+      separators.lineStyle(6, SCOREBOARD_BACKGROUND_COLOR, 1).lineBetween(separatorX, top, separatorX, bottom);
+      separators.lineStyle(2, SCOREBOARD_BORDER_COLOR, 1).lineBetween(separatorX, top, separatorX, bottom);
+    }
   }
 
   private startNewTournament(): void {
@@ -690,16 +697,16 @@ function createTournamentCompleteLayout(
       titleX: leaderCardX - leaderWidth / 2,
       titleY,
       cardX: leaderCardX,
-      startY: titleY + (mobileLandscape ? 84 : 80),
-      gapY: mobileLandscape ? 118 : 112,
+      startY: titleY + 116,
+      gapY: 190,
       width: leaderWidth,
-      height: mobileLandscape ? 104 : 96,
+      height: 172,
       headingFontSize: mobileLandscape ? '25px' : '24px',
-      titleFontSize: mobileLandscape ? '21px' : '20px',
-      playerFontSize: mobileLandscape ? '18px' : '17px',
-      valueFontSize: mobileLandscape ? '22px' : '20px',
-      flagWidth: mobileLandscape ? 38 : 34,
-      flagHeight: mobileLandscape ? 28 : 25
+      titleFontSize: mobileLandscape ? '24px' : '22px',
+      playerFontSize: mobileLandscape ? '21px' : '19px',
+      valueFontSize: mobileLandscape ? '24px' : '22px',
+      flagWidth: mobileLandscape ? 44 : 40,
+      flagHeight: mobileLandscape ? 36 : 32
     },
     actions: {
       y: COMPLETE_ACTION_BUTTON_Y,

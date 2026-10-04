@@ -1,7 +1,8 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
 import Phaser from 'phaser';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
-import { getFlagAssetKey, getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams';
+import { getTeamScoreboardCode, type NationalTeam } from '../data/nationalTeams';
 import { Button } from '../ui/Button';
 import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
 import { TEAM_CARD_STYLE, type TeamCardVisualStyle } from '../ui/teamCardStyle';
@@ -404,8 +405,8 @@ export class TournamentSetupScene extends Phaser.Scene {
     slot.add([background, name]);
 
     if (team !== undefined) {
-      const flag = this.add.image(layout.groups.slotFlagX, layout.groups.slotHeight / 2, getFlagAssetKey(team.flagCode));
-      flag.setDisplaySize(layout.groups.slotFlagWidth, layout.groups.slotFlagHeight);
+      const flag = createTeamIdentityImage(this, layout.groups.slotFlagX, layout.groups.slotHeight / 2, team.flagCode, layout.groups.slotFlagWidth, layout.groups.slotFlagHeight);
+      flag.setX(flag.x + (layout.groups.slotFlagWidth - flag.displayWidth) / 2);
       const aiButton = this.createAiButton(
         layout.groups.slotWidth - layout.groups.slotAiButtonWidth / 2,
         layout.groups.slotHeight / 2,
@@ -604,8 +605,8 @@ export class TournamentSetupScene extends Phaser.Scene {
       style.backgroundAlpha
     );
     background.setStrokeStyle(style.borderWidth, style.borderColor, style.borderAlpha);
-    const flag = this.add.image(teamLayout.flagX, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(teamLayout.flagWidth, teamLayout.flagHeight);
+    const flag = createTeamIdentityImage(this, teamLayout.flagX, 0, team.flagCode, teamLayout.flagWidth, teamLayout.flagHeight);
+    flag.setX(flag.x + (teamLayout.flagWidth - flag.displayWidth) / 2);
     const teamCode = getTeamScoreboardCode(team.flagCode);
     const name = this.add
       .text(teamLayout.codeX, 0, teamCode, {

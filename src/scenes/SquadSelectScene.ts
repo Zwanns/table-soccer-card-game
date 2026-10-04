@@ -1,9 +1,10 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import { ACTIVE_NATIONAL_TEAMS, isActiveTeam } from '../data/activeTeams';
 import Phaser from 'phaser';
 import { resolveTeamCoverLoadResult } from '../assets/teamCover';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getTeamKitAssetKey, getTeamKitStyle } from '../data/teamKits';
-import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
+import { type NationalTeam } from '../data/nationalTeams';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
 import type { NationalTeamSquad } from '../data/squadTypes';
@@ -234,10 +235,9 @@ export class SquadSelectScene extends Phaser.Scene {
       style.borderAlpha
     );
 
-    const flag = this.add.image(-CARD_WIDTH / 2 + 25, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(36, 27);
+    const flag = createTeamIdentityImage(this, -CARD_WIDTH / 2 + 25, 0, team.flagCode, 36, 27);
     const nameText = this.add
-      .text(-CARD_WIDTH / 2 + 56, 0, team.name, {
+      .text(flag.x + flag.displayWidth / 2 + 13, 0, team.name, {
         color: style.textColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',
@@ -291,11 +291,10 @@ export class SquadSelectScene extends Phaser.Scene {
 
     const team = getTeam(this.selectedTeamId);
     const header = this.add.container(28, 32);
-    const flag = this.add.image(0, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(56, 44);
+    const flag = createTeamIdentityImage(this, 0, 0, team.flagCode, 56, 44);
     flag.setOrigin(0, 0.5);
     const title = this.add
-      .text(92, -10, team.name, {
+      .text(flag.displayWidth + 36, -10, team.name, {
         color: SQUAD_PANEL_COLORS.title,
         fontFamily: 'Arial, sans-serif',
         fontSize: '26px',
@@ -304,7 +303,7 @@ export class SquadSelectScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     const subtitle = this.add
-      .text(92, 18, 'Team squad', {
+      .text(flag.displayWidth + 36, 18, 'Team squad', {
         color: SQUAD_PANEL_COLORS.subtitle,
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',

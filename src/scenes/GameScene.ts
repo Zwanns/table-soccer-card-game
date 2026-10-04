@@ -1,3 +1,5 @@
+import { EventLogView } from '../ui/EventLogView';
+import { ScoreboardEventDisplay } from '../ui/matchEventPresentation';
 import Phaser from 'phaser';
 import { playSoundSafe } from '../audio/playSoundSafe';
 import {
@@ -203,6 +205,29 @@ interface ResultSceneTransitionOptions {
 
 export class GameScene extends Phaser.Scene {
   private engine: GameEngine | null = null;
+  private eventLogView: EventLogView | null = null;
+  private scoreView: ScoreView | null = null;
+  private scoreboardEvents: ScoreboardEventDisplay | null = null;
+  private observedMatchEventCount = 0;
+
+  public update(): void {
+    this.refreshMatchDiagnostics();
+  }
+
+  private getMatchContext(): string {
+    return getMatchHeaderContext(this.matchMode, this.launchContext, this.registry.get('currentTournament'));
+  }
+
+  private refreshMatchDiagnostics(): void {
+    if (!this.engine || !this.scoreboardEvents) return;
+    const events = this.engine.getEventLog();
+    for (const event of events.slice(this.observedMatchEventCount)) this.scoreboardEvents.observe(event);
+    this.observedMatchEventCount = events.length;
+    const context = this.getMatchContext();
+    this.scoreView?.setContext(this.scoreboardEvents.getText(context));
+    this.eventLogView?.refresh(events, context);
+  }
+
   private aiTurnController: AiTurnController | null = null;
   private tutorialController: TutorialController | null = null;
   private tutorialOverlay: TutorialOverlay | null = null;
@@ -322,6 +347,11 @@ export class GameScene extends Phaser.Scene {
     this.player1CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player1Name, this.player1FlagCode);
     this.player2CoverTextureKey = this.resolvePlayerCoverTextureKey(this.player2Name, this.player2FlagCode);
     this.engine = new GameEngine();
+    this.eventLogView?.destroy();
+    this.eventLogView = new EventLogView(this);
+    this.scoreboardEvents = new ScoreboardEventDisplay(() => this.time.now);
+    this.observedMatchEventCount = 0;
+    this.scoreView = null;
     this.aiTurnController = new AiTurnController({
       getState: () => this.engine?.getState() ?? null,
       getMatchSeed: () => this.aiMatchSeed,
@@ -415,7 +445,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.dynamicLayer.add([matchControls.pauseButton, matchControls.rulesButton]);
     this.dynamicLayer.add(
-      new ScoreView(
+      this.scoreView = new ScoreView(
         this,
         centerX,
         topPanel.scoreY,
@@ -426,7 +456,8 @@ export class GameScene extends Phaser.Scene {
         state.players[0].goals,
         state.players[1].goals,
         {
-          matchContext: getMatchHeaderContext(this.matchMode, this.launchContext, this.registry.get('currentTournament')),
+          matchContext: this.scoreboardEvents?.getText(this.getMatchContext()) ?? this.getMatchContext(),
+          onScoreTap: () => this.toggleEventLog(),
           stepCounter: {
             count: state.matchStepCount ?? 0,
             limit: this.requireEngine().getMatchStepLimit()
@@ -468,6 +499,7 @@ export class GameScene extends Phaser.Scene {
         advantage: getTeamAdvantage(state)
       })
     );
+    this.refreshMatchDiagnostics();
     this.addTeamStats(state);
     this.recordTutorialTargetLine(state);
     this.refreshTutorialOverlay(state);
@@ -1073,6 +1105,7 @@ export class GameScene extends Phaser.Scene {
     panel.add([background, title, text, leaveButton, stayButton]);
     modal.add([overlay, panel]);
     this.exitConfirmModal = modal;
+    this.syncEventLogInput();
   }
 
   private closeExitConfirmModal(
@@ -1083,6 +1116,7 @@ export class GameScene extends Phaser.Scene {
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
 
+    this.syncEventLogInput();
     if (options.resumeAutomaticCardFlow !== false) {
       this.resumeAutomaticCardFlow();
     }
@@ -1127,6 +1161,7 @@ export class GameScene extends Phaser.Scene {
       { label: 'Restart', onClick: () => this.openRestartConfirmation() },
       { label: 'Continue', onClick: () => this.closePauseModal() }
     ], { state });
+    this.syncEventLogInput();
   }
 
   private openRestartConfirmation(): void {
@@ -1136,6 +1171,7 @@ export class GameScene extends Phaser.Scene {
     this.exitConfirmModal = createMatchRestartConfirmation(this,
       () => this.closeExitConfirmModal({ refreshGameplay: true }),
       () => this.restartMatch());
+    this.syncEventLogInput();
   }
 
   private restartMatch(): void {
@@ -1160,6 +1196,7 @@ export class GameScene extends Phaser.Scene {
     this.pauseModal?.destroy();
     this.pauseModal = null;
 
+    this.syncEventLogInput();
     if (options.resumeAutomaticCardFlow !== false) {
       this.resumeAutomaticCardFlow();
     }
@@ -1235,6 +1272,7 @@ export class GameScene extends Phaser.Scene {
         onClose: () => this.closeMatchInfoModal(),
         onLanguageChange: (language) => this.switchMatchInfoLanguage(language)
       });
+      this.syncEventLogInput();
       return;
     }
 
@@ -1293,12 +1331,14 @@ export class GameScene extends Phaser.Scene {
     panel.add([background, backButton, languageSelector, title, subtitle, author, viewport]);
     modal.add([overlay, panel]);
     this.infoModal = modal;
+    this.syncEventLogInput();
   }
 
   private closeMatchInfoModal(): void {
     this.infoModal?.destroy();
     this.infoModal = null;
     this.activeInfoModal = null;
+    this.syncEventLogInput();
 
     if (this.engine !== null && this.isSceneStableForAi()) {
       this.aiTurnController?.requestTurnCheck('STATE_RENDERED');
@@ -2426,6 +2466,20 @@ export class GameScene extends Phaser.Scene {
     return this.engine !== null && !this.isSceneShutDown && !this.isNavigationAwayInProgress;
   }
 
+  private syncEventLogInput(): void {
+    this.eventLogView?.setInputEnabled(
+      this.input.enabled &&
+      !this.isSceneShutDown && !this.isNavigationAwayInProgress && !this.isMatchFinishedModalOpen &&
+      this.pauseModal === null && this.infoModal === null &&
+      this.exitConfirmModal === null && this.matchFinishedModal === null
+    );
+  }
+
+  private toggleEventLog(): void {
+    this.syncEventLogInput();
+    this.eventLogView?.toggle();
+  }
+
   private refreshGameplayAfterBlockingModal(): boolean {
     if (
       !this.canRunSceneSetup() ||
@@ -2599,6 +2653,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.isMatchFinishedModalOpen = true;
+    this.syncEventLogInput();
     this.isMatchFinishedOkHandled = false;
     this.cancelAutomaticCardFlow();
     this.aiTurnController?.dispose();
@@ -2654,6 +2709,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.isNavigationAwayInProgress = true;
+    this.syncEventLogInput();
     this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();
     this.exitConfirmModal = null;
@@ -2806,6 +2862,7 @@ export class GameScene extends Phaser.Scene {
   private handleSceneShutdown(): void {
     this.isSceneShutDown = true;
     this.isNavigationAwayInProgress = true;
+    this.syncEventLogInput();
     this.removeAndroidBackButtonListener();
     this.cancelAutomaticCardFlow();
     this.exitConfirmModal?.destroy();

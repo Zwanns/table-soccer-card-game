@@ -1,5 +1,6 @@
+import { createTeamIdentityImage } from './teamIdentityImage';
 import Phaser from 'phaser';
-import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
+import { getTeamScoreboardCode } from '../data/nationalTeams';
 import type { PenaltyShootoutState, TournamentMatchResult } from '../tournament';
 import {
   MATCH_STATS_PANEL_HEIGHT,
@@ -56,10 +57,10 @@ export class PenaltyPauseStatsPanel extends Phaser.GameObjects.Container {
     const scoreLine = scene.add.container(0, px(y));
     const flagWidth = 56;
     const flagHeight = 38;
-    const homeFlag = scene.add.image(px(-198), 0, getFlagAssetKey(matchResult.homeTeamId));
-    const awayFlag = scene.add.image(px(198), 0, getFlagAssetKey(matchResult.awayTeamId));
-    homeFlag.setDisplaySize(flagWidth, flagHeight);
-    awayFlag.setDisplaySize(flagWidth, flagHeight);
+    const homeFlag = createTeamIdentityImage(scene, px(-198), 0, matchResult.homeTeamId, flagWidth, flagHeight);
+    const awayFlag = createTeamIdentityImage(scene, px(198), 0, matchResult.awayTeamId, flagWidth, flagHeight);
+    homeFlag.setX(homeFlag.x + (flagWidth - homeFlag.displayWidth) / 2);
+    awayFlag.setX(awayFlag.x - (flagWidth - awayFlag.displayWidth) / 2);
 
     const homeCode = this.createTeamCode(scene, -112, getTeamScoreboardCode(matchResult.homeTeamId), 'right');
     const awayCode = this.createTeamCode(scene, 112, getTeamScoreboardCode(matchResult.awayTeamId), 'left');

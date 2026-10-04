@@ -44,6 +44,13 @@ describe('KIT.METADATA.32 source contract', () => {
     const home = getTeamKitStyle(code)!;
     const away = getTeamKitStyle(code, 'away')!;
     const expectedHome = kitColors(row.slice(3, 7));
+    // The local USA HOME update removes the outline; retain the imported sheet snapshot.
+    if (code === 'us') expectedHome.shirtNumberStrokeColor = undefined;
+    // User-owned Netherlands HOME update; the imported sheet remains a historical snapshot.
+    if (code === 'nl') {
+      expectedHome.secondaryColor = '#FFFFFF';
+      expectedHome.shirtNumberColor = '#FFFFFF';
+    }
     const expectedAway = kitColors(row.slice(7, 11));
     for (const field of colorFields) {
       expect(home[field]).toBe(expectedHome[field]);

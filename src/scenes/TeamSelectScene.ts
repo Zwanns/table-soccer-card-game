@@ -1,3 +1,4 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import { ACTIVE_NATIONAL_TEAMS } from '../data/activeTeams';
 import { getMobileKitCardLayout } from '../ui/mobileKitSelectorLayout';
 import Phaser from 'phaser';
@@ -5,7 +6,7 @@ import { fitImageContain, resolveTeamCoverLoadResult } from '../assets/teamCover
 import type { PlayerControllerType } from '../ai';
 import { MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FALLBACK_TEAM_KIT_ASSET, getTeamKitAssetKey, getTeamKitStyle, hasManualTeamKit, type FieldKitVariant } from '../data/teamKits';
-import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
+import { type NationalTeam } from '../data/nationalTeams';
 import type { TournamentMatchResult } from '../tournament';
 import { Button } from '../ui/Button';
 import { getMobileActionButtonLayout, getNavigationButtonLayout } from '../ui/mobileNavigationLayout';
@@ -34,6 +35,7 @@ import {
   type TeamScreenRect
 } from '../ui/teamScreenLayout';
 import { updateScrollableItemEdgeAlphas } from '../ui/scrollEdgeFade';
+import { px, SHARP_TEXT_RESOLUTION } from '../ui/textRendering';
 
 type TeamSlot = 1 | 2;
 
@@ -51,8 +53,8 @@ const TEAM_SELECTION_TOGGLE_ACTIVE_COLOR = SCOREBOARD_BORDER_COLOR;
 const TEAM_SELECTION_TOGGLE_ACTIVE_TEXT_COLOR = '#1f2a2e';
 const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA;
 const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98;
-const TEAM_OPTION_FLAG_WIDTH = 36;
-const TEAM_OPTION_FLAG_HEIGHT = 27;
+const TEAM_OPTION_FLAG_WIDTH = 40;
+const TEAM_OPTION_FLAG_HEIGHT = 32;
 const TEAM_OPTION_FLAG_PADDING_X = 11;
 const TEAM_OPTION_TEXT_GAP_X = 12;
 const TEAM_OPTION_TEXT_RIGHT_PADDING_X = 8;
@@ -200,8 +202,12 @@ export class TeamSelectScene extends Phaser.Scene {
     const coverTextureKey = resolveTeamCoverLoadResult(this.textures, team.flagCode).textureKey;
     const panel = this.add.container(center.x, center.y);
     const colors = getTeamSelectionColors(layout.mobileWide);
-    const background = this.add.rectangle(0, 0, rect.width, rect.height, colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA);
-    background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA);
+    const background = this.add.graphics();
+    const radius = layout.mobileWide ? 14 : 0;
+    background.fillStyle(colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA)
+      .fillRoundedRect(-rect.width / 2, -rect.height / 2, rect.width, rect.height, radius)
+      .lineStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)
+      .strokeRoundedRect(-rect.width / 2, -rect.height / 2, rect.width, rect.height, radius);
     const fan = this.createSelectedTeamCoverFan(
       coverFanCenter.x - center.x,
       coverFanCenter.y - center.y,
@@ -222,13 +228,12 @@ export class TeamSelectScene extends Phaser.Scene {
       .setOrigin(headerLayout.label.originX, 0.5);
     const teamText = this.add
       .text(nameLayout.x, nameLayout.y, team.name, {
-        align: 'left',
         color: colors.textColor,
         fontFamily: 'Arial, sans-serif',
         fontStyle: '700',
         ...nameLayout.style
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(nameLayout.originX, 0.5);
 
     panel.add([background, fan, teamText]);
     slotLabel.setDepth(1);
@@ -363,7 +368,7 @@ export class TeamSelectScene extends Phaser.Scene {
     let refreshTeamGridItems = (): void => {};
 
     const setScroll = (value: number): void => {
-      teamGridScrollY = clampScroll(value, maxScroll);
+      teamGridScrollY = px(clampScroll(value, maxScroll));
       this.teamGridScrollY = teamGridScrollY;
       content.y = viewportTop - teamGridScrollY;
       refreshTeamGridItems();
@@ -458,28 +463,29 @@ export class TeamSelectScene extends Phaser.Scene {
   }
 
   private createCountryOption(x: number, y: number, width: number, height: number, team: NationalTeam, scale = 1, mobileWide = false): Phaser.GameObjects.Container {
+    // Size geometry before creation: scaling a 16px Text texture to 32px blurs mobile labels.
+    width = px(width * scale);
+    height = px(height * scale);
     const isTeamOne = this.selectedTeamOne === team.name;
     const isTeamTwo = this.selectedTeamTwo === team.name;
     const isSelected = isTeamOne || isTeamTwo;
     const colors = getTeamSelectionColors(mobileWide);
-    const option = this.add.container(x, y);
-    const background = this.add.rectangle(
-      0,
-      0,
-      width,
-      height,
-      colors.backgroundColor,
-      isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA
-    );
-    background.setStrokeStyle(
-      isSelected ? 3 : 2,
-      isSelected ? SCOREBOARD_BORDER_COLOR : TEAM_SELECTION_METAL_BORDER_COLOR,
-      isSelected ? 1 : TEAM_SELECTION_METAL_BORDER_ALPHA
-    );
-    const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2;
-    const textX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH + TEAM_OPTION_TEXT_GAP_X;
-    const flag = this.add.image(flagX, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT);
+    const option = this.add.container(px(x), px(y));
+    const background = this.add.graphics();
+    const drawBackground = (alpha: number): void => {
+      background.clear().fillStyle(colors.backgroundColor, alpha)
+        .fillRoundedRect(-width / 2, -height / 2, width, height, mobileWide ? 7 * scale : 0)
+        .lineStyle((isSelected ? 3 : 2) * scale, isSelected ? SCOREBOARD_BORDER_COLOR : TEAM_SELECTION_METAL_BORDER_COLOR,
+          isSelected ? 1 : TEAM_SELECTION_METAL_BORDER_ALPHA)
+        .strokeRoundedRect(-width / 2, -height / 2, width, height, mobileWide ? 7 * scale : 0);
+    };
+    drawBackground(isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA);
+    const flagWidth = px((mobileWide ? TEAM_OPTION_FLAG_WIDTH : 36) * scale);
+    const flagHeight = px((mobileWide ? TEAM_OPTION_FLAG_HEIGHT : 28) * scale);
+    const flagX = px(-width / 2 + TEAM_OPTION_FLAG_PADDING_X * scale + flagWidth / 2);
+    const flag = createTeamIdentityImage(this, flagX, 0, team.flagCode, flagWidth, flagHeight);
+    flag.setX(px(-width / 2 + TEAM_OPTION_FLAG_PADDING_X * scale + flag.displayWidth / 2));
+    const textX = px(flag.x + flag.displayWidth / 2 + TEAM_OPTION_TEXT_GAP_X * scale);
 
     // Remove ordinal rank numbers from the country option list (UI change)
     const teamText = this.add
@@ -487,30 +493,25 @@ export class TeamSelectScene extends Phaser.Scene {
         align: 'left',
         color: colors.textColor,
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: `${16 * scale}px`,
         fontStyle: '700',
-        wordWrap: { width: width - (textX + width / 2) - TEAM_OPTION_TEXT_RIGHT_PADDING_X }
+        resolution: SHARP_TEXT_RESOLUTION,
+        wordWrap: { width: width - (textX + width / 2) - TEAM_OPTION_TEXT_RIGHT_PADDING_X * scale }
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0);
+    teamText.y = -px(teamText.height / 2);
 
-    // Scale all artwork together, keeping the outer input container in canvas units
-    // so the existing scroll visibility checks use the full rendered height.
-    if (scale === 1) {
-      option.add([background, flag, teamText]);
-    } else {
-      const visuals = this.add.container(0, 0, [background, flag, teamText]).setScale(scale);
-      option.add(visuals);
-    }
-    option.setSize(width * scale, height * scale);
+    option.add([background, flag, teamText]);
+    option.setSize(width, height);
     option.setInteractive({ useHandCursor: true });
     option.on('pointerover', () => {
       if (!isSelected) {
-        background.setFillStyle(colors.backgroundColor, TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
+        drawBackground(TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA);
       }
     });
     option.on('pointerout', () => {
       if (!isSelected) {
-        background.setFillStyle(colors.backgroundColor, TEAM_OPTION_BACKGROUND_ALPHA);
+        drawBackground(TEAM_OPTION_BACKGROUND_ALPHA);
       }
     });
     return option;

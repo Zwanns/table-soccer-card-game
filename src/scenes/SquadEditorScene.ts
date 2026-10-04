@@ -1,7 +1,8 @@
+import { createTeamIdentityImage } from '../ui/teamIdentityImage';
 import Phaser from 'phaser';
 import { GAME_TITLE, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { FIELD_SQUAD_RANKS } from '../data/defaultSquads';
-import { getFlagAssetKey, type NationalTeam } from '../data/nationalTeams';
+import { type NationalTeam } from '../data/nationalTeams';
 import { ACTIVE_NATIONAL_TEAMS, resolveActiveTeamSelection } from '../data/activeTeams';
 import type { NationalTeamSquad } from '../data/squadTypes';
 import { loadSquad } from '../services/squadStorage';
@@ -71,10 +72,10 @@ export class SquadEditorScene extends Phaser.Scene {
 
   private createHeader(team: NationalTeam): void {
     const header = this.add.container(SCENE_WIDTH / 2, 78);
-    const flag = this.add.image(-220, 0, getFlagAssetKey(team.flagCode));
-    flag.setDisplaySize(58, 42);
+    const flag = createTeamIdentityImage(this, -220, 0, team.flagCode, 58, 42);
+    const teamTextX = flag.x + flag.displayWidth / 2 + 17;
     const title = this.add
-      .text(-174, -10, team.name, {
+      .text(teamTextX, -10, team.name, {
         color: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         fontSize: '28px',
@@ -82,7 +83,7 @@ export class SquadEditorScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     const subtitle = this.add
-      .text(-174, 22, 'Состав сборной', {
+      .text(teamTextX, 22, 'Состав сборной', {
         color: '#d9eadf',
         fontFamily: 'Arial, sans-serif',
         fontSize: '20px',

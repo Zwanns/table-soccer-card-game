@@ -1,3 +1,4 @@
+import { SCOREBOARD_BORDER_COLOR } from './scoreboardStyle';
 import Phaser from 'phaser';
 import { Button, type ButtonCornerRadius } from './Button';
 
@@ -40,12 +41,12 @@ export function createResultActionButtons(
       action.label,
       action.onClick,
       {
-        borderColor: options.borderColor,
+        borderColor: options.borderColor ?? SCOREBOARD_BORDER_COLOR,
         borderRadius: getResultActionButtonRadius(index, actions.length, options.attachedToPanel === true),
         fontSize: RESULT_ACTION_BUTTON_FONT_SIZE,
         height: RESULT_ACTION_BUTTON_HEIGHT,
-        leftBorderColor: index > 0 ? options.innerBorderColor : undefined,
-        rightBorderColor: index < actions.length - 1 ? options.innerBorderColor : undefined,
+        leftBorderColor: index > 0 ? (options.innerBorderColor ?? 0x2d382f) : undefined,
+        rightBorderColor: index < actions.length - 1 ? (options.innerBorderColor ?? 0x2d382f) : undefined,
         width: buttonWidth
       }
     )

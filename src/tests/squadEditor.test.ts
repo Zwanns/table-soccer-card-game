@@ -34,9 +34,9 @@ describe('read-only squad scenes', () => {
     expect(selectSource).toContain('createTeamFieldBackground(this)');
     expect(selectSource).not.toContain('GAME_TITLE');
     expect(selectSource).toContain('ACTIVE_NATIONAL_TEAMS.forEach');
-    expect(selectSource).toContain('getFlagAssetKey(team.flagCode)');
+    expect(selectSource).toContain('createTeamIdentityImage(this, -CARD_WIDTH / 2 + 25, 0, team.flagCode, 36, 27)');
     expect(selectSource).toContain('team.name');
-    expect(selectSource).toContain('flag.setDisplaySize(36, 27)');
+    expect(selectSource).toContain('flag.x + flag.displayWidth / 2 + 13');
     expect(selectSource).toContain("fontSize: '16px'");
     expect(selectSource).toContain('wordWrap: { width: 118 }');
     expect(selectSource).toContain('this.createBackButton');

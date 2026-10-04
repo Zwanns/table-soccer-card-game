@@ -6,6 +6,8 @@ import type { CardPlayerProfile } from './cardPlayerProfile';
 import { KitCardFaceView, type RankRollOptions } from './KitCardFaceView';
 import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
+import type { TooltipRect } from './cardTooltipLayout';
+import { isMobileLandscapeLayout } from './mobileLayout';
 
 export interface CardViewOptions {
   rank: string;
@@ -19,6 +21,7 @@ export interface CardViewOptions {
   coverTextureKey?: string;
   faceDownVariant?: 'deck' | 'preview' | 'squad-preview';
   tooltipEnabled?: boolean;
+  tooltipViewport?: TooltipRect;
   onClick?: () => void;
 }
 
@@ -74,8 +77,10 @@ export class CardView extends Phaser.GameObjects.Container {
         hitArea.setInteractive();
       }
       if (options.tooltipEnabled !== false) {
-        hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile));
+        hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile, options.tooltipViewport));
         hitArea.on('pointerout', () => this.hideTooltip());
+        hitArea.on('pointerup', () => this.hideTooltip());
+        hitArea.on('pointerupoutside', () => this.hideTooltip());
       }
 
       if (options.onClick !== undefined) {
@@ -101,14 +106,15 @@ export class CardView extends Phaser.GameObjects.Container {
     return this.faceView?.animateRankRoll(targetRank, options) ?? Promise.resolve();
   }
 
-  private showTooltip(scene: Phaser.Scene, profile?: CardPlayerProfile): void {
+  private showTooltip(scene: Phaser.Scene, profile?: CardPlayerProfile, viewport?: TooltipRect): void {
     if (profile === undefined || this.tooltip !== null) {
       return;
     }
 
     this.raiseAboveSiblingCards();
-    const tooltipPosition = this.getTooltipPosition();
-    this.tooltip = new CardTooltipView(scene, tooltipPosition.x, tooltipPosition.y, profile);
+    // Mobile top-row cards still have room above them within the actual screen bounds.
+    const tooltipViewport = isMobileLandscapeLayout() ? scene.cameras.main.worldView : viewport ?? scene.cameras.main.worldView;
+    this.tooltip = new CardTooltipView(scene, this.getTooltipCardBounds(), tooltipViewport, profile);
   }
 
   private hideTooltip(): void {
@@ -121,11 +127,18 @@ export class CardView extends Phaser.GameObjects.Container {
     this.parentContainer?.bringToTop(this);
   }
 
-  private getTooltipPosition(): Phaser.Math.Vector2 {
-    const position = new Phaser.Math.Vector2();
-
-    this.getWorldTransformMatrix().transformPoint(CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 4, position);
-    return position;
+  private getTooltipCardBounds(): TooltipRect {
+    const transform = this.getWorldTransformMatrix();
+    const corners = [
+      transform.transformPoint(-CARD_WIDTH / 2, -CARD_HEIGHT / 2),
+      transform.transformPoint(CARD_WIDTH / 2, -CARD_HEIGHT / 2),
+      transform.transformPoint(-CARD_WIDTH / 2, CARD_HEIGHT / 2),
+      transform.transformPoint(CARD_WIDTH / 2, CARD_HEIGHT / 2)
+    ];
+    const x = Math.min(...corners.map((point) => point.x));
+    const y = Math.min(...corners.map((point) => point.y));
+    return { x, y, width: Math.max(...corners.map((point) => point.x)) - x,
+      height: Math.max(...corners.map((point) => point.y)) - y };
   }
 
   private addFaceDownCard(scene: Phaser.Scene, options: CardViewOptions): void {

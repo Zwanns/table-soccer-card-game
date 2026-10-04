@@ -281,8 +281,8 @@ const MOBILE_SELECTED_FAN_OFFSET_X = 8;
 const SELECTED_PANEL_LABEL_OFFSET_Y = 16;
 const MOBILE_RIGHT_LABEL_OFFSET_Y = 28;
 
-// Shared by Team Selection and Penalty teams. Desktop and the Player 1 label
-// retain their original anchors. Mobile Player 2 mirrors the fan and uses a left-aligned label.
+// Shared by Quick Match and Penalty selection. Mobile headers mirror horizontal
+// anchors and share the same label height; desktop retains its original anchors.
 export function createSelectedTeamHeaderLayout(
   panel: TeamScreenRect,
   coverFan: TeamScreenRect,
@@ -295,7 +295,7 @@ export function createSelectedTeamHeaderLayout(
     fanCenter: { x: fanCenter.x + (mobileWide ? (slot === 2 ? -1 : 1) * MOBILE_SELECTED_FAN_OFFSET_X : 0), y: fanCenter.y },
     label: {
       x: leftLabel ? panel.x : rectRight(panel),
-      y: panel.y - (leftLabel ? MOBILE_RIGHT_LABEL_OFFSET_Y : SELECTED_PANEL_LABEL_OFFSET_Y),
+      y: panel.y - (mobileWide ? MOBILE_RIGHT_LABEL_OFFSET_Y : SELECTED_PANEL_LABEL_OFFSET_Y),
       originX: leftLabel ? 0 : 1,
       align: leftLabel ? 'left' : 'right'
     }
@@ -314,9 +314,11 @@ export function createSelectedTeamNameLayout(
   const left = mirrored ? rectRight(toggle) + 14 : rectRight(coverFan) + 18;
   const width = mobileWide ? (mirrored ? coverFan.x - 18 : toggle.x - 14) - left : 260;
   return {
-    x: left - rectCenter(panel).x,
+    x: (mobileWide && !mirrored ? left + width : left) - rectCenter(panel).x,
+    originX: mobileWide && !mirrored ? 1 : 0,
     y: 0,
     style: {
+      align: mobileWide && !mirrored ? 'right' : 'left',
       fontSize: mobileWide ? '34px' : '26px',
       wordWrap: mobileWide ? { width, useAdvancedWrap: true } : { width },
       ...(mobileWide ? { maxLines: 2, lineSpacing: -2 } : {})

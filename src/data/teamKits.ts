@@ -103,7 +103,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['ml', '#FCD116', '#14B53A', '#14B53A', '#FFFFFF'],
   ['mx', '#006847', '#FFFFFF', '#FFFFFF', undefined],
   ['ma', '#C1272D', '#006233', '#FFFFFF', undefined],
-  ['nl', '#F36C21', '#111111', '#111111', undefined],
+  ['nl', '#FF6000', '#FFFFFF', '#FFFFFF', undefined],
   ['ng', '#008753', '#FFFFFF', '#000000', '#FFFFFF'],
   ['nir', '#006A3A', '#FFFFFF', '#FFFFFF', undefined],
   ['no', '#BA0C2F', '#FFFFFF', '#FFFFFF', undefined],
@@ -129,7 +129,7 @@ const TEAM_KIT_STYLE_ROWS = [
   ['tr', '#FF0100', '#FF0100', '#FF0100', undefined],
   ['ua', '#FFDF0D', '#FFDF0D', '#0056B6', undefined],
   ['uy', '#7BADD3', '#000000', '#000000', '#FFFFFF'],
-  ['us', '#FFFFFF', '#002868', '#002868', '#C8102E'],
+  ['us', '#FFFFFF', '#002868', '#002868', undefined],
   ['uz', '#FFFFFF', '#0099B5', '#FFFFFF', undefined],
   ['ve', '#8A1538', '#F4C430', '#F4C430', '#111111'],
   ['wls', '#C8102E', '#FFFFFF', '#FFFFFF', undefined]
@@ -308,7 +308,7 @@ export const AWAY_KIT_METADATA: Record<string, AwayKitMetadata> = {
   'nl': {
     primaryColor: '#001E62',
     secondaryColor: '#001E62',
-    shirtNumberColor: '#F36C21',
+    shirtNumberColor: '#FF6000',
     shirtNumberStrokeColor: undefined
   },
   'ng': {

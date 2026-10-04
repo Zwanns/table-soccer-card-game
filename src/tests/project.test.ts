@@ -55,15 +55,15 @@ describe('project scaffold', () => {
   });
 
   it('uses the required game version', () => {
-    expect(GAME_VERSION).toBe('1.4.6');
+    expect(GAME_VERSION).toBe('1.4.8');
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
     const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
     expect(pkg.version).toBe(GAME_VERSION);
     expect(lock.version).toBe(GAME_VERSION);
     expect(lock.packages[''].version).toBe(GAME_VERSION);
     const android = readFileSync('android/app/build.gradle', 'utf8');
-    expect(android).toContain('versionName "1.4.6"');
-    expect(android).toContain('versionCode 6');
+    expect(android).toContain('versionName "1.4.8"');
+    expect(android).toContain('versionCode 8');
   });
 
   it('auto-syncs kit registry through the Vite dev and build pipeline', () => {

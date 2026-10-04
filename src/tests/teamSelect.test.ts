@@ -156,16 +156,16 @@ describe('quick match team selection AI controls', () => {
     expect(source).toContain('grid.scale');
     expect(source).toContain('const TEAM_OPTION_BACKGROUND_ALPHA = SCOREBOARD_BACKGROUND_ALPHA');
     expect(source).toContain('const TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA = 0.98');
-    expect(source).toContain('const TEAM_OPTION_FLAG_WIDTH = 36');
-    expect(source).toContain('const TEAM_OPTION_FLAG_HEIGHT = 27');
+    expect(source).toContain('const TEAM_OPTION_FLAG_WIDTH = 40');
+    expect(source).toContain('const TEAM_OPTION_FLAG_HEIGHT = 32');
     expect(source).toContain('const TEAM_OPTION_FLAG_PADDING_X = 11');
     expect(source).toContain('SCOREBOARD_BACKGROUND_COLOR');
     expect(source).toContain('isSelected ? TEAM_OPTION_ACTIVE_BACKGROUND_ALPHA : TEAM_OPTION_BACKGROUND_ALPHA');
     expect(source).toContain('isSelected ? SCOREBOARD_BORDER_COLOR : TEAM_SELECTION_METAL_BORDER_COLOR');
     expect(source).toContain('isSelected ? 1 : TEAM_SELECTION_METAL_BORDER_ALPHA');
-    expect(source).toContain('const flagX = -width / 2 + TEAM_OPTION_FLAG_PADDING_X + TEAM_OPTION_FLAG_WIDTH / 2');
-    expect(source).toContain('flag.setDisplaySize(TEAM_OPTION_FLAG_WIDTH, TEAM_OPTION_FLAG_HEIGHT)');
-    expect(source).toContain("fontSize: '16px'");
+    expect(source).toContain('const flagX = px(-width / 2 + TEAM_OPTION_FLAG_PADDING_X * scale + flagWidth / 2)');
+    expect(source).toContain('createTeamIdentityImage(this, flagX, 0, team.flagCode, flagWidth, flagHeight)');
+    expect(source).toContain('fontSize: `${16 * scale}px`');
     expect(source).toContain("color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR");
     expect(source).not.toContain('isSelected ? 0xf0c95a : 0x143f2c');
     expect(source).not.toContain("color: isSelected ? '#1f2a2e' : '#ffffff'");
@@ -200,8 +200,8 @@ describe('quick match team selection AI controls', () => {
     const scoreboardStyleSource = readFileSync(join(process.cwd(), 'src', 'ui', 'scoreboardStyle.ts'), 'utf8');
 
     expect(scoreboardStyleSource).toContain("export const SCOREBOARD_TEXT_COLOR = '#d9eadf'");
-    expect(source).toContain('this.add.rectangle(0, 0, rect.width, rect.height, colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA)');
-    expect(source).toContain('background.setStrokeStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
+    expect(source).toContain('background.fillStyle(colors.backgroundColor, SCOREBOARD_BACKGROUND_ALPHA)');
+    expect(source).toContain('lineStyle(isActive ? 4 : 2, TEAM_SELECTION_METAL_BORDER_COLOR, TEAM_SELECTION_METAL_BORDER_ALPHA)');
     expect(source).toContain("color: layout.mobileWide ? '#ffffff' : SCOREBOARD_TEXT_COLOR");
     expect(source).toContain("fontFamily: 'Arial, sans-serif'");
     expect(source).not.toContain('SCOREBOARD_FONT_FAMILY');

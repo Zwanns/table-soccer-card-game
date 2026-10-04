@@ -52,7 +52,9 @@ describe('touch drag-scroll helpers', () => {
     const setupSource = readSource('src/scenes/TournamentSetupScene.ts');
 
     expect(teamSelectSource).toContain('createTeamCountryGridLayout(layout, ACTIVE_NATIONAL_TEAMS.length)');
-    expect(teamSelectSource).toContain('option.setSize(width * scale, height * scale)');
+    expect(teamSelectSource).toContain('width = px(width * scale)');
+    expect(teamSelectSource).toContain('height = px(height * scale)');
+    expect(teamSelectSource).toContain('option.setSize(width, height)');
     expect(teamSelectSource).toContain('dragScroll.bindScrollableTapTarget(option');
     expect(teamSelectSource).toContain('dragScroll.updateScrollableItemInputs(content, teamOptions)');
     expect(squadSelectSource).toContain('const CARD_HEIGHT = 48');

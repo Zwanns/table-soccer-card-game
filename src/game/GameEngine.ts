@@ -1,3 +1,4 @@
+import { MatchEventLog, type MatchEventLogEntry } from './MatchEventLog';
 import type { FieldKitVariant } from '../data/teamKits';
 import { normalizeFlagCode } from '../data/flagCodes';
 import {
@@ -71,6 +72,8 @@ type FinishGameReason = GameOverReason;
 
 export class GameEngine {
   private state: GameState;
+  private readonly matchEventLog = new MatchEventLog();
+
   private random: RandomGenerator;
   private matchStepLimit = DEFAULT_MATCH_STEP_LIMIT;
 
@@ -86,6 +89,7 @@ export class GameEngine {
       throw new Error('Match step limit must be a positive safe integer.');
     }
     this.matchStepLimit = matchStepLimit;
+    this.matchEventLog.reset();
     this.random = options.seed === undefined ? Math.random : createSeededRandom(hashSeed(options.seed));
     const setupRandom =
       options.seed === undefined ? Math.random : createSeededRandom(hashSeed(`${options.seed}:match-setup`));
@@ -159,6 +163,10 @@ export class GameEngine {
     }
 
     return this.state;
+  }
+
+  public getEventLog(): readonly MatchEventLogEntry[] {
+    return this.matchEventLog.getEntries();
   }
 
   public getState(): Readonly<GameState> {
@@ -936,6 +944,7 @@ export class GameEngine {
 
   private appendLog(entry: GameEvent): void {
     this.state.log.push(entry);
+    this.matchEventLog.observe(entry, this.state);
   }
 
   private getActivePlayer(): Player {

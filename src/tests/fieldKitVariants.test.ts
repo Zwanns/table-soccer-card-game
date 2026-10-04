@@ -82,16 +82,16 @@ describe('two field kit resources', () => {
     expect(state.matchSetups.PLAYER_1.squad).not.toHaveProperty('fieldKit');
   });
 
-  it('uses HOME stroke only for an absent field in incomplete compatibility metadata', () => {
-    const original = AWAY_KIT_METADATA.us;
+  it.each([['us', undefined], ['ng', '#FFFFFF']] as const)('uses %s HOME stroke only for an absent field in incomplete compatibility metadata', (code, homeStroke) => {
+    const original = AWAY_KIT_METADATA[code];
     try {
-      AWAY_KIT_METADATA.us = {};
-      expect(getTeamKitStyle('us', 'away')?.shirtNumberStrokeColor).toBe('#C8102E');
-      AWAY_KIT_METADATA.us = { shirtNumberStrokeColor: undefined };
-      expect(getTeamKitStyle('us', 'away')?.shirtNumberStrokeColor).toBeUndefined();
-      AWAY_KIT_METADATA.us = { shirtNumberStrokeColor: null };
-      expect(getTeamKitStyle('us', 'away')?.shirtNumberStrokeColor).toBeUndefined();
-    } finally { AWAY_KIT_METADATA.us = original; }
+      AWAY_KIT_METADATA[code] = {};
+      expect(getTeamKitStyle(code, 'away')?.shirtNumberStrokeColor).toBe(homeStroke);
+      AWAY_KIT_METADATA[code] = { shirtNumberStrokeColor: undefined };
+      expect(getTeamKitStyle(code, 'away')?.shirtNumberStrokeColor).toBeUndefined();
+      AWAY_KIT_METADATA[code] = { shirtNumberStrokeColor: null };
+      expect(getTeamKitStyle(code, 'away')?.shirtNumberStrokeColor).toBeUndefined();
+    } finally { AWAY_KIT_METADATA[code] = original; }
   });
 });
 

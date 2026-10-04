@@ -1,75 +1,143 @@
 import Phaser from 'phaser';
-import type { GameEvent, Player } from '../game';
+import type { MatchEventLogEntry } from '../game/MatchEventLog';
+import { EVENT_LOG_BOUNDS, EVENT_LOG_BOTTOM_THRESHOLD, EVENT_LOG_ROW_HEIGHT,
+  EVENT_LOG_CONTENT_INSET, EVENT_LOG_VIEWPORT_TOP, EVENT_LOG_VIEWPORT_HEIGHT,
+  EVENT_LOG_OVERSCAN, EVENT_LOG_POOL_SIZE, formatMatchLogEntry } from './matchEventPresentation';
+import { clampScroll, TOUCH_SCROLL_WHEEL_FACTOR } from './touchInput';
+import { SHARP_TEXT_RESOLUTION } from './textRendering';
 
+// Above gameplay/flight objects (up to 900), below modal roots and their dim overlays (1000+).
+export const EVENT_LOG_DEPTH = 950;
+
+/** Lives outside the recreated gameplay layer: scrolling survives every card action. */
 export class EventLogView extends Phaser.GameObjects.Container {
-  public constructor(scene: Phaser.Scene, x: number, y: number, events: readonly GameEvent[], players: readonly Player[]) {
-    super(scene, x, y);
+  private readonly rows: Phaser.GameObjects.Text[] = [];
+  private readonly rowIndices: number[] = [];
+  private readonly formattedText: string[] = [];
+  private readonly rowsContainer: Phaser.GameObjects.Container;
+  private readonly scrollZone: Phaser.GameObjects.Zone;
+  private firstIndex = -1;
+  private events: readonly MatchEventLogEntry[] = [];
+  private scrollY = 0;
+  private maxScroll = 0;
+  private entryCount = -1;
+  private dragging: { id: number; y: number; scroll: number } | null = null;
+  private inputEnabled = true;
 
-    const width = 220;
-    const height = 152;
-    const background = scene.add.rectangle(0, 0, width, height, 0x143f2d, 0.82);
-    background.setStrokeStyle(2, 0x69a77b, 0.75);
-
-    const title = scene.add
-      .text(-width / 2 + 16, -height / 2 + 18, 'Events', {
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        fontStyle: '700'
-      })
-      .setOrigin(0, 0.5);
-
-    const lines = events
-      .slice(-5)
-      .map((event) => formatEvent(event, players))
-      .filter((line) => line.length > 0);
-
-    const body = scene.add
-      .text(-width / 2 + 16, -height / 2 + 42, lines.join('\n'), {
-        color: '#d9eadf',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        lineSpacing: 5,
-        wordWrap: { width: width - 32 }
-      })
-      .setOrigin(0, 0);
-
-    this.add([background, title, body]);
+  public constructor(scene: Phaser.Scene) {
+    const bounds = EVENT_LOG_BOUNDS;
+    super(scene, bounds.x, bounds.y);
+    const background = scene.add.rectangle(bounds.width / 2, bounds.height / 2, bounds.width, bounds.height, 0x081e16, 0.88);
+    background.setStrokeStyle(2, 0x69a77b, 0.85);
+    this.rowsContainer = scene.add.container(EVENT_LOG_CONTENT_INSET, EVENT_LOG_VIEWPORT_TOP);
+    const graphics = scene.make.graphics();
+    graphics.fillStyle(0xffffff).fillRect(bounds.x + EVENT_LOG_CONTENT_INSET, bounds.y + EVENT_LOG_VIEWPORT_TOP,
+      bounds.width - EVENT_LOG_CONTENT_INSET * 2, EVENT_LOG_VIEWPORT_HEIGHT);
+    const mask = graphics.createGeometryMask();
+    graphics.setVisible(false);
+    // Mask the pool once, avoiding a stencil pass and batch flush for each Text.
+    this.rowsContainer.setMask(mask).setVisible(false).setActive(false);
+    for (let i = 0; i < EVENT_LOG_POOL_SIZE; i++) {
+      this.rows.push(scene.add.text(0, i * EVENT_LOG_ROW_HEIGHT, '', {
+        color: '#ffffff', fontFamily: 'Arial', fontSize: '17px',
+        fixedWidth: bounds.width - EVENT_LOG_CONTENT_INSET * 2, fixedHeight: EVENT_LOG_ROW_HEIGHT,
+        wordWrap: { width: 0, useAdvancedWrap: false }, resolution: SHARP_TEXT_RESOLUTION
+      }).setOrigin(0).setVisible(false));
+      this.rowIndices.push(-1);
+    }
+    this.rowsContainer.add(this.rows);
+    const zone = scene.add.zone(bounds.width / 2, bounds.height / 2, bounds.width, bounds.height).setInteractive();
+    this.scrollZone = zone;
+    zone.disableInteractive();
+    zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.visible && this.inputEnabled) this.dragging = { id: pointer.id, y: pointer.worldY, scroll: this.scrollY };
+    });
+    const move = (pointer: Phaser.Input.Pointer) => {
+      if (this.visible && this.inputEnabled && this.dragging?.id === pointer.id) this.setScroll(this.dragging.scroll + this.dragging.y - pointer.worldY);
+    };
+    const up = () => { this.dragging = null; };
+    scene.input.on('pointermove', move);
+    scene.input.on('pointerup', up);
+    zone.on('wheel', (_pointer: Phaser.Input.Pointer, _dx: number, dy: number) => {
+      if (this.visible && this.inputEnabled) this.setScroll(this.scrollY + dy * TOUCH_SCROLL_WHEEL_FACTOR);
+    });
+    this.add([background, this.rowsContainer, zone]);
+    this.setDepth(EVENT_LOG_DEPTH).setVisible(false).setName('match-event-log');
     scene.add.existing(this);
+    this.once('destroy', () => {
+      scene.input.off('pointermove', move); scene.input.off('pointerup', up);
+      this.rowsContainer.clearMask();
+      mask.destroy(); graphics.destroy();
+    });
   }
-}
 
-function formatEvent(event: GameEvent, players: readonly Player[]): string {
-  const playerName = 'playerId' in event ? players.find((player) => player.id === event.playerId)?.name : undefined;
+  public refresh(events: readonly MatchEventLogEntry[], _context?: string): void {
+    const reset = events.length < this.entryCount || (events !== this.events && events[0] !== this.events[0]);
+    if (!reset && this.entryCount === events.length) return;
+    const followBottom = this.maxScroll - this.scrollY <= EVENT_LOG_BOTTOM_THRESHOLD;
+    this.entryCount = events.length;
+    this.events = events;
+    this.maxScroll = Math.max(0, events.length * EVENT_LOG_ROW_HEIGHT - EVENT_LOG_VIEWPORT_HEIGHT);
+    if (reset) {
+      this.formattedText.length = 0;
+      this.rowIndices.fill(-1);
+      this.firstIndex = -1;
+    }
+    // Closed overlays track only history and scroll metadata, never row textures.
+    this.setScroll(reset || followBottom ? this.maxScroll : this.scrollY, true);
+  }
 
-  switch (event.type) {
-    case 'FIRST_PLAYER_SELECTED':
-      return `First turn: ${playerName ?? event.playerId}`;
-    case 'ATTACK_CARD_DRAWN':
-      return `${playerName ?? event.playerId}: attack ${event.card.rank}`;
-    case 'MIDFIELDER_COMMITTED':
-      return `${playerName ?? event.playerId}: midfielder ${event.card.rank}`;
-    case 'CARD_DEFEATED':
-      return `${playerName ?? event.playerId}: ${event.attackerCard.rank} beat ${event.defenderCard.rank}`;
-    case 'MIDFIELD_GAP_USED':
-      return `${playerName ?? event.playerId}: gap ${event.attackerCard.rank}`;
-    case 'SHOT_ON_GOAL':
-      return `Shot on goal: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
-    case 'GOALPOST_HIT':
-      return `Post: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
-    case 'GOALKEEPER_SAVE':
-      return `Save: ${event.attackerCard.rank} vs ${event.goalkeeperCard.rank}`;
-    case 'ATTACK_MISSED':
-      return event.playerId === undefined
-        ? `Miss: ${event.card.rank}`
-        : `${playerName ?? event.playerId}: lost ${event.card.rank}`;
-    case 'GOAL_SCORED':
-      return `Goal: ${playerName ?? event.playerId}`;
-    case 'TURN_ENDED':
-      return `Turn ended`;
-    case 'GAME_OVER':
-      return 'Game over';
-    default:
-      return '';
+  public toggle(): void {
+    if (!this.inputEnabled) return;
+    this.setVisible(!this.visible);
+    this.dragging = null;
+    this.rowsContainer.setVisible(this.visible).setActive(this.visible);
+    if (this.visible) {
+      this.scrollZone.setInteractive();
+      this.setScroll(this.maxScroll, true);
+    } else {
+      this.scrollZone.disableInteractive();
+    }
+  }
+
+  /** Suspend interaction without changing visibility, history, row bindings or scroll. */
+  public setInputEnabled(enabled: boolean): void {
+    this.inputEnabled = enabled && !!this.scene;
+    this.dragging = null;
+    // Phaser can destroy display objects before the GameScene shutdown listener runs.
+    if (!this.scene) return;
+    if (enabled && this.visible) this.scrollZone.setInteractive();
+    else this.scrollZone.disableInteractive();
+  }
+
+  private setScroll(value: number, refresh = false): void {
+    const next = clampScroll(value, this.maxScroll);
+    if (!refresh && next === this.scrollY) return;
+    this.scrollY = next;
+    if (!this.visible) return;
+    const first = Math.max(0, Math.floor(this.scrollY / EVENT_LOG_ROW_HEIGHT) - EVENT_LOG_OVERSCAN);
+    if (refresh || first !== this.firstIndex) this.refreshRows(first);
+    // Sub-row drag only moves one container; row bindings and textures stay untouched.
+    this.rowsContainer.y = EVENT_LOG_VIEWPORT_TOP + first * EVENT_LOG_ROW_HEIGHT - this.scrollY;
+  }
+
+  private refreshRows(first: number): void {
+    const moved = first !== this.firstIndex;
+    this.firstIndex = first;
+    for (let offset = 0; offset < this.rows.length; offset++) {
+      const index = first + offset;
+      // Ring reuse changes only the row entering the viewport on a one-index scroll.
+      const slot = index % this.rows.length;
+      const row = this.rows[slot];
+      const event = this.events[index];
+      const text = event ? (this.formattedText[index] ??= formatMatchLogEntry(event)) : '';
+      if (moved) row.y = offset * EVENT_LOG_ROW_HEIGHT;
+      if (this.rowIndices[slot] !== index || row.text !== text) {
+        if (row.text !== text) row.setText(text);
+        row.setData('eventIndex', event ? index : null);
+        this.rowIndices[slot] = index;
+      }
+      if (row.visible !== (event != null)) row.setVisible(event != null);
+    }
   }
 }

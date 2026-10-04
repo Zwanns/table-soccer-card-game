@@ -1,7 +1,8 @@
+import { getTickerLayout } from './matchEventPresentation';
+import { createTeamIdentityImage } from './teamIdentityImage';
 import Phaser from 'phaser';
-import { getFlagAssetKey, getTeamScoreboardCode } from '../data/nationalTeams';
+import { getTeamScoreboardCode } from '../data/nationalTeams';
 import { MATCH_FIELD_WIDTH } from './matchScreenLayout';
-import { isMobileLandscapeLayout } from './mobileLayout';
 import {
   SCOREBOARD_BACKGROUND_ALPHA,
   SCOREBOARD_BACKGROUND_COLOR,
@@ -31,6 +32,7 @@ export const SCORE_CONTEXT_TEXT_WIDTH = SCORE_VIEW_WIDTH / 2 - SCORE_VIEW_DIVIDE
 
 export interface ScoreViewOptions {
   matchContext?: string;
+  onScoreTap?: () => void;
   stepCounter?: {
     count: number;
     limit: number;
@@ -42,6 +44,27 @@ export interface ScoreViewOptions {
 }
 
 export class ScoreView extends Phaser.GameObjects.Container {
+  private contextLabel?: Phaser.GameObjects.Text;
+  private tickerCopy?: Phaser.GameObjects.Text;
+  private tickerTween?: Phaser.Tweens.Tween;
+  private contextText = '';
+
+  public setContext(text: string): void {
+    if (!this.contextLabel || this.contextText === text) return;
+    this.contextText = text;
+    this.tickerTween?.remove();
+    this.contextLabel.setText(text);
+    this.tickerCopy?.setText(text);
+    const layout = getTickerLayout(this.contextLabel.width, SCORE_CONTEXT_TEXT_WIDTH);
+    const left = SCORE_CONTEXT_CENTER_X - SCORE_CONTEXT_TEXT_WIDTH / 2;
+    this.contextLabel.setX(layout.marquee ? left : SCORE_CONTEXT_CENTER_X - this.contextLabel.width / 2);
+    this.tickerCopy?.setVisible(layout.marquee).setX(left + layout.distance);
+    if (layout.marquee && this.tickerCopy) {
+      this.tickerTween = this.scene.tweens.add({ targets: [this.contextLabel, this.tickerCopy],
+        x: `-=${layout.distance}`, duration: layout.duration, ease: 'Linear', repeat: -1 });
+    }
+  }
+
   public constructor(
     scene: Phaser.Scene,
     x: number,
@@ -76,6 +99,8 @@ export class ScoreView extends Phaser.GameObjects.Container {
     const playerTwoFlag = this.createFlag(scene, 221, playerTwoFlagCode);
     const playerOneLabel = this.createPlayerLabel(scene, -126, getTeamScoreboardCode(playerOneFlagCode), 'right');
     const playerTwoLabel = this.createPlayerLabel(scene, 126, getTeamScoreboardCode(playerTwoFlagCode), 'left');
+    playerOneLabel.setX(playerOneFlag.x + playerOneFlag.displayWidth / 2 + 10 + playerOneLabel.displayWidth);
+    playerTwoLabel.setX(playerTwoFlag.x - playerTwoFlag.displayWidth / 2 - 10 - playerTwoLabel.displayWidth);
 
     const label = scene.add
       .text(0, -1, `${playerOneGoals}:${playerTwoGoals}`, {
@@ -87,21 +112,25 @@ export class ScoreView extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
 
+    if (options.onScoreTap) label.setInteractive({ useHandCursor: true }).on('pointerdown', options.onScoreTap);
+
     scoreContent.add([playerOneFlag, playerOneLabel, label, playerTwoLabel, playerTwoFlag]);
     this.add([background, scoreContent, divider, stepLabel]);
 
-    if (isMobileLandscapeLayout()) {
-      const leftDivider = scene.add.rectangle(
-        SCORE_CONTEXT_DIVIDER_X, 0, 1, SCORE_VIEW_HEIGHT - 20, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA
-      );
-      const contextLabel = scene.add.text(SCORE_CONTEXT_CENTER_X, 0, options.matchContext ?? '', {
-        align: 'center', color: '#d9eadf', fontFamily: SCORE_VIEW_FONT_FAMILY,
-        fontSize: '22px', fontStyle: '400', resolution: SHARP_TEXT_RESOLUTION,
-        wordWrap: { width: SCORE_CONTEXT_TEXT_WIDTH }
-      }).setOrigin(0.5);
-      contextLabel.setScale(Math.min(1, SCORE_CONTEXT_TEXT_WIDTH / Math.max(1, contextLabel.width), 58 / Math.max(1, contextLabel.height)));
-      this.add([leftDivider, contextLabel]);
-    }
+    const leftDivider = scene.add.rectangle(SCORE_CONTEXT_DIVIDER_X, 0, 1, SCORE_VIEW_HEIGHT - 20, SCORE_VIEW_BORDER_COLOR, SCORE_VIEW_BORDER_ALPHA);
+    const style = { color: '#d9eadf', fontFamily: SCORE_VIEW_FONT_FAMILY,
+      fontSize: '22px', fontStyle: '400', resolution: SHARP_TEXT_RESOLUTION };
+    this.contextLabel = scene.add.text(0, 0, '', style).setOrigin(0, 0.5);
+    this.tickerCopy = scene.add.text(0, 0, '', style).setOrigin(0, 0.5).setVisible(false);
+    const maskGraphics = scene.make.graphics();
+    maskGraphics.fillStyle(0xffffff).fillRect(x + SCORE_CONTEXT_CENTER_X - SCORE_CONTEXT_TEXT_WIDTH / 2, y - 29, SCORE_CONTEXT_TEXT_WIDTH, 58);
+    const mask = maskGraphics.createGeometryMask();
+    maskGraphics.setVisible(false);
+    this.contextLabel.setMask(mask);
+    this.tickerCopy.setMask(mask);
+    this.add([leftDivider, this.contextLabel, this.tickerCopy]);
+    this.setContext(options.matchContext ?? '');
+    this.once('destroy', () => { this.tickerTween?.remove(); mask.destroy(); maskGraphics.destroy(); });
 
     if (options.penaltyScore !== undefined) {
       scoreContent.add(
@@ -122,8 +151,7 @@ export class ScoreView extends Phaser.GameObjects.Container {
   }
 
   private createFlag(scene: Phaser.Scene, x: number, flagCode: string): Phaser.GameObjects.Image {
-    const flag = scene.add.image(px(x), 0, getFlagAssetKey(flagCode));
-    flag.setDisplaySize(58, 40);
+    const flag = createTeamIdentityImage(scene, px(x), 0, flagCode, 64, 48);
     return flag;
   }
 
@@ -133,10 +161,10 @@ export class ScoreView extends Phaser.GameObjects.Container {
         align,
         color: '#d9eadf',
         fontFamily: SCORE_VIEW_FONT_FAMILY,
-        fontSize: '32px',
+        fontSize: '35px',
         fontStyle: '700',
         resolution: SHARP_TEXT_RESOLUTION,
-        wordWrap: { width: 92 }
+        wordWrap: { width: 102 }
       })
       .setOrigin(align === 'left' ? 0 : 1, 0.5);
   }

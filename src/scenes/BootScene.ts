@@ -8,6 +8,7 @@ import {
 } from '../assets/teamCover';
 import { MENU_ASSETS, MENU_ASSET_PATHS, TOURNAMENT_ASSETS, TOURNAMENT_ASSET_PATHS } from '../config';
 import { getFlagAssetKey, NATIONAL_TEAMS } from '../data/nationalTeams';
+import { getRegisteredTeamLogosToLoad } from '../assets/teamIdentity';
 import { getRegisteredKitAssetsToLoad } from './bootKitAssets';
 
 const ASSET_PATHS = {
@@ -75,6 +76,10 @@ export class BootScene extends Phaser.Scene {
 
     for (const team of NATIONAL_TEAMS) {
       this.load.svg(getFlagAssetKey(team.flagCode), `flags/${team.flagCode}.svg`, { width: 96, height: 72 });
+    }
+
+    for (const logo of getRegisteredTeamLogosToLoad()) {
+      this.load.image(logo.assetKey, logo.path);
     }
 
     this.load.audio('sound-whistle-start', ASSET_PATHS.sounds.whistleStart);

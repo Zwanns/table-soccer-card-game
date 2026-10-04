@@ -637,7 +637,7 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).not.toContain('first.roundIndex - second.roundIndex || first.orderIndex - second.orderIndex');
     expect(completeSource).not.toContain('SCOREBOARD_FONT_FAMILY');
     expect(completeSource).toContain('Top scorer');
-    expect(completeSource).toContain('Top assist');
+    expect(completeSource).not.toContain('Top assist');
     expect(completeSource).toContain('Top goalkeeper');
     expect(completeSource).toContain('function createTournamentCompleteLayout(');
     expect(completeSource).toContain('mobileLandscape = isMobileLandscapeLayout()');
@@ -651,7 +651,7 @@ describe('tournament hub scene integration', () => {
     expect(completeSource).not.toContain('private createFinalLine');
     expect(completeSource).not.toContain("this.createSectionTitle(-488, -168, 'Final')");
     expect(completeSource).toContain('borderRadius: getCompleteActionButtonRadius(index, actions.length)');
-    expect(completeSource).toContain('borderWidth: 0');
+    expect(completeSource).toContain('borderWidth: 2');
     expect(completeSource).toContain('const buttonWidth = layout.actions.width / actions.length');
     expect(completeSource).toContain('topLeft: 0');
     expect(completeSource).toContain('topRight: 0');
@@ -915,7 +915,7 @@ describe('tournament match result normalization', () => {
     expect(hubSource).toContain("'semi-final': 'Semi-final'");
     expect(hubSource).toContain("final: 'Final'");
     expect(hubSource).toContain('addBracketTeamRow');
-    expect(hubSource).toContain('getFlagAssetKey(team.flagCode)');
+    expect(hubSource).toContain('createTeamIdentityImage(this, flagX, y, team.flagCode, layout.playoff.flagWidth, layout.playoff.flagHeight)');
     expect(hubSource).toContain('layout.playoff');
     expect(hubSource).toContain('bindTwoAxisPlayoffScroll');
     expect(hubSource).toContain('getBracketColumnGap');

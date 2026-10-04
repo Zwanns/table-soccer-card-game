@@ -153,6 +153,11 @@ export interface TournamentHubLayout {
 
 export interface TournamentHubCupXlPlayoffGeometry {
   cardWidth: number;
+  titleFontSize: string;
+  teamFontSize: string;
+  scoreFontSize: string;
+  flagWidth: number;
+  flagHeight: number;
   columnGap: number;
   centerGap: number;
   branchWidth: number;
@@ -161,6 +166,7 @@ export interface TournamentHubCupXlPlayoffGeometry {
   finalX: number;
   leftColumnXs: readonly [number, number, number];
   rightColumnXs: readonly [number, number, number];
+  columnLabels: readonly { x: number; originX: 0.5; maxWidth: number }[];
 }
 
 export interface TournamentHubCupMPlayoffGeometry {
@@ -247,10 +253,10 @@ export function createTournamentHubLayout(
         headerY: 82,
         rowStartY: 132,
         rowHeight: 72,
-        titleFontSize: '30px',
-        headerFontSize: '20px',
-        teamFontSize: '24px',
-        valueFontSize: '22px',
+        titleFontSize: '32px',
+        headerFontSize: '22px',
+        teamFontSize: '26px',
+        valueFontSize: '24px',
         teamHeaderX: 22,
         flagX: 40,
         teamCodeX: 76,
@@ -261,12 +267,12 @@ export function createTournamentHubLayout(
         goalsForX: 470,
         goalsAgainstX: 536,
         pointsX: 606,
-        formX: 654,
-        formIndicatorGap: 35,
-        flagWidth: 50,
-        flagHeight: 38,
+        formX: 644,
+        formIndicatorGap: 39,
+        flagWidth: 54,
+        flagHeight: 44,
         cornerRadius: 8,
-        formIndicatorRadius: 12
+        formIndicatorRadius: 14
       },
       playoff: {
         x: contentLeft,
@@ -280,10 +286,10 @@ export function createTournamentHubLayout(
         rowGap: 116,
         maxColumnGap: 150,
         titleFontSize: '24px',
-        teamFontSize: '20px',
-        scoreFontSize: '20px',
-        flagWidth: 32,
-        flagHeight: 24
+        teamFontSize: '22px',
+        scoreFontSize: '22px',
+        flagWidth: 36,
+        flagHeight: 28
       },
       stats: {
         x: contentLeft,
@@ -293,9 +299,9 @@ export function createTournamentHubLayout(
         tableX: contentLeft,
         tableWidth: 756,
         tableHeight: 462,
-        tableHeaderFontSize: '19px',
-        tableTeamFontSize: '21px',
-        tableValueFontSize: '20px',
+        tableHeaderFontSize: '21px',
+        tableTeamFontSize: '23px',
+        tableValueFontSize: '22px',
         tableTeamHeaderX: 18,
         tableFlagX: 34,
         tableTeamCodeX: 66,
@@ -313,14 +319,14 @@ export function createTournamentHubLayout(
         rankingX: contentLeft + 792,
         rankingWidth: contentWidth - 792,
         rankingCardWidth: contentWidth - 792,
-        rankingCardHeight: 120,
-        rankingTitleFontSize: '26px',
-        rankingEntryFontSize: '20px',
-        rankingValueFontSize: '21px',
-        rankingEntryRowGap: 32,
-        rankingFlagWidth: 34,
-        rankingFlagHeight: 26,
-        rankingRowGap: 156,
+        rankingCardHeight: 188,
+        rankingTitleFontSize: '28px',
+        rankingEntryFontSize: '22px',
+        rankingValueFontSize: '23px',
+        rankingEntryRowGap: 36,
+        rankingFlagWidth: 38,
+        rankingFlagHeight: 30,
+        rankingRowGap: 238,
         rankingColumnGap: 32
       },
       footer: {
@@ -404,10 +410,10 @@ export function createTournamentHubLayout(
       headerY: 82,
       rowStartY: 132,
       rowHeight: 72,
-      titleFontSize: '30px',
-      headerFontSize: '20px',
-      teamFontSize: '23px',
-      valueFontSize: '21px',
+      titleFontSize: '32px',
+      headerFontSize: '21px',
+      teamFontSize: '25px',
+      valueFontSize: '23px',
       teamHeaderX: 22,
       flagX: 40,
       teamCodeX: 76,
@@ -418,12 +424,12 @@ export function createTournamentHubLayout(
       goalsForX: 398,
       goalsAgainstX: 452,
       pointsX: 510,
-      formX: 566,
-      formIndicatorGap: 32,
-      flagWidth: 48,
-      flagHeight: 36,
+      formX: 554,
+      formIndicatorGap: 36,
+      flagWidth: 52,
+      flagHeight: 42,
       cornerRadius: 8,
-      formIndicatorRadius: 12
+      formIndicatorRadius: 14
     },
     playoff: {
       x: contentLeft,
@@ -437,10 +443,10 @@ export function createTournamentHubLayout(
       rowGap: 104,
       maxColumnGap: 128,
       titleFontSize: '22px',
-      teamFontSize: '17px',
-      scoreFontSize: '18px',
-      flagWidth: 28,
-      flagHeight: 21
+      teamFontSize: '19px',
+      scoreFontSize: '20px',
+      flagWidth: 32,
+      flagHeight: 25
     },
     stats: {
       x: contentLeft,
@@ -450,9 +456,9 @@ export function createTournamentHubLayout(
       tableX: contentLeft,
       tableWidth: 660,
       tableHeight: 462,
-      tableHeaderFontSize: '16px',
-      tableTeamFontSize: '18px',
-      tableValueFontSize: '17px',
+      tableHeaderFontSize: '18px',
+      tableTeamFontSize: '20px',
+      tableValueFontSize: '19px',
       tableTeamHeaderX: 16,
       tableFlagX: 28,
       tableTeamCodeX: 54,
@@ -470,14 +476,14 @@ export function createTournamentHubLayout(
       rankingX: contentLeft + 684,
       rankingWidth: contentWidth - 684,
       rankingCardWidth: contentWidth - 684,
-      rankingCardHeight: 102,
-      rankingTitleFontSize: '22px',
-      rankingEntryFontSize: '16px',
-      rankingValueFontSize: '17px',
-      rankingEntryRowGap: 25,
-      rankingFlagWidth: 28,
-      rankingFlagHeight: 21,
-      rankingRowGap: 156,
+      rankingCardHeight: 188,
+      rankingTitleFontSize: '24px',
+      rankingEntryFontSize: '20px',
+      rankingValueFontSize: '21px',
+      rankingEntryRowGap: 36,
+      rankingFlagWidth: 34,
+      rankingFlagHeight: 28,
+      rankingRowGap: 238,
       rankingColumnGap: 32
     },
     footer: {
@@ -504,10 +510,10 @@ export function getTournamentHubCupMPlayoffGeometry(
   const rowGap = layout.mobileLandscape ? 172 : 160;
   const verticalOffset = layout.mobileLandscape ? 40 : 36;
   const columnGap = layout.mobileLandscape ? 230 : 220;
-  const teamFontSize = layout.mobileLandscape ? '23px' : '20px';
-  const scoreFontSize = layout.mobileLandscape ? '24px' : '22px';
-  const flagWidth = layout.mobileLandscape ? 48 : 44;
-  const flagHeight = layout.mobileLandscape ? 36 : 33;
+  const teamFontSize = layout.mobileLandscape ? '25px' : '22px';
+  const scoreFontSize = layout.mobileLandscape ? '26px' : '24px';
+  const flagWidth = layout.mobileLandscape ? 52 : 48;
+  const flagHeight = layout.mobileLandscape ? 40 : 37;
   const contentWidth = cardWidth * 2 + columnGap;
   const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
   const finalX = startX + cardWidth + columnGap;
@@ -531,9 +537,10 @@ export function getTournamentHubCupMPlayoffGeometry(
 export function getTournamentHubCupXlPlayoffGeometry(
   layout: TournamentHubLayout
 ): TournamentHubCupXlPlayoffGeometry {
-  const cardWidth = layout.mobileLandscape ? layout.playoff.cardWidth : 168;
-  const columnGap = layout.mobileLandscape ? layout.playoff.maxColumnGap : 20;
-  const centerGap = layout.mobileLandscape ? Math.max(96, columnGap) : 36;
+  const columnGap = layout.mobileLandscape ? 28 : 20;
+  const centerGap = layout.mobileLandscape ? 40 : 36;
+  const preferredCardWidth = layout.mobileLandscape ? 182 : 168;
+  const cardWidth = Math.min(preferredCardWidth, Math.floor((layout.playoff.width - 4 * columnGap - 2 * centerGap) / 7));
   const branchWidth = cardWidth * 3 + columnGap * 2;
   const contentWidth = branchWidth * 2 + cardWidth + centerGap * 2;
   const startX = Math.max(0, (layout.playoff.width - contentWidth) / 2);
@@ -552,6 +559,11 @@ export function getTournamentHubCupXlPlayoffGeometry(
 
   return {
     cardWidth,
+    titleFontSize: '22px',
+    teamFontSize: layout.mobileLandscape ? '20px' : '18px',
+    scoreFontSize: layout.mobileLandscape ? '18px' : '19px',
+    flagWidth: 32,
+    flagHeight: 25,
     columnGap,
     centerGap,
     branchWidth,
@@ -559,7 +571,12 @@ export function getTournamentHubCupXlPlayoffGeometry(
     startX,
     finalX,
     leftColumnXs,
-    rightColumnXs
+    rightColumnXs,
+    columnLabels: [...leftColumnXs, finalX, ...rightColumnXs].map((x) => ({
+      x: x + cardWidth / 2,
+      originX: 0.5,
+      maxWidth: cardWidth
+    }))
   };
 }
 
