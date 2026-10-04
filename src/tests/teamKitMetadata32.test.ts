@@ -54,8 +54,8 @@ describe('KIT.METADATA.32 source contract', () => {
     const expectedAway = kitColors(row.slice(7, 11));
     for (const field of colorFields) {
       expect(home[field]).toBe(expectedHome[field]);
-      expect(AWAY_KIT_METADATA[code][field]).toBe(expectedAway[field]);
-      expect(away[field]).toBe(expectedAway[field]);
+      expect(color(AWAY_KIT_METADATA[code][field] ?? 'undefined')).toBe(expectedAway[field]);
+      expect(color(away[field] ?? 'undefined')).toBe(expectedAway[field]);
     }
     expect(away.path).toBe(`kits/images/${code}2.webp`);
   });

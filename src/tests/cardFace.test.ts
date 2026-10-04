@@ -90,7 +90,7 @@ describe('kit card face rendering contracts', () => {
     expect(cardViewSource).toContain('getWorldTransformMatrix');
     expect(cardViewSource).not.toContain('this.add(this.tooltip)');
     expect(tooltipSource).toContain('TOOLTIP_PADDING_X');
-    expect(tooltipSource).toContain('setDepth(10000)');
+    expect(tooltipSource).toContain('setDepth(PLAYER_TOOLTIP_DEPTH)');
     expect(tooltipSource).not.toContain('setStrokeStyle');
   });
 

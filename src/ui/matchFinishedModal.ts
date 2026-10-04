@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { Button } from './Button';
 import { isMobileLandscapeLayout } from './mobileLayout';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from './scoreboardStyle';
+import { MATCH_FINISHED_MODAL_DEPTH } from './matchUiDepth';
+import { createBlockingModal } from './playerTooltipLifecycle';
 
 export const MATCH_FINISHED_MODAL = {
   width: 620,
@@ -62,7 +64,7 @@ export function createMatchFinishedModal(
   options: MatchFinishedModalOptions
 ): Phaser.GameObjects.Container {
   const layout = resolveMatchFinishedModalLayout(scene, options.layout);
-  const modal = scene.add.container(0, 0).setDepth(options.depth ?? 1100);
+  const modal = createBlockingModal(scene, options.depth ?? MATCH_FINISHED_MODAL_DEPTH);
   const overlay = scene.add.rectangle(
     options.centerX,
     options.centerY,

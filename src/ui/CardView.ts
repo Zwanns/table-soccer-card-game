@@ -8,6 +8,8 @@ import { KIT_CARD_LAYOUT, prepareKitCardFace } from './kitCardFaceModel';
 import { px, SHARP_TEXT_RESOLUTION } from './textRendering';
 import type { TooltipRect } from './cardTooltipLayout';
 import { isMobileLandscapeLayout } from './mobileLayout';
+import { CARD_HOVER_DEPTH } from './matchUiDepth';
+import { isPlayerTooltipBlocked, registerPlayerTooltip, resumePlayerTooltipHover } from './playerTooltipLifecycle';
 
 export interface CardViewOptions {
   rank: string;
@@ -30,6 +32,8 @@ export const CARD_HEIGHT = 148.5;
 
 export class CardView extends Phaser.GameObjects.Container {
   private tooltip: CardTooltipView | null = null;
+  private unregisterTooltip?: () => void;
+  private tooltipRequiresNewPress = false;
   private faceView: KitCardFaceView | null = null;
 
   public constructor(scene: Phaser.Scene, x: number, y: number, options: CardViewOptions) {
@@ -77,8 +81,25 @@ export class CardView extends Phaser.GameObjects.Container {
         hitArea.setInteractive();
       }
       if (options.tooltipEnabled !== false) {
+        this.unregisterTooltip = registerPlayerTooltip(scene, () => {
+          this.hideTooltip();
+          this.tooltipRequiresNewPress = true;
+        });
         hitArea.on('pointerover', () => this.showTooltip(scene, options.playerProfile, options.tooltipViewport));
-        hitArea.on('pointerout', () => this.hideTooltip());
+        hitArea.on('pointerdown', () => {
+          if (isPlayerTooltipBlocked(scene)) return;
+          resumePlayerTooltipHover(scene);
+          this.tooltipRequiresNewPress = false;
+          this.showTooltip(scene, options.playerProfile, options.tooltipViewport);
+        });
+        hitArea.on('pointerout', () => {
+          this.hideTooltip();
+          // A fresh desktop hover works after leaving the card; a held press must start again.
+          if (!isPlayerTooltipBlocked(scene)) {
+            resumePlayerTooltipHover(scene);
+            this.tooltipRequiresNewPress = false;
+          }
+        });
         hitArea.on('pointerup', () => this.hideTooltip());
         hitArea.on('pointerupoutside', () => this.hideTooltip());
       }
@@ -94,6 +115,7 @@ export class CardView extends Phaser.GameObjects.Container {
   }
 
   public override destroy(fromScene?: boolean): void {
+    this.unregisterTooltip?.();
     this.hideTooltip();
     super.destroy(fromScene);
   }
@@ -107,7 +129,7 @@ export class CardView extends Phaser.GameObjects.Container {
   }
 
   private showTooltip(scene: Phaser.Scene, profile?: CardPlayerProfile, viewport?: TooltipRect): void {
-    if (profile === undefined || this.tooltip !== null) {
+    if (profile === undefined || this.tooltip !== null || this.tooltipRequiresNewPress || isPlayerTooltipBlocked(scene)) {
       return;
     }
 
@@ -123,7 +145,7 @@ export class CardView extends Phaser.GameObjects.Container {
   }
 
   private raiseAboveSiblingCards(): void {
-    this.setDepth(1000);
+    this.setDepth(CARD_HOVER_DEPTH);
     this.parentContainer?.bringToTop(this);
   }
 

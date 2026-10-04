@@ -51,8 +51,14 @@ export const AVAILABLE_MANUAL_KIT_FLAG_CODES = [
   'wls'
 ] as const;
 export const AVAILABLE_AWAY_KIT_FLAG_CODES = [
+  'ar',
+  'be',
   'br',
+  'cm',
   'de',
+  'es',
+  'fr',
+  'it',
   'nl',
   'pl',
   'tr',

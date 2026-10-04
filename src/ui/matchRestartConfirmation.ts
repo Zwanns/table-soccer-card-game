@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { Button } from './Button';
-import { MATCH_OVERLAY_DEPTH } from './matchPauseOverlay';
+import { MATCH_RESTART_CONFIRMATION_DEPTH } from './matchUiDepth';
+import { createBlockingModal } from './playerTooltipLifecycle';
 
 export function createMatchRestartConfirmation(
   scene: Phaser.Scene,
   onCancel: () => void,
   onRestart: () => void
 ): Phaser.GameObjects.Container {
-  const modal = scene.add.container(0, 0).setDepth(MATCH_OVERLAY_DEPTH + 1);
+  const modal = createBlockingModal(scene, MATCH_RESTART_CONFIRMATION_DEPTH);
   const overlay = scene.add.rectangle(SCENE_WIDTH / 2, SCENE_HEIGHT / 2, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
   overlay.setInteractive();
   const panel = scene.add.container(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);

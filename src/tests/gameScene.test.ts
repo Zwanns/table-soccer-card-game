@@ -435,7 +435,7 @@ describe('GameScene visual layout contracts', () => {
     expect(source).toContain('], { state });');
     expect(source).toContain('private closePauseModal(options: { resumeAutomaticCardFlow?: boolean } = {}): void');
     expect(source).toContain('this.pauseModal === null');
-    expect(overlaySource).toContain('setDepth(MATCH_OVERLAY_DEPTH)');
+    expect(overlaySource).toContain('createBlockingModal(scene)');
     expect(overlaySource).toContain('overlay.setInteractive()');
     expect(overlaySource).not.toContain(".text(0, titleY, 'Pause'");
     expect(overlaySource).not.toContain("fontSize: '34px'");

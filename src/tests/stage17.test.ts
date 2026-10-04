@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type Phaser from 'phaser';
 
@@ -23,6 +24,7 @@ import { TeamSelectScene } from '../scenes/TeamSelectScene';
 import { ResultScene } from '../scenes/ResultScene';
 import { TournamentHubScene } from '../scenes/TournamentHubScene';
 import { NATIONAL_TEAMS } from '../data/nationalTeams';
+import { hasManualTeamKit } from '../data/teamKits';
 import { createTeamScreenLayout } from '../ui/teamScreenLayout';
 import { GameEngine } from '../game/GameEngine';
 import * as kitSelection from '../game/tournamentKitSelection';
@@ -41,11 +43,12 @@ import { createResultActionButtons, RESULT_ACTION_BUTTON_Y } from '../ui/resultA
 import { SCOREBOARD_BORDER_COLOR } from '../ui/scoreboardStyle';
 
 function node(x = 0, y = 0): any {
-  return { x, y, width: 200, height: 50, destroy: vi.fn(), add: vi.fn(),
+  const events = new EventEmitter();
+  return Object.assign(events, { x, y, width: 200, height: 50, destroy: vi.fn(() => events.emit('destroy')), add: vi.fn(),
     setText() { return this; }, setVisible() { return this; }, setMask() { return this; },
     get displayWidth() { return this.width; }, setX(nextX: number) { this.x = nextX; return this; },
     setDepth() { return this; }, setInteractive() { return this; }, setStrokeStyle() { return this; },
-    setOrigin() { return this; }, setDisplaySize(width: number, height: number) { this.width = width; this.height = height; return this; }, setScale: vi.fn() };
+    setOrigin() { return this; }, setDisplaySize(width: number, height: number) { this.width = width; this.height = height; return this; }, setScale: vi.fn() });
 }
 function attach(scene: any): any {
   Object.assign(scene, {
@@ -347,7 +350,9 @@ describe('field kit scene lifecycle', () => {
     scene.createTeamKitPreview(layout.team1KitPreviewRect, germany, 1);
     ui.buttons.at(-2).onClick();
     expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'away' });
-    scene.createTeamKitPreview(layout.team2KitPreviewRect, NATIONAL_TEAMS.find((team) => team.flagCode === 'fr'), 2);
+    const homeOnlyTeam = NATIONAL_TEAMS.find((team) => hasManualTeamKit(team.flagCode) && !hasManualTeamKit(team.flagCode, 'away'));
+    expect(homeOnlyTeam).toBeDefined();
+    scene.createTeamKitPreview(layout.team2KitPreviewRect, homeOnlyTeam, 2);
     expect(ui.buttons.at(-1).options.disabled).toBe(true);
     // Toggle hitboxes sit above each preview and clear the title and team panels.
     for (const button of ui.buttons) {
@@ -446,7 +451,7 @@ describe('KIT.SELECTOR.MOBILE.2', () => {
     const key = (card: any) => card.children.find((child: any) => child.key)?.key;
     scene.render();
     expect(ui.buttons).toEqual([]);
-    expect(cards.map(key)).toEqual(['kit-de-away', 'kit-de', 'kit-none', 'kit-es']);
+    expect(cards.map(key)).toEqual(['kit-de-away', 'kit-de', 'kit-es-away', 'kit-es']);
     expect(cards[0].x - cards[1].x).toBe(cards[0].width / 2);
     expect(cards[2].x - cards[3].x).toBe(-cards[2].width / 2);
     expect(cards[0].y).toBe(cards[1].y);
@@ -454,6 +459,8 @@ describe('KIT.SELECTOR.MOBILE.2', () => {
     expect(cards[1].width).toBeGreaterThan(layout.team1KitPreviewRect.width);
     expect(cards[1].height).toBeGreaterThan(layout.team1KitPreviewRect.height);
     tap(cards[1]); expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
+    tap(cards[2]); expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'away' });
+    expect(cards.map(key).slice(2)).toEqual(['kit-es', 'kit-es-away']);
     tap(cards[2]); expect(scene.fieldKits).toEqual({ 1: 'home', 2: 'home' });
     tap(cards[0]);
     expect(scene.fieldKits).toEqual({ 1: 'away', 2: 'home' });

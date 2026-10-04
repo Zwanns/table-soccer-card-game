@@ -222,9 +222,9 @@ describe('Tutorial Exit confirmation integration', () => {
 
     expect(gameplayGuard).toContain('this.exitConfirmModal === null');
     expect(modalBlock).toContain('overlay.setInteractive();');
-    expect(modalBlock).toContain('.setDepth(EXIT_CONFIRM_MODAL_DEPTH)');
+    expect(modalBlock).toContain('createBlockingModal(this, EXIT_CONFIRM_MODAL_DEPTH)');
     expect(androidBackBlock).toContain('closeExitConfirm: () => this.closeExitConfirmModal()');
-    expect(source).toContain('const EXIT_CONFIRM_MODAL_DEPTH = 6000;');
+    expect(source).toContain('const EXIT_CONFIRM_MODAL_DEPTH = MATCH_EXIT_CONFIRMATION_DEPTH;');
   });
 
   it('keeps Main Menu and the Android foundation free of app exit/minimize calls', () => {

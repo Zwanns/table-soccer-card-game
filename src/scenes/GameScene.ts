@@ -53,6 +53,8 @@ import { createMatchPauseOverlay } from '../ui/matchPauseOverlay';
 import { createMatchRestartConfirmation } from '../ui/matchRestartConfirmation';
 import { getMatchHeaderContext } from '../ui/matchHeaderContext';
 import { createMatchRulesOverlay } from '../ui/MatchRulesOverlay';
+import { MATCH_EXIT_CONFIRMATION_DEPTH } from '../ui/matchUiDepth';
+import { createBlockingModal } from '../ui/playerTooltipLifecycle';
 import { SCOREBOARD_BACKGROUND_ALPHA, SCOREBOARD_BACKGROUND_COLOR } from '../ui/scoreboardStyle';
 import {
   createGoalScoredEffect,
@@ -128,7 +130,7 @@ const SHOT_SOURCE_KICK_DISTANCE = 16;
 const SHOT_SOURCE_KICK_ROTATION = Phaser.Math.DegToRad(9);
 const GOALKEEPER_SHOT_SOURCE_SNAPSHOT_DEPTH = 840;
 const FLYING_MESSAGE_DEPTH = 3000;
-const EXIT_CONFIRM_MODAL_DEPTH = 6000;
+const EXIT_CONFIRM_MODAL_DEPTH = MATCH_EXIT_CONFIRMATION_DEPTH;
 const GOALKEEPER_RANK_ROLL_DURATION_MS = 820;
 const GOALKEEPER_RANK_ROLL_MIN_STEPS = 8;
 const GOALKEEPER_RANK_ROLL_SEQUENCE: readonly GoalkeeperCard['rank'][] = [
@@ -1069,7 +1071,7 @@ export class GameScene extends Phaser.Scene {
 
     const centerX = SCENE_WIDTH / 2;
     const centerY = SCENE_HEIGHT / 2;
-    const modal = this.add.container(0, 0).setDepth(EXIT_CONFIRM_MODAL_DEPTH);
+    const modal = createBlockingModal(this, EXIT_CONFIRM_MODAL_DEPTH);
     const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.68);
     overlay.setInteractive();
 
@@ -1280,7 +1282,7 @@ export class GameScene extends Phaser.Scene {
     const centerY = SCENE_HEIGHT / 2;
     const aboutContent = ABOUT_CONTENT[this.infoLanguage];
     const titleText = aboutContent.title;
-    const modal = this.add.container(0, 0).setDepth(1000);
+    const modal = createBlockingModal(this);
     const overlay = this.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
     overlay.setInteractive();
 

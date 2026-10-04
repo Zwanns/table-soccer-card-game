@@ -39,8 +39,10 @@ describe('two field kit resources', () => {
   });
 
   it('falls back AWAY to HOME to none without requiring all away files', () => {
-    expect(hasManualTeamKit('fr', 'away')).toBe(false);
-    expect(getTeamKitAssetPath('fr', 'away')).toBe('kits/images/fr1.webp');
+    const homeOnlyCode = [...AVAILABLE_MANUAL_KIT_FLAG_CODES].find((code) => !hasManualTeamKit(code, 'away'))!;
+    expect(homeOnlyCode).toBeDefined();
+    expect(hasManualTeamKit(homeOnlyCode, 'away')).toBe(false);
+    expect(getTeamKitAssetPath(homeOnlyCode, 'away')).toBe(`kits/images/${homeOnlyCode}1.webp`);
     expect(getTeamKitAssetPath('unknown', 'away')).toBe('kits/images/none.webp');
     expect(getTeamKitAssetPath('unknown')).toBe('kits/images/none.webp');
   });

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CardView, CARD_HEIGHT, CARD_WIDTH } from '../ui/CardView';
 import { CardTooltipView } from '../ui/CardTooltipView';
@@ -7,12 +7,17 @@ import { fitPlayerTooltipText, getPlayerTooltipLayout, getPlayerTooltipSize, PLA
   PLAYER_TOOLTIP_FONT_SIZE, PLAYER_TOOLTIP_MIN_HEIGHT, PLAYER_TOOLTIP_VIEWPORT_INSET,
   TOOLTIP_PADDING_X, TOOLTIP_PADDING_Y } from '../ui/cardTooltipLayout';
 import { MATCH_TOOLTIP_VIEWPORT } from '../ui/matchScreenLayout';
+import { GameScene } from '../scenes/GameScene';
+import { GameEngine } from '../game/GameEngine';
+import { createBlockingModal, isPlayerTooltipBlocked } from '../ui/playerTooltipLifecycle';
+import { CARD_HOVER_DEPTH, PLAYER_TOOLTIP_DEPTH } from '../ui/matchUiDepth';
 
 const ui = vi.hoisted(() => ({ mobile: false }));
 vi.mock('../ui/mobileLayout', () => ({ isMobileLandscapeLayout: () => ui.mobile }));
 beforeEach(() => { ui.mobile = false; });
 
-vi.mock('phaser', () => ({ default: { GameObjects: { Container: class extends EventEmitter {
+vi.mock('phaser', () => ({ default: { Scene: class {}, Math: { DegToRad: (degrees: number) => degrees * Math.PI / 180 },
+  GameObjects: { Events: { DESTROY: 'destroy' }, Container: class extends EventEmitter {
   list: any[] = [];
   scaleX = 1;
   scaleY = 1;
@@ -26,12 +31,19 @@ vi.mock('phaser', () => ({ default: { GameObjects: { Container: class extends Ev
   setDepth(depth: number) { this.depth = depth; return this; }
   setPosition(x: number, y: number) { this.x = x; this.y = y; return this; }
   setSize(width: number, height: number) { this.width = width; this.height = height; return this; }
+  setMask() { return this; }
   getWorldTransformMatrix() {
     return { transformPoint: (x: number, y: number) => ({ x: this.x + x * this.scaleX, y: this.y + y * this.scaleY }) };
   }
-  destroy() { this.destroyed = true; }
+  destroy() { this.destroyed = true; this.emit('destroy', this); }
 } } } }));
 vi.mock('../ui/KitCardFaceView', () => ({ KitCardFaceView: class {} }));
+vi.mock('../ui/Button', () => ({ Button: class {
+  constructor(_scene: unknown, public x: number, public y: number, public label: string,
+    public onClick: () => void, public options: unknown) {}
+} }));
+vi.mock('../ui/MatchStatsPanel', () => ({ MatchStatsPanel: class {}, MATCH_STATS_PANEL_CENTER_Y: 354,
+  MATCH_STATS_PANEL_WIDTH: 840, MATCH_STATS_PANEL_HEIGHT: 512 }));
 
 const viewport = { x: 0, y: 0, width: 1600, height: 720 };
 const size = { width: 240, height: 56 };
@@ -128,11 +140,21 @@ function sceneMock() {
     originX: 0.5, originY: 0.5,
     setText(value: string) { this.text = value; this.width = value.length * font * 0.6; return this; },
     setOrigin(x: number, y = x) { this.originX = x; this.originY = y; return this; },
-    setInteractive() { this.input = { enabled: true }; return this; }
+    setInteractive() { this.input = { enabled: true }; return this; },
+    setStrokeStyle() { return this; },
+    setColor() { return this; }
   });
-  const scene = { cameras: { main: { worldView: viewport } }, add: {
+  const graphics = () => ({ fillStyle() { return this; }, fillRect() { return this; },
+    fillRoundedRect() { return this; }, lineStyle() { return this; }, strokeRoundedRect() { return this; },
+    fillGradientStyle() { return this; }, createGeometryMask() { return {}; }, setVisible() {}, destroy() {} });
+  const scene = { cameras: { main: { worldView: viewport } }, events: new EventEmitter(),
+    scale: { displaySize: { width: 1600, height: 720 } }, textures: { exists: () => false },
+    make: { graphics }, add: {
+    container: (x: number, y: number) => new Phaser.GameObjects.Container(scene as unknown as Phaser.Scene, x, y),
+    graphics,
     text: (x: number, y: number, text: string, style: { fontSize: string }) => node(x, y, text, parseInt(style.fontSize)),
     rectangle: (x: number, y: number, width: number, height: number) => Object.assign(node(x, y), { width, height }),
+    zone: (x: number, y: number, width: number, height: number) => Object.assign(node(x, y), { width, height }),
     existing: (object: unknown) => { if (object instanceof CardTooltipView) tooltips.push(object); }
   } } as unknown as Phaser.Scene;
   return { scene, tooltips };
@@ -205,5 +227,137 @@ describe('player tooltip integration and input', () => {
     expect(text.width + TOOLTIP_PADDING_X * 2).toBeLessThanOrEqual(background.width);
     expect(text.text).not.toContain('\n');
     expect(tooltip.x + tooltip.width).toBe(1588);
+  });
+});
+
+function gameSceneMock() {
+  const { scene, tooltips } = sceneMock();
+  const game = Object.assign(Object.create(GameScene.prototype), scene, {
+    engine: new GameEngine(), input: { enabled: true },
+    pauseModal: null, infoModal: null, exitConfirmModal: null, matchFinishedModal: null,
+    isSceneShutDown: false, isNavigationAwayInProgress: false, isMatchFinishedModalOpen: false,
+    tutorialController: null, aiTurnController: null, eventLogView: null, infoLanguage: 'en',
+    pauseAutomaticCardFlow: vi.fn(), resumeAutomaticCardFlow: vi.fn(), cancelAutomaticCardFlow: vi.fn(),
+    refreshGameplayAfterBlockingModal: vi.fn(() => false), isSceneStableForAi: () => false,
+    playMatchFinishedWhistleOnce: vi.fn()
+  }) as Record<string, any>;
+  return { game, scene: game as Phaser.Scene, tooltips };
+}
+
+const modalCases = [
+  { name: 'Final whistle / step limit', slot: 'matchFinishedModal',
+    open: (game: Record<string, any>) => game.showMatchFinishedModal(game.engine.getState(), { bodyText: 'Step limit reached' }) },
+  { name: 'Pause', slot: 'pauseModal', open: (game: Record<string, any>) => game.openPauseModal(game.engine.getState()),
+    close: (game: Record<string, any>) => game.closePauseModal() },
+  { name: 'Rules', slot: 'infoModal', open: (game: Record<string, any>) => game.openMatchInfoModal('rules'),
+    close: (game: Record<string, any>) => game.closeMatchInfoModal() },
+  { name: 'Restart confirmation', slot: 'exitConfirmModal', open: (game: Record<string, any>) => game.openRestartConfirmation(),
+    close: (game: Record<string, any>) => game.closeExitConfirmModal() },
+  { name: 'Exit confirmation', slot: 'exitConfirmModal', open: (game: Record<string, any>) => game.openExitConfirmModal(),
+    close: (game: Record<string, any>) => game.closeExitConfirmModal() },
+  { name: 'About', slot: 'infoModal', open: (game: Record<string, any>) => game.openMatchInfoModal('about'),
+    close: (game: Record<string, any>) => game.closeMatchInfoModal() }
+];
+
+describe.each([false, true])('player tooltip modal lifecycle (mobile=%s)', (mobile) => {
+  it.each(modalCases)('clears a visible name below $name and blocks hover/press/move until closing', ({ slot, open, close }) => {
+    ui.mobile = mobile;
+    const { game, scene, tooltips } = gameSceneMock();
+    const card = new CardView(scene, 800, 400, { rank: 'A', playerProfile: profile });
+    const hit = card.list.at(-1)!;
+    hit.emit('pointerover');
+    expect(tooltips).toHaveLength(1);
+    expect(card.depth).toBe(CARD_HOVER_DEPTH);
+    expect(tooltips[0].depth).toBe(PLAYER_TOOLTIP_DEPTH);
+    open(game);
+    const modal = game[slot];
+    expect(modal).not.toBeNull();
+    // Both dim and dialog content inherit this root depth, with dim ordered first.
+    expect(modal.list[0].input.enabled).toBe(true);
+    expect(modal.list.length).toBeGreaterThan(1);
+    expect(tooltips[0].depth).toBeLessThan(modal.depth);
+    expect(Reflect.get(tooltips[0], 'destroyed')).toBe(true);
+    expect(tooltips[0].input).toBeUndefined();
+    expect(isPlayerTooltipBlocked(scene)).toBe(true);
+    for (const event of ['pointerout', 'pointerover', 'pointerdown', 'pointermove', 'pointerup']) hit.emit(event);
+    expect(tooltips).toHaveLength(1);
+    if (close === undefined) {
+      card.destroy();
+      modal.destroy();
+      return;
+    }
+    close(game);
+    expect(isPlayerTooltipBlocked(scene)).toBe(false);
+    expect(tooltips).toHaveLength(1);
+    hit.emit('pointermove'); hit.emit('pointerover');
+    expect(tooltips).toHaveLength(1);
+    hit.emit('pointerdown');
+    expect(tooltips).toHaveLength(2);
+    expect(Reflect.get(tooltips[1], 'destroyed')).toBe(false);
+    hit.emit('pointerup');
+    expect(Reflect.get(tooltips[1], 'destroyed')).toBe(true);
+    card.destroy();
+  });
+});
+
+describe('player tooltip modal recovery', () => {
+  it.each(['Pause', 'Rules'])('does not restore a name on a card recreated after closing %s', (name) => {
+    const { game, scene, tooltips } = gameSceneMock();
+    const modal = modalCases.find(modal => modal.name === name)!;
+    const original = new CardView(scene, 800, 400, { rank: 'A', playerProfile: profile });
+    original.list.at(-1)!.emit('pointerdown');
+    modal.open(game);
+    original.destroy();
+    modal.close!(game);
+    const refreshed = new CardView(scene, 800, 400, { rank: 'A', playerProfile: profile });
+    const hit = refreshed.list.at(-1)!;
+    hit.emit('pointerover'); hit.emit('pointermove');
+    expect(tooltips).toHaveLength(1);
+    hit.emit('pointerdown');
+    expect(tooltips).toHaveLength(2);
+    refreshed.destroy();
+  });
+
+  it('keeps names blocked across Pause to Restart confirmation', () => {
+    const { game, scene, tooltips } = gameSceneMock();
+    game.openPauseModal(game.engine.getState());
+    const card = new CardView(scene, 800, 400, { rank: 'A', playerProfile: profile });
+    game.openRestartConfirmation();
+    expect(isPlayerTooltipBlocked(scene)).toBe(true);
+    card.list.at(-1)!.emit('pointerdown');
+    expect(tooltips).toHaveLength(0);
+    game.closeExitConfirmModal();
+    expect(isPlayerTooltipBlocked(scene)).toBe(false);
+    card.list.at(-1)!.emit('pointerdown');
+    expect(tooltips).toHaveLength(1);
+    card.destroy();
+  });
+
+  it('keeps desktop hover available after leaving and entering the card again', () => {
+    const { game, scene, tooltips } = gameSceneMock();
+    const card = new CardView(scene, 800, 400, { rank: 'A', playerProfile: profile });
+    card.list.at(-1)!.emit('pointerover');
+    game.openPauseModal(game.engine.getState());
+    game.closePauseModal();
+    card.list.at(-1)!.emit('pointerout');
+    card.list.at(-1)!.emit('pointerover');
+    expect(tooltips).toHaveLength(2);
+    card.destroy();
+  });
+
+  it('keeps independent modal lifetimes and scenes isolated', () => {
+    const first = sceneMock(), second = sceneMock();
+    const firstCard = new CardView(first.scene, 800, 400, { rank: 'A', playerProfile: profile });
+    const secondCard = new CardView(second.scene, 800, 400, { rank: 'A', playerProfile: profile });
+    const lower = createBlockingModal(first.scene), upper = createBlockingModal(first.scene, 1100);
+    lower.destroy();
+    firstCard.list.at(-1)!.emit('pointerdown');
+    secondCard.list.at(-1)!.emit('pointerover');
+    expect(first.tooltips).toHaveLength(0);
+    expect(second.tooltips).toHaveLength(1);
+    upper.destroy();
+    firstCard.list.at(-1)!.emit('pointerdown');
+    expect(first.tooltips).toHaveLength(1);
+    firstCard.destroy(); secondCard.destroy();
   });
 });

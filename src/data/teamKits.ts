@@ -210,9 +210,9 @@ export const AWAY_KIT_METADATA: Record<string, AwayKitMetadata> = {
     shirtNumberStrokeColor: undefined
   },
   'be': {
-    primaryColor: '#FFFFFF',
-    secondaryColor: '#E30613',
-    shirtNumberColor: '#E30613',
+    primaryColor: '#0f0f0f',
+    secondaryColor: '#f40b0d',
+    shirtNumberColor: '#ffd700',
     shirtNumberStrokeColor: undefined
   },
   'br': {

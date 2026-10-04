@@ -4,6 +4,7 @@ import { fitPlayerTooltipText, getPlayerTooltipLayout, getPlayerTooltipSize, PLA
   TOOLTIP_PADDING_X, TOOLTIP_PADDING_Y, type TooltipRect } from './cardTooltipLayout';
 import { SHARP_TEXT_RESOLUTION } from './textRendering';
 import { isMobileLandscapeLayout } from './mobileLayout';
+import { PLAYER_TOOLTIP_DEPTH } from './matchUiDepth';
 
 export class CardTooltipView extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene, cardBounds: TooltipRect, viewport: TooltipRect, profile: CardPlayerProfile) {
@@ -25,7 +26,7 @@ export class CardTooltipView extends Phaser.GameObjects.Container {
     this.add([background, text]);
     this.setPosition(layout.x, layout.y);
     this.setSize(size.width, size.height);
-    this.setDepth(10000);
+    this.setDepth(PLAYER_TOOLTIP_DEPTH);
     // No interactive objects: the overlay cannot consume card input.
     scene.add.existing(this);
   }

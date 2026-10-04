@@ -10,8 +10,9 @@ import {
 import { Button } from './Button';
 import { createResultActionButtons } from './resultActionButtons';
 import { SCOREBOARD_BORDER_COLOR } from './scoreboardStyle';
+import { createBlockingModal } from './playerTooltipLifecycle';
 
-export const MATCH_OVERLAY_DEPTH = 1000;
+export { MATCH_OVERLAY_DEPTH } from './matchUiDepth';
 
 export interface MatchPauseAction {
   label: string;
@@ -31,7 +32,7 @@ export function createMatchPauseOverlay(
 ): Phaser.GameObjects.Container {
   const centerX = SCENE_WIDTH / 2;
   const centerY = SCENE_HEIGHT / 2;
-  const modal = scene.add.container(0, 0).setDepth(MATCH_OVERLAY_DEPTH);
+  const modal = createBlockingModal(scene);
   const overlay = scene.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
   overlay.setInteractive();
 

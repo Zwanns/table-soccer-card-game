@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_TITLE, GAME_VERSION, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import { getLanguageCode, type GameLanguage } from '../i18n/languageStore';
 import { Button } from './Button';
-import { MATCH_OVERLAY_DEPTH } from './matchPauseOverlay';
+import { createBlockingModal } from './playerTooltipLifecycle';
 import { clampScroll, createDragScrollArea, TOUCH_SCROLL_WHEEL_FACTOR } from './touchInput';
 import { isMobileLandscapeLayout } from './mobileLayout';
 import { getMatchRulesLayout, type MatchRulesLayout } from './matchRulesLayout';
@@ -27,7 +27,7 @@ export function createMatchRulesOverlay(config: MatchRulesOverlayConfig): Phaser
   const centerX = SCENE_WIDTH / 2;
   const centerY = SCENE_HEIGHT / 2;
   const rules = config.content[config.language];
-  const modal = scene.add.container(0, 0).setDepth(MATCH_OVERLAY_DEPTH);
+  const modal = createBlockingModal(scene);
   const overlay = scene.add.rectangle(centerX, centerY, SCENE_WIDTH, SCENE_HEIGHT, 0x06140f, 0.72);
   overlay.setInteractive();
 
