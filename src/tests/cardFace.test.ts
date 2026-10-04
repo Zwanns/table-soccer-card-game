@@ -439,13 +439,13 @@ describe('kit card face rendering contracts', () => {
 
     expect(fieldViewSource).toContain('state.matchSetups[player.id]');
     expect(fieldViewSource).toContain("position.positionId === 'goalkeeper'");
-    expect(fieldViewSource).toContain('getTeamKitAssetKey(setup.flagCode)');
+    expect(fieldViewSource).toContain('getTeamKitAssetKey(setup.flagCode, setup.fieldKit)');
     expect(fieldViewSource).toContain('getGoalkeeperKitAssetKey(setup.goalkeeperKitId)');
     expect(deckViewSource).toContain('attackCardPlayerProfile');
     expect(deckViewSource).toContain('attackCardKitTextureKey');
     expect(gameSceneSource).toContain('resolveFieldCardProfile(state, player, state.attackCard)');
     expect(gameSceneSource).toContain('resolveFieldKitTextureKey(state, player)');
-    expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.flagCode)');
+    expect(gameSceneSource).toContain('getTeamKitAssetKey(setup.flagCode, setup.fieldKit)');
     expect(bootSceneSource).toContain('getRegisteredKitAssetsToLoad()');
     expect(kitFaceSource).toContain('scene.textures.exists(options.kitTextureKey)');
     expect(kitFaceSource).toContain('this.add(image)');

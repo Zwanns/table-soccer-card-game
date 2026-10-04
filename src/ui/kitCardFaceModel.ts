@@ -1,4 +1,4 @@
-import { type ResolvedKitAsset, resolveTeamKitAsset } from '../game/kitAssetResolver';
+import { type ResolvedKitAsset, resolveTeamKitAsset, resolveFieldKitTextureAsset } from '../game/kitAssetResolver';
 import type { CardPlayerProfile } from './cardPlayerProfile';
 import { px } from './textRendering';
 
@@ -97,6 +97,7 @@ export function prepareKitCardFace(options: {
   rank: string;
   playerProfile?: CardPlayerProfile;
   kitAsset?: ResolvedKitAsset;
+  kitTextureKey?: string;
 }): PreparedKitCardFace {
   const label = getCardRankVisualLabel(options.rank);
 
@@ -107,6 +108,7 @@ export function prepareKitCardFace(options: {
     shirtNumber: options.playerProfile?.shirtNumber,
     kitAsset:
       options.kitAsset ??
+      resolveFieldKitTextureAsset(options.kitTextureKey) ??
       (options.playerProfile === undefined || isGoalkeeperProfile(options.playerProfile)
         ? null
         : resolveTeamKitAsset(options.playerProfile.teamId))
