@@ -4,6 +4,7 @@ import { MenuScene } from '../scenes/MenuScene';
 import { TeamSelectScene } from '../scenes/TeamSelectScene';
 import { deleteStoredTournament, hasActiveTournamentSave } from '../tournament';
 import { getMainMenuButtonLayout } from '../ui/mainMenuLayout';
+import { PRIVACY_POLICY_URL } from '../config';
 
 const buttons = vi.hoisted(() => [] as Array<{
   x: number;
@@ -188,6 +189,72 @@ describe.each([true, false])('navigation rendering (mobile=%s)', (mobile) => {
     expect(panel.x + back.x - back.width / 2).toBeGreaterThanOrEqual(0);
     back.onClick();
     expect(closeAboutModal).toHaveBeenCalledOnce();
+  });
+
+  it.each(['about', 'rules'])('includes the privacy link only in About and preserves %s navigation', (kind) => {
+    const open = vi.fn();
+    vi.stubGlobal('window', { open });
+    const scene = new MenuScene();
+    const containers: Array<{ x: number; y: number; add: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }> = [];
+    const texts: Array<{
+      x: number; y: number; caption: string; style: Record<string, unknown>;
+      setOrigin: ReturnType<typeof vi.fn>; setInteractive: ReturnType<typeof vi.fn>;
+      setColor: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn>;
+    }> = [];
+    Object.assign(scene, {
+      aboutModal: null,
+      aboutLanguage: 'en',
+      createAboutLanguageSelector: vi.fn(() => ({})),
+      createAboutViewport: vi.fn(() => ({})),
+      createRulesViewport: vi.fn(() => ({})),
+      add: {
+        container: (x: number, y: number) => {
+          const container = { x, y, add: vi.fn(), destroy: vi.fn() };
+          containers.push(container);
+          return container;
+        },
+        rectangle: () => ({ setInteractive: vi.fn() }),
+        text: (x: number, y: number, caption: string, style: Record<string, unknown>) => {
+          const text = {
+            x, y, caption, style,
+            setOrigin: vi.fn().mockReturnThis(), setInteractive: vi.fn().mockReturnThis(),
+            setColor: vi.fn().mockReturnThis(), on: vi.fn().mockReturnThis()
+          };
+          texts.push(text);
+          return text;
+        }
+      }
+    });
+
+    invoke(scene, 'openInfoModal', kind);
+    const panel = containers[1];
+    const link = texts.find(({ caption }) => caption === 'Privacy Policy');
+    if (kind === 'about') {
+      expect(link).toBeDefined();
+      expect(panel.add.mock.calls[0][0]).toContain(link);
+      expect(link).toMatchObject({ x: mobile ? -444 : -390, y: -252 });
+      expect(link!.style).toMatchObject({ color: '#8fd4ff', fontSize: mobile ? '28px' : '18px' });
+      expect(link!.setOrigin).toHaveBeenCalledWith(0, 0.5);
+      expect(link!.setInteractive).toHaveBeenCalledWith({ useHandCursor: true });
+      const onClick = link!.on.mock.calls.find(([event]) => event === 'pointerdown')![1];
+      onClick();
+      expect(open).toHaveBeenCalledExactlyOnceWith(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer');
+    } else {
+      expect(link).toBeUndefined();
+      expect(open).not.toHaveBeenCalled();
+    }
+
+    const back = buttons[0];
+    expect(back).toMatchObject(mobile
+      ? { width: 240, height: 70, fontSize: '32px', x: -642, y: 306 }
+      : { width: 190, height: 42, fontSize: '18px', x: 0, y: 258 });
+    expect({ x: panel.x + back.x, y: panel.y + back.y }).toEqual(mobile
+      ? { x: 158, y: 666 }
+      : { x: 800, y: 618 });
+    back.onClick();
+    expect(containers[0].destroy).toHaveBeenCalledOnce();
+    expect(Reflect.get(scene, 'aboutModal')).toBeNull();
+    expect(Reflect.get(scene, 'activeInfoModal')).toBeNull();
   });
 });
 

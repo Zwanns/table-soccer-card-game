@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, PRIVACY_POLICY_URL, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
 import {
   GAME_LANGUAGES,
   getLanguageCode,
@@ -933,7 +933,7 @@ export class MenuScene extends Phaser.Scene {
     const viewport = kind === 'about' ? this.createAboutViewport(aboutContent) : this.createRulesViewport(rulesContent);
 
     panel.add(kind === 'about'
-      ? [background, backButton, languageSelector, title, subtitle, author, viewport]
+      ? [background, backButton, languageSelector, title, subtitle, author, viewport, this.createPrivacyPolicyLink()]
       : [background, backButton, languageSelector, title, subtitle, viewport]);
     modal.add([overlay, panel]);
     this.aboutModal = modal;
@@ -943,6 +943,23 @@ export class MenuScene extends Phaser.Scene {
     this.aboutModal?.destroy();
     this.aboutModal = null;
     this.activeInfoModal = null;
+  }
+
+  private createPrivacyPolicyLink(): Phaser.GameObjects.Text {
+    const mobile = isMobileLandscapeLayout();
+    const link = this.add
+      .text(mobile ? -444 : -390, -252, 'Privacy Policy', {
+        color: '#8fd4ff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: mobile ? '28px' : '18px',
+        fontStyle: '700'
+      })
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    link.on('pointerover', () => link.setColor('#bfe7ff'));
+    link.on('pointerout', () => link.setColor('#8fd4ff'));
+    link.on('pointerdown', () => window.open(PRIVACY_POLICY_URL, '_blank', 'noopener,noreferrer'));
+    return link;
   }
 
   private createInfoBackButton(panel: Phaser.GameObjects.Container): Phaser.GameObjects.Container {
