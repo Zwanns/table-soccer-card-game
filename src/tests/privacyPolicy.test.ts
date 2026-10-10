@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PRIVACY_POLICY_URL } from '../config';
+import { PRIVACY_POLICY_URL } from '../privacyPolicy';
 
 describe('public privacy policy', () => {
   it('uses the exact HTTPS URL without identifiers, query parameters or fragments', () => {

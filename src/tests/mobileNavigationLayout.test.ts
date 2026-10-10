@@ -4,7 +4,7 @@ import { MenuScene } from '../scenes/MenuScene';
 import { TeamSelectScene } from '../scenes/TeamSelectScene';
 import { deleteStoredTournament, hasActiveTournamentSave } from '../tournament';
 import { getMainMenuButtonLayout } from '../ui/mainMenuLayout';
-import { PRIVACY_POLICY_URL } from '../config';
+import { PRIVACY_POLICY_URL } from '../privacyPolicy';
 
 const buttons = vi.hoisted(() => [] as Array<{
   x: number;

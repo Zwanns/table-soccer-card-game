@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, PRIVACY_POLICY_URL, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { GAME_AUTHOR, GAME_AUTHOR_URL, GAME_TITLE, GAME_VERSION, MENU_ASSETS, SCENE_HEIGHT, SCENE_WIDTH } from '../config';
+import { PRIVACY_POLICY_URL } from '../privacyPolicy';
 import {
   GAME_LANGUAGES,
   getLanguageCode,
