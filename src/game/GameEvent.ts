@@ -25,6 +25,14 @@ export type AttackDeckEmptyEvent = {
 
 export type GameOverReason = 'CANNOT_RESTORE_FIELD' | 'NO_ATTACK_CARD' | 'NO_FIRST_PLAYER_CARD' | 'STEP_LIMIT_REACHED';
 
+export type TurnEndReason =
+  | 'FAILED_ATTACK'
+  | 'NO_LEGAL_TARGET'
+  | 'ATTACK_CARDS_EXHAUSTED'
+  | 'SAVE_RESOLVED'
+  | 'GOAL_RESOLVED'
+  | 'STEP_LIMIT_REACHED';
+
 export type GameEvent =
   | { type: 'GAME_STARTED' }
   | { type: 'FIRST_PLAYER_SELECTED'; playerId: Player['id'] }
@@ -83,7 +91,7 @@ export type GameEvent =
       defenderCard?: Card;
     }
   | { type: 'GOAL_SCORED'; playerId: Player['id']; turnNumber: number; matchStepNumber?: number; attackerCard: Card; scorer: ScorerSnapshot }
-  | { type: 'TURN_ENDED'; playerId: Player['id'] }
+  | { type: 'TURN_ENDED'; playerId: Player['id']; reason: TurnEndReason }
   | {
       type: 'GAME_OVER';
       winnerId: Player['id'] | null;

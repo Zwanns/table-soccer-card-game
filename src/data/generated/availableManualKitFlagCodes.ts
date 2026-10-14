@@ -55,6 +55,7 @@ export const AVAILABLE_AWAY_KIT_FLAG_CODES = [
   'be',
   'br',
   'cm',
+  'cz',
   'de',
   'es',
   'fr',

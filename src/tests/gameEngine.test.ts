@@ -385,7 +385,8 @@ describe('game engine attacks', () => {
     });
     expect(result.log.at(-1)).toEqual({
       type: 'TURN_ENDED',
-      playerId: 'PLAYER_1'
+      playerId: 'PLAYER_1',
+      reason: 'ATTACK_CARDS_EXHAUSTED'
     });
   });
 
@@ -411,7 +412,8 @@ describe('game engine attacks', () => {
     });
     expect(result.log.at(-1)).toEqual({
       type: 'TURN_ENDED',
-      playerId: 'PLAYER_2'
+      playerId: 'PLAYER_2',
+      reason: 'ATTACK_CARDS_EXHAUSTED'
     });
   });
 

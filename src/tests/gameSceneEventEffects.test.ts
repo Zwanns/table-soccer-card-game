@@ -63,7 +63,7 @@ describe('GameScene goal event effects', () => {
   it('skips only handled goal indexes and still returns later goals from the same match', () => {
     const events: GameEvent[] = [
       goalEvent('PLAYER_1', 'First Team'),
-      { type: 'TURN_ENDED', playerId: 'PLAYER_1' },
+      { type: 'TURN_ENDED', playerId: 'PLAYER_1', reason: 'GOAL_RESOLVED' },
       goalEvent('PLAYER_2', 'Second Team'),
       goalEvent('PLAYER_1', 'Third Team')
     ];

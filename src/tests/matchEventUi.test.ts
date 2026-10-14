@@ -378,6 +378,55 @@ describe('scoreboard and diagnostic overlay interaction', () => {
     expect(row.style.wordWrap.width).toBe(0);
   });
 
+  it('virtualizes 404 mixed FREE/BEAT/exhaustion entries with one mask and no extra row objects', () => {
+    const { scene, texts, masks, containers, zones } = sceneMock();
+    const overlay = new EventLogView(scene);
+    const history: MatchEventLogEntry[] = Array.from({ length: 101 }, (_, attack) => {
+      const base = { turnNumber: attack + 1, attacker: { rank: 'J', teamId: 'ua' } };
+      const sequence = attack * 4 + 1, move = attack * 3 + 1;
+      return [
+        { ...base, type: 'FREE_ZONE' as const, sequence, moveNumber: move, positionId: 'midfielder-1' },
+        { ...base, type: 'BEAT' as const, sequence: sequence + 1, moveNumber: move + 1,
+          attacker: { rank: 'Q', teamId: 'ua' }, defender: { rank: '8', teamId: 'tr' } },
+        { ...base, type: 'BEAT' as const, sequence: sequence + 2, moveNumber: move + 2,
+          attacker: { rank: 'A', teamId: 'ua' }, defender: { rank: '10', teamId: 'tr' } },
+        { type: 'TURN' as const, sequence: sequence + 3, moveNumber: move + 2, turnNumber: attack + 1,
+          fromTeamId: 'ua', toTeamId: 'tr', reason: 'ATTACK_CARDS_EXHAUSTED' as const }
+      ];
+    }).flat();
+    overlay.refresh(history.slice(0, 4)); overlay.toggle();
+    const originalRows = [...texts], originalMask = containers[0].mask;
+    overlay.refresh(history);
+    expect(visibleRows(overlay, texts).at(-1)?.text).toBe('#303 TURN / ATK CARDS 0');
+    zones[0].emit('wheel', {}, 0, -100000);
+    for (let index = 0; index < history.length; index++) {
+      const state = diagnostics(overlay);
+      const next = Math.min(index * EVENT_LOG_ROW_HEIGHT, state.maxScroll);
+      zones[0].emit('wheel', {}, 0, (next - state.scrollY) / TOUCH_SCROLL_WHEEL_FACTOR);
+      expect(visibleRows(overlay, texts).some(row => row.text === formatMatchLogEntry(history[index]))).toBe(true);
+    }
+    expect(texts).toEqual(originalRows);
+    expect(texts).toHaveLength(EVENT_LOG_POOL_SIZE);
+    expect(texts.every(row => row.height === 24 && row.width === 228 && row.style.wordWrap.width === 0
+      && !/[\r\n]/.test(row.text) && row.mask === undefined)).toBe(true);
+    expect(containers).toHaveLength(1);
+    expect(masks).toHaveLength(1);
+    expect(containers[0].mask).toBe(originalMask);
+    const changes = texts.map(row => vi.spyOn(row, 'setText'));
+    for (let frame = 0; frame < 120; frame++) overlay.refresh(history);
+    expect(changes.every(call => call.mock.calls.length === 0)).toBe(true);
+    zones[0].emit('wheel', {}, 0, -100000);
+    changes.forEach(call => call.mockClear());
+    history.push({ type: 'FREE_ZONE', sequence: 405, moveNumber: 304, turnNumber: 102,
+      positionId: 'midfielder-1', attacker: { rank: 'J', teamId: 'ua' } });
+    overlay.refresh(history);
+    expect(diagnostics(overlay).scrollY).toBe(0);
+    expect(changes.every(call => call.mock.calls.length === 0)).toBe(true);
+    overlay.toggle(); overlay.toggle();
+    expect(visibleRows(overlay, texts).at(-1)?.text).toBe('#304 FREE V → MID');
+    expect(texts).toEqual(originalRows);
+  });
+
   it('reuses the same row, container and mask objects from 10 to 402 events and across toggles', () => {
     const { scene, texts, containers, masks, zones } = sceneMock();
     const overlay = new EventLogView(scene), history = entries(402);
@@ -426,7 +475,7 @@ describe('scoreboard and diagnostic overlay interaction', () => {
     const overlay = new EventLogView(scene), history = entries(402);
     overlay.refresh(history); overlay.toggle();
     zones[0].emit('wheel', {}, 0, -20 / TOUCH_SCROLL_WHEEL_FACTOR);
-    history.push({ type: 'TURN', sequence: 403, turnNumber: 200, moveNumber: 200, fromTeamId: 'ua', toTeamId: 'tr' });
+    history.push({ type: 'TURN', sequence: 403, turnNumber: 200, moveNumber: 200, fromTeamId: 'ua', toTeamId: 'tr', reason: 'FAILED_ATTACK' });
     overlay.refresh(history);
     expect(diagnostics(overlay).scrollY).toBe(diagnostics(overlay).maxScroll);
     expect(visibleRows(overlay, texts).at(-1)?.text).toBe('#200 TURN');

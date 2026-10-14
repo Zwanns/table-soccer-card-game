@@ -64,7 +64,7 @@ describe('match finish flow', () => {
       activePlayerId: 'PLAYER_2',
       log: [
         { type: 'ATTACK_DECK_EMPTY', playerId: 'PLAYER_1', turnNumber: 8 },
-        { type: 'TURN_ENDED', playerId: 'PLAYER_1' },
+        { type: 'TURN_ENDED', playerId: 'PLAYER_1', reason: 'ATTACK_CARDS_EXHAUSTED' },
         { type: 'GAME_OVER', winnerId: null }
       ]
     });

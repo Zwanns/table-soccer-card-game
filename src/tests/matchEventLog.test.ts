@@ -24,6 +24,176 @@ function ready(rank: CardRank, target: CardRank | GoalkeeperCard['rank'], gk = f
   return { engine, state, events: engine.getEventLog() };
 }
 
+/** Create the gap through a real committed-midfielder attack and failed duel. */
+function freeZoneAttack(originalCount: 3 | 4 = 3) {
+  const engine = new GameEngine();
+  const state = engine.startNewGame({ seed: 'free-zone-regression', player1FlagCode: 'ua', player2FlagCode: 'tr',
+    setupPreset: { activePlayerId: 'PLAYER_1' } });
+  state.players[0].deck.cards = ['2', '4', '5', '6'].map(rank => card(rank as CardRank));
+  state.players[0].field['midfielder-1'] = card('A');
+  state.players[0].field['midfielder-2'] = card('8');
+  state.players[0].field['midfielder-3'] = card('10');
+  state.players[1].deck.cards = ['2', 'J', 'Q', 'A', ...(originalCount === 4 ? ['K'] : [])]
+    .map(rank => card(rank as CardRank));
+  for (const position of ['midfielder-1', 'midfielder-2', 'midfielder-3'] as const) {
+    state.players[1].field[position] = { ...card('3'), id: `opponent-${position}` };
+  }
+  engine.startNextTurn();
+  engine.commitMidfielder('midfielder-1');
+  engine.drawAttackCard();
+  engine.selectTarget('midfielder-2');
+  expect(state.counterattackMidfieldGap).toMatchObject({ defendingPlayerId: 'PLAYER_1', used: false });
+  engine.startNextTurn();
+  expect(state.players[1].deck.cards).toHaveLength(originalCount);
+  expect(engine.getCommittableMidfielderPositionIds()).toEqual([]);
+  state.matchStepCount = 193;
+  const eventStart = engine.getEventLog().length;
+  return { engine, state, eventStart };
+}
+
+function useGapAndBeatTwice(engine: GameEngine) {
+  engine.drawAttackCard();
+  engine.useMidfieldGap('midfielder-1');
+  engine.drawAttackCard();
+  engine.selectTarget('midfielder-2');
+  engine.drawAttackCard();
+  engine.selectTarget('midfielder-3');
+}
+
+describe('MATCH.EVENT.LOG.1.4 free zone and attack exhaustion', () => {
+  it('logs the actual gap use once with a frozen identity, slot and gameplay move number', () => {
+    const { engine, state, eventStart } = freeZoneAttack();
+    engine.drawAttackCard();
+    expect(() => engine.useMidfieldGap('midfielder-2')).toThrow();
+    expect(engine.getEventLog()).toHaveLength(eventStart);
+    engine.useMidfieldGap('midfielder-1');
+    const event = engine.getEventLog().at(-1)!;
+    expect(event).toMatchObject({ type: 'FREE_ZONE', moveNumber: 194, turnNumber: 2,
+      positionId: 'midfielder-1', attacker: { teamId: 'tr', rank: 'J' } });
+    expect(event.sequence).not.toBe(event.moveNumber);
+    expect(formatMatchLogEntry(event)).toBe('#194 FREE V → MID');
+    expect(engine.getEventLog().slice(eventStart).map(e => e.type)).toEqual(['FREE_ZONE']);
+    expect(state.log.at(-1)).toMatchObject({ type: 'MIDFIELD_GAP_USED', attackerCard: { rank: 'J' } });
+    expect(Object.isFrozen(event)).toBe(true);
+    if ('attacker' in event) expect(Object.isFrozen(event.attacker)).toBe(true);
+    state.attackBank[0].rank = '2';
+    expect(formatMatchLogEntry(event)).toBe('#194 FREE V → MID');
+    expect(() => engine.useMidfieldGap('midfielder-1')).toThrow();
+    expect(engine.getEventLog()).toHaveLength(eventStart + 1);
+  });
+
+  it('ends the three-card attack with two captures, despite the returned five-card deck', () => {
+    const { engine, state, eventStart } = freeZoneAttack();
+    engine.drawAttackCard();
+    engine.useMidfieldGap('midfielder-1');
+    expect(state.players[1].deck.cards.map(c => c.rank)).toEqual(['Q', 'A']);
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-2');
+    // Captures are banked, so only the last original card can be drawn this attack.
+    expect(state.attackBank.map(c => c.rank)).toEqual(['J', 'Q', '8']);
+    expect(state.players[1].deck.cards.map(c => c.rank)).toEqual(['A']);
+    engine.drawAttackCard();
+    expect(state.attackCard?.rank).toBe('A');
+    expect(state.players[1].deck.cards).toEqual([]);
+    engine.selectTarget('midfielder-3');
+    expect(state.phase).toBe('ENDING_TURN');
+    expect(state.activePlayerId).toBe('PLAYER_1');
+    expect(state.attackBank).toEqual([]);
+    expect(state.players[1].deck.cards.map(c => c.rank)).toEqual(['J', 'Q', '8', 'A', '10']);
+    expect(state.players[1].deck.cards.every(c => c.color === state.players[1].teamColor)).toBe(true);
+    expect(state.log.at(-1)).toMatchObject({ type: 'TURN_ENDED', reason: 'ATTACK_CARDS_EXHAUSTED' });
+    const events = engine.getEventLog().slice(eventStart);
+    expect(events.map(e => e.type)).toEqual(['FREE_ZONE', 'BEAT', 'BEAT', 'TURN']);
+    expect(events.map(e => formatMatchLogEntry(e))).toEqual([
+      '#194 FREE V → MID', '#195 BEAT Q → 8', '#196 BEAT A → 10', '#196 TURN / ATK CARDS 0'
+    ]);
+    expect(events.at(-1)).toMatchObject({ type: 'TURN', reason: 'ATTACK_CARDS_EXHAUSTED',
+      moveNumber: 196, fromTeamId: 'tr', toTeamId: 'ua' });
+    expect(() => engine.drawAttackCard()).toThrow();
+  });
+
+  it('makes a captured card drawable on the next attack of its new owner', () => {
+    const { engine, state } = freeZoneAttack();
+    useGapAndBeatTwice(engine);
+    engine.startNextTurn();
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-1');
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-2');
+    engine.drawAttackCard();
+    engine.selectTarget('midfielder-3');
+    expect(state.activePlayerId).toBe('PLAYER_2');
+    engine.startNextTurn();
+    // J and Q restore the two beaten slots; the banked 8 is now the top attack card.
+    engine.drawAttackCard();
+    expect(state.attackCard).toMatchObject({ id: 'attack-8', rank: '8', color: state.players[1].teamColor });
+    expect(state.currentAttackCardSource).toBe('DECK');
+    expect(state.phase).toBe('WAITING_FOR_TARGET');
+  });
+
+  it('continues the four-card control attack using the remaining original card', () => {
+    const { engine, state, eventStart } = freeZoneAttack(4);
+    useGapAndBeatTwice(engine);
+    expect(state.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(state.activePlayerId).toBe('PLAYER_2');
+    expect(state.players[1].deck.cards.map(c => c.rank)).toEqual(['K']);
+    expect(state.attackBank.map(c => c.rank)).toEqual(['J', 'Q', '8', 'A', '10']);
+    expect(engine.getEventLog().slice(eventStart).map(e => e.type)).toEqual(['FREE_ZONE', 'BEAT', 'BEAT']);
+    engine.drawAttackCard();
+    expect(state.attackCard?.rank).toBe('K');
+    expect(state.phase).toBe('WAITING_FOR_TARGET');
+  });
+
+  it('keeps a legal committed-midfielder source available even when the deck is empty', () => {
+    const { engine, state, eventStart } = freeZoneAttack();
+    state.players[1].deck.cards = [card('J')];
+    state.players[1].field['midfielder-2'] = card('A');
+    engine.drawAttackCard();
+    engine.useMidfieldGap('midfielder-1');
+    expect(state.players[1].deck.cards).toEqual([]);
+    expect(state.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    expect(engine.getCommittableMidfielderPositionIds()).toContain('midfielder-2');
+    expect(engine.getEventLog().slice(eventStart).map(e => e.type)).toEqual(['FREE_ZONE']);
+    engine.commitMidfielder('midfielder-2');
+    expect(engine.getEventLog().at(-1)).toMatchObject({ type: 'TURN', reason: 'ATTACK_CARDS_EXHAUSTED' });
+  });
+
+  it.each([['SAVE', 'SAVE_RESOLVED'], ['GOAL', 'GOAL_RESOLVED']] as const)(
+    'records %s as the turn cause while keeping its visible TURN compact', (outcome, reason) => {
+      const { events, state } = outcome === 'SAVE' ? ready('3', 'A', true) : ready('A', '3', true);
+      expect(events.at(-1)).toMatchObject({ type: 'TURN', reason });
+      expect(state.log.at(-1)).toMatchObject({ type: 'TURN_ENDED', reason });
+      expect(formatMatchLogEntry(events.at(-1)!)).toBe('#1 TURN');
+    });
+
+  it('records no legal target as the turn cause', () => {
+    const { engine, state } = freeZoneAttack();
+    state.players[0].field = createEmptyField();
+    state.counterattackMidfieldGap = null;
+    engine.drawAttackCard();
+    expect(engine.getEventLog().at(-1)).toMatchObject({ type: 'TURN', reason: 'NO_LEGAL_TARGET' });
+    expect(state.log.at(-1)).toMatchObject({ type: 'TURN_ENDED', reason: 'NO_LEGAL_TARGET' });
+  });
+
+  it('continues after a post, ending only when the actual attack sources are exhausted', () => {
+    const { engine, state } = ready('8', '8', true);
+    expect(engine.getEventLog().at(-1)?.type).toBe('POST');
+    expect(state.phase).toBe('WAITING_FOR_ATTACK_CARD');
+    state.players[0].deck.cards = [card('8')];
+    engine.drawAttackCard();
+    engine.selectTarget('goalkeeper');
+    expect(engine.getEventLog().slice(-3).map(e => e.type)).toEqual(['SHOT', 'POST', 'TURN']);
+    expect(engine.getEventLog().at(-1)).toMatchObject({ type: 'TURN', reason: 'ATTACK_CARDS_EXHAUSTED' });
+  });
+
+  it('records the step-limit cause after the completing action', () => {
+    const { events, state } = ready('A', '3', false, 1);
+    expect(events.slice(-3).map(e => e.type)).toEqual(['BEAT', 'TURN', 'MATCH_END']);
+    expect(events.at(-2)).toMatchObject({ type: 'TURN', reason: 'STEP_LIMIT_REACHED' });
+    expect(state.log.at(-2)).toMatchObject({ type: 'TURN_ENDED', reason: 'STEP_LIMIT_REACHED' });
+  });
+});
+
 describe('structured match diagnostics', () => {
   it('starts every new match at sequence one and resets on replay/restart', () => {
     const { engine, events } = ready('A', '3');
@@ -44,7 +214,10 @@ describe('structured match diagnostics', () => {
   });
 
   it('records a turn transition with both teams', () => {
-    expect(ready('3', 'A').events.at(-1)).toMatchObject({ type: 'TURN', fromTeamId: 'ua', toTeamId: 'tr' });
+    const { events, state } = ready('3', 'A');
+    expect(events.at(-1)).toMatchObject({ type: 'TURN', fromTeamId: 'ua', toTeamId: 'tr', reason: 'FAILED_ATTACK' });
+    expect(state.log.at(-1)).toMatchObject({ type: 'TURN_ENDED', reason: 'FAILED_ATTACK' });
+    expect(events.slice(-2).map(event => formatMatchLogEntry(event))).toEqual(['#1 FAIL 3 ← A', '#1 TURN']);
   });
 
   it.each([['3', 'A', 'SAVE'], ['8', '8', 'POST'], ['A', '3', 'GOAL']] as const)('records shot %s vs goalkeeper %s followed by %s', (a, g, outcome) => {
@@ -108,6 +281,11 @@ describe('structured match diagnostics', () => {
     }
     expect(engines[0].getState().phase).toBe('GAME_OVER');
     expect(engines[0].getEventLog().at(-1)?.type).toBe('MATCH_END');
+    const reasons = engines[0].getState().log.filter(event => event.type === 'TURN_ENDED').map(event => event.reason);
+    expect(reasons.length).toBeGreaterThan(0);
+    expect(reasons.every(reason => ['FAILED_ATTACK', 'NO_LEGAL_TARGET', 'ATTACK_CARDS_EXHAUSTED',
+      'SAVE_RESOLVED', 'GOAL_RESOLVED', 'STEP_LIMIT_REACHED'].includes(reason))).toBe(true);
+    expect(engines[0].getEventLog().filter(event => event.type === 'TURN').map(event => event.reason)).toEqual(reasons);
   });
 });
 
@@ -122,7 +300,9 @@ const compactCases: [MatchEventLogEntry, string][] = [
   [{ ...stamp, moveNumber: 37, type: 'SAVE', attacker: identity('A'), goalkeeper: identity('9') }, '#37 SAVE A ← GK 9'],
   [{ ...stamp, moveNumber: 42, type: 'POST', attacker: identity('K'), goalkeeper: identity('9') }, '#42 POST K'],
   [{ ...stamp, moveNumber: 95, type: 'GOAL', attacker: identity('Q'), score: [1, 0] }, '#95 GOAL Q'],
-  [{ ...stamp, moveNumber: 28, type: 'TURN', fromTeamId: 'ua', toTeamId: 'tr' }, '#28 TURN'],
+  [{ ...stamp, moveNumber: 28, type: 'TURN', fromTeamId: 'ua', toTeamId: 'tr', reason: 'FAILED_ATTACK' }, '#28 TURN'],
+  [{ ...stamp, moveNumber: 194, type: 'FREE_ZONE', attacker: identity('J'), positionId: 'midfielder-1' }, '#194 FREE V → MID'],
+  [{ ...stamp, moveNumber: 196, type: 'TURN', fromTeamId: 'ua', toTeamId: 'tr', reason: 'ATTACK_CARDS_EXHAUSTED' }, '#196 TURN / ATK CARDS 0'],
   [{ ...stamp, moveNumber: 0, type: 'MATCH_START', teams: ['ua', 'tr'] }, '#0 MATCH START'],
   [{ ...stamp, moveNumber: 107, type: 'MATCH_END', score: [1, 0] }, '#107 MATCH END 1:0'],
   [{ ...stamp, moveNumber: 6, type: 'FAILED', attacker: identity('3') }, '#6 FAIL 3']

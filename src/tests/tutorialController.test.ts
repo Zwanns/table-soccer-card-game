@@ -274,7 +274,7 @@ describe('TutorialController', () => {
     expect(controller.recordTargetLine('DEFENSE')).toBe(false);
     expect(controller.recordTargetLine('GOALKEEPER')).toBe(true);
     expect(controller.getCurrentStep()?.id).toBe('score');
-    expect(controller.recordEvents([{ type: 'TURN_ENDED', playerId: 'PLAYER_1' }])).toBe(false);
+    expect(controller.recordEvents([{ type: 'TURN_ENDED', playerId: 'PLAYER_1', reason: 'FAILED_ATTACK' }])).toBe(false);
     expect(
       controller.recordEvents([
         {

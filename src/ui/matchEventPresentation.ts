@@ -22,8 +22,9 @@ export function formatMatchLogEntry(event: MatchEventLogEntry, _context?: string
   let text: string;
   switch (event.type) {
     case 'MATCH_START': text = `${prefix} MATCH START`; break;
+    case 'FREE_ZONE': text = `${prefix} FREE ${rank(event.attacker.rank)} → MID`; break;
     case 'BEAT': case 'FAILED': text = `${prefix} ${event.type === 'FAILED' ? 'FAIL' : 'BEAT'} ${rank(event.attacker.rank)}${event.defender ? ` ${event.type === 'FAILED' ? '←' : '→'} ${rank(event.defender.rank)}` : ''}`; break;
-    case 'TURN': text = `${prefix} TURN`; break;
+    case 'TURN': text = `${prefix} TURN${event.reason === 'ATTACK_CARDS_EXHAUSTED' ? ' / ATK CARDS 0' : ''}`; break;
     case 'SHOT': case 'SAVE': text = `${prefix} ${event.type} ${rank(event.attacker.rank)}${event.goalkeeper ? ` ${event.type === 'SAVE' ? '←' : '→'} GK ${rank(event.goalkeeper.rank)}` : ''}`; break;
     case 'POST': case 'GOAL': text = `${prefix} ${event.type} ${rank(event.attacker.rank)}`; break;
     case 'MATCH_END': text = `${prefix} MATCH END ${event.score.join(':')}`; break;

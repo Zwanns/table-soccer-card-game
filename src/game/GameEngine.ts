@@ -20,7 +20,7 @@ import {
 import type { PlayerControllerType } from '../ai';
 import { createDefaultSquad } from '../data/defaultSquads';
 import { loadSquad } from '../services/squadStorage';
-import type { GameEvent, GameOverReason, ScorerSnapshot } from './GameEvent';
+import type { GameEvent, GameOverReason, ScorerSnapshot, TurnEndReason } from './GameEvent';
 import type { GameState } from './GameState';
 import { createGoalkeeperKitPair, createMatchTeamSetup, type MatchTeamSetups } from './MatchTeamSetup';
 import type { Player } from './Player';
@@ -68,6 +68,12 @@ export interface GameSetupPreset {
 }
 
 type FinishAttackReason = 'MISS' | 'GOAL' | 'NO_MORE_ATTACK_CARDS' | 'STEP_LIMIT_REACHED';
+const TURN_END_REASONS: Readonly<Record<FinishAttackReason, TurnEndReason>> = {
+  MISS: 'FAILED_ATTACK',
+  GOAL: 'GOAL_RESOLVED',
+  NO_MORE_ATTACK_CARDS: 'ATTACK_CARDS_EXHAUSTED',
+  STEP_LIMIT_REACHED: 'STEP_LIMIT_REACHED'
+};
 type FinishGameReason = GameOverReason;
 
 export class GameEngine {
@@ -702,7 +708,7 @@ export class GameEngine {
       this.state.attackCard = null;
       this.clearAttackCardSource();
       this.appendLog({ type: 'ATTACK_MISSED', card: attackCard });
-      this.finishAttack('MISS');
+      this.finishAttack('MISS', 'NO_LEGAL_TARGET');
       return;
     }
 
@@ -753,7 +759,7 @@ export class GameEngine {
       this.state.legalMidfieldGapPositionIds = [];
       this.appendLog({ type: 'GOALKEEPER_SAVE', playerId: activePlayer.id, attackerCard: attackCard, goalkeeperCard });
       this.changeGoalkeeperCardAfterSave(opponent, goalkeeperCard);
-      this.finishAttack('MISS');
+      this.finishAttack('MISS', 'SAVE_RESOLVED');
       return this.state;
     }
 
@@ -808,7 +814,7 @@ export class GameEngine {
     return this.state;
   }
 
-  private finishAttack(reason: FinishAttackReason): void {
+  private finishAttack(reason: FinishAttackReason, turnReason: TurnEndReason = TURN_END_REASONS[reason]): void {
     const activePlayer = this.getActivePlayer();
     const committedMidfielderPositionIds = [...(this.state.committedMidfielderPositionIds ?? [])];
     this.closeCounterattackMidfieldGap();
@@ -834,7 +840,7 @@ export class GameEngine {
     this.state.committedMidfielderPositionIds = [];
     this.state.committableMidfielderPositionIds = [];
     this.state.phase = 'ENDING_TURN';
-    this.appendLog({ type: 'TURN_ENDED', playerId: activePlayer.id });
+    this.appendLog({ type: 'TURN_ENDED', playerId: activePlayer.id, reason: turnReason });
     this.switchActivePlayer();
     if ((this.state.matchStepCount ?? 0) >= this.matchStepLimit) {
       this.finishGame('STEP_LIMIT_REACHED');

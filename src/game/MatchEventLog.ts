@@ -1,5 +1,5 @@
 import type { Card, GoalkeeperCard } from '../cards';
-import type { GameEvent } from './GameEvent';
+import type { GameEvent, TurnEndReason } from './GameEvent';
 import type { GameState } from './GameState';
 import { getOptionalFieldPlayerForCard } from './squadResolver';
 
@@ -13,8 +13,9 @@ export interface MatchCardIdentity {
 
 type MatchEventData =
   | { type: 'MATCH_START'; teams: readonly [string, string] }
+  | { type: 'FREE_ZONE'; attacker: MatchCardIdentity; positionId: string }
   | { type: 'BEAT' | 'FAILED'; attacker: MatchCardIdentity; defender?: MatchCardIdentity; positionId?: string }
-  | { type: 'TURN'; fromTeamId: string; toTeamId: string }
+  | { type: 'TURN'; fromTeamId: string; toTeamId: string; reason: TurnEndReason }
   | { type: 'SHOT' | 'SAVE' | 'POST'; attacker: MatchCardIdentity; goalkeeper: MatchCardIdentity }
   | { type: 'GOAL'; attacker: MatchCardIdentity; score: readonly [number, number] }
   | { type: 'MATCH_END'; score: readonly [number, number] };
@@ -42,11 +43,14 @@ export class MatchEventLog {
     let data: MatchEventData;
     switch (event.type) {
       case 'GAME_STARTED': data = { type: 'MATCH_START', teams: Object.freeze([team(state.players[0].id), team(state.players[1].id)]) }; break;
+      case 'MIDFIELD_GAP_USED': data = { type: 'FREE_ZONE', attacker: identity(playerId, event.attackerCard),
+        positionId: event.positionId }; break;
       case 'CARD_DEFEATED': data = { type: 'BEAT', attacker: identity(playerId, event.attackerCard),
         defender: identity(opponentId, event.defenderCard, event.positionId === 'goalkeeper'), positionId: event.positionId }; break;
       case 'ATTACK_MISSED': data = { type: 'FAILED', attacker: identity(playerId, event.attackerCard ?? event.card),
         ...(event.defenderCard ? { defender: identity(opponentId, event.defenderCard) } : {}), positionId: event.positionId }; break;
-      case 'TURN_ENDED': data = { type: 'TURN', fromTeamId: team(event.playerId), toTeamId: team(opponentId ?? '') }; break;
+      case 'TURN_ENDED': data = { type: 'TURN', fromTeamId: team(event.playerId), toTeamId: team(opponentId ?? ''),
+        reason: event.reason }; break;
       case 'SHOT_ON_GOAL':
       case 'GOALKEEPER_SAVE':
       case 'GOALPOST_HIT': data = { type: event.type === 'SHOT_ON_GOAL' ? 'SHOT' : event.type === 'GOALKEEPER_SAVE' ? 'SAVE' : 'POST',
